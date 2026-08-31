@@ -1,6 +1,6 @@
 self.MS = {
   app: "sonar",
-  version: "f22bd419ca",
+  version: "5c3db893ae",
   precache: [
     "./",
     "./i18n/en.json",
@@ -45,7 +45,6 @@ self.MS = {
     "/_rt/store.js",
     "/_rt/swipe.js",
     "/_rt/theme.css",
-    "/_rt/tilt.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/validate.js",

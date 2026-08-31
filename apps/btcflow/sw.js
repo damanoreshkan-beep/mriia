@@ -1,6 +1,6 @@
 self.MS = {
   app: "btcflow",
-  version: "1708d52683",
+  version: "ff62cc638e",
   precache: [
     "./",
     "./i18n/en.json",
@@ -42,7 +42,6 @@ self.MS = {
     "/_rt/store.js",
     "/_rt/swipe.js",
     "/_rt/theme.css",
-    "/_rt/tilt.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/validate.js",
