@@ -1,4 +1,4 @@
-import { noteFreq } from "./audio.js";
+import { noteFreq } from "@microspec/core/runtime/audio.js";
 
 export const centsToRatio = (c) => 2 ** (c / 1200);
 export const semiToRatio = (s) => 2 ** (s / 12);

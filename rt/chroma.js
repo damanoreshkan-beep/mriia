@@ -1,4 +1,4 @@
-import { rgbToHsl } from "./colour.js";
+import { rgbToHsl } from "@microspec/core/runtime/colour.js";
 
 export const SCALES = {
   penta: [0, 2, 4, 7, 9, 12, 14, 16, 19, 21],          

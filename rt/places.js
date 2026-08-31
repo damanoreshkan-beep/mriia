@@ -1,4 +1,4 @@
-import { gate } from "./gate.js";
+import { gate } from "@microspec/core/runtime/gate.js";
 
 const ENDPOINT = "https://geocoding-api.open-meteo.com/v1/search";
 

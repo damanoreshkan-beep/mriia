@@ -1,6 +1,6 @@
 self.MS = {
   app: "earshot",
-  version: "a38db59309",
+  version: "e28d698739",
   precache: [
     "./",
     "./i18n/en.json",
@@ -17,7 +17,6 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/db.js",
-    "/_rt/earshot.js",
     "/_rt/enrich.js",
     "/_rt/feed.js",
     "/_rt/gate.js",
@@ -32,7 +31,6 @@ self.MS = {
     "/_rt/player.js",
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
-    "/_rt/radar.js",
     "/_rt/render.js",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",

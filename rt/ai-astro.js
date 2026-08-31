@@ -1,4 +1,4 @@
-import { reading, aiTick } from "./ai-core.js";
+import { reading, aiTick } from "@microspec/core/runtime/ai-core.js";
 
 const SKY = reading("astro", "astro");
 export const interpret = SKY.get;

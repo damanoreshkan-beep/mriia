@@ -1,6 +1,6 @@
 self.MS = {
   app: "subclone",
-  version: "95ff3e7aa5",
+  version: "c3916d3458",
   precache: [
     "./",
     "./i18n/en.json",
@@ -22,11 +22,9 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
-    "/_rt/hackrf.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",
-    "/_rt/ook.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",
     "/_rt/playback.js",

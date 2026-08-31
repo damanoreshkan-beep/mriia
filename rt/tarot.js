@@ -1,4 +1,4 @@
-import { mulberry32 } from "./groove.js";
+import { mulberry32 } from "@microspec/core/runtime/groove.js";
 
 export const SPREADS = [
   { id: "daily", pos: ["posToday"] },

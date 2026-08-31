@@ -1,4 +1,4 @@
-import { noiseBuffer } from "./audio.js";
+import { noiseBuffer } from "@microspec/core/runtime/audio.js";
 
 export const FIPPLE = [[1, 1], [2, 0.11], [3, 0.26], [4, 0.05], [5, 0.1], [6, 0.03]];
 

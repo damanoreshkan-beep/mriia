@@ -1,5 +1,5 @@
-import { VPS_PROXY } from "./feed.js";
-import { gate } from "./gate.js";
+import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
+import { gate } from "@microspec/core/runtime/gate.js";
 
 export const SYNC_URL = VPS_PROXY.replace(/^http/, "ws") + "/sync";
 

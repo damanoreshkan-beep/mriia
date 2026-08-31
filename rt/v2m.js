@@ -1,5 +1,5 @@
 
-import { fib } from "./spectrum.js";
+import { fib } from "@microspec/core/runtime/spectrum.js";
 
 export const MIRRORS = [
   "https://modland.com/pub/modules/V2/",

@@ -1,4 +1,4 @@
-import { mulberry32 } from "./groove.js";
+import { mulberry32 } from "@microspec/core/runtime/groove.js";
 
 export const HANN_N = 128;
 export function hannCurve(n = HANN_N) {

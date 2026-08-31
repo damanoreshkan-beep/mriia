@@ -1,6 +1,6 @@
 
-import { mulberry32 } from "./groove.js";
-import { midiToFreq } from "./audio.js";
+import { mulberry32 } from "@microspec/core/runtime/groove.js";
+import { midiToFreq } from "@microspec/core/runtime/audio.js";
 
 export { midiToFreq };
 
