@@ -1,6 +1,6 @@
 
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { mulberry32 } from "../groove.js";
+import { mulberry32 } from "@microspec/core/runtime/groove.js";
 import { feedback, solved, makeSecret } from "../codebreak.js";
 
 Deno.test("codebreak feedback: exact vs partial, and the repeated-colour trap", () => {
