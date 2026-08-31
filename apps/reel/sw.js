@@ -1,6 +1,6 @@
 self.MS = {
   app: "reel",
-  version: "e15ff4641d",
+  version: "3a782c0554",
   precache: [
     "./",
     "./i18n/en.json",
@@ -59,6 +59,7 @@ self.MS = {
     "https://esm.sh/@nanostores/persistent@0.10.2?external=nanostores",
     "https://esm.sh/@nanostores/preact@0.5.2?external=preact,nanostores",
     "https://esm.sh/htm@3.1.1/preact?external=preact",
+    "https://esm.sh/lodash-es@4.17.21",
     "https://esm.sh/nanostores@0.11.4",
     "https://esm.sh/preact@10.27.1",
     "https://esm.sh/preact@10.27.1/hooks",
