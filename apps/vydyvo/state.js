@@ -50,6 +50,14 @@ function addFrame(f) {
   return id;
 }
 
+function jsonField(raw, key) {
+  try {
+    const m = String(raw || "").match(/\{[\s\S]*\}/);
+    const v = m ? JSON.parse(m[0])?.[key] : null;
+    return typeof v === "string" ? v.trim() : "";
+  } catch { return ""; }
+}
+
 async function lineFor(id, preset, userWords, loc) {
   if (gate) return;
   const avoid = $frames.get().map((f) => f.line).filter(Boolean).slice(-12);
@@ -60,7 +68,7 @@ async function lineFor(id, preset, userWords, loc) {
   ].filter(Boolean).join("\n");
   try {
     const out = await suggest("line", spark, loc || "uk");
-    const line = String(out || "").split("\n")[0].trim().replace(/^["«—–\-\s]+/, "").replace(/["»\s]+$/, "").slice(0, 90);
+    const line = jsonField(out, "line").replace(/^["«—–\-\s]+/, "").replace(/["»\s]+$/, "").slice(0, 90);
     if (!line || !$frames.get().some((f) => f.id === id)) return;
     $frames.set($frames.get().map((f) => (f.id === id ? { ...f, line } : f)));
     if (idbSupported) {
@@ -131,7 +139,7 @@ async function generate() {
   let subject = o.prompt.trim(), scene = "";
   const painted = $frames.get().map((f) => f.subject).filter(Boolean).slice(-8);
   const spark = [`У дусі: ${subject || preset.subject}.`, painted.length ? `Вже було: ${painted.join(" | ")}` : ""].filter(Boolean).join("\n");
-  try { scene = String(await suggest("scene", spark, ctxRef?.loc || "uk") || "").trim().slice(0, 300); } catch {  }
+  try { scene = jsonField(await suggest("scene", spark, ctxRef?.loc || "uk"), "scene").slice(0, 300); } catch {  }
   if (run !== runs) return;
   if (scene) subject = scene;
   if (subject) { try { subject = await toEnglish(subject); } catch {  } }
