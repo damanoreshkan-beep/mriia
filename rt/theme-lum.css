@@ -59,9 +59,10 @@
   --ds-strand-y: calc(100% + 23.5vw);          
   --ds-strand-y-wide: calc(100% + 89px);
   --ds-strand-a: .85;
-  --ds-lip: url("/_rt/ds-n-arc.webp");         
+  
+  --ds-lip: none;
   --ds-lip-pos: center 52%; --ds-lip-size: 150% auto;
-  --ds-lip-a: .6;
+  --ds-lip-a: 0;
   --ds-scatter: url("/_rt/ds-n-scatter.webp"); 
   --ds-scatter-pos: center -44px; --ds-scatter-size: 260px auto;
   --ds-scatter-a: .8;
@@ -81,7 +82,6 @@
   --sf-press-face: #0A0A0D;
   --sf-press-top:  rgba(0, 0, 0, .7);
   --sf-track-face: #1B1B21;   
-
   --ms-vol-key:    rgba(255, 238, 208, .035);   
   --ms-vol-bounce: color-mix(in oklch, var(--app-accent) 12%, transparent);
   --ms-vol-rim:    rgba(255, 232, 196, .07);    
@@ -122,13 +122,14 @@
   --sf-press-face: #ECE9E1;
   --sf-press-top:  rgba(40, 32, 20, .18);
   --sf-track-face: #D8D3C7;   
-  
+
   --ms-vol-key:    rgba(255, 255, 255, .85);
   --ms-vol-bounce: color-mix(in oklch, var(--app-accent) 8%, transparent);
   --ms-vol-rim:    rgba(40, 32, 20, .08);
   --ms-vol-sheen:  rgba(255, 255, 255, .9);
   --ms-vol-shade:  rgba(40, 32, 20, .12);
 }
+
 
 body {
   background-image:
