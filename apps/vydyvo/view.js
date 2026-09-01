@@ -9,7 +9,7 @@ import { wakeLock } from "/_rt/sensors.js";
 import { gate } from "/_rt/gate.js";
 import { GlStage, hasWebGL2 } from "/_rt/glstage.js";
 import { PRESETS, presetOf } from "./presets.js";
-import { $opts, setOpts, $frames, $stage, $gen, EVERY, startLoop, skip, unshown, nudge } from "./state.js";
+import { $opts, setOpts, $frames, $stage, $gen, EVERY, startLoop, skip, unshown, nudge, generateNow } from "./state.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const fsSupported = typeof document !== "undefined" && !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
@@ -116,6 +116,7 @@ export function vydyvo({ t, S, screen, closeScreen }) {
           <input data-prompt type="text" value=${opts.prompt} spellcheck="false" autocomplete="off"
             aria-label=${T(t, "promptLabel")} placeholder=${T(t, "promptPlaceholder")}
             onInput=${(e) => setOpts({ prompt: e.currentTarget.value })}
+            onKeyDown=${(e) => { if (e.key === "Enter") { e.currentTarget.blur(); generateNow(); } }}
             class="flex-1 min-w-0 h-[var(--ms-ctl)] bg-transparent text-[0.95rem] focus:outline-none placeholder:text-base-content/45" />
           <button data-show-btn class="btn btn-sm btn-primary rounded-full gap-1.5 shrink-0" onClick=${() => S.screen.set("show")}>${Icon("lucide:expand", "text-base")}${T(t, "show")}</button>
         </div>
@@ -126,11 +127,11 @@ export function vydyvo({ t, S, screen, closeScreen }) {
             <span data-status class=${`truncate ${counting ? "tabular-nums" : "font-sans normal-case tracking-normal text-sm"}`}>${status}</span>
             ${Icon("lucide:sliders-horizontal", "ml-auto text-base shrink-0")}
           </button>
-          <button data-skip class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "skip")} disabled=${frames.length < 2} onClick=${skip}>${Icon("lucide:skip-forward", "text-base")}</button>
+          
+          <button data-gen-now class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${gen.phase === "working" ? "text-secondary" : ""}`} aria-label=${T(t, "genNow")} onClick=${generateNow}>${Icon("lucide:wand-sparkles", "text-base")}</button>
         </div>
       <//>
     </div>
-
     <${Sheet} id="vy-settings" open=${screen === "settings"} onClose=${closeScreen} title=${T(t, "settings")} icon="lucide:sliders-horizontal" locale=${loc}>
       <div class="flex flex-col gap-[var(--ms-gap)]">
         <div class=${label}>${T(t, "preset")}</div>

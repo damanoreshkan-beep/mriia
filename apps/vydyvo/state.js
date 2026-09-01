@@ -125,6 +125,16 @@ export function nudge() {
   if (g.phase !== "working" && g.until > Date.now()) patchGen({ until: 0 });
 }
 
+/** The explicit "paint now": supersede whatever runs — the old
+ * edge job is cancelled so its quota stops burning — clear any backoff and start a fresh race. */
+export function generateNow() {
+  runs++;                                     
+  if (job && !gate) cancelJob(BASE, job);
+  hold?.(); hold = null; job = null;
+  patchGen({ phase: "idle", error: null, live: null, until: 0 });
+  generate();
+}
+
 async function generate() {
   const run = ++runs, o = $opts.get(), preset = presetOf(o.preset);
   const mode = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
