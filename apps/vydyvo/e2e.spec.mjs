@@ -52,17 +52,19 @@ export default [
     },
   },
   {
-    name: "зміна теми без кадру її режиму — вуаль-поле, потім свіжий кадр", run: async (h) => {
+    name: "зміна теми: сцена отримує кадр нового режиму, вуаль знімається", run: async (h) => {
       await ready(h);
       await h.click('[data-tab="me"]'); await h.wait(200);
       await h.click('#p-theme [data-mode="day"]'); await h.wait(250);
-      await h.click('[data-tab="stage"]'); await h.wait(250);
-      h.expect((await h.count("[data-veiled]")) === 1, "немає вуалі після зміни теми");
-      for (let i = 0; i < 24; i++) { if ((await h.count("[data-veiled]")) === 0) break; await h.wait(400); }
-      h.expect((await h.count("[data-veiled]")) === 0, "кадр нового режиму так і не став на сцену");
+      await h.click('[data-tab="stage"]'); await h.wait(150);
+      for (let i = 0; i < 24 && (await h.attr("[data-stage]", "data-vy-mode")) !== "light"; i++) await h.wait(400);
+      h.expect((await h.attr("[data-stage]", "data-vy-mode")) === "light", "кадр світлого режиму так і не став на сцену");
+      h.expect((await h.count("[data-veiled]")) === 0, "вуаль лишилась над кадром свого режиму");
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('#p-theme [data-mode="night"]'); await h.wait(200);
       await h.click('[data-tab="stage"]'); await h.wait(150);
+      for (let i = 0; i < 24 && (await h.attr("[data-stage]", "data-vy-mode")) !== "dark"; i++) await h.wait(400);
+      h.expect((await h.attr("[data-stage]", "data-vy-mode")) === "dark", "повернення в ніч не повернуло нічний кадр");
     },
   },
   {
