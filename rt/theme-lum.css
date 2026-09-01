@@ -85,7 +85,7 @@ header.navbar::before {
 }
 
 
-[data-theme="signal"] [data-title] { text-shadow: 0 0 10px color-mix(in oklch, var(--app-accent) 32%, transparent); }
+[data-theme="signal"] [data-title] { text-shadow: 0 1px 2px var(--color-base-100), 0 0 14px var(--color-base-100), 0 0 10px color-mix(in oklch, var(--app-accent) 32%, transparent); }
 
 
 [data-theme="signal"] {
