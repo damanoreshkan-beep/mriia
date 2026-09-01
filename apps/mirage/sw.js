@@ -1,6 +1,6 @@
 self.MS = {
   app: "mirage",
-  version: "f21070a446",
+  version: "553acd7ca5",
   precache: [
     "./",
     "./bitmap.js",
@@ -40,6 +40,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/lastgen.js",
+    "/_rt/material.js",
     "/_rt/notify.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",
@@ -58,7 +59,9 @@ self.MS = {
     "/_rt/skeleton.js",
     "/_rt/store.js",
     "/_rt/swipe.js",
+    "/_rt/theme-lum.css",
     "/_rt/theme.css",
+    "/_rt/themes.json",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/validate.js",

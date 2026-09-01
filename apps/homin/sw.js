@@ -1,6 +1,6 @@
 self.MS = {
   app: "homin",
-  version: "31d6dde2d7",
+  version: "36e12e0baf",
   precache: [
     "./",
     "./i18n/en.json",
@@ -28,6 +28,7 @@ self.MS = {
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",
+    "/_rt/material.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",
     "/_rt/playback.js",
@@ -46,7 +47,9 @@ self.MS = {
     "/_rt/spectrum.js",
     "/_rt/store.js",
     "/_rt/swipe.js",
+    "/_rt/theme-lum.css",
     "/_rt/theme.css",
+    "/_rt/themes.json",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/validate.js",
