@@ -100,7 +100,9 @@ async function generate() {
   if (subject) { try { subject = await toEnglish(subject); } catch {  } }
   if (run !== runs) return;
   const prompt = composePrompt(subject, preset, mode);
-  const ratio = Math.max(0.3, Math.min(3, (window.innerWidth || 1) / (window.innerHeight || 1)));
+  const sw = (typeof screen !== "undefined" && screen.width) || window.innerWidth || 1;
+  const sh = (typeof screen !== "undefined" && screen.height) || window.innerHeight || 1;
+  const ratio = Math.max(0.3, Math.min(3, sw / sh));
   try { job = await startJob(BASE, { prompt, quality: o.quality, aspect: "screen", ratio, seed, k: K }); }
   catch (e) { return fail(run, e.code || "eNetwork"); }
   if (run !== runs) { cancelJob(BASE, job); return; }
