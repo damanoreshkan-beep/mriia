@@ -32,15 +32,26 @@ export const SYSTEM = {
   light: "daylight, high-key, airy, bright and soft, pale tones, gentle haze",
 };
 
+export const TINTS = {
+  still: "hushed and calm, vast negative space, muted tones",
+  threshold: "intimate, a quiet contrast of warm light and darkness",
+  memory: "nostalgic, faded, soft, like an old photograph",
+  depth: "deep, submerged, weightless, silent",
+  time: "ancient, patient, overgrown, still",
+  glow: "drawn with thin glowing light filaments and luminous nodes, translucent, volumetric bloom",
+};
+
 export const presetOf = (id) => PRESETS.find((p) => p.id === id) || PRESETS[0];
 
 /**
- * The whole prompt for one race. `subject` is the user's prompt in English (or empty → the preset's own).
+ * The whole prompt for one race. `subject` is the scene in English;
+ * "70% на 30%, де текст юзера сильніший" — the full scene block buried under the preset's fog).
  * Kept under the edge's 800-character slice.
  */
-export function composePrompt(subject, preset, mode) {
+export function composePrompt(subject, preset, mode, userDriven = false) {
   const m = mode === "light" ? "light" : "dark";
-  return [subject?.trim() || preset.subject, preset[m === "light" ? "day" : "night"], SYSTEM[m], SYSTEM.base].join(", ").slice(0, 800);
+  const style = userDriven ? (TINTS[preset.id] || "") : preset[m === "light" ? "day" : "night"];
+  return [subject?.trim() || preset.subject, style, SYSTEM[m], SYSTEM.base].filter(Boolean).join(", ").slice(0, 800);
 }
 
 export const mockFrame = (seed, hue, mode) => {

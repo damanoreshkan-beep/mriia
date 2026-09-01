@@ -147,14 +147,18 @@ async function generate() {
     return;
   }
   let subject = o.prompt.trim(), scene = "";
+  const userDriven = !!subject;
   const painted = $frames.get().map((f) => f.subject).filter(Boolean).slice(-8);
-  const spark = [`У дусі: ${subject || preset.subject}.`, painted.length ? `Вже було: ${painted.join(" | ")}` : ""].filter(Boolean).join("\n");
+  const spark = [
+    userDriven ? `Сюжет власника (зобрази саме це): ${subject}.` : `У дусі: ${preset.subject}.`,
+    painted.length ? `Вже було: ${painted.join(" | ")}` : "",
+  ].filter(Boolean).join("\n");
   try { scene = jsonField(await suggest("scene", spark, ctxRef?.loc || "uk"), "scene").slice(0, 300); } catch {  }
   if (run !== runs) return;
   if (scene) subject = scene;
   if (subject) { try { subject = await toEnglish(subject); } catch {  } }
   if (run !== runs) return;
-  const prompt = composePrompt(subject, preset, mode);
+  const prompt = composePrompt(subject, preset, mode, userDriven);
   const sw = (typeof screen !== "undefined" && screen.width) || window.innerWidth || 1;
   const sh = (typeof screen !== "undefined" && screen.height) || window.innerHeight || 1;
   const ratio = Math.max(0.3, Math.min(3, sw / sh));
