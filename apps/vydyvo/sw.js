@@ -1,6 +1,6 @@
 self.MS = {
   app: "vydyvo",
-  version: "ee868ed7e4",
+  version: "9f7e14c043",
   precache: [
     "./",
     "./i18n/en.json",
@@ -13,7 +13,10 @@ self.MS = {
     "./spec.json",
     "./state.js",
     "./view.js",
+    "./vydyvo.frag",
     "/_rt/account.js",
+    "/_rt/ai-core.js",
+    "/_rt/ai-text.js",
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
@@ -26,6 +29,7 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/glstage.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/imagejob.js",

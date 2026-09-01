@@ -5,6 +5,7 @@ import { T } from "/_rt/i18n.js";
 import { toEnglish } from "/_rt/translate.js";
 import { holdBackground } from "/_rt/bghold.js";
 import { collection, idbSupported } from "/_rt/db.js";
+import { suggest } from "/_rt/ai-text.js";
 import { startJob, follow, cancelJob } from "/_rt/imagejob.js";
 import { LINES, presetOf, composePrompt, mockFrame } from "./presets.js";
 
@@ -36,7 +37,7 @@ export const unshown = () => $frames.get().filter((f) => !f.shown);
 export const current = () => { const st = $stage.get(); return $frames.get().find((f) => f.id === st.cur) || null; };
 
 function addFrame(f) {
-  const id = newId(), frame = { id, li: lineOf(id), ts: Date.now(), shown: false, shownAt: 0, ...f };
+  const id = newId(), frame = { id, li: lineOf(id), line: null, ts: Date.now(), shown: false, shownAt: 0, ...f };
   let list = [...$frames.get(), frame];
   const cur = $stage.get().cur;
   while (list.length > CAP) {
@@ -45,13 +46,34 @@ function addFrame(f) {
     list = list.filter((x) => x !== gone); revoke(gone.url); store.remove(gone.id).catch(() => {});
   }
   $frames.set(list);
-  if (f.blob && idbSupported) store.put(id, { blob: f.blob, preset: f.preset, li: frame.li, prompt: f.prompt, mode: f.mode, w: f.w, h: f.h }).catch(() => {});
+  if (f.blob && idbSupported) store.put(id, { blob: f.blob, preset: f.preset, li: frame.li, prompt: f.prompt, subject: f.subject || null, mode: f.mode, w: f.w, h: f.h }).catch(() => {});
+  return id;
+}
+
+async function lineFor(id, preset, userWords, loc) {
+  if (gate) return;
+  const avoid = $frames.get().map((f) => f.line).filter(Boolean).slice(-12);
+  const spark = [
+    `Суть: ${preset.subject}.`,
+    userWords ? `Слова власника: ${userWords}.` : "",
+    avoid.length ? `Вже прозвучало: ${avoid.join(" | ")}` : "",
+  ].filter(Boolean).join("\n");
+  try {
+    const out = await suggest("line", spark, loc || "uk");
+    const line = String(out || "").split("\n")[0].trim().replace(/^["«—–\-\s]+/, "").replace(/["»\s]+$/, "").slice(0, 90);
+    if (!line || !$frames.get().some((f) => f.id === id)) return;
+    $frames.set($frames.get().map((f) => (f.id === id ? { ...f, line } : f)));
+    if (idbSupported) {
+      const row = await store.get(id).catch(() => null);
+      if (row) store.put(id, { blob: row.blob, preset: row.preset, li: row.li, prompt: row.prompt, subject: row.subject || null, mode: row.mode, w: row.w, h: row.h, line }).catch(() => {});
+    }
+  } catch {  }
 }
 
 async function restore() {
   if (gate || !idbSupported) return;
   let rows = []; try { rows = await store.all(); } catch { return; }
-  const list = rows.slice(0, CAP).reverse().map((r) => ({ id: r.id, url: URL.createObjectURL(r.blob), preset: r.preset, li: r.li ?? 0, prompt: r.prompt || "", mode: r.mode || "dark", w: r.w, h: r.h, ts: r._ts, shown: true, shownAt: r._ts }));
+  const list = rows.slice(0, CAP).reverse().map((r) => ({ id: r.id, url: URL.createObjectURL(r.blob), preset: r.preset, li: r.li ?? 0, line: r.line || null, subject: r.subject || null, prompt: r.prompt || "", mode: r.mode || "dark", w: r.w, h: r.h, ts: r._ts, shown: true, shownAt: r._ts }));
   if (list.length) $frames.set([...list, ...$frames.get()]);
 }
 
@@ -61,8 +83,10 @@ function present(id, now) {
   $stage.set({ cur: id, prev: st.cur, since: now, slot: 1 - st.slot });
 }
 function advance(now) {
-  const cur = $stage.get().cur, fresh = unshown()[0];
-  const next = fresh || $frames.get().filter((f) => f.id !== cur).sort((a, b) => a.shownAt - b.shownAt)[0];
+  const cur = $stage.get().cur;
+  const mode = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
+  const pick = (list) => list.find((f) => f.mode === mode) || list[0];
+  const next = pick(unshown()) || pick($frames.get().filter((f) => f.id !== cur).sort((a, b) => a.shownAt - b.shownAt));
   if (next) present(next.id, now);
 }
 /** Skip to the next frame now (a tap on the picture). */
@@ -82,7 +106,15 @@ function tick() {
   else if (now - st.since >= o.every * 1000) advance(now);
   const g = $gen.get();
   const online = gate || (typeof navigator === "undefined" || navigator.onLine !== false);
-  if (g.phase !== "working" && now >= g.until && unshown().length < AHEAD && online) generate();
+  const m = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
+  const ahead = $frames.get().filter((f) => !f.shown && f.mode === m).length;
+  if (g.phase !== "working" && now >= g.until && ahead < AHEAD && online) generate();
+}
+
+/** A theme flip with no frame of the new mode must not wait out a refusal's backoff — race now. */
+export function nudge() {
+  const g = $gen.get();
+  if (g.phase !== "working" && g.until > Date.now()) patchGen({ until: 0 });
 }
 
 async function generate() {
@@ -96,7 +128,12 @@ async function generate() {
     patchGen({ phase: "idle", until: Date.now() + 3000 });
     return;
   }
-  let subject = o.prompt.trim();
+  let subject = o.prompt.trim(), scene = "";
+  const painted = $frames.get().map((f) => f.subject).filter(Boolean).slice(-8);
+  const spark = [`У дусі: ${subject || preset.subject}.`, painted.length ? `Вже було: ${painted.join(" | ")}` : ""].filter(Boolean).join("\n");
+  try { scene = String(await suggest("scene", spark, ctxRef?.loc || "uk") || "").trim().slice(0, 300); } catch {  }
+  if (run !== runs) return;
+  if (scene) subject = scene;
   if (subject) { try { subject = await toEnglish(subject); } catch {  } }
   if (run !== runs) return;
   const prompt = composePrompt(subject, preset, mode);
@@ -111,7 +148,7 @@ async function generate() {
   const status = await follow({
     base: BASE, job, alive: () => run === runs,
     onLive: (live) => patchGen({ live }),
-    onSlide: (s) => { got++; addFrame({ url: s.url, blob: s.blob, preset: preset.id, prompt: o.prompt, mode, w: s.w, h: s.h }); },
+    onSlide: (s) => { got++; const fid = addFrame({ url: s.url, blob: s.blob, preset: preset.id, prompt: o.prompt, subject: scene || null, mode, w: s.w, h: s.h }); lineFor(fid, preset, o.prompt, ctxRef?.loc); },
   });
   if (status === "stale") return;
   hold?.(); hold = null; job = null;
