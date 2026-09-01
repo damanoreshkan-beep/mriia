@@ -1,6 +1,6 @@
 self.MS = {
   app: "sopilka",
-  version: "d13670083a",
+  version: "7b172ae233",
   precache: [
     "./",
     "./i18n/en.json",
@@ -18,6 +18,7 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/db.js",
+    "/_rt/decor.css",
     "/_rt/enrich.js",
     "/_rt/feed.js",
     "/_rt/gate.js",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "synesth",
-  version: "42b5d20c50",
+  version: "a1fc2e012c",
   precache: [
     "./",
     "./i18n/en.json",
@@ -20,6 +20,7 @@ self.MS = {
     "/_rt/camprime.js",
     "/_rt/colour.js",
     "/_rt/db.js",
+    "/_rt/decor.css",
     "/_rt/enrich.js",
     "/_rt/feed.js",
     "/_rt/gate.js",

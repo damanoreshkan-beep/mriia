@@ -1,11 +1,16 @@
 @import "./runtime.css";
+@import "./decor.css";
 :root {
   --app-accent: #C9A15A;
   --app-accent-2: #6FBFAE;
   --app-tint: color-mix(in oklch, var(--app-accent) 16%, transparent);
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  --ds-art-day: url("/_rt/ds-paper-d-art.webp");     
+  --ds-art-night: url("/_rt/ds-paper-n-art.webp");   
 }
 
+
+body { background-image: var(--ds-grain); background-size: 220px 220px; }
 [data-theme="signal-light"] {
   color-scheme: light;
   --color-base-100: #F3EEE4; --color-base-200: #F3EEE4; --color-base-300: #E6DFD2;
@@ -42,6 +47,21 @@
   --sf-press-face: #EAE3D6;
   --sf-press-top:  rgba(60, 44, 20, .18);
   --sf-track-face: #D9D0C0;
+
+  --ds-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.12 0 0 0 0 0.06 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  
+  --ds-lip: url("/_rt/ds-paper-d-lip.webp");
+  --ds-lip-pos: center 69%; --ds-lip-size: 150% auto;
+  --ds-lip-a: .85;
+  --ds-strand: url("/_rt/ds-paper-d-strand.webp");
+  --ds-strand-y: calc(100% + 18.4vw);
+  --ds-strand-y-wide: calc(100% + 70px);
+  --ds-strand-a: .9;
+  --ds-corner: url("/_rt/ds-paper-d-corner.webp");
+  --ds-corner-a: .8;
+  --ds-scatter: url("/_rt/ds-paper-d-scatter.webp");
+  --ds-scatter-pos: center -54px; --ds-scatter-size: 260px auto;
+  --ds-scatter-a: .85;
 }
 [data-theme="signal"] {
   color-scheme: dark;
@@ -79,4 +99,19 @@
   --sf-press-face: #141210;
   --sf-press-top:  rgba(0, 0, 0, .5);
   --sf-track-face: #2F2A24;
+
+  --ds-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0 0.82 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  
+  --ds-lip: url("/_rt/ds-paper-n-lip.webp");
+  --ds-lip-pos: center 42%; --ds-lip-size: 150% auto;
+  --ds-lip-a: .75;
+  --ds-strand: url("/_rt/ds-paper-n-strand.webp");
+  --ds-strand-y: calc(100% + 14.7vw);
+  --ds-strand-y-wide: calc(100% + 57px);
+  --ds-strand-a: .9;
+  --ds-corner: url("/_rt/ds-paper-n-corner.webp");
+  --ds-corner-a: .65;
+  --ds-scatter: url("/_rt/ds-paper-n-scatter.webp");
+  --ds-scatter-pos: center -45px; --ds-scatter-size: 260px auto;
+  --ds-scatter-a: .7;
 }
