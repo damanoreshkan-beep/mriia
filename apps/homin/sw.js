@@ -1,6 +1,6 @@
 self.MS = {
   app: "homin",
-  version: "8f414052d5",
+  version: "31d6dde2d7",
   precache: [
     "./",
     "./i18n/en.json",
@@ -35,6 +35,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",

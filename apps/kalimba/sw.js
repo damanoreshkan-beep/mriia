@@ -1,6 +1,6 @@
 self.MS = {
   app: "kalimba",
-  version: "8fe2b804f3",
+  version: "289cadc349",
   precache: [
     "./",
     "./i18n/en.json",
@@ -35,6 +35,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",

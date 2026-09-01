@@ -1,6 +1,6 @@
 self.MS = {
   app: "pendulum",
-  version: "f197e44b32",
+  version: "4abbd51b8d",
   precache: [
     "./",
     "./i18n/en.json",
@@ -32,6 +32,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "iching",
-  version: "d5471bbdc6",
+  version: "c9e0761ea2",
   precache: [
     "./",
     "./book.js",
@@ -36,6 +36,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",

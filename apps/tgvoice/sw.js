@@ -1,6 +1,6 @@
 self.MS = {
   app: "tgvoice",
-  version: "b1edb8c06e",
+  version: "9f6336eb51",
   precache: [
     "./",
     "./i18n/en.json",
@@ -34,6 +34,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",

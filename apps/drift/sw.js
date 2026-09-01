@@ -1,6 +1,6 @@
 self.MS = {
   app: "drift",
-  version: "d604b8cd66",
+  version: "8e5ffe95dc",
   precache: [
     "./",
     "./i18n/en.json",
@@ -37,6 +37,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",

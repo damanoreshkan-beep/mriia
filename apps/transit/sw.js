@@ -1,6 +1,6 @@
 self.MS = {
   app: "transit",
-  version: "e3a3cf3763",
+  version: "96d154c116",
   precache: [
     "./",
     "./datepick.js",
@@ -36,6 +36,7 @@ self.MS = {
     "/_rt/qrcode.js",
     "/_rt/qrgen.vendor.js",
     "/_rt/render.js",
+    "/_rt/runtime.css",
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",
