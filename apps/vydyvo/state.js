@@ -94,7 +94,8 @@ function present(id, now) {
 function advance(now) {
   const cur = $stage.get().cur;
   const mode = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
-  const pick = (list) => list.find((f) => f.mode === mode) || list[0];
+  const wid = activeWorld();
+  const pick = (list) => list.find((f) => f.mode === mode && f.preset === wid) || list.find((f) => f.mode === mode) || list[0];
   const next = pick(unshown()) || pick($frames.get().filter((f) => f.id !== cur).sort((a, b) => a.shownAt - b.shownAt));
   if (next) present(next.id, now);
 }
@@ -116,7 +117,8 @@ function tick() {
   const g = $gen.get();
   const online = gate || (typeof navigator === "undefined" || navigator.onLine !== false);
   const m = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
-  const ahead = $frames.get().filter((f) => !f.shown && f.mode === m).length;
+  const w = activeWorld();
+  const ahead = $frames.get().filter((f) => !f.shown && f.mode === m && f.preset === w).length;
   if (g.phase !== "working" && now >= g.until && ahead < AHEAD && online) generate();
 }
 

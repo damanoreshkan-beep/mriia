@@ -60,11 +60,20 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
 
   useEffect(() => { startLoop({ t, loc }); }, [t, loc]);
 
-  const matched = frames.some((f) => f.mode === docMode);
-  const curMatches = !!cur && cur.mode === docMode;
+  const fitsDoc = (f) => f.mode === docMode && f.preset === wid;
+  const matched = frames.some(fitsDoc);
+  const curMatches = !!cur && fitsDoc(cur);
   const veiled = !curMatches || (gate && typeof location !== "undefined" && new URLSearchParams(location.search).get("veil") === "1");
-  useEffect(() => { if (!curMatches && matched) skip(); }, [docMode, curMatches, matched]);
-  useEffect(() => { if (!matched) nudge(); }, [docMode, matched]);
+  useEffect(() => { if (!curMatches && matched) skip(); }, [docMode, wid, curMatches, matched]);
+  useEffect(() => { if (!matched) nudge(); }, [docMode, wid, matched]);
+  const accentRef = useRef(null);
+  useEffect(() => {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--color-accent").trim();
+      const m = /^#([0-9a-f]{6})$/i.exec(v);
+      accentRef.current = m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255).concat(1) : null;
+    } catch { accentRef.current = null; }
+  }, [docMode, wid]);
 
   useEffect(() => {
     if (!show) return;
@@ -102,7 +111,7 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
       ${veiled ? html`<div data-veiled class="absolute inset-0 pointer-events-none" aria-hidden="true">
         <img src=${new URL(`assets/amb-${docMode === "light" ? "d" : "n"}.webp`, import.meta.url).href} alt="" decoding="async" class="vy-amb" />
         ${hasWebGL2() ? html`<${GlStage} shader=${new URL("vydyvo.frag", import.meta.url)} seed=${7} zClass="z-0"
-          ink=${() => (docModeRef.current === "dark" ? [0.95, 0.72, 0.29, 1] : [0.55, 0.42, 0.16, 1])}
+          ink=${() => accentRef.current || (docModeRef.current === "dark" ? [0.95, 0.72, 0.29, 1] : [0.55, 0.42, 0.16, 1])}
           vary=${() => [docModeRef.current === "dark" ? 1 : 0, ambRef.current, 0, 0]}
           tex=${new URL(`assets/amb-${docMode === "light" ? "d" : "n"}.webp`, import.meta.url).href}
           texReady=${(r) => { ambRef.current = r ? 1 : 0; }} />` : null}
