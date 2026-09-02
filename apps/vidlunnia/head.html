@@ -8,6 +8,20 @@
       .vd-centre .btn-lg{--size:calc(var(--size-field,.25rem) * 9)}
       .vd-centre .btn-lg iconify-icon{font-size:1.25rem}
     }
+    
+    @container (max-width:180px){
+      .vd-centre [data-take-status]{display:none}
+      .vd-centre{gap:.125rem}
+    }
+    
+    .vd-root{container-type:size}
+    @container (max-height:520px){
+      .vd-words{height:1.7rem;min-height:1.7rem}
+      .vd-card{width:2.75rem;padding:.125rem 0}
+      .vd-card-pic{width:2.5rem;height:2.5rem}
+      .vd-card-name{display:none}
+      .vd-cards{padding-bottom:0}
+    }
     .vd-ring line{transition:opacity .25s ease}
     
     .vd-cards{scrollbar-width:none;scroll-snap-type:x proximity}
@@ -17,7 +31,6 @@
     .vd-card-on .vd-card-pic{box-shadow:0 0 0 2px var(--app-accent),0 0 18px -4px var(--app-accent)}
     .vd-card-name{font-family:var(--font-mono);font-size:.6rem;line-height:1.1;text-transform:uppercase;letter-spacing:.04em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-base-content);opacity:.75}
     .vd-card-on .vd-card-name{opacity:1}
-    
     .vd-st{animation:vd-stin .35s ease}
     @keyframes vd-stin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
     .vd-dots span{display:inline-block;animation:vd-dot 1.2s ease-in-out infinite;opacity:.2}
