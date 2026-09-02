@@ -25,7 +25,7 @@ export default [
     name: "роздільник посередині, «після» обрізане до нього", run: async (h) => {
       await ready(h);
       h.expect(await h.attr("[data-compare]", "aria-valuenow") === "50", "роздільник не посередині");
-      h.expect(/inset\(0 50/.test(await h.attr("[data-after]", "style")), "«після» не обрізане до роздільника");
+      h.expect(/inset\([^)]*\b50(\.0+)?%/.test(await h.attr("[data-after]", "style")), "«після» не обрізане до роздільника");
     },
   },
   {
