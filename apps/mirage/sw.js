@@ -1,6 +1,6 @@
 self.MS = {
   app: "mirage",
-  version: "95ce3f6ecd",
+  version: "935c683bee",
   precache: [
     "./",
     "./bitmap.js",
@@ -13,7 +13,6 @@ self.MS = {
     "./lightbox.js",
     "./manifest.json",
     "./mirage.frag",
-    "./race.js",
     "./source.js",
     "./spec.json",
     "./state.js",
@@ -39,6 +38,7 @@ self.MS = {
     "/_rt/glstage.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
+    "/_rt/imagejob.js",
     "/_rt/index.js",
     "/_rt/lastgen.js",
     "/_rt/material.js",
