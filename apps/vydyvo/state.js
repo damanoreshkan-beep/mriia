@@ -7,7 +7,7 @@ import { holdBackground } from "/_rt/bghold.js";
 import { collection, idbSupported } from "/_rt/db.js";
 import { suggest } from "/_rt/ai-text.js";
 import { startJob, follow, cancelJob } from "/_rt/imagejob.js";
-import { LINES, worldOf, activeWorld, composePrompt, mockFrame } from "./worlds.js";
+import { LINES, worldOf, activeWorld, voiceOf, composePrompt, mockFrame } from "./worlds.js";
 
 const OPTS_KEY = "ms:vydyvo:opts";
 const BASE = `${VPS_PROXY}/image`;
@@ -58,10 +58,11 @@ function jsonField(raw, key) {
   } catch { return ""; }
 }
 
-async function lineFor(id, world, userWords, loc) {
+async function lineFor(id, world, mode, userWords, loc) {
   if (gate) return;
   const avoid = $frames.get().map((f) => f.line).filter(Boolean).slice(-12);
   const spark = [
+    `Голос: ${voiceOf(world, mode)}.`,
     `Суть: ${world.subject}.`,
     userWords ? `Слова власника: ${userWords}.` : "",
     avoid.length ? `Вже прозвучало: ${avoid.join(" | ")}` : "",
@@ -170,7 +171,7 @@ async function generate() {
   const status = await follow({
     base: BASE, job, alive: () => run === runs,
     onLive: (live) => patchGen({ live }),
-    onSlide: (s) => { got++; const fid = addFrame({ url: s.url, blob: s.blob, preset: wid, prompt: o.prompt, subject: scene || null, mode, w: s.w, h: s.h }); lineFor(fid, world, o.prompt, ctxRef?.loc); },
+    onSlide: (s) => { got++; const fid = addFrame({ url: s.url, blob: s.blob, preset: wid, prompt: o.prompt, subject: scene || null, mode, w: s.w, h: s.h }); lineFor(fid, world, mode, o.prompt, ctxRef?.loc); },
   });
   if (status === "stale") return;
   hold?.(); hold = null; job = null;
