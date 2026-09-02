@@ -7,7 +7,7 @@ import { tr, warm, trTick } from "/_rt/translate.js";
 import { summary, warmSummary, isSummarized, aiTick } from "/_rt/ai-text.js";
 import { Scramble } from "/_rt/skeleton.js";
 import { SPREADS, spreadById, hashSeed, draw } from "/_rt/tarot.js";
-import { DECK } from "./deck.js";
+import { DECK } from "/_rt/tarotdeck.js";
 import { gate } from "/_rt/gate.js";
 import { animate, stagger } from "motion";
 import { useSheetDrag, usePanX } from "/_rt/gesture.js";
