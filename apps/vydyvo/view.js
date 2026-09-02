@@ -6,6 +6,7 @@ import { T } from "/_rt/i18n.js";
 import { Sheet, Segmented, Island } from "/_rt/ui.js";
 import { Battery } from "/_rt/render.js";
 import { wakeLock } from "/_rt/sensors.js";
+import { downloadBlob } from "/_rt/apk.js";
 import { gate } from "/_rt/gate.js";
 import { GlStage, hasWebGL2 } from "/_rt/glstage.js";
 import { PRESETS, presetOf } from "./presets.js";
@@ -41,7 +42,7 @@ function ShowType({ t, loc, frame }) {
   </div>`;
 }
 
-export function vydyvo({ t, S, screen, closeScreen }) {
+export function vydyvo({ t, S, screen, closeScreen, toast }) {
   const opts = useStore($opts), frames = useStore($frames), stage = useStore($stage), gen = useStore($gen), loc = useStore(S.locale);
   useStore(S.theme);   
   const now = useTick();
@@ -128,10 +129,13 @@ export function vydyvo({ t, S, screen, closeScreen }) {
             ${Icon("lucide:sliders-horizontal", "ml-auto text-base shrink-0")}
           </button>
           
+          <button data-save class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "saveFrame")} disabled=${!cur}
+            onClick=${async () => { try { const b = await (await fetch(cur.url)).blob(); await downloadBlob(b, `vydyvo-${cur.preset}-${cur.id}.${b.type.includes("png") ? "png" : b.type.includes("webp") ? "webp" : "jpg"}`); toast?.(T(t, "savedFrame")); } catch { toast?.(T(t, "eFailed")); } }}>${Icon("lucide:download", "text-base")}</button>
           <button data-gen-now class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${gen.phase === "working" ? "text-secondary" : ""}`} aria-label=${T(t, "genNow")} onClick=${generateNow}>${Icon("lucide:wand-sparkles", "text-base")}</button>
         </div>
       <//>
     </div>
+
     <${Sheet} id="vy-settings" open=${screen === "settings"} onClose=${closeScreen} title=${T(t, "settings")} icon="lucide:sliders-horizontal" locale=${loc}>
       <div class="flex flex-col gap-[var(--ms-gap)]">
         <div class=${label}>${T(t, "preset")}</div>

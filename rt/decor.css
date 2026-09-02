@@ -1,3 +1,7 @@
+:root {
+  --ds-mascot: url("/_rt/ds-n-mascot.webp");
+  --ds-mascot-s: 6.5rem;
+}
 header.navbar::before {
   content: "";
   position: absolute;
@@ -9,7 +13,6 @@ header.navbar::before {
   mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(180deg, transparent, #000 38%, #000 62%, transparent);
   mask-composite: intersect;
 }
-
 [data-garland] {
   background: var(--ds-strand) center var(--ds-strand-y) / 50% auto repeat-x;
   opacity: var(--ds-strand-a);
@@ -30,6 +33,7 @@ header.navbar::before {
 [data-dock-fade]::before { left: -42px; transform: scaleX(-1); }
 [data-dock-fade]::after { right: -42px; }
 @media (max-width: 300px) { [data-dock-fade]::before, [data-dock-fade]::after { display: none; } }
+
 
 [data-empty]::before {
   content: "";
