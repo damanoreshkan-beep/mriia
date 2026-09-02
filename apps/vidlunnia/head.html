@@ -1,0 +1,12 @@
+  <style>
+    .vd-ring-on{color:var(--app-accent)}
+    .vd-ring line{transition:opacity .25s ease}
+    
+    .vd-st{animation:vd-stin .35s ease}
+    @keyframes vd-stin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+    .vd-dots span{display:inline-block;animation:vd-dot 1.2s ease-in-out infinite;opacity:.2}
+    .vd-dots span:nth-child(2){animation-delay:.2s}
+    .vd-dots span:nth-child(3){animation-delay:.4s}
+    @keyframes vd-dot{0%,100%{opacity:.2}50%{opacity:1}}
+    @media(prefers-reduced-motion:reduce){.vd-dots span{animation:none;opacity:.7}.vd-st{animation:none}}
+  </style>
