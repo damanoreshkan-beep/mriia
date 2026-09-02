@@ -79,8 +79,8 @@ idea (орігаміст/літописець, хайку-поет/калігр�
 `[user prompt → English | world.subject], world[mode], SYSTEM[mode], SYSTEM.base` — where `mode` is read
 off `html[data-theme]` at the moment the race starts (the light/dark theme drives the light in the picture,
 text, off-centre subject, breathing space). The whole prompt is ≤ 800 chars (the edge slices there,
-`edge/image.js:473`). The island's second row names the active theme; frames keep the world id in their
-old `preset` IDB field, so a collection painted before the change still restores. A frame FITS the page
+then status/settings + save + wand — no theme label, the whole page already wears the theme. Frames keep
+the world id in their old `preset` IDB field, so a collection painted before the change still restores. A frame FITS the page
 field, never the old world's picture): the veil, `advance`'s preference and the scheduler's `ahead` all
 compare both, the veil fades in over the retiring picture, and its motes take the active theme's
 `--color-accent`.

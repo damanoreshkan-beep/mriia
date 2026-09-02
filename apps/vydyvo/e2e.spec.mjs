@@ -7,7 +7,6 @@ export default [
       h.expect((await h.count("[data-frame][data-on]")) === 1, "немає кадру на сцені");
       h.expect(/\S/.test(await h.text("[data-status]")), "порожній рядок статусу");
       h.expect(/\S/.test(await h.attr("[data-stage]", "data-vy-world") || ""), "сцена не знає світу теми");
-      h.expect(/\S/.test(await h.text("[data-world]")), "острів не називає тему");
       h.expect((await h.count("[data-preset-card]")) === 0, "пресети мали зникнути");
     },
   },
