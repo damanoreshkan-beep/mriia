@@ -108,7 +108,7 @@ export const activeWorld = () =>
   (typeof document !== "undefined" && document.documentElement.getAttribute("data-material")) || "lum";
 
 export const SYSTEM = {
-  base: "a full-bleed wallpaper, cinematic, extremely detailed, the subject off-centre with generous empty space around it, no text, no letters, no watermark, no logo, no frame, no border",
+  base: "a full-bleed wallpaper, cinematic, extremely detailed, the subject off-centre with generous empty space around it, no text, no letters, no words, no writing, no signage, no hieroglyphs, no logo, no watermark, no signature, no frame, no border",
   dark: "night, deep darkness, low-key lighting, one source of light, luminous details, black shadows",
   light: "daylight, high-key, airy, bright and soft, pale tones, gentle haze",
 };
