@@ -1,8 +1,9 @@
 self.MS = {
   app: "vidlunnia",
-  version: "a776e7bf37",
+  version: "646572e9f3",
   precache: [
     "./",
+    "./characters.js",
     "./i18n/en.json",
     "./i18n/uk.json",
     "./icon.svg",

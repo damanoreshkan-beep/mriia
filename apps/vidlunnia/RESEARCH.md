@@ -95,6 +95,29 @@ dropdown-driven, so "just text" still needs a clip: the app ships two public-dom
 220 KB). The voice strip = Female · Male · Mine (Mine appears with a take and is selected by recording);
 Say it needs words and a voice, and a voice always exists. Decision 6 in the log.
 
+
+The edge catalogue (`edge/voice.js VOICES`, `GET /feed/voice/voices`) — every speaker of the four Spaces the
+worker can DRIVE, measured with `vps/hftts.mjs` through the parent page:
+
+| Space | control | speakers | cost | measured |
+|---|---|---|---|---|
+| `hexgrad/Kokoro-TTS` | the same | the same 28 | 30 s ZeroGPU | Bella → 167 KB in 11 s (the fallback row) |
+
+Adapter facts each of these cost a round: a gr.Dropdown opens its `ul.options` on **ArrowDown** (a click left
+`aria-expanded=false` on styletts2) and the option is CLICKED by text while open (typing filtered the list shut
+and Enter took the highlighted neighbour); the input is found by its block label (`[data-testid=block-info]`)
+and MARKED in-page — a `.wrap:has(span)` locator once resolved to the text box; the run button is picked by a
+size filter (Kokoro carries a 1 px-high "Generate" under its tab bar) and clicked by MARK, not by index (a
+dropdown's buttons come and go with focus); "Синтезувати" is a run verb, "Вербалізувати" is not; the options
+list stays over the button until the input blurs. Named voices speak their own language and take no style.
+
+
+A style is a RECIPE from OmniVoice's vocabulary applied over a clone voice (mine / her / him), never a real
+person's voice: `characters.js` (20 fictional characters, names + one-line voice descriptions in i18n
+`ch_*`/`chd_*`, chosen by the catalogue agent), micro-pictures `assets/ch-<id>.webp` (256², generated on the
+pods with the icon master prompt, measured by `icongeom.mjs`, converted by `mascot-tools/cards.mjs`). Verified:
+"Male, Elderly, Very Low Pitch" over the male clip → 196 KB in 15 s. Adding a character = a row + two keys + a card.
+
 ## UNVERIFIED (do not build on)
 
 - Ukrainian OUTPUT quality of OmniVoice with a Ukrainian reference — only the language map was read; the
