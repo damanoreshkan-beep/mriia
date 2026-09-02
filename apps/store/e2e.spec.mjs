@@ -68,6 +68,17 @@ export default [
     },
   },
   {
+    name: "свіжі новинки: слайди по 3 дрібні картки з описом, лічильник сторінок", run: async (h) => {
+      await ready(h);
+      const slides = await h.count("[data-fresh-slide]");
+      if (!slides) return;
+      const cards = await h.count("[data-fresh-card]");
+      h.expect(cards <= slides * 3 && cards > (slides - 1) * 3, `${cards} карток на ${slides} слайдах — не по 3`);
+      h.expect((await h.text("[data-fresh-card]")).trim().length >= 30, "картка новинки без опису");
+      if (slides > 1) h.expect(new RegExp(`1\\s*/\\s*${slides}`).test(await h.text("[data-fresh-page]")), "немає лічильника сторінок");
+    },
+  },
+  {
     name: "PWA: профіль → модалка встановлення, Back закриває", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       h.expect((await h.count("#p-install")) === 1, "немає кнопки встановлення");
