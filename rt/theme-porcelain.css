@@ -50,9 +50,6 @@ body { background-image: var(--ds-grain); background-size: 240px 240px; }
 
   --ds-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch' seed='8'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.92 0 0 0 0 0.86 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   
-  --ds-lip: url("/_rt/ds-porcelain-n-lip.webp");
-  --ds-lip-pos: center 66%; --ds-lip-size: 150% auto;
-  --ds-lip-a: .7;
   --ds-strand: url("/_rt/ds-porcelain-n-strand.webp");
   --ds-strand-y: calc(100% + 22vw);
   --ds-strand-y-wide: calc(100% + 84px);
@@ -102,9 +99,6 @@ body { background-image: var(--ds-grain); background-size: 240px 240px; }
 
   --ds-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch' seed='8'/%3E%3CfeColorMatrix values='0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 0 0.12 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   
-  --ds-lip: url("/_rt/ds-porcelain-d-lip.webp");
-  --ds-lip-pos: center 83%; --ds-lip-size: 150% auto;
-  --ds-lip-a: .8;
   --ds-strand: url("/_rt/ds-porcelain-d-strand.webp");
   --ds-strand-y: calc(100% + 22.2vw);
   --ds-strand-y-wide: calc(100% + 85px);

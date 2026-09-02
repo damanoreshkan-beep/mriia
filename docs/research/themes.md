@@ -93,6 +93,9 @@ style thumbnail must go through the raw generator or every material glows).
   grains per material, the smoke fox in each theme's light as the thumb. TWELVE themes in the picker.
   as `rt/ds-n-mascot.webp`; her tokens (`--ds-mascot`, `--ds-mascot-s`) live in `rt/decor.css` (the one
   named-file exception there) and the core's `[data-mascot]` (1.2.10) draws her in every empty state.
+  заважають"): the woven-lip hook is REMOVED from decor.css, every theme's `--ds-lip*` tokens and all 21
+  lip sprites (incl. lum's retired ds-n-arc) are gone; the suite bans the token so it cannot creep back.
+  The header's only light is the runtime hairline (`--lm-lip` / `--lm-lip-glow`) — a line, not a texture.
 
 ## Decision log
 
