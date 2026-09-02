@@ -1,5 +1,13 @@
   <style>
     .vd-ring-on{color:var(--app-accent)}
+    
+    .vd-box{container-type:size}
+    @container (max-width:300px){
+      .vd-centre .vd-name{display:none}
+      .vd-centre{gap:.25rem}
+      .vd-centre .btn-lg{--size:calc(var(--size-field,.25rem) * 9)}
+      .vd-centre .btn-lg iconify-icon{font-size:1.25rem}
+    }
     .vd-ring line{transition:opacity .25s ease}
     
     .vd-st{animation:vd-stin .35s ease}
