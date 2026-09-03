@@ -1,6 +1,6 @@
 self.MS = {
   app: "v2m",
-  version: "03c672d013",
+  version: "88aa9892f3",
   precache: [
     "./",
     "./i18n/en.json",
@@ -13,6 +13,7 @@ self.MS = {
     "./view.js",
     "./viz.js",
     "/_rt/account.js",
+    "/_rt/ai-core.js",
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",

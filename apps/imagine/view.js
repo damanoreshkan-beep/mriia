@@ -8,7 +8,7 @@ import { gate } from "/_rt/gate.js";
 import { Dust } from "/_rt/dust.js";
 import { writeLastGen } from "/_rt/lastgen.js";
 import { toEnglish } from "/_rt/translate.js";
-import { suggest } from "/_rt/ai-text.js";
+import { suggestPrompt } from "/_rt/ai-text.js";
 import { downloadUrl } from "/_rt/apk.js";
 import { promptHandoff } from "./handoff.js";
 import { Lightbox } from "./lightbox.js";
@@ -82,7 +82,7 @@ export function imagine({ S, toast }) {
     if (suggesting || phase === "generating") return;
     if (gate) { setPrompt(gateDream); return; }
     setSuggesting(true);
-    try { const out = await suggest("dream", SPARKS[Math.floor(Math.random() * SPARKS.length)], loc); if (out) setPrompt(out); }
+    try { const p = await suggestPrompt("dream", SPARKS[Math.floor(Math.random() * SPARKS.length)], loc); if (p) setPrompt(p.local); }   
     finally { setSuggesting(false); }
   };
 
@@ -133,7 +133,7 @@ export function imagine({ S, toast }) {
     remember(p);
     if (gate) { await sleep(90); if (run === runRef.current) { setSlides([seed, seed + 1, seed + 2, seed + 3].map((sd) => ({ url: mockArt(sd), w: W, h: H, seed: sd }))); setPhase("done"); } return; }
     notifyAsk();                                                                  
-    let pEn = p; try { pEn = await toEnglish(p); } catch {  }
+    let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(run, e.code || "eTranslate"); }   
     if (run !== runRef.current) return;
     try {
       const ratio = Math.max(0.3, Math.min(3, (window.innerWidth || 1) / (window.innerHeight || 1)));

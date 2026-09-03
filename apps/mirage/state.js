@@ -123,7 +123,7 @@ export async function conjure(ctx) {
   if (gate) { await sleep(90); if (run === runs.make) patch("make", { slides: [seed, seed + 1, seed + 2, seed + 3].map((s) => ({ url: mockArt(s), seed: s })), phase: "done" }); return; }
   notifyAsk();
   patch("make", { live: { stage: "translate" } });
-  let pEn = p; try { pEn = await toEnglish(p); } catch {  }
+  let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail("make", run, e.code || "eTranslate"); }
   if (run !== runs.make) return;
   const sb = styleOf($opts.get().style)?.block;
   if (sb) pEn = `${pEn}, ${sb}`;
@@ -146,7 +146,7 @@ export async function rework(ctx) {
   if (run !== runs.edit) return;
   if (image.length > 9_000_000) return fail("edit", run, "eBig");
   patch("edit", { live: { stage: "translate" } });
-  let pEn = p; try { pEn = await toEnglish(p); } catch {  }
+  let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail("edit", run, e.code || "eTranslate"); }
   if (run !== runs.edit) return;
   await race("edit", { image, prompt: pEn, seed, k: K, model: modelFor("edit") }, run, ctx, seed);
 }
@@ -172,7 +172,7 @@ async function fuse(mode, ctx) {
   if (run !== runs[mode]) return;
   if (images.some((i) => i.length > 9_000_000)) return fail(mode, run, "eBig");
   patch(mode, { live: { stage: "translate" } });
-  let pEn = p; try { pEn = await toEnglish(p); } catch {  }
+  let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(mode, run, e.code || "eTranslate"); }
   if (run !== runs[mode]) return;
   await race(mode, { images, prompt: pEn, seed, k: K, model: modelFor(mode) }, run, ctx, seed);
 }

@@ -9,7 +9,7 @@ import { gate } from "/_rt/gate.js";
 import { CameraPrime } from "/_rt/camprime.js";
 import { readLastGen } from "/_rt/lastgen.js";
 import { toEnglish } from "/_rt/translate.js";
-import { suggest } from "/_rt/ai-text.js";
+import { suggestPrompt } from "/_rt/ai-text.js";
 import { downloadUrl } from "/_rt/apk.js";
 import { Lightbox } from "./lightbox.js";
 import { usePromptHistory, HistorySheet } from "./history.js";
@@ -145,7 +145,7 @@ export function retouch({ S, toast }) {
     if (suggesting || phase === "editing") return;
     if (gate) { setPrompt(gateDream); return; }
     setSuggesting(true);
-    try { const out = await suggest("edit", SPARKS[Math.floor(Math.random() * SPARKS.length)], loc); if (out) setPrompt(out); }
+    try { const p = await suggestPrompt("edit", SPARKS[Math.floor(Math.random() * SPARKS.length)], loc); if (p) setPrompt(p.local); }
     finally { setSuggesting(false); }
   };
 
@@ -163,7 +163,7 @@ export function retouch({ S, toast }) {
     try { image = await toEditableDataURL(srcUrl); } catch { return fail(run, "edFailed"); }
     if (run !== runRef.current) return;
     if (image.length > 9_000_000) return fail(run, "eBig");                       
-    let pEn = p; try { pEn = await toEnglish(p); } catch {  }
+    let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(run, e.code || "eTranslate"); }   
     if (run !== runRef.current) return;
     try {
       const cr = await fetch(`${VPS_PROXY}/image/edit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image, prompt: pEn, seed, k: 4 }) });

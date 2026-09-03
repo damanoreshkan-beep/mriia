@@ -14,7 +14,7 @@ const BASE = `${VPS_PROXY}/image`;
 const CAP = 24;      
 const AHEAD = 2;     
 const K = 2;         
-const BACKOFF = { eRate: 120_000, eBusy: 300_000, eTimeout: 300_000, eFailed: 180_000, eNetwork: 60_000, eSignIn: 600_000 };
+const BACKOFF = { eRate: 120_000, eBusy: 300_000, eTimeout: 300_000, eFailed: 180_000, eNetwork: 60_000, eSignIn: 600_000, eTranslate: 60_000 };
 const DEFAULT = { prompt: "", every: 120, quality: "2k" };
 export const EVERY = [30, 60, 120, 300];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -153,13 +153,13 @@ async function generate() {
   const userDriven = !!subject;
   const painted = $frames.get().map((f) => f.subject).filter(Boolean).slice(-8);
   const spark = [
-    userDriven ? `Сюжет власника (зобрази саме це): ${subject}.` : `У дусі: ${world.subject}.`,
-    painted.length ? `Вже було: ${painted.join(" | ")}` : "",
+    userDriven ? `Owner's subject (depict exactly this): ${subject}.` : `In the spirit of: ${world.subject}.`,
+    painted.length ? `Already painted: ${painted.join(" | ")}` : "",
   ].filter(Boolean).join("\n");
   try { scene = jsonField(await suggest("scene", spark, ctxRef?.loc || "uk"), "scene").slice(0, 300); } catch {  }
   if (run !== runs) return;
   if (scene) subject = scene;
-  if (subject) { try { subject = await toEnglish(subject); } catch {  } }
+  if (subject) { try { subject = await toEnglish(subject); } catch (e) { return fail(run, e.code || "eTranslate"); } }
   if (run !== runs) return;
   const prompt = composePrompt(subject, world, mode, userDriven);
   const sw = (typeof screen !== "undefined" && screen.width) || window.innerWidth || 1;

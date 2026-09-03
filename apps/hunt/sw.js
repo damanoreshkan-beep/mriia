@@ -1,6 +1,6 @@
 self.MS = {
   app: "hunt",
-  version: "f1540bd611",
+  version: "e3552aaaea",
   precache: [
     "./",
     "./art.js",
@@ -16,6 +16,7 @@ self.MS = {
     "./spec.json",
     "./view.js",
     "/_rt/account.js",
+    "/_rt/ai-core.js",
     "/_rt/apk.js",
     "/_rt/audio.js",
     "/_rt/auth.js",

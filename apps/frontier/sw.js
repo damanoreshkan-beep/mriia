@@ -1,6 +1,6 @@
 self.MS = {
   app: "frontier",
-  version: "ae495abb5d",
+  version: "6da61a3637",
   precache: [
     "./",
     "./data.js",
@@ -12,6 +12,7 @@ self.MS = {
     "./manifest.json",
     "./spec.json",
     "/_rt/account.js",
+    "/_rt/ai-core.js",
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
