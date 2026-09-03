@@ -211,7 +211,7 @@ export async function readPhoto(ctx) {
   try {
     const r = await fetch(`${VPS_PROXY}/vision`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image, prompt: q ? ask.q + q : ask.read, maxTokens: 400, model: modelFor("read") }) });
     if (run !== runs.read) return;
-    if (!r.ok) return fail("read", run, r.status === 429 ? "eRate" : r.status === 413 ? "eBig" : "eRead");
+    if (!r.ok) return fail("read", run, r.status === 429 ? "eRate" : r.status === 413 ? "eBig" : r.status === 502 ? "eReadBusy" : "eRead");
     const j = await r.json().catch(() => null);
     if (run !== runs.read) return;
     const out = String(j?.text || "").trim();
