@@ -1,11 +1,20 @@
   <style>
-    .rk-frame{background:#000}
+    .rk-frame{background:#000;outline:1px solid rgba(255,232,196,.16);outline-offset:-1px}
+    
+    .rk-chip{background:rgba(0,0,0,.55);color:#fff}
+    
+    .rk-thumb{width:2.5rem;height:3.375rem;border-radius:var(--ms-r-in);background:#000;box-shadow:0 0 0 1px rgba(255,232,196,.35),0 0 12px -2px var(--app-accent)}
+    
+    .rk-light{position:absolute;left:0;bottom:0;height:2px;width:var(--pct,4%);background:var(--app-accent);box-shadow:0 0 8px var(--app-accent);transition:width .6s ease}
     
     .rk-root{container-type:size}
     @container (max-height:520px){
-      .rk-words{height:1.7rem;min-height:1.7rem}
+      .rk-words{height:1.7rem;min-height:1.7rem;line-height:1.7rem;padding:0;overflow:hidden}
+      
+      .rk-root [data-transport] > div:not([data-tp-row]){display:none}
+      .rk-root [data-models]{margin-top:-.125rem}
+      .rk-root .rk-res{display:none}
     }
-    
     .rk-st{animation:rk-stin .35s ease}
     @keyframes rk-stin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
     .rk-dots span{display:inline-block;animation:rk-dot 1.2s ease-in-out infinite;opacity:.2}

@@ -48,6 +48,21 @@ text + image → video; a clip-in mode waits for a Space that admits anonymously
   pays for one LTX or two Wan 5B before the pod-rotator moves its exit. Generation is signed-in only; a
   401 raises the systemic authWall.
 
+## The state map (the premium bar, `rules/design.md` — written before the second cut, 2026-09-03)
+
+(the `src` stayed set, so the picture kept the stage), it did not play (Chrome blocks an unmuted `play()`
+40 s after the tap — no gesture), the model was not on the screen, and the × sat under nothing but read as
+dead. Every row below names what the FRAME shows, what the ISLAND holds, the verb, and what demotes.
+
+| state | the frame (stage) | the island | verb | ≤520 px |
+|---|---|---|---|---|
+| words | same — the sources ride on the frame | words · rail · button | Зняти | — |
+| error | stays | the error line (an instruction, no blame) | on | — |
+| clips sheet | — | rows: words · model · seconds · when; delete with undo | — | — |
+
+Precedents: the island/stage/split regime from vidlunnia (`apps/vidlunnia/view.js`), the rail from mirage's
+options sheet (`data-model`, `data-models-check`, `shortName`), the sources from the kit (`/_rt/intake.js`).
+
 ## The app
 
 - The runtime's `/_rt/intake.js` (core 1.2.14, this app was the third photo intake — the copies in mirage
