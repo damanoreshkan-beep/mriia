@@ -36,7 +36,7 @@ const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KE
 export const $opts = atom(loadOpts());
 export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch {  } };
 export const setModel = (mode, id) => setOpts({ model: { ...$opts.get().model, [mode]: id || "auto" } });
-const modelFor = (mode) => { const m = $opts.get().model[mode]; return m && m !== "auto" ? m : null; };
+const modelFor = (mode) => { const m = $opts.get().model[mode]; if (!m || m === "auto") return null; const cat = $models.get(); return cat.at && !cat.error && !modelsFor(mode).some((x) => x.id === m) ? null : m; };
 
 const KIND = { make: "gen", edit: "edit", read: "read", blend: "blend", style: "style" };
 const GATE_MODELS = { gen: [{ id: "black-forest-labs/FLUX.1-schnell", tier: "2k", alive: true }, { id: "mrfakename/Z-Image-Turbo", tier: "fast", alive: true }, { id: "krea/Krea-2", tier: "fast", alive: null }],
@@ -140,7 +140,7 @@ export async function rework(ctx) {
   if (gate) { await sleep(120); if (run === runs.edit) patch("edit", { slides: [0, 1, 2, 3].map((n) => ({ url: mockArt(seed + n), seed: seed + n })), phase: "done" }); return; }
   notifyAsk();
   let image;
-  try { image = await toDataURL(st.src); } catch { return fail("edit", run, "eFailed"); }
+  try { image = (await toDataURL(st.src)).data; } catch { return fail("edit", run, "eFailed"); }   
   if (run !== runs.edit) return;
   if (image.length > 9_000_000) return fail("edit", run, "eBig");
   patch("edit", { live: { stage: "translate" } });
@@ -166,7 +166,7 @@ async function fuse(mode, ctx) {
   if (gate) { await sleep(120); if (run === runs[mode]) patch(mode, { slides: [0, 1, 2, 3].map((n) => ({ url: mockArt(seed + n), seed: seed + n })), phase: "done" }); return; }
   notifyAsk();
   let images;
-  try { images = await Promise.all([toDataURL(st.a), toDataURL(st.b)]); } catch { return fail(mode, run, "eFailed"); }
+  try { images = (await Promise.all([toDataURL(st.a), toDataURL(st.b)])).map((x) => x.data); } catch { return fail(mode, run, "eFailed"); }
   if (run !== runs[mode]) return;
   if (images.some((i) => i.length > 9_000_000)) return fail(mode, run, "eBig");
   patch(mode, { live: { stage: "translate" } });
@@ -202,7 +202,7 @@ export async function readPhoto(ctx) {
   patch("read", { error: null, text: "", phase: "working" });
   if (gate) { await sleep(120); if (run === runs.read) patch("read", { text: q ? GATE_TEXT.split("\n")[0] : GATE_TEXT, phase: "done" }); return true; }
   let image;
-  try { image = await toDataURL(st.src); } catch { return fail("read", run, "eRead"); }
+  try { image = (await toDataURL(st.src)).data; } catch { return fail("read", run, "eRead"); }
   if (run !== runs.read) return;
   if (image.length > 9_000_000) return fail("read", run, "eBig");
   const ask = ASK[ctx.loc] || ASK.en;
