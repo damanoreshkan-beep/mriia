@@ -4,6 +4,19 @@ const changed = async (h, before, n = 15) => { for (let i = 0; i < n; i++) { con
 
 export default [
   {
+    name: "покращити: кнопка при результаті → слайд замінюється 4×, кнопка каже Покращено", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-act=enhance]")) === 1, "немає кнопки Покращити");
+      h.expect((await h.attr("[data-act=enhance]", "aria-pressed")) === "false", "ще нічого не покращено");
+      const before = await h.attr("[data-result]", "src");
+      await h.tap("[data-act=enhance]"); await h.wait(150);
+      h.expect((await h.attr("[data-act=enhance]", "aria-busy")) === "true", "кнопка не показує роботу");
+      h.expect(await changed(h, before), "слайд не замінився покращеним");
+      h.expect((await h.attr("[data-act=enhance]", "aria-pressed")) === "true", "кнопка не каже Покращено");
+      h.expect((await h.prop("[data-act=enhance]", "disabled")) === true, "покращене можна покращувати знову");
+    },
+  },
+  {
     name: "сцена: чотири варіанти, поле, дія, збереження", run: async (h) => {
       await ready(h);
       h.expect((await h.count("[data-slide]")) === 4, "має бути 4 слайди");
