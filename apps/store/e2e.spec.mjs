@@ -56,7 +56,11 @@ export default [
       await ready(h);
       h.expect((await h.count("[data-featured]")) >= 2, "немає карток добірки");
       h.expect((await h.count('[data-featured][data-app="spirit"]')) === 1, "Дух карти не в добірці");
-      h.expect((await h.text("[data-slogan]")).trim().length > 5, "герой без гасла");
+      const newborn = await h.count("[data-featured][data-newborn]");
+      if (newborn) {
+        h.expect((await h.attr("[data-featured]", "data-newborn")) === "1", "новонароджений не веде стек «Сьогодні»");
+        h.expect(/сьогодні|вчора|today|yesterday/i.test(await h.text(".st-hero")), "брова героя-новинки не каже «коли»");
+      } else h.expect((await h.text("[data-slogan]")).trim().length > 5, "герой без гасла");
       await h.click('[data-featured][data-app="tide"]'); await h.wait(300);
       h.expect((await h.prop("#appsheet", "open")) === true, "картка добірки не відкрила сторінку апки");
       h.expect((await h.count("#install-app")) === 1, "немає кнопки Встановити на сторінці апки");

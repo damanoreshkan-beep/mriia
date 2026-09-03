@@ -20,11 +20,15 @@ const appUrl = (id, install = false) => `../${id}/${install ? "?install=1" : ""}
 const shotUrl = (a, tab, light) => `./assets/shot-${a.id}--${tab}${light ? "--light" : ""}.webp`;
 const CATS = ["science", "feeds", "tools", "sound", "hackrf", "creative", "money", "wellness", "play", "esoterica"];
 const catKey = (c) => "cat" + c[0].toUpperCase() + c.slice(1);
-const FEATURED = (spec.featured || []).map((id) => apps.find((a) => a.id === id)).filter(Boolean);
+const TODAY_DAYS = 2;
+const ageDays = (a) => Math.max(0, Math.floor((Date.now() - Date.parse(a.added + "T00:00:00")) / 86400000));
+const isNewborn = (a) => !!a.added && ageDays(a) < TODAY_DAYS;
+const NEWBORN = apps.filter(isNewborn).sort((x, y) => y.added.localeCompare(x.added) || x.title.localeCompare(y.title, "uk"));
+const CURATED = (spec.featured || []).map((id) => apps.find((a) => a.id === id)).filter((a) => a && !isNewborn(a));
+const FEATURED = [...NEWBORN, ...CURATED];
 const isFeatured = (a) => FEATURED.some((f) => f.id === a.id);
 const ROWS_PER_SECTION = 3;
 const FRESH_DAYS = 21, FRESH_MAX = 9, PER_SLIDE = 3;
-const ageDays = (a) => Math.max(0, Math.floor((Date.now() - Date.parse(a.added + "T00:00:00")) / 86400000));
 const FRESH = apps.filter((a) => a.added && ageDays(a) <= FRESH_DAYS)
   .sort((x, y) => y.added.localeCompare(x.added) || x.title.localeCompare(y.title, "uk")).slice(0, FRESH_MAX);
 const SLIDES = Array.from({ length: Math.ceil(FRESH.length / PER_SLIDE) }, (_, i) => FRESH.slice(i * PER_SLIDE, i * PER_SLIDE + PER_SLIDE));
@@ -114,11 +118,15 @@ export function store({ S, openScreen, closeScreen }) {
   
   
   const sloganOf = (a) => t?.["slogan_" + a.id] || "";
+  const rtf = new Intl.RelativeTimeFormat(locale === "uk" ? "uk" : "en", { numeric: "auto" });
+  const whenOf = (a) => { const d = ageDays(a); return d < 7 ? rtf.format(-d, "day") : rtf.format(-Math.round(d / 7), "week"); };
+  
+  const eyebrowOf = (a) => `${isNewborn(a) ? whenOf(a) : T(t, "premium")} · ${T(t, catKey(a.category))}`;
   const Featured = (a) => { const tab = a.shots?.[0]; const slogan = sloganOf(a); return html`<article key=${a.id} class="st-hero relative rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
-    <button data-featured data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
+    <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
     <div class="st-hero-body relative flex items-stretch gap-3 p-[var(--ms-pad)] pointer-events-none">
       <div class="st-hero-text min-w-0 flex-1 flex flex-col gap-1.5">
-        <div class="text-[0.58rem] font-mono uppercase tracking-[.14em] text-secondary">${T(t, "premium")} · ${T(t, catKey(a.category))}</div>
+        <div class="text-[0.58rem] font-mono uppercase tracking-[.14em] text-secondary">${eyebrowOf(a)}</div>
         <div class="flex items-center gap-2.5 min-w-0">
           ${Tile(a, "w-10 h-10")}
           <span class="st-hero-name font-bold text-[1.05rem] leading-tight truncate">${nameOf(a)}</span>
@@ -137,11 +145,11 @@ export function store({ S, openScreen, closeScreen }) {
   
   
   const FeaturedTall = (a) => { const shot = firstShot(a); return html`<article key=${a.id} class="relative h-full rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
-    <button data-featured data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
+    <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
     <div class="relative h-full flex items-stretch gap-2.5 p-3 pointer-events-none">
       ${shot ? html`<div class="shrink-0 self-center w-14 aspect-[384/832] rounded-[0.55rem] overflow-hidden bg-black ring-1 ring-base-300/60"><img src=${shot} alt="" loading="lazy" decoding="async" class="w-full h-full block" /></div>` : null}
       <div class="min-w-0 flex-1 flex flex-col gap-1 py-0.5">
-        <div class="text-[0.52rem] font-mono uppercase tracking-[.12em] text-secondary truncate">${T(t, catKey(a.category))}</div>
+        <div class="text-[0.52rem] font-mono uppercase tracking-[.12em] text-secondary truncate">${isNewborn(a) ? whenOf(a) : T(t, catKey(a.category))}</div>
         
         <span class="font-bold text-[0.88rem] leading-tight line-clamp-2 break-words">${nameOf(a)}</span>
         <div class="mt-auto pt-1">${pill(a, "pointer-events-auto")}</div>
@@ -180,8 +188,6 @@ export function store({ S, openScreen, closeScreen }) {
   const onRail = () => { const el = railRef.current; if (!el || el.children.length < 2) return; const step = el.children[1].offsetLeft - el.children[0].offsetLeft; setSlide(Math.max(0, Math.min(SLIDES.length - 1, Math.round(el.scrollLeft / step)))); };
   const goSlide = (i) => { const el = railRef.current; if (!el?.children[i]) return; el.scrollTo({ left: el.children[i].offsetLeft - el.children[0].offsetLeft, behavior: "smooth" }); };
   
-  const rtf = new Intl.RelativeTimeFormat(locale === "uk" ? "uk" : "en", { numeric: "auto" });
-  const whenOf = (a) => { const d = ageDays(a); return d < 7 ? rtf.format(-d, "day") : rtf.format(-Math.round(d / 7), "week"); };
   
   
   const Fresh = (a, i) => { const life = Math.max(0.12, 1 - ageDays(a) / FRESH_DAYS); return html`<button key=${a.id} data-app=${a.id} data-fresh-card aria-label=${nameOf(a)} onClick=${() => tap(a)} style=${`--life:${life.toFixed(2)};--i:${i}`} class="st-fresh relative w-full text-left rounded-[calc(var(--ms-r)*.8)] sf-raised sf-e2 overflow-hidden flex items-center gap-3 p-2.5 pl-3.5">
