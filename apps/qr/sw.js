@@ -1,6 +1,6 @@
 self.MS = {
   app: "qr",
-  version: "8d4041628c",
+  version: "a8001e7e08",
   precache: [
     "./",
     "./i18n/en.json",
@@ -46,6 +46,7 @@ self.MS = {
     "/_rt/skeleton.js",
     "/_rt/store.js",
     "/_rt/swipe.js",
+    "/_rt/telemetry.js",
     "/_rt/theme-lum.css",
     "/_rt/theme.css",
     "/_rt/themes.json",

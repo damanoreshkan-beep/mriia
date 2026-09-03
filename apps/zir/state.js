@@ -7,6 +7,7 @@ import { notify, notifyAsk } from "/_rt/notify.js";
 import { holdBackground } from "/_rt/bghold.js";
 import { startJob, followOne, cancelJob } from "/_rt/imagejob.js";
 import { mockArt, toDataURL, sizeOf, extOf } from "/_rt/intake.js";
+import { report } from "/_rt/telemetry.js";
 
 const BASE = `${VPS_PROXY}/image/upscale`;
 const OPTS_KEY = "ms:zir:opts";
@@ -57,7 +58,7 @@ export function clearSource() {
 }
 export function again() { const o = $st.get().out; if (o) setSource(o.url); }
 
-const fail = (r, code) => { if (r !== run) return; patch({ phase: "error", error: code, live: null }); hold?.(); hold = null; };
+const fail = (r, code) => { if (r !== run) return; patch({ phase: "error", error: code, live: null }); hold?.(); hold = null; report("upscale.fail", { reason: code }); };
 
 export async function enlarge(ctx) {
   const st = $st.get();
