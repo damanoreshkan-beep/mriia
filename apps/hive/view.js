@@ -53,7 +53,7 @@ const GATE_FIELD = [
   { addr: "0A:99:88:77:66:55", name: "", rssi: -92, raw: "020106", kind: "ble" },
   { addr: "24:0A:C4:11:22:33", name: "Gate-AP", rssi: -52, kind: "wifi", ftm: true, freq: 5180 },
   { addr: "3C:5A:B4:44:55:66", name: "Gate-Guest", rssi: -74, kind: "wifi", ftm: false, freq: 2437 },
-  { addr: "lte:301", name: "LTE 1300", rssi: -89, kind: "lte", serving: true },
+  { addr: "lte:301", name: "LTE 1300", rssi: -89, kind: "lte", serving: true, cid: 27183, lac: 4102 },
   { addr: "lte:118", name: "LTE 1300", rssi: -104, kind: "lte", serving: false },
 ];
 
@@ -87,6 +87,8 @@ function upsert(frame) {
   }
 }
 
+const cellNum = (v) => (Number.isInteger(v) && v > 0 && v < 0x10000000 ? v : null);
+
 async function sweepRadios() {
   if (shell.has("wifi.scan")) {
     try {
@@ -104,7 +106,7 @@ async function sweepRadios() {
         if (id == null) continue;
         upsert({
           addr: `${c.type || "cell"}:${id}`, name: `${(c.type || "cell").toUpperCase()} ${c.arfcn ?? ""}`.trim(),
-          rssi: c.rssi, kind: "lte", serving: !!c.serving,
+          rssi: c.rssi, kind: "lte", serving: !!c.serving, cid: cellNum(c.cid), lac: cellNum(c.lac),
         });
       }
     } catch {  }
@@ -340,14 +342,16 @@ export function listView({ S, t }) {
           <span class="mt-1 block font-mono text-[length:var(--ms-label)] text-base-content/70">
             ${(() => { const v = vendorOf(d.addr, d.kind, oui); return v ? html`<span data-vendor>${v}</span> · ` : null; })()}
             ${T(t, "band_" + band(d.smooth ?? d.rssi))} · ${Math.round(d.smooth ?? d.rssi)} dBm${rotates(d.addr) && d.kind === "ble" ? " · " + T(t, "rotating") : ""}
+            
+            ${d.cid || d.lac
+              ? html` · <span data-cellid>${[d.cid ? `CID ${d.cid}` : null, d.lac ? `LAC ${d.lac}` : null].filter(Boolean).join(" · ")}</span>`
+              : null}
           </span>
         </button>`)}
       </div>
     <//>
   </div>`;
 }
-
-
 
 
 export function huntView({ S, t, screen, openScreen, closeScreen }) {
@@ -360,7 +364,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
   const p = petal(rose);
   let max = 0;
   for (let i = 0; i < p.length; i++) max = Math.max(max, p[i]);
-
   const path = [];
   for (let i = 0; i < p.length; i++) {
     const a = ((i + 0.5) / p.length) * Math.PI * 2 - Math.PI / 2;
@@ -378,6 +381,8 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
   dialRef.current = unwrapDeg(dialRef.current, hdg);
   const trend = dev ? sightTrend(dev.sightings) : null;
 
+  
+  
   
   const spread = Math.max(12, Math.min(80, 90 * (1 - stats.r)));
   const wx = (a, r) => (50 + r * Math.sin((a * Math.PI) / 180)).toFixed(2);
@@ -405,7 +410,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
                   stroke="currentColor" stroke-width=${major ? 0.7 : 0.35} opacity=${major ? 0.45 : 0.2}
                   class=${i === 0 ? "text-[var(--app-accent)]" : ""} />`;
               })}
-            
             ${max > 0 ? html`<path data-petal d=${dPath} style=${`d:path('${dPath}')`}
               fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.7"
               class=${`hv-petal text-[var(--app-accent)] ${gate ? "" : "hv-e-in"}`} />` : null}

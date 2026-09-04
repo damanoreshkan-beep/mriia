@@ -30,6 +30,10 @@ export default [
       h.expect(vendors >= 2, `виробника не показано для жодної справжньої адреси (${vendors})`);
       h.expect(vendors < rows, "виробника показано навіть для ротаційних адрес — це вигадка");
 
+      h.expect((await h.count("[data-cellid]")) === 1, `очікував CID/LAC рівно в однієї соти, знайшов ${await h.count("[data-cellid]")}`);
+      const cellid = await h.text("[data-cellid]");
+      h.expect(/CID \d+ · LAC \d+/.test(cellid), `рядок соти без CID/LAC: ${cellid}`);
+
       const body = await h.text("[data-live]");
       h.expect(/dBm/.test(body), "немає вимірювання в dBm");
       h.expect(!/метр|metre|meter/i.test(body), `список заявив відстань: ${body.slice(0, 160)}`);
