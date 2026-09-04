@@ -112,20 +112,19 @@ export default [
     },
   },
   {
-    name: "check: a find is placed on the globe, or the app says why not", run: async (h) => {
+    name: "check: every row asks the world, and a find is placed on the map or the row says why not", run: async (h) => {
       await h.click('[data-tab="list"]'); await h.wait(400);
-      await h.tap('[data-dev="24:0A:C4:11:22:33"]'); await h.wait(300);
-      h.expect((await h.count("[data-check]")) === 1, "немає кнопки Перевірити для обраної знахідки");
-      await h.tap("[data-check]"); await h.wait(600);
-      h.expect((await h.attr("[data-check-row]", "data-verdict")) === "found", "Wi-Fi не знайдено у фікстурі");
-      h.expect((await h.count("[data-where]")) === 1, "глобус не відкрився");
+      const rows = await h.count("[data-row]");
+      h.expect(rows >= 8 && (await h.count("[data-check]")) === rows, "не кожен рядок має кнопку Перевірити");
+      await h.tap('[data-check="24:0A:C4:11:22:33"]'); await h.wait(700);
+      h.expect((await h.attr('[data-row="24:0A:C4:11:22:33"]', "data-verdict")) === "found", "Wi-Fi не знайдено у фікстурі");
+      h.expect((await h.count("[data-where]")) === 1, "карта не відкрилась");
       await h.back(); await h.wait(300);
-      h.expect((await h.count("[data-where]")) === 0, "Back не закрив глобус");
-      await h.tap('[data-dev="lte:301"]'); await h.wait(300);
-      await h.tap("[data-check]"); await h.wait(600);
-      h.expect((await h.attr("[data-check-row]", "data-verdict")) === "unknown", "невідома сота не назвалась невідомою");
-      h.expect((await h.count("[data-verdict-line]")) === 1, "немає пояснення, чому немає місця");
-      h.expect((await h.count("[data-where]")) === 0, "глобус відкрився без координат");
+      h.expect((await h.count("[data-where]")) === 0, "Back не закрив карту");
+      await h.tap('[data-check="lte:301"]'); await h.wait(700);
+      h.expect((await h.attr('[data-row="lte:301"]', "data-verdict")) === "unknown", "невідома сота не назвалась невідомою");
+      h.expect((await h.count('[data-row="lte:301"] [data-verdict-line]')) === 1, "немає пояснення під рядком соти");
+      h.expect((await h.count("[data-where]")) === 0, "карта відкрилась без координат");
     },
   },
 ];

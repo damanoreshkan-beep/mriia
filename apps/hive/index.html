@@ -49,6 +49,14 @@
     }
   }
   </script>
+  <link rel="stylesheet" href="leaflet.css">
+  <style>
+    .hv-map{background:#0A0A0D;font-family:var(--font-mono)}
+    .hv-map .leaflet-tile{filter:invert(1) hue-rotate(180deg) saturate(.25) brightness(.82) contrast(1.05)}
+    [data-theme="signal-light"] .hv-map{background:#ECE9E1}
+    [data-theme="signal-light"] .hv-map .leaflet-tile{filter:saturate(.35) brightness(.98)}
+    .hv-map .leaflet-container{outline:0}
+  </style>
   <style>
     .hv-scale{transform-box:view-box;transform-origin:0 0;transition:transform .7s cubic-bezier(.22,1,.36,1)}
     .hv-cell{transition:transform .62s cubic-bezier(.22,1,.36,1)}

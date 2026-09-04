@@ -4,7 +4,6 @@ import { useStore } from "@nanostores/preact";
 import { atom } from "nanostores";
 import { T } from "/_rt/i18n.js";
 import { Panel, Island, Sheet, Stage } from "/_rt/ui.js";
-import { Globe } from "/_rt/globe.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { shell, ERR } from "/_rt/shell.js";
 import { gate } from "/_rt/gate.js";
@@ -424,8 +423,6 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
   const oui = useStore($oui);
   const loc = useStore(S.locale);
   const look = useStore($look);
-  const sel = field.find((d) => d.addr === target) || null;
-  const mine = look && sel && look.addr === sel.addr ? look : null;
   const copied = useStore($copied);
   useEffect(loadOui, []);
   
@@ -450,33 +447,19 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
       <${Reason} t=${t} />
     <//>
 
-    
-    ${sel
-      ? html`<${Panel} title=${T(t, "checkTitle")}>
-        <div data-check-row data-verdict=${mine?.state === "done" ? (mine.v.found ? "found" : mine.v.reason) : mine?.state === "asking" ? "asking" : ""}
-          class="flex items-center gap-[var(--ms-gap)] min-w-0">
-          <span class="flex-1 min-w-0 truncate">${labelOf(sel, t)}</span>
-          <button data-check class="btn btn-primary rounded-full shrink-0" disabled=${mine?.state === "asking"}
-            onClick=${() => askAbout(sel, field, () => openScreen("where"))}>
-            ${T(t, mine?.state === "asking" ? "asking" : "check")}
-          </button>
-        </div>
-        ${mine?.state === "done" && !mine.v.found
-          ? html`<div data-verdict-line class="text-sm text-muted">${T(t, "no_" + mine.v.reason)}</div>`
-          : null}
-        ${mine?.state === "done" && mine.v.found
-          ? html`<button data-open-where class="text-sm text-left underline decoration-dotted" onClick=${() => openScreen("where")}>${T(t, "showOnGlobe")}</button>`
-          : null}
-      <//>`
-      : null}
-
     <${Panel} title=${T(t, "signal")}>
       <div data-live data-copied=${copied?.addr || ""} data-copied-lines=${copied?.lines || 0} data-copied-ok=${copied?.ok ? "1" : "0"} class="flex flex-col">
         ${field.length === 0 ? html`<div class="text-base-content/70 text-sm">${T(t, "nothingYet")}</div>` : null}
-        ${field.map((d) => html`<button key=${d.addr} data-dev=${d.addr} data-kind=${d.kind}
+        
+        ${field.map((d) => {
+          const lk = look && look.addr === d.addr ? look : null;
+          const verdict = lk?.state === "done" ? (lk.v.found ? "found" : lk.v.reason) : lk?.state === "asking" ? "asking" : "";
+          return html`<div key=${d.addr} data-row=${d.addr} data-verdict=${verdict} class="border-b border-base-content/10 last:border-0">
+          <div class="flex items-center gap-1 min-w-0">
+          <button data-dev=${d.addr} data-kind=${d.kind}
           aria-pressed=${String(d.addr === target)}
           onClick=${() => takeIt(d)}
-          class="ms-reveal text-left py-2 border-b border-base-content/10 last:border-0 rounded-[var(--ms-r-in)] transition-colors hover:bg-base-content/5">
+          class="ms-reveal flex-1 min-w-0 text-left py-2 rounded-[var(--ms-r-in)] transition-colors hover:bg-base-content/5">
           <span class="flex items-center gap-2 min-w-0">
             ${Icon(KIND_ICON[d.kind], `text-[length:var(--ms-icon)] shrink-0 ${d.kind === "ble" ? "text-[var(--app-accent)]" : "text-base-content/70"}`)}
             <span class="flex-1 min-w-0 truncate">${labelOf(d, t)}</span>
@@ -497,26 +480,70 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
               ? html` · <span data-cellid>${[d.cid ? `CID ${d.cid}` : null, d.lac ? `LAC ${d.lac}` : null].filter(Boolean).join(" · ")}</span>`
               : null}
           </span>
-        </button>`)}
+          </button>
+          <button data-check=${d.addr} aria-label=${T(t, "check")} disabled=${verdict === "asking"}
+            class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${verdict === "found" ? "text-[var(--app-accent)]" : "text-base-content/70"}`}
+            onClick=${() => verdict === "found" ? openScreen("where") : askAbout(d, field, () => openScreen("where"))}>
+            ${Icon("lucide:map-pin", "text-xl")}
+          </button>
+          </div>
+          ${lk?.state === "done" && !lk.v.found
+            ? html`<div data-verdict-line class="pb-2 text-sm text-muted">${T(t, "no_" + lk.v.reason)}</div>`
+            : null}
+        </div>`;
+        })}
       </div>
     <//>
-    <${Sheet} id="where" open=${screen === "where"} onClose=${closeScreen} title=${T(t, "whereTitle")} icon="lucide:globe">
-      
-      ${mine?.v?.found && screen === "where"
+
+    
+    <${Sheet} id="where" open=${screen === "where"} onClose=${closeScreen} title=${T(t, "whereTitle")} icon="lucide:map-pin">
+      ${look?.v?.found && screen === "where"
         ? html`<div data-where class="flex flex-col gap-[var(--ms-gap)]">
-          <${Globe} points=${[
-            { lat: mine.v.lat, lon: mine.v.lon, r: 16, color: "rgba(242,184,75,.16)" },
-            { lat: mine.v.lat, lon: mine.v.lon, r: 5, color: "#F2B84B" },
-          ]} focus=${{ lat: mine.v.lat, lon: mine.v.lon }} spin=${false} height=${300} />
-          <div class="font-mono tabular-nums">${mine.v.lat.toFixed(5)}, ${mine.v.lon.toFixed(5)}</div>
-          <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">
-            ${T(t, "accuracy")} ±${Math.round(mine.v.accuracy || 0)} m · ${T(t, "source")} ${mine.v.source}
+          <${MapView} lat=${look.v.lat} lon=${look.v.lon} accuracy=${look.v.accuracy} />
+          <div class="flex items-baseline justify-between gap-2 min-w-0">
+            <span class="font-mono tabular-nums">${look.v.lat.toFixed(5)}, ${look.v.lon.toFixed(5)}</span>
+            <span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted shrink-0">±${Math.round(look.v.accuracy || 0)} m · ${look.v.source}</span>
           </div>
+          
+          <div class="font-mono text-[length:var(--ms-label)] text-muted">© OpenStreetMap contributors</div>
         </div>`
         : html`<div class="text-sm text-muted">${T(t, "no_unknown")}</div>`}
     <//>
   </div>`;
 }
+const PIN = "#F2B84B";
+
+
+
+
+
+
+
+
+function MapView({ lat, lon, accuracy }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    let map = null, alive = true, timer = 0;
+    (async () => {
+      const mod = await import("./leaflet.vendor.js");
+      const L = mod.default ?? mod;
+      if (!alive || !ref.current) return;
+      map = L.map(ref.current, { zoomControl: false, attributionControl: false, zoomSnap: 0.5 });
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+      const r = Math.max(accuracy || 0, 25);
+      L.circle([lat, lon], { radius: r, color: PIN, weight: 1, opacity: .6, fillColor: PIN, fillOpacity: .14 }).addTo(map);
+      L.circleMarker([lat, lon], { radius: 6, color: "#0A0A0D", weight: 2, fillColor: PIN, fillOpacity: 1 }).addTo(map);
+      map.fitBounds(L.latLng(lat, lon).toBounds(r * 2.4), { animate: false });
+      timer = setTimeout(() => { if (alive && map) { map.invalidateSize(); ref.current?.setAttribute("data-map-ready", "1"); } }, 380);
+    })();
+    return () => { alive = false; clearTimeout(timer); map?.remove(); };
+  }, [lat, lon, accuracy]);
+  return html`<div ref=${ref} data-map class="hv-map w-full rounded-[var(--ms-r)] overflow-hidden sf-inset bg-black" style="height:min(60dvh, 380px)"></div>`;
+}
+
+
+
+
 
 export function huntView({ S, t, screen, openScreen, closeScreen }) {
   const field = useField(S);
@@ -536,7 +563,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
     path.push(`${i ? "L" : "M"}${(50 + Math.cos(a) * r).toFixed(2)} ${(50 + Math.sin(a) * r).toFixed(2)}`);
   }
   const dPath = path.join(" ") + " Z";
-
+  
   const angRef = useRef(0);
   if (stats.bearingDeg !== null) angRef.current = unwrapDeg(angRef.current, stats.bearingDeg);
   const hdg = useStore($heading);
@@ -586,7 +613,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
               <path d="M50 5.5 L46.6 13 L53.4 13 Z" fill="currentColor" />
             </g>` : null}
           </g>
-          
           ${dev ? html`<g data-strength class="font-mono">
             <text x="50" y="53" text-anchor="middle" font-size="10.5" fill="currentColor"
               class="text-base-content font-mono">${dev.percent}</text>
@@ -600,6 +626,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
         </svg>
       </div>
     <//>
+
     <div class="ms-side-main flex flex-col justify-end items-center pb-[var(--ms-gap)]">
       <${Island} className="w-full max-w-md">
         <div class="flex items-center gap-[var(--ms-gap)] min-w-0">
@@ -638,6 +665,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
     <//>
   </div>`;
 }
+
 
 export function guardView({ S, t }) {
   const field = useField(S);
