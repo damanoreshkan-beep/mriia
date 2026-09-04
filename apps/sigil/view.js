@@ -7,20 +7,23 @@ import { sigilPath } from "/_rt/sigil.js";
 import { collection } from "/_rt/db.js";
 import { gate } from "/_rt/gate.js";
 import { Sheet, Island, Panel } from "/_rt/ui.js";
+import { Scramble, Pixels, useReveal } from "/_rt/skeleton.js";
 import { SigilStage, draw2D, sigilToDataURL, immersionAvailable, enableImmersion, disableImmersion } from "./viz.js";
 import { downloadUrl } from "/_rt/apk.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
+const META = "font-mono text-[length:var(--ms-label)] tabular-nums text-muted";
 const pKey = (k) => "p" + k[0].toUpperCase() + k.slice(1);
 const dKey = (k) => "dom" + k[0].toUpperCase() + k.slice(1);
 const grim = collection("sigil");
 const DEFAULT_INTENT = "I am calm and focused";     
 
-const Attribution = ({ t, sig, onOpen }) => html`<button data-about aria-label=${T(t, "aboutAria")} onClick=${onOpen} class="inline-flex max-w-full items-center gap-2 rounded-full sf-raised sf-e2 px-3 py-1.5 active:scale-[0.98] transition">
+const Attribution = ({ t, sig, onOpen }) => html`<button data-about aria-label=${T(t, "aboutAria")} onClick=${onOpen} class="inline-flex max-w-full items-center gap-2 rounded-full sf-raised sf-e2 px-3 py-1.5 active:scale-[0.98] transition-transform">
   <span class="shrink-0"><${Planet} body=${sig.planet} /></span>
   <span class="text-sm font-medium truncate">${T(t, pKey(sig.planet))}</span>
-  <span class="text-xs font-mono text-muted tabular-nums shrink-0">${sig.order}×${sig.order}</span>
-  ${Icon("lucide:info", "text-sm text-base-content/40 shrink-0")}
+  <span class=${`${META} shrink-0`}>${sig.order}×${sig.order}</span>
+  ${Icon("lucide:info", "text-sm text-muted shrink-0")}
 </button>`;
 
 function AboutSheet({ t, open, sig, onClose }) {
@@ -36,7 +39,7 @@ function AboutSheet({ t, open, sig, onClose }) {
       <p class="text-sm text-base-content/80 leading-relaxed">${kamea}</p>
       <p class="text-sm text-base-content/80 leading-relaxed">${T(t, "traceDesc")}</p>
       <div class="flex items-center gap-2.5 pt-1">
-        <span class="text-xs uppercase tracking-wide text-base-content/50 shrink-0">${T(t, "lettersLabel")}</span>
+        <span class=${`${LABEL} shrink-0`}>${T(t, "lettersLabel")}</span>
         <span class="font-mono text-base tracking-[0.35em] text-base-content truncate">${sig.letters.join("")}</span>
       </div>
     </div>` : null}
@@ -81,17 +84,17 @@ export function forge({ S, toast }) {
 
   return html`<div class="contents">
     <${SigilStage} sigil=${sig} />
-    <div class="relative z-10 flex flex-col min-h-[70svh] px-4 pt-3 pb-4 gap-3 pointer-events-none">
+    <div class="relative z-10 flex flex-col min-h-[70svh] px-[var(--ms-pad)] pt-[var(--ms-gap)] pb-[var(--ms-pad)] gap-[var(--ms-gap)] pointer-events-none" data-forged=${sig ? "yes" : "no"} data-tilt=${tilted ? "on" : "off"}>
       <div class="flex justify-center">${sig ? html`<div class="pointer-events-auto"><${Attribution} t=${t} sig=${sig} onOpen=${() => S.screen.set("about")} /></div>` : null}</div>
       <div class="flex-1"></div>
       
-      <${Island} className="pointer-events-auto flex flex-col gap-2.5">
+      <${Island} className="pointer-events-auto flex flex-col gap-[var(--ms-gap)]">
         <input data-intent aria-label=${T(t, "intentLabel")} value=${intent} placeholder=${T(t, "intentPlaceholder")}
           onInput=${(e) => setIntent(e.currentTarget.value)}
           onKeyDown=${(e) => { if (e.key === "Enter") doForge(); }}
           class="input input-ghost w-full text-base focus:outline-none bg-transparent" />
         <div class="flex flex-wrap items-center gap-2">
-          <button data-forge onClick=${doForge} disabled=${!intent.trim()} class="btn btn-primary rounded-2xl flex-1 min-w-0 gap-2">
+          <button data-forge onClick=${doForge} disabled=${!intent.trim()} class="btn btn-primary flex-1 min-w-0 gap-2">
             ${Icon("lucide:flame", "text-lg shrink-0")}<span class="truncate">${T(t, sig ? "reforgeBtn" : "forgeBtn")}</span>
           </button>
           ${sig ? html`<button data-keep aria-label=${T(t, "keepBtn")} onClick=${keep} class="btn btn-ghost btn-circle shrink-0">${Icon("lucide:bookmark-plus", "text-lg")}</button>` : null}
@@ -124,14 +127,15 @@ function SigilCanvas({ sig, size = 132, cls }) {
 export function grimoire({ S, toast, undo }) {
   const t = useStore(S.t);
   const scr = useStore(S.screen);
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(null);                       
   const [openId, setOpenId] = useState(null);
 
   const refresh = async () => { try { setItems(await grim.all()); } catch { setItems([]); } };
   useEffect(() => { refresh(); }, []);
+  const shown = useReveal(items !== null);
 
   
-  const withSig = items.map((it) => ({ ...it, sig: sigilPath(it.intent) })).filter((x) => x.sig);
+  const withSig = (items || []).map((it) => ({ ...it, sig: sigilPath(it.intent) })).filter((x) => x.sig);
 
   const open = (it) => { setOpenId(it.id); S.screen.set("detail"); };
   const remove = async (it) => {
@@ -143,22 +147,34 @@ export function grimoire({ S, toast, undo }) {
 
   const openItem = withSig.find((x) => x.id === openId);
 
+  
+  const tile = "rounded-[var(--ms-r)] sf-raised sf-e2 p-3 flex flex-col items-center gap-2";
+  
+  if (!shown) {
+    return html`<div class="p-[var(--ms-pad)]"><div class="grid grid-cols-2 gap-[var(--ms-gap)]">
+      ${[0, 1].map((i) => html`<div data-skel key=${i} class=${tile}>
+        <div class="w-[132px] h-[132px] rounded-[var(--ms-r-in)] overflow-hidden sf-inset"><${Pixels} /></div>
+        <div class="text-sm text-muted"><${Scramble} len=${10} /></div>
+      </div>`)}
+    </div></div>`;
+  }
+
   if (!withSig.length) {
-    return html`<div data-empty class="min-h-[60svh] flex items-center justify-center px-4">
+    return html`<div data-empty class="min-h-[60svh] flex items-center justify-center px-[var(--ms-pad)]">
       <${Panel} className="items-center">
-        ${Icon("lucide:book-marked", "text-4xl text-base-content/40")}
+        ${Icon("lucide:book-marked", "text-4xl text-muted")}
         <p class="text-sm text-base-content/70">${T(t, "grimoireEmpty")}</p>
       </${Panel}>
     </div>`;
   }
 
-  return html`<div class="px-4 py-4">
-    <div class="grid grid-cols-2 gap-3">
-      ${withSig.map((it) => html`<button data-item key=${it.id} onClick=${() => open(it)} class="group rounded-3xl sf-raised sf-e2 p-3 flex flex-col items-center gap-2 active:scale-[0.98] transition">
-        <${SigilCanvas} sig=${it.sig} size=${132} cls="rounded-xl" />
+  return html`<div class="p-[var(--ms-pad)]" data-kept=${withSig.length}>
+    <div class="grid grid-cols-2 gap-[var(--ms-gap)]">
+      ${withSig.map((it) => html`<button data-item key=${it.id} onClick=${() => open(it)} class=${`group ${tile} active:scale-[0.98] transition-transform`}>
+        <${SigilCanvas} sig=${it.sig} size=${132} cls="rounded-[var(--ms-r-in)]" />
         <div class="w-full flex items-center gap-1.5 justify-center text-base-content/70">
           <${Planet} body=${it.sig.planet} />
-          <span class="text-xs font-medium truncate">${it.intent}</span>
+          <span class="text-sm font-medium truncate">${it.intent}</span>
         </div>
       </button>`)}
     </div>
@@ -172,14 +188,14 @@ export function grimoire({ S, toast, undo }) {
 function DetailSheet({ t, open, it, onClose, onShare, onRemove }) {
   return html`<${Sheet} id="detailsheet" open=${open} onClose=${onClose} title=${it ? it.intent : ""}>
     ${it ? html`<div data-detail class="flex flex-col items-center gap-4">
-      <${SigilCanvas} sig=${it.sig} size=${260} cls="rounded-2xl" />
+      <${SigilCanvas} sig=${it.sig} size=${260} cls="rounded-[var(--ms-r-in)]" />
       <div class="flex items-center gap-2">
         <${Planet} body=${it.sig.planet} />
         <span class="font-medium">${T(t, pKey(it.sig.planet))}</span>
-        <span class="text-xs font-mono text-muted tabular-nums">${it.sig.order}×${it.sig.order}</span>
+        <span class=${META}>${it.sig.order}×${it.sig.order}</span>
       </div>
       <div class="flex items-center gap-2 w-full max-w-xs">
-        <button data-share onClick=${onShare} class="btn btn-primary rounded-2xl flex-1 gap-2">${Icon("lucide:share-2", "text-lg")}${T(t, "shareBtn")}</button>
+        <button data-share onClick=${onShare} class="btn btn-primary flex-1 gap-2">${Icon("lucide:share-2", "text-lg")}${T(t, "shareBtn")}</button>
         <button data-remove data-haptic="bump" aria-label=${T(t, "removeBtn")} onClick=${onRemove} class="btn btn-ghost btn-circle text-error">${Icon("lucide:trash-2", "text-lg")}</button>
       </div>
     </div>` : null}

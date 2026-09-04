@@ -6,7 +6,7 @@ import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { usePanX } from "/_rt/gesture.js";
-import { Sheet, Segmented, Transport, Island } from "/_rt/ui.js";
+import { Sheet, Segmented, Transport, Island, Slider } from "/_rt/ui.js";
 import { audioSupported, midiToFreq, createEngine } from "/_rt/audio.js";
 import { generateGroove, mulberry32 } from "/_rt/groove.js";
 import { collection } from "/_rt/db.js";
@@ -18,6 +18,7 @@ import { bindAudio, enableImmersion, disableImmersion, immersionState, immersion
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const N = 16, STEPS = [...Array(N).keys()], ROOT = 36;
 const RIFF = [0, 0, 12, 0, 0, 7, 0, 3, 0, 0, 12, 0, 5, 0, 7, 0];
 const randSeed = () => (Math.random() * 0xffffffff) >>> 0;
@@ -76,12 +77,12 @@ const ARCHETYPES = [
 const lerp = (rng, [lo, hi]) => lo + rng() * (hi - lo);
 
 const FX = [
-  { id: "mfilter", icon: "lucide:filter", label: "fxFilter", min: 0, max: 1, step: 0.02 },
-  { id: "drive", icon: "lucide:flame", label: "fxDrive", min: 0, max: 1, step: 0.02 },
-  { id: "crush", icon: "lucide:binary", label: "fxCrush", min: 0, max: 1, step: 0.02 },
-  { id: "delay", icon: "lucide:repeat-2", label: "fxDelay", min: 0, max: 0.8, step: 0.02 },
-  { id: "reverb", icon: "lucide:cloudy", label: "fxReverb", min: 0, max: 0.9, step: 0.02 },
-  { id: "swing", icon: "lucide:wind", label: "fxSwing", min: 0, max: 0.6, step: 0.02 },
+  { id: "mfilter", label: "fxFilter", min: 0, max: 1, step: 0.02 },
+  { id: "drive", label: "fxDrive", min: 0, max: 1, step: 0.02 },
+  { id: "crush", label: "fxCrush", min: 0, max: 1, step: 0.02 },
+  { id: "delay", label: "fxDelay", min: 0, max: 0.8, step: 0.02 },
+  { id: "reverb", label: "fxReverb", min: 0, max: 0.9, step: 0.02 },
+  { id: "swing", label: "fxSwing", min: 0, max: 0.6, step: 0.02 },
 ];
 const DFX = { mfilter: 1, drive: 0, crush: 0, delay: 0, reverb: 0, swing: 0 };
 const curveOf = (fn) => { const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) c[i] = fn(i / (n - 1) * 2 - 1); return c; };
@@ -240,9 +241,8 @@ export function rave({ S, screen, openScreen, closeScreen }) {
 
   return html`<${Fragment}>
     <${SpectrumStage} index=${viz} />
-    <div aria-hidden="true" class="fixed inset-x-0 bottom-0 z-[1] h-2/5 pointer-events-none bg-gradient-to-t from-base-200 via-base-200/55 to-transparent"></div>
 
-    <div class="relative z-10 h-full min-h-0 flex flex-col gap-3">
+    <div class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]" data-playing=${playing ? "on" : "off"} data-gen=${sweep >= 0 ? "on" : "off"} data-scene=${viz}>
       <div class="flex items-center gap-2">
         <div class="flex-1 min-w-0">
           <${Segmented} attr="data-style" scroll variant="outline" label=${T(t, "tabPads")}
@@ -253,22 +253,22 @@ export function rave({ S, screen, openScreen, closeScreen }) {
 
       <div ...${pan} class="flex-1 min-h-0 touch-pan-y" aria-hidden="true"></div>
 
-      <div class="ms-decor flex items-center justify-between gap-3">
-        <div class="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-base-content/70 truncate">${T(t, vizKey(VIZ[viz].id))}</div>
+      
+      <div class="ms-decor flex items-center justify-between gap-[var(--ms-gap)]">
+        <div class=${`${LABEL} truncate`}>${T(t, vizKey(VIZ[viz].id))}</div>
         <div data-viztrack class="flex items-center gap-1 shrink-0">
           ${VIZ.map((v, i) => html`<button data-viztick=${i} aria-current=${i === viz} aria-label=${`${T(t, "vizLabel")} ${i + 1}`} onClick=${() => setViz(i)} key=${v.id} class="py-2 px-0.5"><span class=${`block h-1 rounded-full transition-[width,background-color] ${i === viz ? "w-5 bg-secondary" : "w-2 bg-base-content/40"}`}></span></button>`)}
         </div>
       </div>
 
-      <${Island} className="flex flex-col gap-3">
+      <${Island} className="flex flex-col gap-[var(--ms-gap)]">
         
         <div data-viz class="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-1">
           ${STEPS.map((i) => { const beat = i % 4 === 0, k = kickRow[i], on = i === cur, sw = i === sweep; const hot = sw ? "bg-accent" : on ? "bg-secondary" : k ? "bg-secondary/45" : beat ? "bg-base-content/20" : ""; return html`<div key=${i} class=${`h-1.5 rounded-full transition-colors ${hot}`} style=${hot ? "" : "background:var(--sf-track-face)"}></div>`; })}
         </div>
-        <div class="flex items-center gap-3 px-1">
-          ${Icon("lucide:filter", "text-base text-base-content/70 shrink-0")}
-          <input data-filter type="range" min="0" max="1" step="0.01" value=${fx.mfilter} aria-label=${T(t, "fxFilter")} onInput=${(e) => setFx("mfilter", Number(e.target.value))} class="range range-xs range-secondary flex-1" />
-          <span class="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-base-content/70 tabular-nums shrink-0">${bpm} BPM</span>
+        <div class="flex items-end gap-[var(--ms-gap)] px-1">
+          <div class="flex-1 min-w-0"><${Slider} id="mfilter" attr="data-filter" label=${T(t, "fxFilter")} min=${0} max=${1} step=${0.01} value=${fx.mfilter} onInput=${(v) => setFx("mfilter", v)} /></div>
+          <span class=${`${LABEL} tabular-nums shrink-0 pb-1`}>${bpm} BPM</span>
         </div>
         <${Transport} locale=${loc} playing=${playing} stopIcon onToggle=${toggle} disabled=${!audioSupported}
           onPrev=${() => stepTrack(-1)} onNext=${() => stepTrack(1)}
@@ -287,6 +287,7 @@ export function ravePads({ S, toast, screen, openScreen, closeScreen }) {
   const t = useStore(S.t), loc = useStore(S.locale), tracks = useStore($tracks), bpm = useStore($bpm), playing = useStore($playing), cur = useStore($cur), sweep = useStore($sweep);
   const cellToggle = (tid, s) => { ensure(); $tracks.set({ ...tracks, [tid]: tracks[tid].map((v, i) => (i === s ? !v : v)) }); };
   const save = async () => { try { const list = await SAVES.all(); const rec = { tracks, bpm, riff: $riff.get() }; if (list.find((it) => beatSig(it) === beatSig(rec))) { buzz(); toast?.(T(t, "toastDup", { name: autoName(t, tracks, bpm, list) })); return; } await SAVES.put("p" + Date.now(), { name: autoName(t, tracks, bpm, list), ...rec, fx: $fx.get() }); toast?.(T(t, "toastSaved")); } catch {  } };
+
   return html`<${Fragment}>
     <div class="pb-40 flex flex-col gap-1">
       
@@ -295,14 +296,15 @@ export function ravePads({ S, toast, screen, openScreen, closeScreen }) {
         ${STEPS.map((s) => { const hot = s === sweep ? "bg-accent" : s === cur ? "bg-secondary" : ""; return html`<div class=${`flex-1 h-1 rounded-full transition-colors ${s % 4 === 0 && s > 0 ? "ml-1" : ""} ${hot}`} style=${hot ? "" : "background:var(--sf-track-face)"} key=${s}></div>`; })}
       </div>
       ${TRACKS.map((tr) => { const live = tracks[tr.id].some(Boolean); return html`<div class="flex items-center gap-[3px]" key=${tr.id}>
-        <div class=${`w-7 shrink-0 flex items-center justify-center ${live ? "text-base-content" : "text-base-content/40"}`} title=${T(t, tr.name)}>${Icon(tr.icon, "text-base")}</div>
+        <div class=${`w-7 shrink-0 flex items-center justify-center ${live ? "text-base-content" : "text-muted"}`} title=${T(t, tr.name)}>${Icon(tr.icon, "text-base")}</div>
+        
         ${STEPS.map((s) => { const on = tracks[tr.id][s], sw = s === sweep, playhead = sw || s === cur; return html`<button data-cell=${`${tr.id}-${s}`} data-current=${s === cur || null} data-sweep=${sw || null} aria-pressed=${on} aria-label=${`${T(t, tr.name)} ${s + 1}`} onClick=${() => cellToggle(tr.id, s)} key=${s}
           class=${`relative overflow-hidden flex-1 min-w-0 h-8 rounded touch-manipulation transition-[box-shadow,background-color,transform,scale] duration-150 ${s % 4 === 0 && s > 0 ? "ml-1" : ""} ${on ? `${tr.on} sf-e2` : "sf-inset"} ${sw ? "scale-105" : ""}`}
           >${playhead ? html`<span class=${`pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-1 rounded-full ${sw ? "bg-accent" : "bg-secondary"}`}></span>` : null}</button>`; })}
       </div>`; })}
     </div>
-
     <${Island} pinned className="w-full max-w-xl">
+        
         <${Transport} locale=${loc} stopIcon playing=${playing} onToggle=${toggle} disabled=${!audioSupported} keep=${4}
           moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
           actions=${[
@@ -312,43 +314,36 @@ export function ravePads({ S, toast, screen, openScreen, closeScreen }) {
             { id: "settings", icon: "lucide:sliders-horizontal", label: T(t, "settings"), onClick: () => openScreen("fx"), attr: { "data-settings": true } },
           ]} />
       <//>
-    
-
     <${FxSheet} open=${screen === "fx"} onClose=${closeScreen} t=${t} sweep=${sweep} />
   </${Fragment}>`;
 }
+
 
 
 function FxSheet({ open, onClose, t, sweep }) {
   const fx = useStore($fx), bpm = useStore($bpm), tracks = useStore($tracks), pack = useStore($pack), loading = useStore($loading);
   const activePreset = PRESETS.find((p) => JSON.stringify(parse(p)) === JSON.stringify(tracks))?.id;
   return html`<${Sheet} id="fxsheet" open=${open} onClose=${onClose} title=${T(t, "settings")} icon="lucide:sliders-horizontal">
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between text-xs"><span class="uppercase tracking-wide text-base-content/70">${T(t, "tempo")}</span><span class="font-semibold tabular-nums">${bpm} BPM</span></div>
-      <input type="range" min="90" max="150" value=${bpm} class="range range-xs range-primary w-full" aria-label=${T(t, "tempo")} onInput=${(e) => { $bpm.set(Number(e.target.value)); applyFx(); }} />
+    <${Slider} id="bpm" attr="data-tempo" label=${`${T(t, "tempo")} · ${bpm} BPM`} min=${90} max=${150} step=${1} value=${bpm} onInput=${(v) => { $bpm.set(v); applyFx(); }} />
+    <div class="grid grid-cols-2 gap-x-[var(--ms-gap)] gap-y-1.5">
+      ${FX.map((f) => html`<${Slider} key=${f.id} id=${f.id} attr="data-fx" label=${T(t, f.label)} min=${f.min} max=${f.max} step=${f.step} value=${fx[f.id]} onInput=${(v) => setFx(f.id, v)} />`)}
     </div>
-    <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
-      ${FX.map((f) => html`<div class="flex flex-col gap-0.5 min-w-0" key=${f.id}><div class="flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-base-content/70">${Icon(f.icon, "text-[0.85em] shrink-0")}<span class="truncate">${T(t, f.label)}</span></div><input data-fx=${f.id} type="range" min=${f.min} max=${f.max} step=${f.step} value=${fx[f.id]} class="range range-xs range-accent w-full min-w-0" aria-label=${T(t, f.label)} onInput=${(e) => setFx(f.id, Number(e.target.value))} /></div>`)}
-    </div>
-    <div class="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-      <button data-gen aria-label=${T(t, "gen")} class=${`btn btn-sm shrink-0 gap-1.5 ${sweep >= 0 ? "btn-accent" : "btn-accent btn-outline"}`} onClick=${newTrack}>${Icon("lucide:sparkles", `text-base ${sweep >= 0 ? "animate-pulse" : ""}`)}<span>${T(t, "gen")}</span></button>
+    <div class="flex gap-1.5 overflow-x-auto overscroll-x-contain pb-1 -mx-1 px-1">
+      <button data-gen aria-label=${T(t, "gen")} class=${`btn btn-sm shrink-0 gap-1.5 ${sweep >= 0 ? "btn-accent" : "btn-accent btn-outline"}`} onClick=${newTrack}>${Icon("lucide:sparkles", "text-base")}<span>${T(t, "gen")}</span></button>
       <${Segmented} attr="data-preset" scroll size="sm"
         items=${PRESETS.map((p) => ({ id: p.id, label: T(t, p.name) }))} value=${activePreset}
         onChange=${(id) => { ensure(); const p = PRESETS.find((x) => x.id === id); $tracks.set(parse(p)); $gen.set(null); }} />
       <button data-preset="clear" aria-label=${T(t, "clear")} class="btn btn-sm btn-square btn-ghost shrink-0" onClick=${() => $tracks.set(empty())}>${Icon("lucide:eraser", "text-base")}</button>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[0.6rem] uppercase tracking-wide text-base-content/70 flex items-center gap-1">${Icon("lucide:package", "text-[0.85em]")}${T(t, "packs")}</div>
+      <div class=${`${LABEL} flex items-center gap-1`}>${Icon("lucide:package", "text-[0.85em]")}${T(t, "packs")}</div>
       <${Segmented} attr="data-pack" scroll size="sm" label=${T(t, "packs")}
         items=${[{ id: "synth", label: T(t, "packSynth") }, ...PACKS].map((p) => ({ id: p.id, label: p.label, busy: loading === p.id }))}
         value=${pack} onChange=${selectPack} />
     </div>
-    ${!audioSupported ? html`<div class="text-xs text-base-content/70 text-center">${T(t, "noAudio")}</div>` : null}
+    ${!audioSupported ? html`<div class="text-xs text-muted text-center">${T(t, "noAudio")}</div>` : null}
   </${Sheet}>`;
 }
-
-
-
 
 const Spectrum = ({ tracks, live, cur }) => { const bars = beatBars(tracks), mx = Math.max(1, ...bars); return html`<span data-spectrum class="flex items-end gap-px h-5 w-full" aria-hidden="true">${bars.map((v, s) => { const hot = live && s === cur ? "bg-secondary" : v ? "bg-primary" : ""; return html`<span class=${`flex-1 rounded-sm transition-colors ${hot}`} style=${`height:${Math.round((v ? 0.25 + 0.75 * (v / mx) : 0.12) * 100)}%${hot ? "" : ";background:var(--sf-track-face)"}`} key=${s}></span>`; })}</span>`; };
 
@@ -365,15 +360,16 @@ export function raveSaved({ S, undo }) {
   const play = (it) => { buzz(); if (isCur(it)) { stop(); return; } loadBeat(it); start(); };
   const del = async (it) => { const { id, _ts, ...rec } = it; try { await SAVES.remove(id); } catch {  } load(); undo?.(async () => { try { await SAVES.put(id, rec); } catch {  } load(); }, it.name || T(t, "beatWord")); };
 
-  if (!useReveal(list !== null)) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel class="card bg-base-100 rounded-2xl overflow-hidden" key=${i}><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${12} /></div><div class="h-5"><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
+  if (!useReveal(list !== null)) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel class="card bg-base-100 rounded-[var(--ms-r)] overflow-hidden" key=${i}><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${12} /></div><div class="h-5"><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
   if (!list.length) return html`<div class="flex flex-col items-center text-base-content/70 py-20 gap-2 text-center px-6">${Icon("lucide:bookmark", "text-4xl")}<span>${T(t, "savedEmpty")}</span></div>`;
+
   return html`<div class="flex flex-col gap-2">
     
-    ${list.map((it) => { const on = isCur(it); return html`<div data-saved class="card bg-base-100 rounded-2xl transition" key=${it.id}>
+    ${list.map((it) => { const on = isCur(it); return html`<div data-saved class="card bg-base-100 rounded-[var(--ms-r)]" key=${it.id}>
       <div class="card-body p-3 flex-row items-center gap-3">
         <button data-play disabled=${!audioSupported} aria-label=${on ? T(t, "aStop") : T(t, "aPlay")} class=${`btn btn-circle btn-sm shrink-0 ${on ? "btn-secondary" : "btn-primary"}`} onClick=${() => play(it)}>${Icon(on ? "lucide:square" : "lucide:play", "text-base")}</button>
         <button data-load class="flex-1 min-w-0 text-left flex flex-col gap-1.5" onClick=${() => open(it)}>
-          <span class="flex items-baseline justify-between gap-2"><span class="font-semibold truncate">${it.name || T(t, "beatWord")}</span><span class="text-xs text-base-content/70 tabular-nums shrink-0">${it.bpm || 130} BPM</span></span>
+          <span class="flex items-baseline justify-between gap-2"><span class="font-semibold truncate">${it.name || T(t, "beatWord")}</span><span class=${`${LABEL} tabular-nums shrink-0`}>${it.bpm || 130} BPM</span></span>
           <${Spectrum} tracks=${it.tracks} live=${on} cur=${cur} />
         </button>
         <button data-del aria-label=${T(t, "del")} data-haptic="bump" class="btn btn-ghost btn-sm btn-circle text-muted" onClick=${() => del(it)}>${Icon("lucide:trash-2", "text-lg")}</button>

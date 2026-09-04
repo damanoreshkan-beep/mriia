@@ -11,7 +11,7 @@ import { isGate } from "/_rt/gate.js";
 import { sortWishes, wishTotals, fmtMoney, fetchWishMeta, CURRENCIES } from "/_rt/wish.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const LABEL = "font-mono uppercase tracking-wide font-semibold text-[var(--ms-label)] text-base-content/70";
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 
 const listsColl = collection("wishlists");
 const wishesColl = collection("wishes");
@@ -138,31 +138,31 @@ const WantSelect = ({ value, onChange, t }) => html`<${Segmented} size="sm" labe
 const Thumb = ({ w, list, size }) => {
   const s = size || "w-11 h-11";
   return w.image
-    ? html`<img src=${w.image} alt="" class=${`${s} rounded-xl object-cover shrink-0 sf-inset`} loading="lazy" />`
-    : html`<span class=${`${s} rounded-xl shrink-0 flex items-center justify-center`} style=${`background:${list?.color || "#888"}1f;color:${list?.color || "#888"}`}>${Icon("lucide:gift", "text-lg")}</span>`;
+    ? html`<img src=${w.image} alt="" class=${`${s} rounded-[var(--ms-r-in)] object-cover shrink-0 sf-inset`} loading="lazy" />`
+    : html`<span class=${`${s} rounded-[var(--ms-r-in)] shrink-0 flex items-center justify-center text-[var(--wc)] bg-[color-mix(in_oklch,var(--wc)_14%,transparent)]`} style=${`--wc:${list?.color || "var(--app-accent)"}`}>${Icon("lucide:gift", "text-lg")}</span>`;
 };
 
 function WishCard({ w, list, t, onOpen }) {
-  return html`<div data-wish=${w.id} class="card bg-base-100 rounded-2xl">
-    <div class="card-body p-3">
-      <div class="flex items-center gap-3">
+  return html`<${Panel} data-wish=${w.id} className="p-[calc(var(--ms-pad)*0.75)]">
+      <div class="flex items-center gap-[var(--ms-gap)]">
         <${Thumb} w=${w} list=${list} />
         <button data-open class="flex-1 min-w-0 text-left active:opacity-70" aria-label=${`${w.name} — ${T(t, "open")}`} onClick=${() => onOpen(w.id)}>
-          <span class=${`font-semibold block truncate ${w.granted ? "line-through opacity-60" : ""}`}>${w.name}</span>
+          <span class=${`font-semibold block truncate ${w.granted ? "line-through text-muted" : ""}`}>${w.name}</span>
           <span class="flex items-center gap-2 mt-1">
             ${w.price != null ? html`<span class="font-mono text-sm tabular-nums text-base-content/80">${fmtMoney(w.price, w.currency)}</span>` : null}
-            ${w.url ? Icon("lucide:link", "text-base-content/45 text-sm") : null}
+            ${w.url ? Icon("lucide:link", "text-muted text-sm") : null}
             <${WantPips} level=${w.want} t=${t} />
           </span>
           ${w.note ? html`<span class="block text-xs text-base-content/70 mt-1 line-clamp-1">${w.note}</span>` : null}
         </button>
         <button data-grant aria-pressed=${w.granted} aria-label=${w.granted ? T(t, "ungrant") : T(t, "grant")}
           onClick=${() => toggleGrant(w)}
-          class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center transition ${w.granted ? "bg-success text-success-content sf-e2" : "sf-inset text-base-content/50"}`}>
+          class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center transition-colors ${w.granted ? "bg-success text-success-content sf-e2" : "sf-inset text-muted"}`}>
           ${Icon("lucide:check", "text-lg")}</button>
       </div>
-    </div></div>`;
+    <//>`;
 }
+
 
 
 function WishSheet({ S, t, open }) {
@@ -173,29 +173,31 @@ function WishSheet({ S, t, open }) {
   return html`<${Sheet} id="w-sheet" open=${open && !!d} onClose=${close} icon="lucide:gift"
     title=${T(t, d && d.id ? "editWish" : "newWish")}>
     ${d ? html`<${Fragment}>
-      <input id="w-name" class="input rounded-2xl w-full" placeholder=${T(t, "namePh")} value=${d.name}
+      
+      <input id="w-name" class="input w-full" placeholder=${T(t, "namePh")} value=${d.name}
         maxlength="80" onInput=${(e) => set({ name: e.target.value })} />
       <div class="flex gap-2">
-        <input id="w-url" class="input rounded-2xl flex-1 min-w-0" inputmode="url" placeholder=${T(t, "linkPh")} value=${d.url}
+        <input id="w-url" class="input flex-1 min-w-0" inputmode="url" placeholder=${T(t, "linkPh")} value=${d.url}
           onInput=${(e) => set({ url: e.target.value })} />
-        <button id="w-prefill" class="btn btn-square rounded-2xl" aria-label=${T(t, "prefill")}
+        <button id="w-prefill" class="btn btn-square" aria-label=${T(t, "prefill")}
           disabled=${!d.url.trim() || busy} onClick=${prefill}>${Icon("lucide:sparkles", "text-lg")}</button>
       </div>
       <div class="flex gap-2">
-        <input id="w-price" class="input rounded-2xl flex-1 min-w-0 font-mono" type="number" min="0" step="any" inputmode="decimal"
+        <input id="w-price" class="input flex-1 min-w-0 font-mono" type="number" min="0" step="any" inputmode="decimal"
           placeholder=${T(t, "pricePh")} value=${d.price ?? ""} onInput=${(e) => set({ price: e.target.value === "" ? null : Number(e.target.value) })} />
-        <select id="w-cur" class="select rounded-2xl" aria-label=${T(t, "currency")} value=${d.currency} onChange=${(e) => set({ currency: e.target.value })}>
+        <select id="w-cur" class="select" aria-label=${T(t, "currency")} value=${d.currency} onChange=${(e) => set({ currency: e.target.value })}>
           ${CURRENCIES.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}
         </select>
       </div>
       <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "want")}</div>
         <${WantSelect} value=${d.want} onChange=${(l) => set({ want: l })} t=${t} /></div>
-      <textarea id="w-note" class="textarea rounded-2xl w-full" rows="2" maxlength="140" placeholder=${T(t, "notePh")}
+      <textarea id="w-note" class="textarea w-full" rows="2" maxlength="140" placeholder=${T(t, "notePh")}
         value=${d.note} onInput=${(e) => set({ note: e.target.value })}></textarea>
-      <button id="w-save" class="btn btn-primary rounded-2xl mt-1" disabled=${!d.name.trim()} onClick=${save}>${T(t, d.id ? "save" : "add")}</button>
+      <button id="w-save" class="btn btn-primary mt-1" disabled=${!d.name.trim()} onClick=${save}>${T(t, d.id ? "save" : "add")}</button>
     </${Fragment}>` : null}
   </${Sheet}>`;
 }
+
 
 
 function ListSheet({ S, t, open, closeScreen, confirm }) {
@@ -211,24 +213,27 @@ function ListSheet({ S, t, open, closeScreen, confirm }) {
   return html`<${Sheet} id="l-sheet" open=${open && !!d} onClose=${closeScreen} icon=${d ? d.icon : "lucide:list"}
     title=${T(t, d && d.id ? "editListTitle" : "newList")}>
     ${d ? html`<${Fragment}>
-      <input id="l-name" class="input rounded-2xl w-full" placeholder=${T(t, "listNamePh")} value=${d.name}
+      <input id="l-name" class="input w-full" placeholder=${T(t, "listNamePh")} value=${d.name}
         maxlength="40" onInput=${(e) => set({ name: e.target.value })} />
+      
       <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "icon")}</div>
-        <div class="sf-inset rounded-2xl p-2 flex flex-wrap gap-2" id="l-icons">${LIST_ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${d.icon === ic}
+        <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2" id="l-icons">${LIST_ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${d.icon === ic}
           onClick=${() => set({ icon: ic })}
-          class="w-10 h-10 rounded-xl flex items-center justify-center transition"
+          class="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
           style=${d.icon === ic ? `color:${d.color}` : ""}>${Icon(ic, "text-lg")}</button>`)}</div></div>
       
       <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "color")}</div>
-        <div class="sf-inset rounded-2xl p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${d.color === c}
+        <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${d.color === c}
           onClick=${() => set({ color: c })}
-          class="w-8 h-8 rounded-full transition"
+          class="w-8 h-8 rounded-full transition-colors"
           style=${`background:${c};${d.color === c ? `outline:2px solid ${c};outline-offset:2px` : ""}`}></button>`)}</div></div>
-      <button id="l-save" class="btn btn-primary rounded-2xl mt-1" disabled=${!d.name.trim()} onClick=${save}>${T(t, d.id ? "save" : "add")}</button>
-      ${d.id ? html`<button id="l-del" data-haptic="bump" class="btn text-error rounded-2xl gap-2" onClick=${askDelete}>${Icon("lucide:trash-2")} ${T(t, "delListVerb")}</button>` : null}
+      <button id="l-save" class="btn btn-primary mt-1" disabled=${!d.name.trim()} onClick=${save}>${T(t, d.id ? "save" : "add")}</button>
+      ${d.id ? html`<button id="l-del" data-haptic="bump" class="btn text-error gap-2" onClick=${askDelete}>${Icon("lucide:trash-2")} ${T(t, "delListVerb")}</button>` : null}
     </${Fragment}>` : null}
   </${Sheet}>`;
 }
+
+
 
 
 
@@ -251,22 +256,22 @@ function WishDetail({ open, id, S, t, closeScreen, undo }) {
           </div>
           <button id="d-edit" class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "edit")} onClick=${openEdit}>${Icon("lucide:pencil", "text-lg")}</button>
         </div>
-        ${w.url ? html`<a id="d-link" href=${w.url} target="_blank" rel="noopener" class="btn rounded-2xl gap-2 justify-start">${Icon("lucide:external-link")} ${T(t, "openLink")}</a>` : null}
+        ${w.url ? html`<a id="d-link" href=${w.url} target="_blank" rel="noopener" class="btn gap-2 justify-start">${Icon("lucide:external-link")} ${T(t, "openLink")}</a>` : null}
       </${Panel}>
 
       <${Panel}>
         <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "want")}</div>
           <${WantSelect} value=${w.want} onChange=${(l) => set({ want: l })} t=${t} /></div>
         <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "note")}</div>
-          <textarea id="d-note" class="textarea rounded-2xl w-full" rows="2" maxlength="140" placeholder=${T(t, "notePh")}
+          <textarea id="d-note" class="textarea w-full" rows="2" maxlength="140" placeholder=${T(t, "notePh")}
             value=${w.note} onInput=${(e) => set({ note: e.target.value })}></textarea></div>
         ${lists.length > 1 ? html`<div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "moveTo")}</div>
-          <select id="d-move" class="select rounded-2xl w-full" aria-label=${T(t, "moveTo")} value=${w.listId} onChange=${(e) => set({ listId: e.target.value })}>
+          <select id="d-move" class="select w-full" aria-label=${T(t, "moveTo")} value=${w.listId} onChange=${(e) => set({ listId: e.target.value })}>
             ${lists.map((l) => html`<option key=${l.id} value=${l.id}>${l.name}</option>`)}
           </select></div>` : null}
       </${Panel}>
 
-      <button id="d-del" data-haptic="bump" class="btn text-error rounded-2xl gap-2" onClick=${del}>${Icon("lucide:trash-2")} ${T(t, "delete")}</button>
+      <button id="d-del" data-haptic="bump" class="btn text-error gap-2" onClick=${del}>${Icon("lucide:trash-2")} ${T(t, "delete")}</button>
     </${Fragment}>` : null}
   </${Sheet}>`;
 }
@@ -285,7 +290,6 @@ export function wish({ S, closeScreen, confirm, undo }) {
   const t = useStore(S.t), lists = useStore($lists), wishes = useStore($wishes), active = useStore($active),
     ready = useStore($ready), screen = useStore(S.screen), sheet = useStore(S.sheet);
   useEffect(() => { loadAll(); }, []);
-  
   useEffect(() => { if (screen !== "list" && $ldraft.get()) $ldraft.set(null); }, [screen]);
 
   const activeList = lists.find((l) => l.id === active) || lists[0] || null;
@@ -302,13 +306,13 @@ export function wish({ S, closeScreen, confirm, undo }) {
 
   return html`<${Fragment}>
     ${!ready ? null : lists.length === 0 ? html`
-      <div class="flex flex-col items-center justify-center text-center gap-3 py-16 px-6 text-base-content/70">
-        ${Icon("lucide:gift", "text-5xl text-primary/70")}
+      <div class="flex flex-col items-center justify-center text-center gap-3 py-16 px-6 text-base-content/70" data-lists="0">
+        ${Icon("lucide:gift", "text-5xl text-muted")}
         <div class="font-semibold text-base-content">${T(t, "emptyListTitle")}</div>
-        <button id="empty-add-list" class="btn btn-primary rounded-2xl gap-2 mt-1" onClick=${openListAdd}>${Icon("lucide:plus")} ${T(t, "addFirstList")}</button>
+        <button id="empty-add-list" class="btn btn-primary gap-2 mt-1" onClick=${openListAdd}>${Icon("lucide:plus")} ${T(t, "addFirstList")}</button>
         ${idbSupported ? null : html`<div class="text-xs text-warning mt-2">${T(t, "noStore")}</div>`}
       </div>` : html`
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-[var(--ms-gap)]" data-lists=${lists.length} data-active=${listId} data-pending=${pending.length}>
         <${ListSwitcher} lists=${lists} wishes=${wishes} active=${listId} t=${t} onAdd=${openListAdd} />
 
         <div class="flex items-start justify-between gap-3">
@@ -327,9 +331,9 @@ export function wish({ S, closeScreen, confirm, undo }) {
 
         ${pending.length === 0 && granted.length === 0 ? html`
           <div class="flex flex-col items-center justify-center text-center gap-3 py-12 px-6 text-base-content/70">
-            ${Icon("lucide:sparkles", "text-4xl text-primary/70")}
+            ${Icon("lucide:sparkles", "text-4xl text-muted")}
             <div class="font-semibold text-base-content">${T(t, "emptyWishTitle")}</div>
-            <button id="empty-add-wish" class="btn btn-primary rounded-2xl gap-2 mt-1" onClick=${openWishAdd}>${Icon("lucide:plus")} ${T(t, "addFirstWish")}</button>
+            <button id="empty-add-wish" class="btn btn-primary gap-2 mt-1" onClick=${openWishAdd}>${Icon("lucide:plus")} ${T(t, "addFirstWish")}</button>
           </div>` : html`
           <div class="flex flex-col gap-2.5">
             ${pending.map((w) => html`<${WishCard} key=${w.id} w=${w} list=${activeList} t=${t} onOpen=${openDetail} />`)}
@@ -339,9 +343,9 @@ export function wish({ S, closeScreen, confirm, undo }) {
           </div>`}
 
         <div class="flex items-center gap-2 mt-1">
-          <button id="add-wish" class="btn btn-primary rounded-2xl flex-1 gap-2" onClick=${openWishAdd}>${Icon("lucide:plus")} ${T(t, "addWish")}</button>
-          <button class="btn btn-square rounded-2xl" aria-label=${T(t, "export")} onClick=${exportData}>${Icon("lucide:download")}</button>
-          <label class="btn btn-square rounded-2xl" aria-label=${T(t, "import")}>${Icon("lucide:upload")}
+          <button id="add-wish" class="btn btn-primary flex-1 gap-2" onClick=${openWishAdd}>${Icon("lucide:plus")} ${T(t, "addWish")}</button>
+          <button class="btn btn-square" aria-label=${T(t, "export")} onClick=${exportData}>${Icon("lucide:download")}</button>
+          <label class="btn btn-square" aria-label=${T(t, "import")}>${Icon("lucide:upload")}
             <input type="file" accept="application/json" class="hidden" onChange=${(e) => e.target.files[0] && importData(e.target.files[0])} /></label>
         </div>
       </div>`}
