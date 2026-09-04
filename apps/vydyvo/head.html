@@ -35,12 +35,21 @@
     .vy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.5rem,2.2vw,.8rem)}
     @media(min-width:640px){.vy-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
     @media(min-width:900px){.vy-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+    
+    @media(max-height:480px),(max-width:340px){
+      .vy-grid{display:flex;align-items:flex-start;gap:.5rem;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;overscroll-behavior-y:auto;scrollbar-width:none;margin:0 calc(-1*var(--ms-pad));padding:0 var(--ms-pad) .25rem}
+      .vy-grid::-webkit-scrollbar{display:none}
+      
+      .vy-grid>.vy-tile{flex:0 0 auto;width:clamp(88px,30vmin,132px);height:clamp(88px,30vmin,132px);aspect-ratio:auto;scroll-snap-align:start}
+      .vy-grid>.vy-tile .vy-name{font-size:.62rem;padding:.4rem .45rem .4rem}
+      .vy-grid>.vy-tile .vy-side{display:none}
+    }
     .vy-tile{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:var(--radius-box,1rem);overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset;animation:vy-tilein .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--ti,0)*.04s);-webkit-tap-highlight-color:transparent}
     .vy-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
     .vy-tile:active img{transform:scale(1.04)}
     .vy-tile[data-on]{box-shadow:0 0 0 2px var(--color-accent,#F2B84B),0 0 18px rgba(0,0,0,.35)}
-    
     .vy-tile .vy-name{position:absolute;left:0;right:0;bottom:0;padding:.55rem .6rem .5rem;color:#fff;font-size:.72rem;line-height:1.15;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,.7);background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,.35) 60%,transparent)}
     .vy-tile .vy-side{display:block;font-family:var(--font-mono);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-top:.15rem}
     @keyframes vy-tilein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-    @media(prefers-reduced-motion:reduce){.vy-tile{animation:none}.vy-tile img{transition:none}}</style>
+    @media(prefers-reduced-motion:reduce){.vy-tile{animation:none}.vy-tile img{transition:none}}
+  </style>
