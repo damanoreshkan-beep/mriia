@@ -1,5 +1,4 @@
 import { isBook } from "/_rt/acts.js";
-import { letterTile } from "/_rt/tile.js";
 import { gate } from "/_rt/gate.js";
 import { CURATED, SHELVES } from "./curated.js";
 
@@ -17,9 +16,19 @@ const jget = async (url, timeout = 10000) => {
   } finally { clearTimeout(t); }
 };
 
-const spine = (title) => {
-  let h = 0; for (const c of title) h = (h * 31 + c.charCodeAt(0)) % 100;
-  return letterTile(title, { w: 300, h: 450, hue: 24, sat: 12, light: 18 + (h % 9), fontSize: 84 });
+export const spine = (title) => {
+  const ch = (String(title || "").trim()[0] || "?").toUpperCase().replace(/[<>&]/g, "?");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">`
+    + `<style>:root{--face:#0A0A0D;--rim:rgba(255,232,196,.10);--top:rgba(0,0,0,.9);--pool:rgba(242,184,75,.16);--glow:.7}`
+    + `@media(prefers-color-scheme:light){:root{--face:#ECE9E1;--rim:rgba(20,18,16,.10);--top:rgba(40,32,20,.16);--pool:rgba(242,184,75,.12);--glow:.25}}</style>`
+    + `<defs><linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--top)"/><stop offset="1" style="stop-color:var(--top)" stop-opacity="0"/></linearGradient>`
+    + `<radialGradient id="p" cx=".5" cy=".62" r=".55"><stop offset="0" style="stop-color:var(--pool)"/><stop offset="1" style="stop-color:var(--pool)" stop-opacity="0"/></radialGradient>`
+    + `<filter id="g" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs>`
+    + `<rect width="300" height="450" style="fill:var(--face)"/><rect width="300" height="450" fill="url(#p)"/>`
+    + `<rect width="300" height="22" fill="url(#t)"/><rect x=".5" y=".5" width="299" height="449" fill="none" style="stroke:var(--rim)"/>`
+    + `<g font-family="system-ui,sans-serif" font-size="84" font-weight="700" text-anchor="middle" fill="#F2B84B">`
+    + `<text x="50%" y="52%" dy=".35em" filter="url(#g)" style="opacity:var(--glow)">${ch}</text><text x="50%" y="52%" dy=".35em">${ch}</text></g></svg>`;
+  return "data:image/svg+xml," + encodeURIComponent(svg);
 };
 
 const coverFor = (title, thumb) => thumb || spine(title);

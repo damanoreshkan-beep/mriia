@@ -322,6 +322,7 @@ const fmt = (ms) => {
 };
 const kb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round((b || 0) / 1024)) + " KB");
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const MONO = "font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/70";
 
 export function v2m({ S, toast, undo }) {
   const t = useStore(S.t);
@@ -382,7 +383,7 @@ export function v2m({ S, toast, undo }) {
                 aria-label=${T(t, inLibrary ? "owned" : "aSave")} onClick=${onSave}>
                 ${Icon(inLibrary ? "lucide:bookmark-check" : "lucide:bookmark-plus", "text-lg")}
               </button>`} />
-          ${err && html`<p role="alert" class="text-error text-xs text-center">${T(t, err)}</p>`}
+          ${err && html`<p role="alert" class="text-error text-sm text-center">${T(t, err)}</p>`}
         <//>
       </div>
     </div>`;
@@ -442,7 +443,7 @@ export function v2mStore({ S, toast }) {
   return html`
     <div class="flex flex-col gap-[var(--ms-gap)] pt-2 pb-2">
       <label class="input input-sm flex items-center gap-2">
-        ${Icon("lucide:search", "opacity-60")}
+        ${Icon("lucide:search", "text-muted")}
         <input type="search" class="grow" value=${q} aria-label=${T(t, "aSearch")}
           placeholder=${T(t, "searchPh")} onInput=${(e) => { setQ(e.target.value); setShown(PAGE); }} />
       </label>
@@ -451,7 +452,7 @@ export function v2mStore({ S, toast }) {
         <${Segmented} variant="outline" size="sm" scroll attr="data-sort" label=${T(t, "aSort")}
           items=${SORTS.map((s) => ({ id: s.id, label: T(t, "sort_" + s.id) }))}
           value=${sort} onChange=${(v) => { setSort(v); setShown(PAGE); }} />
-        <span data-catalog class="font-mono text-xs tabular-nums text-base-content/70 shrink-0">
+        <span data-catalog class=${`${MONO} shrink-0`}>
           ${(tunes || []).length}${syncing ? "…" : ""} · ${kb(total)}
         </span>
       </div>
@@ -459,16 +460,16 @@ export function v2mStore({ S, toast }) {
       ${showSkel ? html`
         <div class="flex flex-col gap-1">${[0, 1, 2, 3, 4, 5, 6, 7].map(() => html`
           
-          <div data-skel class="flex items-center gap-3 px-3 py-2.5 rounded-xl sf-inset">
+          <div data-skel class="flex items-center gap-3 px-3 py-2.5 rounded-[var(--ms-r)] sf-inset">
             <div class="font-mono text-sm w-14 shrink-0"><${Scramble} len=${5} /></div>
             <div class="flex-1 min-w-0">
               <div class="truncate text-sm"><${Scramble} len=${20} /></div>
-              <div class="text-xs"><${Scramble} len=${10} /></div>
+              <div class="text-sm text-muted"><${Scramble} len=${10} /></div>
             </div>
           </div>`)}</div>` : list.length === 0 ? html`
-        <div class="min-h-[40vh] grid place-items-center text-center text-base-content/70">
+        <div class="min-h-[40vh] grid place-items-center text-center text-muted">
           <div class="flex flex-col items-center gap-3">
-            ${Icon("lucide:store", "text-4xl opacity-40")}
+            ${Icon("lucide:store", "text-4xl")}
             <p>${T(t, q ? "storeNoMatch" : "storeEmpty")}</p>
           </div>
         </div>` : html`
@@ -481,12 +482,12 @@ export function v2mStore({ S, toast }) {
             
             return html`
               <button data-tune=${id} onClick=${() => play(x)} aria-current=${active ? "true" : null}
-                class=${"flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors " +
+                class=${"flex items-center gap-3 px-3 py-2.5 rounded-[var(--ms-r)] text-left transition-colors " +
                   (active ? "bg-primary/10 sf-e2" : "")}>
                 <span class="font-mono text-sm tabular-nums w-14 shrink-0 ${active ? "text-primary" : ""}">${kb(x.size)}</span>
                 <span class="flex-1 min-w-0">
                   <span class="block truncate text-sm font-medium">${titleOf(x.file)}</span>
-                  <span class="block truncate text-xs text-base-content/70">${x.author}</span>
+                  <span class="block truncate text-sm text-muted">${x.author}</span>
                 </span>
                 ${owned.has(id) && html`<span class="text-primary shrink-0" aria-label=${T(t, "owned")}>
                   ${Icon("lucide:check", "text-base")}</span>`}
@@ -522,7 +523,7 @@ export function v2mLibrary({ S, undo }) {
       
       <div data-skel class="card">
         <div class="card-body flex-row items-center gap-3 p-3">
-          <div class="w-9 h-9 rounded-lg sf-inset shrink-0"></div>
+          <div class="w-9 h-9 rounded-[var(--ms-r-in)] sf-inset shrink-0"></div>
           <div class="flex-1 min-w-0">
             <div class="truncate font-semibold"><${Scramble} len=${14} /></div>
             <div class="h-4"><${Scramble} len=${6} /></div>
@@ -532,9 +533,9 @@ export function v2mLibrary({ S, undo }) {
   }
 
   if (!list.length) {
-    return html`<div class="min-h-[50vh] grid place-items-center text-center text-base-content/70">
+    return html`<div class="min-h-[50vh] grid place-items-center text-center text-muted">
       <div class="flex flex-col items-center gap-3">
-        ${Icon("lucide:list-music", "text-4xl opacity-40")}
+        ${Icon("lucide:list-music", "text-4xl")}
         <p>${T(t, "libraryEmpty")}</p>
         <button class="btn btn-sm btn-outline gap-2" onClick=${() => S.tab.set("store")}>
           ${Icon("lucide:store")}${T(t, "tabStore")}
@@ -559,7 +560,7 @@ export function v2mLibrary({ S, undo }) {
         </button>
         <button class="flex-1 min-w-0 text-left" onClick=${() => playRow(it)}>
           <div class="truncate font-semibold">${it.name}</div>
-          <div class="font-mono text-xs text-base-content/70">
+          <div class=${MONO}>
             ${it.size ? kb(it.size) + " · " : ""}${fmt(it.dur)}
           </div>
         </button>

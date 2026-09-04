@@ -14,6 +14,8 @@ import { FIXTURE_ACTS, FIXTURE_ANSWER, FIXTURE_CHAT } from "./fixture.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LEVELS = [null, "lvlBrief", "lvlNormal", "lvlFull"];
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
+const COUNT = "font-mono text-[length:var(--ms-label)] text-base-content/70 ml-auto";
 
 const $levels = atom(load("arc:levels", { 1: 2, 2: 2, 3: 2, ask: 2 }));
 const $revealed = atom(load("arc:revealed", {}));   
@@ -74,7 +76,7 @@ export function reader({ item, t, loc, undo }) {
   }
   if (failed && !actText(1)) {
     return html`<div class="flex justify-center py-8">
-      <button data-retry type="button" onClick=${retry} class="btn btn-sm gap-2 rounded-xl">
+      <button data-retry type="button" onClick=${retry} class="btn btn-sm gap-2 rounded-full">
         ${Icon("lucide:rotate-cw", "text-base")}<span class="text-sm">${T(t, "retry")}</span>
       </button></div>`;
   }
@@ -93,8 +95,8 @@ export function reader({ item, t, loc, undo }) {
 function BlockHead({ n, labelKey, t, slot, level, aside }) {
   return html`<div class="flex flex-col gap-1.5">
     <div class="flex items-center gap-2 min-h-[1.25rem]">
-      <span class="font-mono text-[var(--ms-label)] uppercase tracking-[0.08em] text-muted">${T(t, labelKey)}</span>
-      ${n ? html`<span class="font-mono text-[var(--ms-label)] text-muted ml-auto">${n}/3</span>` : null}
+      <span class=${LABEL}>${T(t, labelKey)}</span>
+      ${n ? html`<span class=${COUNT}>${n}/3</span>` : null}
       ${aside ? html`<span class="ml-auto flex items-center">${aside}</span>` : null}
     </div>
     <${Slider} id=${`arc-lvl-${slot}`} label=${T(t, LEVELS[level])} value=${level} min=${1} max=${3} step=${1}
@@ -114,14 +116,14 @@ function Act({ n, labelKey, text, level, t }) {
 }
 
 function LockedAct({ t, onReveal }) {
-  return html`<div class="sf-inset rounded-[var(--ms-r)] bg-base-100 p-[var(--ms-pad)] flex flex-col gap-3">
+  return html`<div class="sf-inset rounded-[var(--ms-r)] p-[var(--ms-pad)] flex flex-col gap-3">
     <div class="flex items-baseline gap-2">
-      <span class="font-mono text-[var(--ms-label)] uppercase tracking-[0.08em] text-muted">${T(t, "actEnd")}</span>
-      <span class="font-mono text-[var(--ms-label)] text-muted ml-auto">3/3</span>
+      <span class=${LABEL}>${T(t, "actEnd")}</span>
+      <span class=${COUNT}>3/3</span>
     </div>
     <button data-reveal type="button" onClick=${onReveal}
-      class="flex items-center justify-center gap-2 h-[var(--ms-ctl)] rounded-[var(--ms-r)] text-base-content/85 active:scale-[0.99] transition-transform">
-      ${Icon("lucide:lock-open", "text-[var(--ms-icon)] text-[var(--app-accent)]")}
+      class="flex items-center justify-center gap-2 h-[var(--ms-ctl)] rounded-[var(--ms-r-in)] text-base-content/85 active:scale-[0.99] transition-transform">
+      ${Icon("lucide:lock-open", "text-[length:var(--ms-icon)] text-[var(--app-accent)]")}
       <span class="text-[0.95rem] font-medium">${T(t, "reveal")}</span>
     </button>
   </div>`;
@@ -188,7 +190,7 @@ function Chat({ item, t, loc, level, plot, locked, undo }) {
       ${turn.a
         ? html`<p data-ask-a class="text-[0.97rem] leading-relaxed text-base-content/90">${turn.a}</p>`
         : stuck
-          ? html`<button data-ask-retry type="button" onClick=${() => { setStuck(false); setRetryAt(retryAt + 1); }} class="btn btn-sm gap-2 rounded-xl self-start">
+          ? html`<button data-ask-retry type="button" onClick=${() => { setStuck(false); setRetryAt(retryAt + 1); }} class="btn btn-sm gap-2 rounded-full self-start">
               ${Icon("lucide:rotate-cw", "text-base")}<span class="text-sm">${T(t, "retry")}</span></button>`
           : html`<div class="flex flex-col gap-1.5 text-muted">
               ${[30, 26, 20].map((w, k) => html`<div class="text-[0.97rem]" key=${k}><${Scramble} len=${w} /></div>`)}
@@ -206,10 +208,10 @@ function Chat({ item, t, loc, level, plot, locked, undo }) {
     <form onSubmit=${(e) => { e.preventDefault(); send(draft); }} class="flex items-center gap-2">
       <input data-ask type="text" value=${draft} onInput=${(e) => setDraft(e.target.value)}
         placeholder=${T(t, "askPlaceholder")} aria-label=${T(t, "askTitle")}
-        class="sf-inset flex-1 min-w-0 rounded-[var(--ms-r)] bg-base-100 border-0 px-3.5 h-[var(--ms-ctl)] text-[0.95rem] text-base-content placeholder:text-muted outline-none focus:ring-1 focus:ring-base-content/25" />
+        class="sf-inset flex-1 min-w-0 rounded-full border-0 px-3.5 h-[var(--ms-ctl)] text-[0.95rem] text-base-content placeholder:text-muted outline-none focus:ring-1 focus:ring-base-content/25" />
       <button data-ask-send type="submit" aria-label=${T(t, "askSend")} disabled=${!draft.trim()}
         class="shrink-0 grid place-items-center w-[var(--ms-ctl)] h-[var(--ms-ctl)] rounded-full text-[var(--app-accent)] disabled:text-muted">
-        ${Icon("lucide:corner-down-left", "text-[var(--ms-icon)]")}
+        ${Icon("lucide:corner-down-left", "text-[length:var(--ms-icon)]")}
       </button>
     </form>
   </${Panel}>`;

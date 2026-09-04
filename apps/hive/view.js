@@ -189,7 +189,7 @@ function Reason({ t }) {
     : err === ERR.denied ? "denied"
     : /scanFailed:6/.test(String(err)) ? "tooOften"
     : err === ERR.unavailable ? "radioOff" : "failed";
-  return html`<div data-reason class="text-[var(--ms-label)] text-error">${T(t, key)}</div>`;
+  return html`<div data-reason class="text-[length:var(--ms-label)] text-error">${T(t, key)}</div>`;
 }
 
 /** Per-radio tally — the "mark BLE, Wi-Fi and cell separately" requirement, as one readable row. */
@@ -198,8 +198,8 @@ function Legend({ t, field }) {
     ${KINDS.map((k) => {
       const n = field.filter((d) => d.kind === k).length;
       return html`<span key=${k} data-legend-kind=${k} class="flex items-center gap-1 min-w-0">
-        ${Icon(KIND_ICON[k], `text-[var(--ms-icon)] shrink-0 ${k === "ble" ? "text-[var(--app-accent)]" : "text-base-content/70"}`)}
-        <span class="font-mono tabular-nums text-[var(--ms-label)] ${n ? "text-base-content" : "text-base-content/50"}">${n}</span>
+        ${Icon(KIND_ICON[k], `text-[length:var(--ms-icon)] shrink-0 ${k === "ble" ? "text-[var(--app-accent)]" : "text-base-content/70"}`)}
+        <span class="font-mono tabular-nums text-[length:var(--ms-label)] ${n ? "text-base-content" : "text-muted"}">${n}</span>
       </span>`;
     })}
   </div>`;
@@ -280,7 +280,7 @@ export function hiveView({ S, t }) {
         </svg>
       </div>
       <div data-live class="absolute inset-x-0 top-0 flex justify-center pointer-events-none">
-        <span class="flex items-center gap-1.5 font-mono uppercase tracking-wide text-[var(--ms-label)] text-base-content/70">
+        <span class="flex items-center gap-1.5 font-mono uppercase tracking-wide text-[length:var(--ms-label)] text-base-content/70">
           
           ${scanning ? html`<span class=${`inline-block w-1.5 h-1.5 rounded-full bg-[var(--app-accent)] ${gate ? "" : "hv-dot-live"}`}></span>` : null}
           <span>${field.length} ${T(t, "cells")}${scanning ? "" : " · " + T(t, "idle")}</span>
@@ -326,9 +326,9 @@ export function listView({ S, t }) {
           onClick=${() => { $target.set(d.addr); if (gate) seedRose(); else { rose = newRose(72, HUNT_TAU); $roseAt.set(Date.now()); } }}
           class="ms-reveal text-left py-2 border-b border-base-content/10 last:border-0 rounded-[var(--ms-r-in)] transition-colors hover:bg-base-content/5">
           <span class="flex items-center gap-2 min-w-0">
-            ${Icon(KIND_ICON[d.kind], `text-[var(--ms-icon)] shrink-0 ${d.kind === "ble" ? "text-[var(--app-accent)]" : "text-base-content/70"}`)}
+            ${Icon(KIND_ICON[d.kind], `text-[length:var(--ms-icon)] shrink-0 ${d.kind === "ble" ? "text-[var(--app-accent)]" : "text-base-content/70"}`)}
             <span class="flex-1 min-w-0 truncate">${labelOf(d, t)}</span>
-            ${d.cls?.separated ? html`<span data-sep class="shrink-0 font-mono uppercase tracking-wide text-[var(--ms-label)] px-1.5 rounded-full border border-[var(--app-accent)]">${T(t, "sepTag")}</span>` : null}
+            ${d.cls?.separated ? html`<span data-sep class="shrink-0 font-mono uppercase tracking-wide text-[length:var(--ms-label)] px-1.5 rounded-full border border-[var(--app-accent)]">${T(t, "sepTag")}</span>` : null}
             <span data-pct class="shrink-0 font-mono tabular-nums text-base-content">${d.percent}%</span>
           </span>
           
@@ -337,7 +337,7 @@ export function listView({ S, t }) {
               style=${`width:${d.percent}%`}></span>
           </span>
           
-          <span class="mt-1 block font-mono text-[var(--ms-label)] text-base-content/70">
+          <span class="mt-1 block font-mono text-[length:var(--ms-label)] text-base-content/70">
             ${(() => { const v = vendorOf(d.addr, d.kind, oui); return v ? html`<span data-vendor>${v}</span> · ` : null; })()}
             ${T(t, "band_" + band(d.smooth ?? d.rssi))} · ${Math.round(d.smooth ?? d.rssi)} dBm${rotates(d.addr) && d.kind === "ble" ? " · " + T(t, "rotating") : ""}
           </span>
@@ -442,7 +442,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
           </button>
         </div>
         
-        <div data-live class="font-mono uppercase tracking-wide text-[var(--ms-label)]">
+        <div data-live class="font-mono uppercase tracking-wide text-[length:var(--ms-label)]">
           <div class="text-base-content truncate">${locked
             ? T(t, "strongestAt").replace("{deg}", Math.round(stats.bearingDeg))
             : T(t, "coverage").replace("{pct}", Math.round(stats.coverage * 100))}${
@@ -462,7 +462,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
           class="btn btn-ghost justify-start h-auto min-h-0 py-2 rounded-[var(--ms-r-in)]">
           <span class="flex-1 min-w-0 text-left">
             <span class="block truncate">${labelOf(d, t)}</span>
-            <span class="block font-mono text-[var(--ms-label)] text-base-content/70">${d.percent}% · ${Math.round(d.smooth ?? d.rssi)} dBm</span>
+            <span class="block font-mono text-[length:var(--ms-label)] text-base-content/70">${d.percent}% · ${Math.round(d.smooth ?? d.rssi)} dBm</span>
           </span>
         </button>`)}
         ${field.filter((d) => d.kind === "ble").length === 0
@@ -488,7 +488,7 @@ export function guardView({ S, t }) {
     <${Panel} title=${T(t, "guard")}>
       <div class="flex items-center gap-[var(--ms-gap)]"><${ScanButton} t=${t} /></div>
       
-      <div data-policy class="text-[var(--ms-label)] text-base-content/70">
+      <div data-policy class="text-[length:var(--ms-label)] text-base-content/70">
         ${T(t, "policy")
           .replace("{n}", GUARD.minSightings)
           .replace("{min}", Math.round(GUARD.minSpanMs / 60000))
@@ -498,10 +498,10 @@ export function guardView({ S, t }) {
 
     ${flagged.length ? html`<${Panel} title=${T(t, "possible")}>
       ${flagged.map(({ d }) => html`<div key=${d.addr} data-flag=${d.addr} class="flex items-center gap-3">
-        ${Icon("lucide:shield-alert", "text-[var(--ms-icon)] text-[var(--app-accent)] shrink-0")}
+        ${Icon("lucide:shield-alert", "text-[length:var(--ms-icon)] text-[var(--app-accent)] shrink-0")}
         <span class="flex-1 min-w-0">
           <span class="block truncate">${labelOf(d, t)}</span>
-          <span class="block font-mono text-[var(--ms-label)] text-base-content/70">${T(t, "separatedNow")}</span>
+          <span class="block font-mono text-[length:var(--ms-label)] text-base-content/70">${T(t, "separatedNow")}</span>
         </span>
       </div>`)}
     <//>` : null}
@@ -510,7 +510,7 @@ export function guardView({ S, t }) {
       <div data-live class="flex flex-col gap-2">
         ${scored.length === 0 ? html`<div class="text-base-content/70 text-sm">${T(t, "nothingYet")}</div>` : null}
         ${scored.slice(0, 12).map(({ d, s }) => html`<div key=${d.addr} data-watch=${d.addr} class="flex items-start gap-3">
-          <span class="font-mono tabular-nums text-[var(--ms-label)] text-base-content/70 w-10 shrink-0">
+          <span class="font-mono tabular-nums text-[length:var(--ms-label)] text-base-content/70 w-10 shrink-0">
             ${Math.round(s.confidence * 100)}%
           </span>
           <span class="flex-1 min-w-0">
@@ -518,11 +518,11 @@ export function guardView({ S, t }) {
               <span class="truncate">${labelOf(d, t)}</span>
               ${
                 d.cls?.separated ? html`<span data-sep=${d.addr}
-                  class="shrink-0 font-mono uppercase tracking-wide text-[var(--ms-label)] px-1.5 rounded-full border border-[var(--app-accent)] text-base-content">
+                  class="shrink-0 font-mono uppercase tracking-wide text-[length:var(--ms-label)] px-1.5 rounded-full border border-[var(--app-accent)] text-base-content">
                   ${T(t, "sepTag")}</span>` : null}
             </span>
             
-            <span class="block font-mono text-[var(--ms-label)] text-base-content/70">
+            <span class="block font-mono text-[length:var(--ms-label)] text-base-content/70">
               ${s.reasons.length ? s.reasons.map((r) => T(t, "why_" + r)).join(" · ") : T(t, "allMet")}
             </span>
           </span>
@@ -530,7 +530,7 @@ export function guardView({ S, t }) {
       </div>
     <//>
 
-    ${!fix && scanning && !gate ? html`<div data-nofix class="text-[var(--ms-label)] text-base-content/70">${T(t, "needFix")}</div>` : null}
+    ${!fix && scanning && !gate ? html`<div data-nofix class="text-[length:var(--ms-label)] text-base-content/70">${T(t, "needFix")}</div>` : null}
   </div>`;
 }
 

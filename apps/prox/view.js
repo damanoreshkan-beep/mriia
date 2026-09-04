@@ -11,6 +11,10 @@ import { signatures } from "/_rt/blesig.js";
 import { PRESETS, assemble } from "/_rt/blesend.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider";
+const MONO = "font-mono text-[length:var(--ms-label)] tabular-nums";
+const CHIP = `shrink-0 rounded-full px-2 py-0.5 sf-inset ${LABEL} text-base-content/70`;
+const LIVE = "outline outline-1 -outline-offset-1 outline-[var(--app-accent)]";
 
 const LIVE_MS = 6000;
 
@@ -157,7 +161,7 @@ function detailRows(key, entry, t) {
 function KindBadge({ kind, t }) {
   const free = kind === "free";
   return html`<span data-kind=${kind}
-    class=${`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.62rem] font-mono uppercase tracking-wide border ${free ? "border-[var(--app-accent)] text-base-content" : "border-base-content/20 text-muted"}`}>
+    class=${`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${LABEL} sf-inset ${free ? `${LIVE} text-base-content` : "text-muted"}`}>
     ${free ? html`<span class="w-1.5 h-1.5 rounded-full bg-[var(--app-accent)] shrink-0"></span>` : null}
     ${T(t, `kind_${kind}`)}
   </span>`;
@@ -167,16 +171,16 @@ function Card({ card, entry, now, t, onOpen }) {
   const live = isLive(entry, now);
   const b = live && entry?.rssi != null ? band(entry.rssi) : null;
   return html`<button data-card=${card.key} data-live=${live ? "1" : "0"} onClick=${onOpen}
-    class=${`text-left rounded-2xl p-3 flex flex-col gap-2 min-w-0 transition-colors sf-raised ${live ? "sf-e2 ring-1 ring-[var(--app-accent)]" : "border border-base-content/10"}`}>
+    class=${`text-left rounded-[var(--ms-r)] p-3 flex flex-col gap-2 min-w-0 transition-colors sf-raised sf-e2 ${live ? LIVE : ""}`}>
     <div class="flex items-center gap-2 min-w-0">
       ${Icon(card.icon, `text-[1.15em] shrink-0 ${live ? "text-[var(--app-accent)]" : "text-muted"}`)}
       <span class="min-w-0 truncate font-medium text-base-content">${T(t, `name_${card.key}`)}</span>
     </div>
     <div class="flex flex-wrap items-center gap-1.5 min-w-0">
-      <span class="shrink-0 rounded px-1.5 py-0.5 text-[0.62rem] uppercase tracking-wide bg-base-content/10 text-base-content/70">${T(t, `target_${card.target}`)}</span>
+      <span class=${CHIP}>${T(t, `target_${card.target}`)}</span>
       <${KindBadge} kind=${card.textKind} t=${t} />
     </div>
-    <div class="flex items-center gap-2 font-mono text-[0.7rem] text-base-content/70 min-w-0">
+    <div class=${`flex items-center gap-2 ${MONO} text-base-content/70 min-w-0`}>
       ${live
         ? html`<span data-count>${entry.count}×</span>${b ? html`<span data-band>${T(t, `band_${b}`)}</span>` : null}`
         : html`<span>${T(t, "notHeard")}</span>`}
@@ -191,35 +195,36 @@ function CardSheet({ card, entry, t, open, onClose }) {
       title=${card ? T(t, `name_${card.key}`) : ""} icon=${card?.icon}>
     ${card ? html`<div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center gap-1.5">
-        <span class="rounded px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wide bg-base-content/10 text-base-content/70">${T(t, `target_${card.target}`)}</span>
+        <span class=${CHIP}>${T(t, `target_${card.target}`)}</span>
         <${KindBadge} kind=${card.textKind} t=${t} />
       </div>
 
-      <p class="text-base-content/80 leading-relaxed">${T(t, `expl_${card.key}`)}</p>
-
-      <div data-custom class="rounded-xl p-3 sf-sunken flex items-start gap-2">
+      <div data-custom class="rounded-[var(--ms-r-in)] p-3 sf-inset flex items-start gap-2">
         ${Icon(card.textKind === "free" ? "lucide:pencil" : "lucide:lock", "text-[1.1em] shrink-0 mt-0.5 text-base-content/70")}
         <div class="min-w-0">
-          <div class="text-[0.72rem] uppercase tracking-wide text-muted">${T(t, "customText")}</div>
+          <div class=${`${LABEL} text-muted`}>${T(t, "customText")}</div>
           <div class="text-base-content">${T(t, `custom_${card.textKind}`)}</div>
         </div>
       </div>
 
       ${live
         ? html`<div data-decode class="flex flex-col gap-2">
-            <div class="text-[0.72rem] uppercase tracking-wide text-muted">${T(t, "decoded")}</div>
+            <div class=${`${LABEL} text-muted`}>${T(t, "decoded")}</div>
             ${rows.map(([k, v]) => html`<div class="flex items-baseline gap-3 min-w-0">
-              <span class="shrink-0 w-28 text-muted text-[0.8rem]">${T(t, k)}</span>
+              <span class="shrink-0 w-28 text-muted text-sm">${T(t, k)}</span>
               <span class="min-w-0 break-words text-base-content">${v}</span>
             </div>`)}
             <div class="flex items-baseline gap-3">
-              <span class="shrink-0 w-28 text-muted text-[0.8rem]">${T(t, "dSignal")}</span>
+              <span class="shrink-0 w-28 text-muted text-sm">${T(t, "dSignal")}</span>
               <span class="text-base-content">${entry.rssi != null ? `${entry.rssi} dBm · ${T(t, `band_${band(entry.rssi)}`)}` : "—"}</span>
             </div>
-            <div class="text-[0.72rem] uppercase tracking-wide text-muted mt-1">${T(t, "rawBytes")}</div>
-            <code class="block break-all font-mono text-[0.78rem] text-base-content/80 sf-sunken rounded-lg p-2">${entry.raw}</code>
+            <div class=${`${LABEL} text-muted mt-1`}>${T(t, "rawBytes")}</div>
+            <code class=${`block break-all ${MONO} text-base-content/80 sf-inset rounded-[var(--ms-r-in)] p-2`}>${entry.raw}</code>
           </div>`
-        : html`<div data-never class="text-muted text-[0.9rem]">${T(t, "neverSeen")}</div>`}
+        : html`<div data-never class="flex flex-col gap-1.5">
+            <div class="text-base-content">${T(t, "neverSeen")}</div>
+            <p class="text-sm text-muted leading-relaxed">${T(t, `expl_${card.key}`)}</p>
+          </div>`}
     </div>` : null}
   </${Sheet}>`;
 }
@@ -256,21 +261,21 @@ export function proxView({ S, t, openScreen, closeScreen }) {
   return html`<div class="flex flex-col gap-3 px-[var(--ms-pad)] pb-[calc(var(--dock-h)+2rem)]">
     <div data-scanner class="flex items-center gap-2 pt-1 text-base-content/70">
       <span class=${`w-1.5 h-1.5 rounded-full ${listening ? "bg-[var(--app-accent)]" : "bg-base-content/30"} ${listening && !gate ? "animate-pulse" : ""}`}></span>
-      <span class="font-mono text-[0.7rem]">${packets}</span>
-      <span class="font-mono text-[0.7rem]">${T(t, "packets")}</span>
-      <span class="font-mono text-[0.7rem] ml-auto" data-livecount>${liveCount}/${CARDS.length} ${T(t, "inAir")}</span>
+      <span class=${MONO}>${packets}</span>
+      <span class=${MONO}>${T(t, "packets")}</span>
+      <span class=${`${MONO} ml-auto`} data-livecount>${liveCount}/${CARDS.length} ${T(t, "inAir")}</span>
     </div>
 
     ${blocked
-      ? html`<div data-blocked class="flex items-start gap-2 min-w-0 rounded-xl p-3 sf-sunken">
+      ? html`<div data-blocked class="flex items-start gap-2 min-w-0 rounded-[var(--ms-r)] p-3 sf-inset">
           ${Icon("lucide:triangle-alert", "text-[1.1em] shrink-0 mt-0.5 text-[var(--app-accent)]")}
           <span class="min-w-0 text-base-content">${T(t, blocked)}</span>
         </div>`
       : null}
     ${err
-      ? html`<div data-err class="flex items-start gap-2 min-w-0 rounded-xl p-3 sf-sunken">
+      ? html`<div data-err class="flex items-start gap-2 min-w-0 rounded-[var(--ms-r)] p-3 sf-inset">
           ${Icon("lucide:triangle-alert", "text-[1.1em] shrink-0 mt-0.5 text-[var(--app-accent)]")}
-          <span class="min-w-0 break-words font-mono text-[0.8rem] text-base-content">${String(err)}</span>
+          <span class=${`min-w-0 break-words ${MONO} text-base-content`}>${String(err)}</span>
           ${needPerm
             ? html`<button data-grant class="btn btn-sm btn-primary shrink-0 ml-auto" onClick=${grant}>${T(t, "allow")}</button>`
             : null}
@@ -287,12 +292,15 @@ export function proxView({ S, t, openScreen, closeScreen }) {
   </div>`;
 }
 
+
+
 const LAB_KEY = "prox.lab.ok";
 const readLab = () => { try { return localStorage.getItem(LAB_KEY) === "1"; } catch { return false; } };
 const $labOk = atom(readLab());
 function enableLab() { try { localStorage.setItem(LAB_KEY, "1"); } catch {  } $labOk.set(true); }
 
 const $fields = atom({ swiftPair: "тук тук", eddystone: "https://example.com", fastPair: "cd8256" });
+
 const FIELD_LABEL = { name: "fieldName", url: "fieldUrl", model: "fieldModel" };
 const $active = atom(null);     
 const $sErr = atom(null);
@@ -315,6 +323,7 @@ async function grantSend() {
   try { await shell.call("system.settings", { page: "app" }); } catch {  }
 }
 
+
 const rnd = (n) => crypto.getRandomValues(new Uint8Array(n));
 let reemit = null;
 function stopReemit() { if (reemit) { clearInterval(reemit); reemit = null; } }
@@ -329,6 +338,8 @@ async function emit(preset) {
     const r = await shell.call("ble.advertiseRaw", { structures, ms: 0, connectable: !!preset.connectable });
     $active.set({ id: preset.id, bytes, out: r?.bytes });
     $sErr.set(null);
+    
+    
     if (preset.dynamic) {
       reemit = setInterval(async () => {
         try {
@@ -346,19 +357,18 @@ async function stopEmit() {
   if (gate) return;
   try { await shell.call("ble.silence", {}); } catch {  }
 }
-
 function PresetCard({ preset, active, t }) {
   const fields = useStore($fields);
   const on = active?.id === preset.id;
   return html`<div data-preset=${preset.id} data-live=${on ? "1" : "0"}
-    class=${`rounded-2xl p-3 flex flex-col gap-2 min-w-0 sf-raised ${on ? "sf-e2 ring-1 ring-[var(--app-accent)]" : "border border-base-content/10"}`}>
+    class=${`rounded-[var(--ms-r)] p-3 flex flex-col gap-2 min-w-0 sf-raised sf-e2 ${on ? LIVE : ""}`}>
     <div class="flex items-center gap-2 min-w-0">
       <span class="min-w-0 truncate font-medium text-base-content">${T(t, `send_${preset.id}`)}</span>
-      <span class="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.62rem] uppercase tracking-wide bg-base-content/10 text-base-content/70">${T(t, `target_${preset.target}`)}</span>
+      <span class=${`ml-auto ${CHIP}`}>${T(t, `target_${preset.target}`)}</span>
     </div>
     ${preset.custom
       ? html`<input data-field=${preset.id} type="text" inputmode="text" autocomplete="off"
-          class="input input-sm input-ghost w-full min-w-0 px-2 focus:outline-none border border-base-content/20"
+          class="input input-sm input-ghost w-full min-w-0 px-3 focus:outline-none border-0 sf-inset rounded-full"
           aria-label=${T(t, FIELD_LABEL[preset.custom] || "fieldUrl")}
           placeholder=${T(t, FIELD_LABEL[preset.custom] || "fieldUrl")}
           value=${fields[preset.id] || ""}
@@ -382,10 +392,9 @@ export function sendView({ t }) {
     if (gate && !$active.get()) $active.set({ id: "swiftPair", bytes: assemble(PRESETS.find((p) => p.id === "swiftPair").build("тук тук")) });
     return () => { if (!gate) { stopReemit(); $active.set(null); try { shell.call("ble.silence", {}); } catch {  } } };
   }, []);
-
   if (!labOk) {
     return html`<div class="flex flex-col gap-4 px-[var(--ms-pad)] pt-6 pb-[calc(var(--dock-h)+2rem)]">
-      <div data-prime class="rounded-2xl p-5 sf-raised flex flex-col gap-3">
+      <div data-prime class="rounded-[var(--ms-r)] p-[var(--ms-pad)] sf-raised sf-e2 flex flex-col gap-3">
         ${Icon("lucide:radio-tower", "text-[1.6em] text-[var(--app-accent)]")}
         <div class="text-lg font-semibold text-base-content">${T(t, "labTitle")}</div>
         <p class="text-base-content/80 leading-relaxed">${T(t, "labWarn")}</p>
@@ -396,27 +405,27 @@ export function sendView({ t }) {
 
   return html`<div class="flex flex-col gap-3 px-[var(--ms-pad)] pt-1 pb-[calc(var(--dock-h)+2rem)]">
     ${!gate && shell.why("ble.advertiseRaw")
-      ? html`<div data-needs class="flex items-center gap-2 min-w-0 rounded-xl p-3 sf-sunken">
+      ? html`<div data-needs class="flex items-center gap-2 min-w-0 rounded-[var(--ms-r)] p-3 sf-inset">
           ${Icon("lucide:radio-tower", "text-[1.1em] shrink-0 text-muted")}
           <span class="min-w-0 text-base-content/80">${T(t, shell.why("ble.advertiseRaw") === ERR.staleBridge ? "needsUpdate" : "needsApp")}</span>
         </div>`
       : null}
     ${err
-      ? html`<div data-serr class="flex items-start gap-2 min-w-0 rounded-xl p-3 sf-sunken">
+      ? html`<div data-serr class="flex items-start gap-2 min-w-0 rounded-[var(--ms-r)] p-3 sf-inset">
           ${Icon("lucide:triangle-alert", "text-[1.1em] shrink-0 mt-0.5 text-[var(--app-accent)]")}
-          <span class="min-w-0 break-words font-mono text-[0.8rem] text-base-content">${String(err)}</span>
+          <span class=${`min-w-0 break-words ${MONO} text-base-content`}>${String(err)}</span>
           ${needPerm ? html`<button data-sgrant class="btn btn-sm btn-primary shrink-0 ml-auto" onClick=${grantSend}>${T(t, "allow")}</button>` : null}
         </div>`
       : null}
 
     ${active
-      ? html`<div data-active class="rounded-2xl p-3 sf-raised sf-e2 ring-1 ring-[var(--app-accent)] flex flex-col gap-2">
+      ? html`<div data-active class=${`rounded-[var(--ms-r)] p-3 sf-raised sf-e2 ${LIVE} flex flex-col gap-2`}>
           <div class="flex items-center gap-2 min-w-0">
             <span class="w-2 h-2 rounded-full bg-[var(--app-accent)] shrink-0 ${gate ? "" : "animate-pulse"}"></span>
             <span class="min-w-0 truncate text-base-content">${T(t, "broadcasting")} · ${T(t, `send_${active.id}`)}</span>
             <button data-stop onClick=${stopEmit} class="btn btn-sm btn-outline shrink-0 ml-auto">${T(t, "stop")}</button>
           </div>
-          <code class="block break-all font-mono text-[0.72rem] text-base-content/80 sf-sunken rounded-lg p-2">${active.bytes}</code>
+          <code class=${`block break-all ${MONO} text-base-content/80 sf-inset rounded-[var(--ms-r-in)] p-2`}>${active.bytes}</code>
         </div>`
       : null}
 

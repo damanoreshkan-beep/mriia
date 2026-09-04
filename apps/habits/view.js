@@ -10,7 +10,7 @@ import { downloadBlob } from "/_rt/apk.js";
 import { Panel, Sheet } from "/_rt/ui.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const LABEL = "font-mono uppercase tracking-wide font-semibold text-[var(--ms-label)] text-base-content/70";
+const LABEL = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
 
 const habitsColl = collection("habits");
 const marksColl = collection("marks");
@@ -100,7 +100,7 @@ const Dots = ({ h, marks, onToggle, t }) => {
     const on = !!marks[h.id + "|" + d];
     return html`<button key=${d} type="button" onClick=${() => onToggle(h.id, d)} aria-pressed=${on}
       aria-label=${`${d} ${on ? T(t, "done") : T(t, "notDone")}`}
-      class=${`w-6 h-6 rounded-md shrink-0 transition active:scale-90 ${on ? "sf-e2" : "sf-inset"}`}
+      class=${`w-6 h-6 rounded-[var(--ms-r-in)] shrink-0 transition-transform active:scale-90 ${on ? "sf-e2" : "sf-inset"}`}
       style=${on ? `background:${h.color}` : ""}></button>`;
   })}</div></div>`;
 };
@@ -125,29 +125,29 @@ function Heatmap({ h, marks, onToggle, t }) {
 
 const Stat = ({ n, label }) => html`<div class="flex-1 text-center">
   <div class="text-2xl font-bold tabular-nums">${n}</div>
-  <div class="text-xs text-muted mt-0.5">${label}</div></div>`;
+  <div class=${`${LABEL} mt-0.5`}>${label}</div></div>`;
 
 function AddSheet({ open, onClose, t }) {
   const draft = useStore($draft);
   const save = async () => { if (!draft.name.trim()) return; await addHabit(draft.name, draft.icon, draft.color); $draft.set({ name: "", icon: "lucide:check", color: "#10b981" }); onClose(); };
   return html`<${Sheet} id="h-add" open=${open} onClose=${onClose} title=${T(t, "newHabit")} icon="lucide:plus">
-    <input id="h-name" class="input rounded-2xl w-full" placeholder=${T(t, "namePh")} value=${draft.name}
+    <input id="h-name" class="input w-full" placeholder=${T(t, "namePh")} value=${draft.name}
       maxlength="40" onInput=${(e) => $draft.set({ ...draft, name: e.target.value })} />
     <div class="flex flex-col gap-1.5">
       <div class=${LABEL}>${T(t, "icon")}</div>
-      <div class="sf-inset rounded-2xl p-2 flex flex-wrap gap-2" id="h-icons">${ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${draft.icon === ic}
+      <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2" id="h-icons">${ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${draft.icon === ic}
         onClick=${() => $draft.set({ ...draft, icon: ic })}
-        class="w-10 h-10 rounded-xl flex items-center justify-center transition"
+        class="w-10 h-10 rounded-[var(--ms-r-in)] flex items-center justify-center transition-colors"
         style=${draft.icon === ic ? `color:${draft.color}` : ""}>${Icon(ic, "text-lg")}</button>`)}</div>
     </div>
     <div class="flex flex-col gap-1.5">
       <div class=${LABEL}>${T(t, "color")}</div>
-      <div class="sf-inset rounded-2xl p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${draft.color === c}
+      <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${draft.color === c}
         onClick=${() => $draft.set({ ...draft, color: c })}
-        class="w-8 h-8 rounded-full transition"
+        class="w-8 h-8 rounded-full transition-transform"
         style=${`background:${c};${draft.color === c ? `outline:2px solid ${c};outline-offset:2px` : ""}`}></button>`)}</div>
     </div>
-    <button id="h-save" class="btn btn-primary rounded-2xl mt-1" disabled=${!draft.name.trim()} onClick=${save}>${T(t, "add")}</button>
+    <button id="h-save" class="btn btn-primary mt-1" disabled=${!draft.name.trim()} onClick=${save}>${T(t, "add")}</button>
   </${Sheet}>`;
 }
 
@@ -173,7 +173,7 @@ function DetailSheet({ open, id, t, onClose, confirm }) {
       <${Panel} title=${T(t, "last13")}>
         <${Heatmap} h=${h} marks=${marks} onToggle=${toggle} t=${t} />
       </${Panel}>
-      <button id="d-del" data-haptic="bump" class="btn text-error rounded-2xl gap-2" onClick=${askDelete}>${Icon("lucide:trash-2")} ${T(t, "delete")}</button>
+      <button id="d-del" data-haptic="bump" class="btn text-error gap-2" onClick=${askDelete}>${Icon("lucide:trash-2")} ${T(t, "delete")}</button>
     </${Fragment}>` : null}
   </${Sheet}>`;
 }
@@ -187,34 +187,34 @@ export function habits({ S, closeScreen, confirm }) {
 
   return html`<${Fragment}>
     ${!ready ? null : hs.length === 0 ? html`
-      <div class="flex flex-col items-center justify-center text-center gap-3 py-16 px-6 text-base-content/70">
+      <div data-habits="0" class="flex flex-col items-center justify-center text-center gap-3 py-16 px-6 text-muted">
         ${Icon("lucide:sprout", "text-5xl text-primary/70")}
         <div class="font-semibold text-base-content">${T(t, "emptyTitle")}</div>
-        <button id="empty-add" class="btn btn-primary rounded-2xl gap-2 mt-1" onClick=${() => S.sheet.set(true)}>${Icon("lucide:plus")} ${T(t, "addFirst")}</button>
-        ${idbSupported ? null : html`<div class="text-xs text-warning mt-2">${T(t, "noStore")}</div>`}
+        <button id="empty-add" class="btn btn-primary gap-2 mt-1" onClick=${() => S.sheet.set(true)}>${Icon("lucide:plus")} ${T(t, "addFirst")}</button>
+        ${idbSupported ? null : html`<div class="text-sm text-muted mt-2">${T(t, "noStore")}</div>`}
       </div>` : html`
-      <div class="flex flex-col gap-2.5">
+      <div data-habits=${hs.length} class="flex flex-col gap-2.5">
         ${hs.map((h) => { const done = !!marks[h.id + "|" + today()]; const s = streak(h.id, marks); return html`<${Panel} key=${h.id} data-habit=${h.id}>
             <div class="flex items-center gap-3">
               <button data-open type="button" class="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70" aria-label=${`${h.name} — ${T(t, "open")}`} onClick=${() => S.screen.set("habit:" + h.id)}>
-                <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style=${`background:${h.color}1a;color:${h.color}`}>${Icon(h.icon, "text-lg")}</span>
+                <span class="w-9 h-9 rounded-[var(--ms-r-in)] flex items-center justify-center shrink-0" style=${`background:${h.color}1a;color:${h.color}`}>${Icon(h.icon, "text-lg")}</span>
                 <span class="min-w-0"><span class="font-semibold block truncate">${h.name}</span>
-                  <span class="text-xs text-muted flex items-center gap-1">${s > 0 ? html`${Icon("lucide:flame", "text-[0.9em]")} ${T(t, "dayStreak", { n: s })}` : T(t, "noStreak")}</span></span>
+                  <span class="text-sm text-muted flex items-center gap-1">${s > 0 ? html`${Icon("lucide:flame", "text-[0.9em]")} ${T(t, "dayStreak", { n: s })}` : T(t, "noStreak")}</span></span>
               </button>
               
               
-              <button data-today type="button" class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center active:scale-90 transition ${done ? "sf-e3" : "sf-raised"}`}
+              <button data-today type="button" class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center active:scale-90 transition-transform ${done ? "sf-e3" : "sf-raised"}`}
                 aria-pressed=${done} aria-label=${`${h.name} ${T(t, "todayToggle")}`}
-                style=${done ? `background:${h.color};color:#fff` : `color:${h.color}`}
+                style=${done ? `background:${h.color};color:var(--color-base-100)` : `color:${h.color}`}
                 data-haptic="off" onClick=${() => toggle(h.id, today())}>${Icon("lucide:check", "text-lg")}</button>
             </div>
             <${Dots} h=${h} marks=${marks} onToggle=${toggle} t=${t} />
           </${Panel}>`; })}
 
         <div class="flex items-center gap-2 mt-1">
-          <button id="add-habit" class="btn btn-primary rounded-2xl flex-1 gap-2" onClick=${() => S.sheet.set(true)}>${Icon("lucide:plus")} ${T(t, "newHabit")}</button>
-          <button class="btn btn-square rounded-2xl" aria-label=${T(t, "export")} onClick=${exportData}>${Icon("lucide:download")}</button>
-          <label class="btn btn-square rounded-2xl" aria-label=${T(t, "import")}>${Icon("lucide:upload")}
+          <button id="add-habit" class="btn btn-primary flex-1 gap-2" onClick=${() => S.sheet.set(true)}>${Icon("lucide:plus")} ${T(t, "newHabit")}</button>
+          <button class="btn btn-square" aria-label=${T(t, "export")} onClick=${exportData}>${Icon("lucide:download")}</button>
+          <label class="btn btn-square" aria-label=${T(t, "import")}>${Icon("lucide:upload")}
             <input type="file" accept="application/json" class="hidden" onChange=${(e) => e.target.files[0] && importData(e.target.files[0])} /></label>
         </div>
       </div>`}
