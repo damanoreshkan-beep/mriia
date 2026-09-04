@@ -95,7 +95,8 @@ style thumbnail must go through the raw generator or every material glows).
   named-file exception there) and the core's `[data-mascot]` (1.2.10) draws her in every empty state.
   заважають"): the woven-lip hook is REMOVED from decor.css, every theme's `--ds-lip*` tokens and all 21
   lip sprites (incl. lum's retired ds-n-arc) are gone; the suite bans the token so it cannot creep back.
-  The header's only light is the runtime hairline (`--lm-lip` / `--lm-lip-glow`) — a line, not a texture.
+  тінь, щоб шапка не давила на контент"; core 1.2.26) — the header is the wordmark and its shadow, nothing
+  else; `--lm-lip` / `--lm-lip-glow` are gone from every theme.
 
 ## Decision log
 
