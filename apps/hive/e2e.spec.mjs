@@ -40,6 +40,19 @@ export default [
     },
   },
   {
+    name: "list: a tap copies the find and still aims the hunt", run: async (h) => {
+      await h.click('[data-tab="list"]'); await h.wait(400);
+      await h.tap('[data-dev="24:0A:C4:11:22:33"]'); await h.wait(400);
+      h.expect((await h.attr("[data-live]", "data-copied")) === "24:0A:C4:11:22:33", "копію не зафіксовано");
+      const wifiLines = Number(await h.attr("[data-live]", "data-copied-lines"));
+      h.expect(wifiLines >= 6, `досьє Wi-Fi надто коротке: ${wifiLines} рядків`);
+      h.expect((await h.attr('[data-dev="24:0A:C4:11:22:33"]', "aria-pressed")) === "true", "тап перестав обирати ціль");
+      await h.tap('[data-dev="lte:301"]'); await h.wait(400);
+      h.expect((await h.attr("[data-live]", "data-copied")) === "lte:301", "копія соти не зафіксована");
+      h.expect(Number(await h.attr("[data-live]", "data-copied-lines")) >= 6, "досьє соти надто коротке");
+    },
+  },
+  {
     name: "list: the order is systemic, persisted, and does not reshuffle", run: async (h) => {
       await h.click('[data-tab="list"]'); await h.wait(400);
       const before = await h.text("[data-live]");
