@@ -4,6 +4,8 @@ import { useStore } from "@nanostores/preact";
 import { atom } from "nanostores";
 import { T } from "/_rt/i18n.js";
 import { Panel, Island, Sheet, Stage } from "/_rt/ui.js";
+import { Globe } from "/_rt/globe.js";
+import { VPS_PROXY } from "/_rt/feed.js";
 import { shell, ERR } from "/_rt/shell.js";
 import { gate } from "/_rt/gate.js";
 import { compass, geo, wakeLock } from "/_rt/sensors.js";
@@ -31,6 +33,51 @@ const $fix = atom(null);
 const $now = atom(Date.now());
 const $oui = atom(null);
 const $copied = atom(null);
+const $look = atom(null);
+
+/**
+ * What we may honestly ASK about this find. Null is an answer too — it means the transmitter did not say
+ * enough to be looked up, and the UI says exactly that instead of sending a query that cannot match.
+ * A cell needs its operator's numbers (a CID repeats across networks); Wi-Fi needs the neighbours seen in
+ * the same sweep AND their SSIDs (beaconDB matches on MAC+SSID, so a hidden AP is unlookupable); a BLE
+ * device needs a real address, which a rotating one is not.
+ */
+function requestFor(d, field) {
+  if (d.kind === "lte") {
+    return d.mcc != null && d.mnc != null && d.cid && d.lac
+      ? { kind: "cell", cell: { radio: d.radio || "lte", mcc: d.mcc, mnc: d.mnc, lac: d.lac, cid: d.cid } }
+      : null;
+  }
+  if (d.kind === "wifi") {
+    const others = field.filter((x) => x.kind === "wifi" && x.addr !== d.addr)
+      .sort((a, b) => (b.smooth ?? b.rssi) - (a.smooth ?? a.rssi)).slice(0, 5);
+    const aps = [d, ...others].filter((x) => x.name)
+      .map((x) => ({ bssid: x.addr, ssid: x.name, rssi: Math.round(x.smooth ?? x.rssi) }));
+    return aps.length >= 2 ? { kind: "wifi", wifi: aps } : null;
+  }
+  if (d.kind === "ble") return rotates(d.addr) ? null : { kind: "ble", ble: { mac: d.addr } };
+  return null;
+}
+
+const GATE_LOOKUP = {
+  wifi: { found: true, lat: 50.4501, lon: 30.5234, accuracy: 96, source: "beacondb" },
+  lte: { found: false, reason: "unknown" },
+  ble: { found: false, reason: "unknown" },
+};
+
+async function askAbout(d, field, onFound) {
+  const req = requestFor(d, field);
+  if (!req) { $look.set({ addr: d.addr, state: "done", v: { found: false, reason: "tooLittle" } }); return; }
+  $look.set({ addr: d.addr, state: "asking", v: null });
+  const settle = (v) => { $look.set({ addr: d.addr, state: "done", v }); if (v.found) onFound?.(); };
+  if (gate) { settle(GATE_LOOKUP[d.kind] || { found: false, reason: "unknown" }); return; }
+  try {
+    const r = await fetch(`${VPS_PROXY}/hive/lookup`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(req),
+    });
+    settle(r.ok ? await r.json() : { found: false, reason: "unavailable" });
+  } catch { settle({ found: false, reason: "unavailable" }); }
+}
 let ouiPending = false;
 function loadOui() {
   if (ouiPending || $oui.get()) return;
@@ -54,7 +101,7 @@ const GATE_FIELD = [
   { addr: "0A:99:88:77:66:55", name: "", rssi: -92, raw: "020106", kind: "ble" },
   { addr: "24:0A:C4:11:22:33", name: "Gate-AP", rssi: -52, kind: "wifi", ftm: true, freq: 5180 },
   { addr: "3C:5A:B4:44:55:66", name: "Gate-Guest", rssi: -74, kind: "wifi", ftm: false, freq: 2437 },
-  { addr: "lte:301", name: "LTE 1300", rssi: -89, kind: "lte", serving: true, cid: 27183, lac: 4102 },
+  { addr: "lte:301", name: "LTE 1300", rssi: -89, kind: "lte", serving: true, cid: 27183, lac: 4102, mcc: 255, mnc: 1, radio: "lte" },
   { addr: "lte:118", name: "LTE 1300", rssi: -104, kind: "lte", serving: false },
 ];
 
@@ -108,6 +155,7 @@ async function sweepRadios() {
         upsert({
           addr: `${c.type || "cell"}:${id}`, name: `${(c.type || "cell").toUpperCase()} ${c.arfcn ?? ""}`.trim(),
           rssi: c.rssi, kind: "lte", serving: !!c.serving, cid: cellNum(c.cid), lac: cellNum(c.lac),
+          mcc: cellNum(c.mcc), mnc: cellNum(c.mnc), radio: (c.type || "lte").toLowerCase(),
         });
       }
     } catch {  }
@@ -370,11 +418,14 @@ function chanOf(mhz) {
 
 
 
-export function listView({ S, t, toast }) {
+export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
   const field = useField(S);
   const target = useStore($target);
   const oui = useStore($oui);
   const loc = useStore(S.locale);
+  const look = useStore($look);
+  const sel = field.find((d) => d.addr === target) || null;
+  const mine = look && sel && look.addr === sel.addr ? look : null;
   const copied = useStore($copied);
   useEffect(loadOui, []);
   
@@ -396,6 +447,26 @@ export function listView({ S, t, toast }) {
       </div>
       <${Reason} t=${t} />
     <//>
+
+    
+    ${sel
+      ? html`<${Panel} title=${T(t, "checkTitle")}>
+        <div data-check-row data-verdict=${mine?.state === "done" ? (mine.v.found ? "found" : mine.v.reason) : mine?.state === "asking" ? "asking" : ""}
+          class="flex items-center gap-[var(--ms-gap)] min-w-0">
+          <span class="flex-1 min-w-0 truncate">${labelOf(sel, t)}</span>
+          <button data-check class="btn btn-primary rounded-full shrink-0" disabled=${mine?.state === "asking"}
+            onClick=${() => askAbout(sel, field, () => openScreen("where"))}>
+            ${T(t, mine?.state === "asking" ? "asking" : "check")}
+          </button>
+        </div>
+        ${mine?.state === "done" && !mine.v.found
+          ? html`<div data-verdict-line class="text-sm text-muted">${T(t, "no_" + mine.v.reason)}</div>`
+          : null}
+        ${mine?.state === "done" && mine.v.found
+          ? html`<button data-open-where class="text-sm text-left underline decoration-dotted" onClick=${() => openScreen("where")}>${T(t, "showOnGlobe")}</button>`
+          : null}
+      <//>`
+      : null}
 
     <${Panel} title=${T(t, "signal")}>
       <div data-live data-copied=${copied?.addr || ""} data-copied-lines=${copied?.lines || 0} class="flex flex-col">
@@ -427,9 +498,23 @@ export function listView({ S, t, toast }) {
         </button>`)}
       </div>
     <//>
+    <${Sheet} id="where" open=${screen === "where"} onClose=${closeScreen} title=${T(t, "whereTitle")} icon="lucide:globe">
+      
+      ${mine?.v?.found && screen === "where"
+        ? html`<div data-where class="flex flex-col gap-[var(--ms-gap)]">
+          <${Globe} points=${[
+            { lat: mine.v.lat, lon: mine.v.lon, r: 16, color: "rgba(242,184,75,.16)" },
+            { lat: mine.v.lat, lon: mine.v.lon, r: 5, color: "#F2B84B" },
+          ]} focus=${{ lat: mine.v.lat, lon: mine.v.lon }} spin=${false} height=${300} />
+          <div class="font-mono tabular-nums">${mine.v.lat.toFixed(5)}, ${mine.v.lon.toFixed(5)}</div>
+          <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">
+            ${T(t, "accuracy")} ±${Math.round(mine.v.accuracy || 0)} m · ${T(t, "source")} ${mine.v.source}
+          </div>
+        </div>`
+        : html`<div class="text-sm text-muted">${T(t, "no_unknown")}</div>`}
+    <//>
   </div>`;
 }
-
 
 export function huntView({ S, t, screen, openScreen, closeScreen }) {
   const field = useField(S);
@@ -441,6 +526,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
   const p = petal(rose);
   let max = 0;
   for (let i = 0; i < p.length; i++) max = Math.max(max, p[i]);
+
   const path = [];
   for (let i = 0; i < p.length; i++) {
     const a = ((i + 0.5) / p.length) * Math.PI * 2 - Math.PI / 2;
@@ -449,8 +535,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
   }
   const dPath = path.join(" ") + " Z";
 
-  
-  
   const angRef = useRef(0);
   if (stats.bearingDeg !== null) angRef.current = unwrapDeg(angRef.current, stats.bearingDeg);
   const hdg = useStore($heading);
@@ -487,6 +571,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
                   stroke="currentColor" stroke-width=${major ? 0.7 : 0.35} opacity=${major ? 0.45 : 0.2}
                   class=${i === 0 ? "text-[var(--app-accent)]" : ""} />`;
               })}
+            
             ${max > 0 ? html`<path data-petal d=${dPath} style=${`d:path('${dPath}')`}
               fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.7"
               class=${`hv-petal text-[var(--app-accent)] ${gate ? "" : "hv-e-in"}`} />` : null}
@@ -513,7 +598,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
         </svg>
       </div>
     <//>
-
     <div class="ms-side-main flex flex-col justify-end items-center pb-[var(--ms-gap)]">
       <${Island} className="w-full max-w-md">
         <div class="flex items-center gap-[var(--ms-gap)] min-w-0">
@@ -552,7 +636,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
     <//>
   </div>`;
 }
-
 
 export function guardView({ S, t }) {
   const field = useField(S);
