@@ -92,7 +92,7 @@ export function store({ S, openScreen, closeScreen }) {
         </div>`)}
       </div>
       
-      ${needsUsb(sel) ? html`<div data-needs-device class="flex items-center gap-2 text-sm text-base-content sf-inset rounded-[var(--ms-r-in)] px-3 py-2">${Icon("lucide:usb", "shrink-0 text-[var(--ms-icon)]", "color:var(--app-accent)")}<span>${T(t, sel.deviceNote || "needsDeviceHackrf")}</span></div>` : null}
+      ${needsUsb(sel) ? html`<div data-needs-device class="flex items-center gap-2 text-sm text-base-content sf-inset rounded-[var(--ms-r-in)] px-3 py-2">${Icon("lucide:usb", "shrink-0 text-[length:var(--ms-icon)]", "color:var(--app-accent)")}<span>${T(t, sel.deviceNote || "needsDeviceHackrf")}</span></div>` : null}
       ${shots.length ? html`<div class="flex flex-col gap-2">
         <div class="font-bold text-lg px-0.5">${T(t, "screenshots")}</div>
         <div class="flex gap-3 overflow-x-auto snap-x [overscroll-behavior-x:contain] [scrollbar-width:none] -mx-[var(--ms-pad)] px-[var(--ms-pad)] pb-1">
