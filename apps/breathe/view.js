@@ -45,7 +45,7 @@ export function breathe({ S }) {
     return () => cancelAnimationFrame(raf);
   }, [tech, playing, t]);
 
-  return html`<div data-breathe data-tech=${tech} data-playing=${playing ? "1" : "0"} class="flex flex-col items-center gap-[calc(var(--ms-gap)*1.5)] pt-2">
+  return html`<div data-breathe data-tech-sel=${tech} data-playing=${playing ? "1" : "0"} class="flex flex-col items-center gap-[calc(var(--ms-gap)*1.5)] pt-2">
     <div class="flex flex-col gap-1 self-stretch min-w-0 px-[var(--ms-pad)]">
       <${Segmented} attr="data-tech" scroll label=${T(t, "tabBreathe")}
         items=${ORDER.map((k) => ({ id: k, label: T(t, TECHS[k].name), title: T(t, TECHS[k].sub) }))} value=${tech} onChange=${choose} />

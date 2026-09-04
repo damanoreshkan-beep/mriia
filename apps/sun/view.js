@@ -14,6 +14,8 @@ import { isGate, MOCK, gate } from "/_rt/gate.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
+const NAME_LABEL = "font-mono text-[length:var(--ms-label)] tracking-wide";
+
 const KYIV = { lat: 50.45, lng: 30.52, approx: true };
 const PRESETS = [["Kyiv", 50.45, 30.52], ["London", 51.5, -0.13], ["Tokyo", 35.68, 139.69], ["New York", 40.71, -74.0], ["Sydney", -33.87, 151.21]];
 const DIRS = ["Пн", "Пн-Сх", "Сх", "Пд-Сх", "Пд", "Пд-Зх", "Зх", "Пн-Зх"];
@@ -21,12 +23,16 @@ const dirName = (b) => DIRS[Math.round((b % 360) / 45) % 8];
 const hhmm = (d) => d instanceof Date && !isNaN(d) ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : "—";
 const minOfDay = (d) => d instanceof Date && !isNaN(d) ? d.getHours() * 60 + d.getMinutes() : null;
 const bodyLabel = (t, k) => T(t, "b" + k[0].toUpperCase() + k.slice(1));
+
 const CARDINALS = [{ label: "Пн", angle: 0, cls: "text-sm font-bold text-error" }, { label: "Сх", angle: 90 }, { label: "Пд", angle: 180 }, { label: "Зх", angle: 270 }];
+
 
 const PoleStar = ({ size = 15 }) => html`<span class="relative inline-block align-middle text-base-content" style=${`width:${size}px;height:${size}px`}>
   <span class="absolute inset-0" style="background:radial-gradient(circle,color-mix(in oklch,var(--app-accent-2) 55%,transparent),transparent 66%)"></span>
   <svg viewBox="0 0 24 24" class="relative block" style=${`width:${size}px;height:${size}px`}><path d="M12 1.4l1.95 8.15L22 12l-8.05 2.45L12 22.6l-1.95-8.15L2 12l8.05-2.45z" style="fill:var(--app-accent-2)" stroke="currentColor" stroke-opacity="0.35" stroke-width="0.6"/></svg>
 </span>`;
+
+
 
 const SKY_RINGS = html`<svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full pointer-events-none text-base-content" fill="none" aria-hidden="true">
   <defs><radialGradient id="sundial-sky" cx="50%" cy="50%" r="50%"><stop offset="52%" stop-color="currentColor" stop-opacity="0"></stop><stop offset="100%" stop-color="currentColor" stop-opacity="0.05"></stop></radialGradient></defs>
@@ -47,7 +53,7 @@ export function sun({ S, openScreen, closeScreen }) {
   const [tmp, setTmp] = useState(null);       
   const [focus, setFocus] = useState(null);   
   const [, tick] = useState(0);
-
+  
   useEffect(() => {
     if (MOCK || isGate) return; 
     if (!geo.supported) { setPos(KYIV); return; }
@@ -55,12 +61,14 @@ export function sun({ S, openScreen, closeScreen }) {
     const to = setTimeout(() => setPos((cur) => cur || KYIV), 4000);
     return () => { stop(); clearTimeout(to); };
   }, []);
+  
   useEffect(() => { if (MOCK || needPerm) return; return compass.start(setHeading); }, [needPerm]);
   useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(id); }, []);
-
   const grant = async () => { if (await compass.request()) setNeedPerm(false); };
   const openGlobe = () => { const l = picked || pos || KYIV; setTmp({ lat: l.lat, lng: l.lng }); setFocus({ lat: l.lat, lon: l.lng }); openScreen("globe"); };
 
+  
+  
   const globeSheet = html`<${Sheet} id="globesheet" open=${screen === "globe"} onClose=${closeScreen}
     title=${T(t, "pickTitle")} icon="lucide:globe">
     <div class="flex flex-col items-center gap-4">
@@ -69,6 +77,7 @@ export function sun({ S, openScreen, closeScreen }) {
         <div class="font-semibold">${tmp?.name || T(t, "tapGlobe")}</div>
         <div class=${`${LABEL} text-muted tabular-nums`}>${tmp ? `${tmp.lat.toFixed(2)}°, ${tmp.lng.toFixed(2)}°` : ""}</div>
       </div>
+      
       <div class="flex flex-wrap gap-1.5 justify-center">${PRESETS.map(([n, la, lo]) => html`<button class="btn btn-xs rounded-full" data-city=${n} key=${n} onClick=${() => { setTmp({ lat: la, lng: lo, name: n }); setFocus({ lat: la, lon: lo }); }}>${n}</button>`)}</div>
       <button id="pick-here" class="btn btn-primary gap-2" disabled=${!tmp} onClick=${() => { setPicked(tmp); closeScreen(); }}>${Icon("lucide:map-pin")}${T(t, "pickHere")}</button>
     </div>
@@ -92,10 +101,10 @@ export function sun({ S, openScreen, closeScreen }) {
     }));
     
     
+    
     if (loc.lat > 0.5) marks.push({ key: "polaris", node: html`<${PoleStar} />`, angle: 0, value: loc.lat, label: T(t, "bPolaris"), opacity: 1, title: "Polaris", attrs: { "data-polaris": true } });
   }
   const polarisAlt = ready && loc.lat > 0.5 ? Math.round(loc.lat) : null;
-
   const center = html`<div class="contents">
     <div data-bearing class="text-5xl font-bold tabular-nums"><${Scramble} text=${ready ? Math.round(bearing) + "°" : null} len=${4} /></div>
     <div class="text-base font-medium"><${Scramble} text=${ready ? dirName(bearing) : null} len=${6} /></div>
@@ -124,12 +133,12 @@ export function sun({ S, openScreen, closeScreen }) {
     <div class="flex flex-col items-center gap-1.5">
       <button id="open-globe" class="btn btn-ghost btn-sm gap-2" onClick=${openGlobe}>${Icon("lucide:globe")}${T(t, "pickOnGlobe")}</button>
       ${picked
-        ? html`<button id="clear-pick" class=${`${LABEL} text-primary flex items-center gap-1`} onClick=${() => setPicked(null)}>${Icon("lucide:map-pin")}${picked.name || `${picked.lat.toFixed(1)}°, ${picked.lng.toFixed(1)}°`} · ${T(t, "myLocation")}</button>`
+        ? html`<button id="clear-pick" class=${`${NAME_LABEL} text-primary flex items-center gap-1`} onClick=${() => setPicked(null)}>${Icon("lucide:map-pin")}${picked.name || `${picked.lat.toFixed(1)}°, ${picked.lng.toFixed(1)}°`} · ${T(t, "myLocation")}</button>`
         : ready ? (pos?.approx ? html`<div class=${LABEL}>${T(t, "approxKyiv")}</div>` : null)
         : html`<div class=${`${LABEL} text-muted flex items-center gap-1.5`}>${Icon("lucide:map-pin")}${T(t, "locating")}</div>`}
     </div>
 
-    ${polarisAlt != null ? html`<div data-polaris-info class=${`${LABEL} text-muted flex items-center gap-1.5 tabular-nums`}><${PoleStar} size=${13} />${T(t, "bPolaris")} · ${polarisAlt}°</div>` : null}
+    ${polarisAlt != null ? html`<div data-polaris-info class=${`${NAME_LABEL} text-muted flex items-center gap-1.5 tabular-nums`}><${PoleStar} size=${13} />${T(t, "bPolaris")} · ${polarisAlt}°</div>` : null}
 
     ${ready ? html`<${TimeScale} value=${scrub} now=${now.getHours() * 60 + now.getMinutes()} onChange=${setScrub} t=${t}
       sunrise=${minOfDay(times.sunrise)} sunset=${minOfDay(times.sunset)} anchors=${anchors} />` : null}
