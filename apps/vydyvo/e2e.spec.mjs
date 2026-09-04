@@ -40,8 +40,9 @@ export default [
       await ready(h);
       const ahead = async () => Number(await h.attr("[data-stage]", "data-vy-ahead"));
       const before = await ahead();
-      await h.tap("[data-gen-now]"); await h.wait(1500);
-      h.expect((await ahead()) > before, "свіжих кадрів наперед не побільшало після явної генерації");
+      await h.tap("[data-gen-now]");
+      let after = before; for (let i = 0; i < 16 && !(after > before); i++) { await h.wait(250); after = await ahead(); }
+      h.expect(after > before, `свіжих кадрів наперед не побільшало після явної генерації (${before} → ${after})`);
     },
   },
   {
