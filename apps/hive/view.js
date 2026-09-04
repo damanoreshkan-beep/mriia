@@ -436,7 +436,9 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
     const text = dossier(d, t, oui, loc);
     const ok = await copyText(text);
     
-    $copied.set(ok ? { addr: d.addr, lines: text.split("\n").length } : null);
+    
+    
+    $copied.set({ addr: d.addr, lines: text.split("\n").length, ok });
     toast?.(T(t, ok ? "copied" : "copyFail"));
   };
   return html`<div class="flex flex-col gap-[var(--ms-gap)]">
@@ -469,7 +471,7 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
       : null}
 
     <${Panel} title=${T(t, "signal")}>
-      <div data-live data-copied=${copied?.addr || ""} data-copied-lines=${copied?.lines || 0} class="flex flex-col">
+      <div data-live data-copied=${copied?.addr || ""} data-copied-lines=${copied?.lines || 0} data-copied-ok=${copied?.ok ? "1" : "0"} class="flex flex-col">
         ${field.length === 0 ? html`<div class="text-base-content/70 text-sm">${T(t, "nothingYet")}</div>` : null}
         ${field.map((d) => html`<button key=${d.addr} data-dev=${d.addr} data-kind=${d.kind}
           aria-pressed=${String(d.addr === target)}
