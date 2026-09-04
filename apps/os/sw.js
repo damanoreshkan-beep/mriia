@@ -1,8 +1,11 @@
 self.MS = {
   app: "os",
-  version: "18fe1fe6bb",
+  version: "14bce772d7",
   precache: [
     "./",
+    "./devices.js",
+    "./hero-aura.frag",
+    "./hero.js",
     "./i18n/en.json",
     "./i18n/uk.json",
     "./icon.svg",
@@ -24,6 +27,7 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/glstage.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",
