@@ -122,6 +122,7 @@ export function generateNow() {
   runs++;                                     
   if (job && !gate) cancelJob(BASE, job);
   hold?.(); hold = null; job = null;
+  $frames.set($frames.get().filter((f) => { if (f.shown) return true; revoke(f.url); return false; }));
   patchGen({ phase: "idle", error: null, live: null, until: 0 });
   generate();
 }
@@ -130,7 +131,7 @@ async function generate() {
   const run = ++runs, o = $opts.get(), wid = activeWorld(), world = worldOf(wid);
   const mode = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
   const seed = Math.floor(Math.random() * 1e9);
-  patchGen({ phase: "working", error: null, live: null });
+  patchGen({ phase: "working", error: null, live: null, runs: run });   
   if (gate) {
     await sleep(90); if (run !== runs) return;
     for (let n = 0; n < K; n++) addFrame({ url: mockFrame(seed + n, mode), preset: wid, prompt: o.prompt, mode, w: 90, h: 160 });

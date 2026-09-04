@@ -36,13 +36,15 @@ export default [
     },
   },
   {
-    name: "паличка: явна генерація негайно малює свіжі кадри наперед", run: async (h) => {
+    name: "паличка: явна генерація скидає старі свіжі кадри і малює нові", run: async (h) => {
       await ready(h);
-      const ahead = async () => Number(await h.attr("[data-stage]", "data-vy-ahead"));
-      const before = await ahead();
+      const num = async (a) => Number(await h.attr("[data-stage]", a));
+      const runsBefore = await num("data-vy-runs");
       await h.tap("[data-gen-now]");
-      let after = before; for (let i = 0; i < 16 && !(after > before); i++) { await h.wait(250); after = await ahead(); }
-      h.expect(after > before, `свіжих кадрів наперед не побільшало після явної генерації (${before} → ${after})`);
+      let runs = runsBefore, ahead = 0;
+      for (let i = 0; i < 16 && !(runs > runsBefore && ahead >= 1); i++) { await h.wait(250); runs = await num("data-vy-runs"); ahead = await num("data-vy-ahead"); }
+      h.expect(runs > runsBefore, `паличка не почала нову гонку (${runsBefore} → ${runs})`);
+      h.expect(ahead >= 1, `після палички не зʼявилось свіжого кадру (ahead=${ahead})`);
     },
   },
   {
