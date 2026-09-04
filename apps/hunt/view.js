@@ -187,8 +187,9 @@ export function hunt(props) {
         <div class="absolute inset-0 grid place-items-center overflow-hidden" data-over>
           <button class="sf-raised sf-press active:sf-pressed bg-base-100 rounded-[var(--ms-r)] gap-1 flex flex-col items-center max-w-full max-h-full px-[var(--ms-pad)] py-[calc(var(--ms-pad)*0.7)]"
                   onClick=${restart} data-restart>
-            <span class="font-mono uppercase tracking-widest text-[var(--ms-label)] opacity-80">${T(t, "gameOver")}</span>
-            <span class="font-mono text-[var(--ms-title)]">${digits(best?.dist ?? 0, 4)}</span>
+            
+            <span class="font-mono uppercase tracking-widest text-[length:var(--ms-label)] text-base-content/70">${T(t, "gameOver")}</span>
+            <span class="font-mono text-[length:var(--ms-title)]">${digits(best?.dist ?? 0, 4)}</span>
           </button>
         </div>` : null}
     >
@@ -198,7 +199,8 @@ export function hunt(props) {
           style="image-rendering:pixelated"
           role="img" aria-label=${T(t, "screenAlt")}></canvas>
         ${!ready && !err ? html`<div class="absolute inset-0 grid place-items-center"><${Pixels} cls="w-full h-full" /></div>` : null}
-        ${err ? html`<div class="absolute inset-0 grid place-items-center text-center text-[var(--ms-label)] px-3 text-base-content/70" data-err>${T(t, "noEngine")}</div>` : null}
+        
+        ${err ? html`<div class="absolute inset-0 grid place-items-center text-center px-3 text-muted" data-err>${T(t, "noEngine")}</div>` : null}
       </div>
     </${GameConsole}>
 
@@ -206,12 +208,13 @@ export function hunt(props) {
       title=${T(t, "records")} icon="lucide:trophy" locale=${loc}>
       <div class="grid grid-cols-3 gap-[var(--ms-gap)] text-center">
         ${[["distance", best?.dist ?? 0], ["kills", best?.kills ?? 0], ["runs", +runs || 0]].map(([k, v]) => html`
-          <div class="sf-inset rounded-2xl p-3 min-w-0">
-            <div class="font-mono text-[var(--ms-title)] truncate" data-stat=${k}>${v}</div>
-            <div class="text-[var(--ms-label)] uppercase tracking-wide opacity-70 mt-1 leading-[1.4] break-words">${T(t, k)}</div>
+          
+          <div class="sf-inset rounded-[var(--ms-r-in)] p-[var(--ms-pad)] min-w-0">
+            <div class="font-mono text-[length:var(--ms-title)] truncate" data-stat=${k}>${v}</div>
+            <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70 mt-1 leading-[1.4] break-words">${T(t, k)}</div>
           </div>`)}
       </div>
-      <button class="btn btn-ghost rounded-2xl w-full" data-haptic="bump" id="records-reset"
+      <button class="btn btn-ghost rounded-[var(--ms-r)] w-full" data-haptic="bump" id="records-reset"
         onClick=${() => props.confirm?.({
           title: T(t, "resetTitle"), body: T(t, "resetBody"), verb: T(t, "resetVerb"),
           onConfirm: () => { $best.set(null); $runs.set("0"); A.screen.set(null); },

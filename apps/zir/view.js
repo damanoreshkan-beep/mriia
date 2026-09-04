@@ -13,7 +13,7 @@ import * as M from "./state.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
-const label = "font-mono uppercase tracking-wide font-semibold text-[var(--ms-label)] text-base-content/70";
+const label = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
 const CSS = `.zr-scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--app-accent),transparent);box-shadow:0 0 18px 4px color-mix(in oklch,var(--app-accent) 55%,transparent);animation:zrScan 2.6s ease-in-out infinite}
 @keyframes zrScan{0%{top:2%}50%{top:98%}100%{top:2%}}
 .zr-sh{background:linear-gradient(90deg,rgba(255,255,255,.45) 0%,#fff 50%,rgba(255,255,255,.45) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:zrSweep 2.2s linear infinite}
