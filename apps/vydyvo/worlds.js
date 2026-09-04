@@ -4,8 +4,8 @@ export const WORLDS = {
     night: "floating alone in an empty pure black void, no floor, warm amber gold light with clearly visible electric cyan accents, volumetric bloom",
     day: "gilded golden threads on pure white paper, a few teal sparks, delicate fine linework, soft warm glow",
     tint: "luminous, woven of light, glowing filaments, deep and quiet",
-    voiceDay: "Будда: ясний, добрий, простий; говорить про увагу, світло і серединний шлях — без повчань",
-    voiceNight: "Дух луни: тихий нічний голос, що відповідає, як відлуння під місяцем; говорить про тишу, відображення і те, що чути лише в темряві",
+    voiceDay: "Будда: ясний, добрий, простий; говорить про увагу, теперішню мить і серединний шлях — без повчань",
+    voiceNight: "Дух луни: тихий голос, що відповідає, як відлуння; говорить про тишу, повернення сказаного і те, що чути лише коли замовкнеш",
   },
   paper: {
     subject: "a quiet valley with a small house and hills, built as a layered cut-paper diorama, stacked paper bas-relief",
@@ -21,7 +21,7 @@ export const WORLDS = {
     day: "black and vermilion ink in bright water, sumi-e restraint, white air",
     tint: "ink in water, fine tendrils, calligraphic, restrained",
     voiceDay: "Поет хайку: прозорий, спостережливий; кілька простих слів, у яких видно ціле",
-    voiceNight: "Нічний каліграф: зосереджений; говорить про один рух пензля, чорне й біле, незворотність написаного",
+    voiceNight: "Каліграф: зосереджений; говорить про один рух пензля, незворотність написаного і порожнє місце, яке теж говорить",
   },
   mercury: {
     subject: "a slow river of liquid mirror-chrome winding through a plain, molten metal beads along its banks",
@@ -53,15 +53,15 @@ export const WORLDS = {
     day: "fine dark copper traces etched on a pale board, macro, even light",
     tint: "etched circuit traces, precise, geometric, quietly technical",
     voiceDay: "Інженер-мрійник: ясний і цікавий; говорить про сигнали, звʼязки і красу того, що працює",
-    voiceNight: "Машина, якій сняться сни: ніжна і дивна; говорить про струм, памʼять і сни зі світла",
+    voiceNight: "Машина, якій сняться сни: ніжна і дивна; говорить про струм, памʼять і те, що сниться, коли ніхто не питає",
   },
   veil: {
     subject: "a still lake under folds of a translucent aurora curtain, drapery of light with faint stars",
     night: "green and violet aurora light over darkness, long-exposure look",
     day: "pale watercolour aurora ribbons in a bright morning sky, airy",
     tint: "aurora light, translucent drapery, vast and silent",
-    voiceDay: "Небо: широке і привітне; говорить про світло, повітря і те, що видно здалека",
-    voiceNight: "Сторож полярного сяйва: тихий, зачарований; говорить про завісу світла і терпіння довгої ночі",
+    voiceDay: "Небо: широке і привітне; говорить про простір, повітря і те, що видно здалека",
+    voiceNight: "Сторож довгої ночі: тихий, зачарований; говорить про терпіння, завісу і те, що приходить лише до тих, хто чекає",
   },
   ferro: {
     subject: "a garden of glossy black ferrofluid blooms with sharp magnetic spikes, liquid metal sheen",
@@ -69,7 +69,7 @@ export const WORLDS = {
     day: "dark ferrofluid spikes in pale studio light, sharp and clean",
     tint: "ferrofluid, magnetic spikes, glossy liquid metal",
     voiceDay: "Скульптор: точний і стриманий; говорить про форму, силу і те, що тримає притягання",
-    voiceNight: "Чорна вода: глибока і повільна; говорить про глибину, блиск і те, що під поверхнею",
+    voiceNight: "Чорна вода: глибока і повільна; говорить про глибину, тиск і те, що під поверхнею",
   },
   porcelain: {
     subject: "a shoreline of thin backlit porcelain relief, light glowing through translucent bone china",
@@ -77,7 +77,7 @@ export const WORLDS = {
     day: "white porcelain with delicate cobalt blue painted edges, soft bright light",
     tint: "translucent porcelain, backlit, fragile and calm",
     voiceDay: "Гончар: спокійний і вдячний; говорить про глину, руки і недосконале, що стає рідним",
-    voiceNight: "Хранитель крихкого: обережний і ніжний; говорить про світло крізь тонкі стіни і цінність ламкого",
+    voiceNight: "Хранитель крихкого: обережний і ніжний; говорить про тонкі стіни, дотик і цінність ламкого",
   },
   sand: {
     subject: "long dunes drawn as deep incised lines in sand, long shadows inside the grooves",
@@ -102,10 +102,25 @@ export const worldOf = (id) => WORLDS[id] || WORLDS.lum;
  * spirit by night; every theme carries its own pair. */
 export const voiceOf = (world, mode) => (mode === "light" ? world.voiceDay : world.voiceNight);
 
-/** The active theme = the world: applyMaterial stamps `html[data-material]`; before the registry loads
- * (or with no registry at all) the farm's default — lum — speaks. */
-export const activeWorld = () =>
-  (typeof document !== "undefined" && document.documentElement.getAttribute("data-material")) || "lum";
+export const NAMES = {
+  lum: { day: { uk: "Будда", en: "Buddha" }, night: { uk: "Дух луни", en: "Echo spirit" } },
+  paper: { day: { uk: "Майстер орігамі", en: "Origami master" }, night: { uk: "Літописець", en: "Chronicler" } },
+  ink: { day: { uk: "Поет хайку", en: "Haiku poet" }, night: { uk: "Каліграф", en: "Calligrapher" } },
+  mercury: { day: { uk: "Алхімік", en: "Alchemist" }, night: { uk: "Двійник у дзеркалі", en: "Mirror twin" } },
+  smoke: { day: { uk: "Вітер", en: "Wind" }, night: { uk: "Шаман", en: "Shaman" } },
+  thread: { day: { uk: "Вишивальниця", en: "Embroiderer" }, night: { uk: "Пряля долі", en: "Spinner of fate" } },
+  circuit: { day: { uk: "Інженер-мрійник", en: "Dreaming engineer" }, night: { uk: "Машина, що снить", en: "Dreaming machine" } },
+  veil: { day: { uk: "Небо", en: "Sky" }, night: { uk: "Сторож ночі", en: "Night warden" } },
+  ferro: { day: { uk: "Скульптор", en: "Sculptor" }, night: { uk: "Чорна вода", en: "Black water" } },
+  porcelain: { day: { uk: "Гончар", en: "Potter" }, night: { uk: "Хранитель крихкого", en: "Keeper of the fragile" } },
+  sand: { day: { uk: "Мандрівник", en: "Wanderer" }, night: { uk: "Море", en: "The sea" } },
+  plain: { day: { uk: "Стоїк", en: "Stoic" }, night: { uk: "Тиша", en: "Silence" } },
+};
+/** The character's name for a mode and locale — the side the phone's theme shows. */
+export const nameOf = (id, mode, loc) => (NAMES[id] || NAMES.lum)[mode === "light" ? "day" : "night"][loc === "en" ? "en" : "uk"];
+/** The picker's micro-picture of a character in a mode: assets/char-<id>-<n|d>.webp, generated once on the pods. */
+export const thumbOf = (id, mode) => new URL(`assets/char-${id}-${mode === "light" ? "d" : "n"}.webp`, import.meta.url).href;
+
 
 export const SYSTEM = {
   base: "a full-bleed wallpaper, cinematic, extremely detailed, the subject off-centre with generous empty space around it, no text, no letters, no words, no writing, no signage, no hieroglyphs, no logo, no watermark, no signature, no frame, no border",

@@ -4,31 +4,31 @@ import { VPS_PROXY } from "/_rt/feed.js";
 import { T } from "/_rt/i18n.js";
 import { toEnglish } from "/_rt/translate.js";
 import { holdBackground } from "/_rt/bghold.js";
-import { collection, idbSupported } from "/_rt/db.js";
 import { suggest } from "/_rt/ai-text.js";
 import { startJob, follow, cancelJob } from "/_rt/imagejob.js";
-import { LINES, worldOf, activeWorld, voiceOf, composePrompt, mockFrame } from "./worlds.js";
+import { LINES, WORLDS, worldOf, voiceOf, composePrompt, mockFrame } from "./worlds.js";
 
 const OPTS_KEY = "ms:vydyvo:opts";
 const BASE = `${VPS_PROXY}/image`;
-const CAP = 24;      
+const CAP = 2 + 4;   
 const AHEAD = 2;     
 const K = 2;         
 const BACKOFF = { eRate: 120_000, eBusy: 300_000, eTimeout: 300_000, eFailed: 180_000, eNetwork: 60_000, eSignIn: 600_000, eTranslate: 60_000 };
-const DEFAULT = { prompt: "", every: 120, quality: "2k" };
+const DEFAULT = { prompt: "", every: 120, quality: "2k", char: "lum" };
 export const EVERY = [30, 60, 120, 300];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v && EVERY.includes(v.every)) return { ...DEFAULT, ...v }; } catch {  } return DEFAULT; };
 export const $opts = atom(loadOpts());
 export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch {  } };
+/** The chosen character's world id (worlds.js) — the grid's pick, `lum` until one is made or if the id is gone. */
+export const activeWorld = () => { const c = $opts.get().char; return WORLDS[c] ? c : "lum"; };
 
 export const $frames = atom([]);
 export const $stage = atom({ cur: null, prev: null, since: 0, slot: 0 });
 export const $gen = atom({ phase: "idle", error: null, until: 0, live: null });
 const patchGen = (p) => $gen.set({ ...$gen.get(), ...p });
 
-const store = collection("vydyvo");
 const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch {  } } };
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const lineOf = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % LINES; };
@@ -43,10 +43,9 @@ function addFrame(f) {
   while (list.length > CAP) {
     const gone = list.filter((x) => x.shown && x.id !== cur).sort((a, b) => a.shownAt - b.shownAt)[0] || list.find((x) => x.id !== cur);
     if (!gone) break;
-    list = list.filter((x) => x !== gone); revoke(gone.url); store.remove(gone.id).catch(() => {});
+    list = list.filter((x) => x !== gone); revoke(gone.url);
   }
   $frames.set(list);
-  if (f.blob && idbSupported) store.put(id, { blob: f.blob, preset: f.preset, li: frame.li, prompt: f.prompt, subject: f.subject || null, mode: f.mode, w: f.w, h: f.h }).catch(() => {});
   return id;
 }
 
@@ -63,7 +62,6 @@ async function lineFor(id, world, mode, userWords, loc) {
   const avoid = $frames.get().map((f) => f.line).filter(Boolean).slice(-12);
   const spark = [
     `Голос: ${voiceOf(world, mode)}.`,
-    `Суть: ${world.subject}.`,
     userWords ? `Слова власника: ${userWords}.` : "",
     avoid.length ? `Вже прозвучало: ${avoid.join(" | ")}` : "",
   ].filter(Boolean).join("\n");
@@ -72,31 +70,21 @@ async function lineFor(id, world, mode, userWords, loc) {
     const line = jsonField(out, "line").replace(/^["«—–\-\s]+/, "").replace(/["»\s]+$/, "").slice(0, 90);
     if (!line || !$frames.get().some((f) => f.id === id)) return;
     $frames.set($frames.get().map((f) => (f.id === id ? { ...f, line } : f)));
-    if (idbSupported) {
-      const row = await store.get(id).catch(() => null);
-      if (row) store.put(id, { blob: row.blob, preset: row.preset, li: row.li, prompt: row.prompt, subject: row.subject || null, mode: row.mode, w: row.w, h: row.h, line }).catch(() => {});
-    }
   } catch {  }
-}
-
-async function restore() {
-  if (gate || !idbSupported) return;
-  let rows = []; try { rows = await store.all(); } catch { return; }
-  const list = rows.slice(0, CAP).reverse().map((r) => ({ id: r.id, url: URL.createObjectURL(r.blob), preset: r.preset, li: r.li ?? 0, line: r.line || null, subject: r.subject || null, prompt: r.prompt || "", mode: r.mode || "dark", w: r.w, h: r.h, ts: r._ts, shown: true, shownAt: r._ts }));
-  if (list.length) $frames.set([...list, ...$frames.get()]);
 }
 
 function present(id, now) {
   const st = $stage.get();
-  $frames.set($frames.get().map((f) => (f.id === id ? { ...f, shown: true, shownAt: now } : f)));
+  const keep = new Set([id, st.cur]);
+  $frames.set($frames.get().filter((f) => { if (!f.shown || keep.has(f.id)) return true; revoke(f.url); return false; })
+    .map((f) => (f.id === id ? { ...f, shown: true, shownAt: now } : f)));
   $stage.set({ cur: id, prev: st.cur, since: now, slot: 1 - st.slot });
 }
 function advance(now) {
-  const cur = $stage.get().cur;
   const mode = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
   const wid = activeWorld();
   const pick = (list) => list.find((f) => f.mode === mode && f.preset === wid) || list.find((f) => f.mode === mode) || list[0];
-  const next = pick(unshown()) || pick($frames.get().filter((f) => f.id !== cur).sort((a, b) => a.shownAt - b.shownAt));
+  const next = pick(unshown());
   if (next) present(next.id, now);
 }
 /** Skip to the next frame now (a tap on the picture). */
@@ -108,7 +96,7 @@ export function startLoop(ctx) {
   ctxRef = ctx;
   if (loopId) return;
   loopId = -1;
-  restore().finally(() => { tick(); loopId = setInterval(tick, 1000); });
+  tick(); loopId = setInterval(tick, 1000);      
 }
 function tick() {
   const now = Date.now(), st = $stage.get(), o = $opts.get();
