@@ -26,13 +26,16 @@ export default [
     },
   },
   {
-    name: "тап по рілзу відкриває повний кліп поверх стрічки, і Back його закриває", run: async (h) => {
+    name: "тап по рілзу відкриває сторінку, а не оверлей; повний кліп (бета) — зі шторки, і Back його закриває", run: async (h) => {
       await ready(h);
       h.expect(await settles(h, 3), "стрічка не влаштувалась на 3 слайдах");
       h.expect((await h.count('[role="dialog"]')) === 0, "оверлей уже відкритий до тапу");
       await h.tap("[data-reel]"); await h.wait(500);
-      h.expect((await h.count('[role="dialog"]')) === 1, "тап по слайду не відкрив повний кліп");
-      
+      h.expect((await h.count('[role="dialog"]')) === 0, "тап по слайду відкрив оверлей — тап має відкривати сторінку кліпа");
+      await openMore(h);
+      h.expect((await h.count("[data-watch-here]")) === 1, "у шторці немає «Дивитись тут (бета)»");
+      await h.tap("[data-watch-here]"); await h.wait(500);
+      h.expect((await h.count('[role="dialog"]')) === 1, "«Дивитись тут (бета)» не відкрило повний кліп");
       h.expect((await h.count("video[data-main][data-playing]")) === 0, "стрічка продовжує грати під відкритим кліпом");
       await h.back(); await h.wait(500);
       h.expect((await h.count('[role="dialog"]')) === 0, "системний Back не закрив повний кліп");
@@ -56,19 +59,20 @@ export default [
       h.expect((await h.count("[data-reel] a")) === 0, "на слайді лишилось посилання (відкрити оригінал)");
       h.expect((await h.count("[data-reel] button")) === 0, "на слайді лишилась кнопка");
       
-      for (const [sel, what] of [["[data-island-label]", "назва джерела"], ["[data-dive]", "провалювання"], ["[data-watch]", "повний кліп в апці"], ["[data-more]", "двері «Ще»"]]) {
+      for (const [sel, what] of [["[data-island-label]", "назва джерела"], ["[data-dive]", "провалювання"], ["[data-watch]", "сторінка кліпа"], ["[data-more]", "двері «Ще»"]]) {
         h.expect((await h.count(sel)) === 1, `в острівці немає контролу: ${what} (${sel})`);
       }
       
-      for (const [sel, what] of [["[data-clean]", "чистий екран"], ["[data-subscribe]", "підписка"], ["[data-open-page]", "відкрити сторінку"], ["[data-exp]", "експорт"]]) {
+      
+      for (const [sel, what] of [["[data-clean]", "чистий екран"], ["[data-subscribe]", "підписка"], ["[data-watch-here]", "повний кліп (бета)"], ["[data-exp]", "експорт"]]) {
         h.expect((await h.count(sel)) === 0, `контрол лишився в острівці замість шторки: ${what} (${sel})`);
       }
+      h.expect((await h.count("[data-open-page]")) === 0, "«відкрити у браузері» лишилось як окрема кнопка — це має бути тап по слайду");
       const isl = await h.attr("[data-island]", "class");
       h.expect(!/\bopacity-0\b/.test(isl || ""), "острівець не має бути прихованим");
 
-      
       await openMore(h);
-      for (const [sel, what] of [["[data-clean]", "чистий екран"], ["[data-subscribe]", "підписка"], ["[data-open-page]", "відкрити сторінку"]]) {
+      for (const [sel, what] of [["[data-clean]", "чистий екран"], ["[data-subscribe]", "підписка"], ["[data-watch-here]", "повний кліп (бета)"]]) {
         h.expect((await h.count(sel)) === 1, `функція зникла разом з переїздом у шторку: ${what} (${sel})`);
       }
       for (const key of ["gif-save", "gif-share", "mp4-save", "mp4-share"]) {
@@ -140,6 +144,7 @@ export default [
       
       h.expect(await settles(h, 2), "провалювання не завантажило стрічку сторінки, на якій лежить рілз");
       h.expect((await h.text("[data-island-label]")) !== root, `острівець лишився на «${root}» — джерело не змінилось`);
+      
       
       
       

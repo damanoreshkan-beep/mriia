@@ -16,9 +16,7 @@ const HIT = 0.052;
 const NAMES = ["До", "До♯", "Ре", "Ре♯", "Мі", "Фа", "Фа♯", "Соль", "Соль♯", "Ля", "Ля♯", "Сі"];
 const LAT = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 
-const BORE = "rgba(0,0,0,.72)";        
-const PAD = "#F2EDE4";                 
-const WINDOW = "rgba(0,0,0,.45)";
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 
 const semitoneFor = (covered) => fingeredSemitone(covered, SCALE);
 
@@ -93,29 +91,29 @@ export function sopilka({ S }) {
   const semi = blowing ? ((semitoneFor(covered) % 12) + 12) % 12 : null;
   const oct = over ? 6 : 5;
 
-  return html`<div class="flex flex-col items-center gap-4">
+  return html`<div class="flex flex-col items-center gap-[var(--ms-gap)]" data-note=${semi == null ? "" : LAT[semi]} data-blowing=${blowing} data-octave=${oct}>
     <div class="text-center min-h-16">
-      <div class="text-[0.62rem] font-mono uppercase text-muted">${T(t, "note")}</div>
-      <div class="text-4xl font-bold leading-none tabular-nums" style="color:light-dark(#7a5c1f,#e8c874)">
+      <div class=${LABEL}>${T(t, "note")}</div>
+      <div class="text-4xl font-bold leading-none tabular-nums">
         ${semi == null ? "—" : NAMES[semi]}
       </div>
       <div class="text-xs text-muted mt-1 font-mono h-4">${semi == null ? "" : `${LAT[semi]}${oct}`}</div>
     </div>
 
     <div ref=${pipe} data-pipe
-      class="relative w-24 rounded-[3rem] sf-e3 touch-none select-none cursor-pointer"
-      style="height:min(60svh,29rem);background:linear-gradient(100deg,#6b4a24,#a9793d 42%,#7d5729)"
+      class="so-pipe relative w-24 rounded-full sf-e3 touch-none select-none cursor-pointer"
+      style="height:min(60svh,29rem)"
       onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up}>
       <div class="absolute inset-x-0 flex justify-center" style="top:9%">
-        <div class="w-8 h-1.5 rounded-full" style=${`background:${WINDOW}`}></div>
+        <div class="so-window w-8 h-1.5 rounded-full"></div>
       </div>
       ${Array.from({ length: HOLES }, (_, i) => html`<div key=${i} data-hole=${i} aria-hidden="true"
-        class="absolute left-1/2 -translate-x-1/2 w-7 h-7 rounded-full transition-colors"
-        style=${`top:calc(${TOP + i * GAP}% - 0.875rem);background:${covered.has(i) ? PAD : BORE}`}></div>`)}
+        class=${`absolute left-1/2 -translate-x-1/2 w-7 h-7 rounded-full transition-colors ${covered.has(i) ? "so-pad" : "so-bore"}`}
+        style=${`top:calc(${TOP + i * GAP}% - 0.875rem)`}></div>`)}
     </div>
 
-    <button id="over" data-over aria-pressed=${over} class=${`btn btn-sm rounded-2xl gap-2 ${over ? "btn-primary" : "btn-outline"}`}
+    <button id="over" data-over aria-pressed=${over} class=${`btn btn-sm gap-2 ${over ? "btn-primary" : "btn-outline"}`}
       data-haptic="bump" onClick=${() => setOver((v) => !v)}>${Icon("lucide:wind", "text-base")}${T(t, "overblow")}</button>
-    ${!audioSupported ? html`<div class="text-xs text-base-content/70 text-center">${T(t, "noAudio")}</div>` : null}
+    ${!audioSupported ? html`<div class="text-sm text-muted text-center">${T(t, "noAudio")}</div>` : null}
   </div>`;
 }

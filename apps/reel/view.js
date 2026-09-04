@@ -21,8 +21,6 @@ import { collection, idbSupported } from "/_rt/db.js";
 import { Pixels } from "/_rt/skeleton.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const MONO = "font-mono text-[length:var(--ms-label)] tabular-nums";
-const LIKE = "color:var(--app-accent)";
 const framed = (u, ref) => sealedFrameUrl(u, ref);
 const PRESETS = [
   { name: "Mixkit", url: "https://mixkit.co/free-stock-video/" },
@@ -363,7 +361,7 @@ function FullClip({ S, t }) {
     <div class="flex-1 relative">
       ${full.err
         ? html`<div class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/70 p-6 text-center">
-            ${Icon("lucide:tv-minimal-play", "text-5xl")}<div>${T(t, "videoErr")}</div>
+            ${Icon("lucide:tv-minimal-play", "text-5xl opacity-40")}<div>${T(t, "videoErr")}</div>
             <a href=${full.page} target="_blank" rel="noopener" class="btn btn-sm btn-outline text-white border-white/30 gap-2">${Icon("lucide:external-link")}${T(t, "openSite")}</a>
           </div>`
         : html`<${Pixels} cls="w-full h-full" />`}
@@ -380,18 +378,24 @@ function Favicon({ url, size = "w-6 h-6" }) {
     : html`<img src=${`https://${hostOf(url)}/favicon.ico`} alt="" loading="lazy" class=${`${cls} bg-base-content/10`} onError=${() => setFailed(true)} />`;
 }
 
-const PosterFill = ({ poster }) => poster ? html`<${Fragment}>
-  <img src=${poster} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-55" onError=${(e) => e.currentTarget.remove()} />
-  <img src=${poster} alt="" loading="lazy" class="absolute inset-0 w-full h-full object-contain" onError=${(e) => e.currentTarget.remove()} />
-</${Fragment}>` : null;
+function usePosterSrc(poster, page) {
+  const [src, setSrc] = useState(poster || null);
+  useEffect(() => { setSrc(poster || null); }, [poster]);
+  const fail = () => {
+    if (!src || src !== poster || poster.startsWith("data:")) return setSrc(null);       
+    framed(poster, page).then((s) => setSrc(s || null)).catch(() => setSrc(null));
+  };
+  return [src, fail];
+}
 
 
-
-
-
-
-
-
+function PosterFill({ poster, page }) {
+  const [src, fail] = usePosterSrc(poster, page);
+  return src ? html`<${Fragment}>
+    <img src=${src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-55" />
+    <img src=${src} alt="" loading="lazy" class="absolute inset-0 w-full h-full object-contain" onError=${fail} />
+  </${Fragment}>` : null;
+}
 
 
 
@@ -410,6 +414,9 @@ function VideoLayer({ item, playing, ephemeral }) {
   const ref = useRef(), bgRef = useRef();
   const [errored, setErrored] = useState(false);
   const [viaProxy, setViaProxy] = useState(!!ephemeral);
+  const [poster, posterFail] = usePosterSrc(item.poster, item.page);                    
+  
+  
   
   const [src, setSrc] = useState(ephemeral ? null : item.video);
   useEffect(() => {
@@ -419,6 +426,8 @@ function VideoLayer({ item, playing, ephemeral }) {
     return () => { dead = true; };
   }, [viaProxy, item.video, item.page]);
   const [ready, setReady] = useState(false);
+  
+  
   const wants = useRef(playing);
   wants.current = playing;
   useEffect(() => {
@@ -434,7 +443,6 @@ function VideoLayer({ item, playing, ephemeral }) {
         setReady(true);
         seekStart(v);                                                                     
         if (wants.current) { v.play?.().catch(() => {}); return; }
-        
         v.play?.().then(() => {
           if (dead || wants.current) return;                                              
           v.pause?.();
@@ -447,7 +455,7 @@ function VideoLayer({ item, playing, ephemeral }) {
     }).then((h) => { if (dead) h?.destroy?.(); else handle = h; });
     return () => { dead = true; handle?.destroy?.(); };
   }, [src]);
-
+  
   
   useEffect(() => {
     const v = ref.current; if (!v || !ready) return;
@@ -456,28 +464,25 @@ function VideoLayer({ item, playing, ephemeral }) {
 
   
   useEffect(() => {
-    if (!playing || !ready || item.poster || errored) return;
+    if (!playing || !ready || poster || errored) return;
     const bg = bgRef.current; if (!bg) return;
     bg.muted = true; bg.loop = true;
     let handle, dead = false;
     createPlayer(bg, src, { onReady: () => { if (!dead) bg.play?.().catch(() => {}); } })
       .then((h) => { if (dead) h?.destroy?.(); else handle = h; });
     return () => { dead = true; handle?.destroy?.(); };
-  }, [playing, ready, src, item.poster, errored]);
+  }, [playing, ready, src, poster, errored]);
 
   return html`<${Fragment}>
     ${errored
-      ? html`<${PosterFill} poster=${item.poster} />`
-      : item.poster
-        ? html`<img src=${item.poster} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60" onError=${(e) => e.currentTarget.remove()} />`
+      ? html`<${PosterFill} poster=${item.poster} page=${item.page} />`
+      : poster
+        ? html`<img src=${poster} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60" onError=${posterFail} />`
         : html`<video ref=${bgRef} aria-hidden="true" muted loop playsinline class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50"></video>`}
     <div class="absolute inset-0 bg-black/25" aria-hidden="true"></div>
-    <video ref=${ref} data-main data-playing=${playing ? "" : null} poster=${item.poster || null} playsinline loop muted class=${`absolute inset-0 w-full h-full object-contain ${errored ? "opacity-0" : ""}`}></video>
+    <video ref=${ref} data-main data-playing=${playing ? "" : null} poster=${poster} playsinline loop muted class=${`absolute inset-0 w-full h-full object-contain ${errored ? "opacity-0" : ""}`}></video>
   </${Fragment}>`;
 }
-
-
-
 function HeartBurst({ x, y, onDone }) {
   const ref = useRef();
   useEffect(() => {
@@ -490,20 +495,16 @@ function HeartBurst({ x, y, onDone }) {
     if (anim) anim.onfinish = () => onDone?.(); else onDone?.();
     return () => { if (anim) anim.onfinish = null; };
   }, []);
-  
-  return html`<div ref=${ref} aria-hidden="true" class="absolute z-[5] pointer-events-none" style=${`left:${x}px;top:${y}px;${LIKE};filter:drop-shadow(0 0 16px var(--app-accent))`}>${Icon("lucide:heart", "text-7xl fill-current")}</div>`;
+  return html`<div ref=${ref} aria-hidden="true" class="absolute z-[5] pointer-events-none" style=${`left:${x}px;top:${y}px`}>${Icon("lucide:heart", "text-7xl text-rose-500 fill-rose-500 drop-shadow-[0_2px_16px_rgba(0,0,0,.45)]")}</div>`;
 }
-
 
 
 function Slide({ S, item, idx, active, near, ephemeral }) {
   const secRef = useRef();
   const [burst, setBurst] = useState(null);
   
-  
-  
   const onTap = useTap({
-    onSingle: () => openFull(S, item),
+    onSingle: () => openExternal(item.page || item.orig || item.video),
     onDouble: (p) => { setBurst({ x: p.x, y: p.y, k: Date.now() }); addLike(item); navigator.vibrate?.(12); },
   });
   return html`<section ref=${secRef} data-reel data-idx=${idx} onClick=${onTap} class="snap-start snap-always relative h-[100dvh] w-full flex items-center justify-center bg-black overflow-hidden">
@@ -511,7 +512,7 @@ function Slide({ S, item, idx, active, near, ephemeral }) {
     ${near
       ? html`<${VideoLayer} item=${item} playing=${active} ephemeral=${ephemeral} />`
       : item.poster
-        ? html`<${PosterFill} poster=${item.poster} />`
+        ? html`<${PosterFill} poster=${item.poster} page=${item.page} />`
         : null}
     ${burst ? html`<${HeartBurst} x=${burst.x} y=${burst.y} key=${burst.k} onDone=${() => setBurst(null)} />` : null}
   </section>`;
@@ -527,27 +528,24 @@ function SourceSheet({ S, t }) {
   const sr = resolveSearch(norm());
   const search = (e) => { e?.preventDefault?.(); const url = norm(), term = q.trim(); if (url && term) goto(buildSearchUrl(url, term)); };
   
-  
-  
-  
   return html`<${Sheet} open onClose=${() => S.screen.set(null)} title=${T(t, "srcTitle")} icon="lucide:link">
     <form onSubmit=${load} class="flex flex-col gap-3">
-      
-      <label class="input flex items-center gap-2">
-        ${Icon("lucide:globe", "text-muted shrink-0")}
+      <label class="input flex items-center gap-2 rounded-2xl">
+        ${Icon("lucide:globe", "opacity-50 shrink-0")}
         <input id="src-input" type="url" inputmode="url" autocomplete="off" class="grow min-w-0" placeholder=${T(t, "srcPlaceholder")} aria-label=${T(t, "srcTitle")} value=${val} onInput=${(e) => setVal(e.target.value)} />
       </label>
       ${sr.searchable ? html`<div class="flex gap-2">
-        <label class="input flex items-center gap-2 flex-1">
-          ${Icon("lucide:search", "text-muted shrink-0")}
+        <label class="input flex items-center gap-2 rounded-2xl flex-1">
+          ${Icon("lucide:search", "opacity-50 shrink-0")}
           <input id="sheet-search" type="search" inputmode="search" autocomplete="off" class="grow min-w-0" placeholder=${T(t, "searchPh")} aria-label=${T(t, "search")} value=${q} onInput=${(e) => setQ(e.target.value)} />
         </label>
-        <button type="button" class="btn btn-primary gap-1 shrink-0" onClick=${search}>${Icon("lucide:search")} ${T(t, "search")}</button>
+        <button type="button" class="btn btn-primary rounded-2xl gap-1 shrink-0" onClick=${search}>${Icon("lucide:search")} ${T(t, "search")}</button>
       </div>` : null}
-      <button id="src-load" type="submit" class="btn btn-primary gap-1">${Icon("lucide:play")} ${T(t, "load")}</button>
+      <button id="src-load" type="submit" class="btn btn-primary rounded-2xl gap-1">${Icon("lucide:play")} ${T(t, "load")}</button>
     </form>
   <//>`;
 }
+
 
 
 function SessionSheet({ S, t, undo }) {
@@ -560,9 +558,9 @@ function SessionSheet({ S, t, undo }) {
   const forget = () => { undo(() => setSession(site, cur), siteName(site)); setSession(site, ""); close(); };
   return html`<${Sheet} open onClose=${close} title=${T(t, "sessTitle")} subtitle=${sessionKey(site)} icon="lucide:key-round">
     <form onSubmit=${save} class="flex flex-col gap-3">
-      <textarea id="sess-input" rows="4" autocomplete="off" spellcheck="false" class="textarea font-mono text-sm leading-snug w-full break-all" placeholder="name=value; name2=value2" aria-label=${T(t, "sessTitle")} value=${val} onInput=${(e) => setVal(e.target.value)}></textarea>
-      <button id="sess-save" type="submit" class="btn btn-primary gap-1" disabled=${!val.trim()}>${Icon("lucide:check")} ${T(t, "sessSave")}</button>
-      ${cur ? html`<button type="button" data-sess-forget class="btn btn-ghost gap-1 text-base-content/70" onClick=${forget}>${Icon("lucide:trash-2")} ${T(t, "sessForget")}</button>` : null}
+      <textarea id="sess-input" rows="4" autocomplete="off" spellcheck="false" class="textarea rounded-2xl font-mono text-xs leading-snug w-full break-all" placeholder="name=value; name2=value2" aria-label=${T(t, "sessTitle")} value=${val} onInput=${(e) => setVal(e.target.value)}></textarea>
+      <button id="sess-save" type="submit" class="btn btn-primary rounded-2xl gap-1" disabled=${!val.trim()}>${Icon("lucide:check")} ${T(t, "sessSave")}</button>
+      ${cur ? html`<button type="button" data-sess-forget class="btn btn-ghost rounded-2xl gap-1 text-base-content/70" onClick=${forget}>${Icon("lucide:trash-2")} ${T(t, "sessForget")}</button>` : null}
     </form>
   <//>`;
 }
@@ -572,10 +570,15 @@ function SessionSheet({ S, t, undo }) {
 
 
 
+
+
+
+
+
 const $busy = atom("");                                 
 
-const exportName = (item, ext) => `${(item?.title || "clip").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "clip"}.${ext}`;
 
+const exportName = (item, ext) => `${(item?.title || "clip").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "clip"}.${ext}`;
 async function exportClip({ item, format, mode, t, toast }) {
   const url = item?.orig || item?.video;
   if (!url || $busy.get()) return;                      
@@ -593,6 +596,7 @@ async function exportClip({ item, format, mode, t, toast }) {
     const name = exportName(item, format);
     if (mode === "share") {
       
+      
       const how = await shareFile(blob, name);
       if (how === "saved") toast?.(T(t, "expSaved"));
     } else {
@@ -607,12 +611,15 @@ async function exportClip({ item, format, mode, t, toast }) {
 }
 
 
-function MoreSheet({ S, t, item, src, title, subbed, openIn, toast }) {
+function MoreSheet({ S, t, item, src, title, subbed, watchHere, toast }) {
   const busy = useStore($busy), loc = useStore(S.locale), mono = useStore($mono);
   const close = () => S.screen.set(null);
-  const row = "btn btn-ghost justify-start gap-3 w-full font-normal";
-  const pair = (format, icon, label) => html`<div class="flex items-center gap-3 px-4 py-1">
-    ${Icon(icon, "text-lg text-muted shrink-0")}
+  const row = "btn btn-ghost justify-start gap-3 rounded-2xl w-full font-normal";
+  
+  
+  
+  const pair = (format, icon, label) => html`<div class="flex items-center gap-3 px-4 py-1 rounded-2xl">
+    ${Icon(icon, "text-lg opacity-70 shrink-0")}
     <span class="flex-1 min-w-0 truncate">${label}</span>
     ${[["save", "lucide:download"], ["share", "lucide:share-2"]].map(([mode, icon]) => {
       const key = `${format}-${mode}`;
@@ -626,42 +633,44 @@ function MoreSheet({ S, t, item, src, title, subbed, openIn, toast }) {
       ${item ? html`<${Fragment}>
         ${pair("gif", "lucide:image", T(t, "expGif"))}
         ${pair("mp4", "lucide:video", T(t, "expVideo"))}
-        ${busy ? html`<div data-exp-busy class="text-sm text-muted px-4">${T(t, "expBusy")} ${T(t, busy.startsWith("mp4") ? "expVideo" : "expGif")}</div>` : null}
+        ${busy ? html`<div data-exp-busy class="text-xs text-muted px-4">${T(t, "expBusy")} ${T(t, busy.startsWith("mp4") ? "expVideo" : "expGif")}</div>` : null}
         <div class="h-px bg-base-content/10 my-1"></div>
       </${Fragment}>` : null}
-      
-      <label class="flex items-center gap-3 px-4 py-3">
-        ${Icon("lucide:contrast", "text-lg text-muted shrink-0")}
+      <label class="flex items-center gap-3 px-4 py-3 rounded-2xl">
+        ${Icon("lucide:contrast", "text-lg opacity-70 shrink-0")}
         <span class="flex-1 min-w-0 truncate">${T(t, "noir")}</span>
         <input data-noir type="checkbox" class="toggle toggle-primary shrink-0" aria-label=${T(t, "noir")}
           checked=${mono === "1"} onChange=${(e) => $mono.set(e.target.checked ? "1" : "0")} />
       </label>
-      <button data-clean class=${row} onClick=${() => { close(); S.clean.set(true); }}>${Icon("lucide:maximize-2", "text-lg text-muted")}${sys("clean", loc)}</button>
-      ${!subbed ? html`<button data-subscribe class=${row} onClick=${() => { subscribe({ name: title, url: src }); close(); }}>${Icon("lucide:plus", "text-lg text-muted")}${T(t, "sub")}</button>` : null}
-      ${openIn ? html`<button data-open-page class=${row} onClick=${() => { close(); openIn(); }}>${Icon("lucide:external-link", "text-lg text-muted")}${T(t, "openBrowser")}</button>` : null}
+      
+      <button data-clean class=${row} onClick=${() => { close(); S.clean.set(true); }}>${Icon("lucide:maximize-2", "text-lg opacity-70")}${sys("clean", loc)}</button>
+      ${!subbed ? html`<button data-subscribe class=${row} onClick=${() => { subscribe({ name: title, url: src }); close(); }}>${Icon("lucide:plus", "text-lg opacity-70")}${T(t, "sub")}</button>` : null}
+      
+      ${watchHere ? html`<button data-watch-here class=${row} onClick=${() => { close(); watchHere(); }}>${Icon("lucide:play", "text-lg opacity-70")}${T(t, "watchHere")}</button>` : null}
     </div>
   <//>`;
 }
-
 function SourceIsland({ S, t, src, title, depth, dive, watch }) {
+  
   const act = "btn btn-ghost btn-sm btn-circle shrink-0 border border-white/20 bg-white/10 text-white";
   return html`<${Island} pinned at="bottom" tone="dark" className="flex items-center gap-1 min-w-0 max-w-full rounded-full">
       ${depth ? html`<button data-feed-back class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "back")} onClick=${() => popFrame(S)}>${Icon("lucide:chevron-left", "text-xl")}</button>` : null}
       <${Favicon} url=${src} size="w-6 h-6" />
       
       <span data-island-label class="text-sm text-white truncate min-w-0 pl-0.5 pr-1">${title}</span>
-      
       <button data-more class=${act} aria-label=${T(t, "more")} onClick=${() => S.screen.set("more")}>${Icon("lucide:ellipsis", "text-base")}</button>
       
-      ${watch ? html`<button data-watch class="btn btn-ghost btn-sm btn-circle shrink-0 border-0 bg-primary text-primary-content" aria-label=${T(t, "watch")} onClick=${watch}>${Icon("lucide:play", "text-base")}</button>` : null}
+      ${watch ? html`<button data-watch class="btn btn-ghost btn-sm btn-circle shrink-0 border-0 bg-primary text-primary-content" aria-label=${T(t, "openPage")} onClick=${watch}>${Icon("lucide:external-link", "text-base")}</button>` : null}
       
       ${dive ? html`<button data-dive class=${act} aria-label=${`${T(t, "dive")}: ${dive.label}`} onClick=${dive.go}>${Icon("lucide:chevron-right", "text-lg")}</button>` : null}
     <//>
   `;
 }
+
+
+
+
 function DragReveal({ underRef, diveRef, backRef, target, targetLabel, prev }) {
-  
-  
   return html`<div ref=${underRef} aria-hidden="true" class="fixed inset-0 z-0 sf-inset opacity-0">
     ${prev ? html`<div ref=${backRef} class="absolute inset-y-0 left-0 w-40 flex flex-col items-center justify-center gap-2 px-3 text-center opacity-0">
       ${Icon("lucide:corner-up-left", "text-2xl text-primary")}
@@ -674,7 +683,6 @@ function DragReveal({ underRef, diveRef, backRef, target, targetLabel, prev }) {
     </div>` : null}
   </div>`;
 }
-
 function FeedSurface({ S, t, toast }) {
   const items = useStore($items), loading = useStore($loading), err = useStore($err);
   const active = useStore($active), next = useStore($next), ephemeral = useStore($ephemeral);
@@ -687,9 +695,12 @@ function FeedSurface({ S, t, toast }) {
   const mono = useStore($mono);
   const underRef = useRef(), diveRef = useRef(), backRef = useRef();
   const target = diveTarget(items[active], src);
+  
+  
   const targetLabel = target ? sourceTitle(target, { hint: items[active]?.title }) : "";
   const prev = frames.length ? frames[frames.length - 1] : null;
 
+  
   const { paneRef, pan } = usePanX({
     threshold: 64,                                                   
     canNext: !!target, canPrev: frames.length > 0,
@@ -707,7 +718,6 @@ function FeedSurface({ S, t, toast }) {
     bindNav(S);
     if (!booted) { booted = true; if (!gate) loadSource($src.get()); }
     else if ($active.get() > 0) $restoreTo.set($active.get());        
-    
     
     
     const root = document.documentElement;
@@ -738,12 +748,10 @@ function FeedSurface({ S, t, toast }) {
   const body = loading
     ? html`<section class="h-[100dvh] w-full"><${Pixels} cls="w-full h-full" /></section>`
     : err
-      ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/70 px-8 text-center">${Icon("lucide:cloud-off", "text-5xl")}<div>${T(t, "loadErr")}</div><button class="btn btn-sm btn-outline text-white border-white/25" onClick=${() => loadSource(src)}>${T(t, "retry")}</button></section>`
+      ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/70 px-8 text-center">${Icon("lucide:cloud-off", "text-5xl")}<div>${T(t, "loadErr")}</div><button class="btn btn-sm btn-outline text-white border-white/25 rounded-2xl" onClick=${() => loadSource(src)}>${T(t, "retry")}</button></section>`
       : !items.length
-        ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/60 px-8 text-center">${Icon("lucide:film", "text-5xl")}<div>${T(t, "empty")}</div><button class="btn btn-sm btn-outline text-white border-white/25" onClick=${() => S.tab.set("sources")}>${T(t, "changeSrc")}</button></section>`
+        ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/60 px-8 text-center">${Icon("lucide:film", "text-5xl")}<div>${T(t, "empty")}</div><button class="btn btn-sm btn-outline text-white border-white/25 rounded-2xl" onClick=${() => S.tab.set("sources")}>${T(t, "changeSrc")}</button></section>`
         : items.map((it, i) => html`<${Slide} S=${S} item=${it} idx=${i} active=${i === active && !suspended} near=${Math.abs(i - active) <= PRELOAD} ephemeral=${it.eph != null ? it.eph : ephemeral} key=${(it.orig || it.video) + i} />`);
-
-  
   const cur = items[active];
   const watch = cur ? (cur.page || cur.orig || cur.video) : null;
   const dive = target ? { label: targetLabel, go: () => diveTo(S, target, cur?.title) } : null;
@@ -753,11 +761,9 @@ function FeedSurface({ S, t, toast }) {
     <div ref=${paneRef} ...${pan} data-scroller tabindex="0" role="region" aria-label=${T(t, "tabReel")} class="fixed inset-0 z-[1] bg-black overflow-y-auto snap-y snap-mandatory overscroll-y-contain touch-pan-y will-change-transform">${body}</div>
     
     ${clean ? null : html`<${SourceIsland} S=${S} t=${t} src=${src} title=${title} subbed=${subs.some((s) => s.url === src)} depth=${frames.length}
-      dive=${dive} watch=${watch ? () => openFull(S, cur) : null} />`}
-    
+      dive=${dive} watch=${watch ? () => openExternal(watch) : null} />`}
     ${screen === "more" ? html`<${MoreSheet} S=${S} t=${t} toast=${toast} item=${cur} src=${src} title=${title}
-      subbed=${subs.some((s) => s.url === src)} openIn=${watch ? () => openExternal(watch) : null} />` : null}
-    
+      subbed=${subs.some((s) => s.url === src)} watchHere=${watch ? () => openFull(S, cur) : null} />` : null}
     ${suspended ? html`<${FullClip} S=${S} t=${t} />` : null}
   </${Fragment}>`;
 }
@@ -784,25 +790,23 @@ function PageRow({ s, active, subbed, onPlay, onToggle, onOpen, onSession, hasSe
   const submit = (e) => { e?.preventDefault?.(); const term = q.trim(); if (term) onPlay({ ...s, url: buildSearchUrl(s.url, term) }); };
   
   
-  
-  return html`<li class=${`flex flex-col ${active ? "sf-inset rounded-[var(--ms-r)]" : ""}`}>
+  return html`<li class=${`flex flex-col ${active ? "sf-inset rounded-2xl" : ""}`}>
     <div class="flex items-center gap-0.5 pr-1">
-      <button data-src-row class="flex items-center gap-2.5 flex-1 min-w-0 text-left px-2.5 py-2.5 rounded-[var(--ms-r)] sf-press" onClick=${() => onPlay(s)}>
+      <button data-src-row class="flex items-center gap-2.5 flex-1 min-w-0 text-left px-2.5 py-2.5 rounded-xl sf-press" onClick=${() => onPlay(s)}>
         ${lead}
         <span class="min-w-0 flex-1">
-          
           <span data-src-title class=${`block break-words leading-snug ${active ? "font-semibold" : ""}`}>${sourceTitle(s.url, { pageTitle: s.name, max: ROW_MAX })}</span>
-          ${sub ? html`<span class=${`block ${MONO} text-base-content/70 truncate`}>${sub}</span>` : null}
+          ${sub ? html`<span class="block text-[0.7rem] font-mono text-base-content/70 truncate">${sub}</span>` : null}
         </span>
       </button>
-      ${sr.searchable ? html`<button data-search-toggle class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${searching ? "text-primary" : "text-muted"}`} aria-label=${T(t, "search")} aria-pressed=${searching} onClick=${() => setSearching((v) => !v)}>${Icon("lucide:search", "text-lg")}</button>` : null}
-      ${onOpen ? html`<button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 text-muted" aria-label=${T(t, "openSite")} onClick=${() => onOpen(s)}>${Icon("lucide:external-link", "text-lg")}</button>` : null}
-      ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "text-muted"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(s)}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
-      <button class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${subbed ? "text-primary" : "text-muted"}`} aria-label=${T(t, subbed ? "unsub" : "sub")} data-haptic=${subbed ? "bump" : "off"} onClick=${onToggle}>${Icon(subbed ? "lucide:check" : "lucide:plus", "text-lg")}</button>
+      ${sr.searchable ? html`<button data-search-toggle class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${searching ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "search")} aria-pressed=${searching} onClick=${() => setSearching((v) => !v)}>${Icon("lucide:search", "text-lg")}</button>` : null}
+      ${onOpen ? html`<button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-70" aria-label=${T(t, "openSite")} onClick=${() => onOpen(s)}>${Icon("lucide:external-link", "text-lg")}</button>` : null}
+      ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(s)}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
+      <button class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${subbed ? "text-primary" : "opacity-50"}`} aria-label=${T(t, subbed ? "unsub" : "sub")} data-haptic=${subbed ? "bump" : "off"} onClick=${onToggle}>${Icon(subbed ? "lucide:check" : "lucide:plus", "text-lg")}</button>
     </div>
     ${searching ? html`<form onSubmit=${submit} class="flex items-center gap-2 px-2.5 pb-2.5">
-      <label class="input input-sm flex items-center gap-2 flex-1">
-        ${Icon("lucide:search", "text-muted shrink-0 text-sm")}
+      <label class="input input-sm flex items-center gap-2 rounded-xl flex-1">
+        ${Icon("lucide:search", "opacity-50 shrink-0 text-sm")}
         <input data-search-input type="search" inputmode="search" autocomplete="off" class="grow min-w-0" placeholder=${T(t, "searchPh")} aria-label=${T(t, "search")} value=${q} onInput=${(e) => setQ(e.target.value)} />
       </label>
       <button type="submit" class="btn btn-primary btn-sm btn-circle" aria-label=${T(t, "search")}>${Icon("lucide:play")}</button>
@@ -811,11 +815,10 @@ function PageRow({ s, active, subbed, onPlay, onToggle, onOpen, onSession, hasSe
 }
 
 
-
 function DomainCard({ g, curSrc, subbedUrls, onPlay, onOpen, onToggle, onSession, sessions, t }) {
   const hot = g.items.some((s) => s.url === curSrc);
   const hasSession = !!(sessions && sessions[g.domain]);
-  const shell = `rounded-[var(--ms-r)] ${hot ? "bg-primary/10 sf-e3" : "sf-raised sf-e2"}`;
+  const shell = `rounded-2xl ${hot ? "bg-primary/10 sf-e3" : "sf-raised sf-e2"}`;
   if (g.items.length === 1) {
     const s = g.items[0];
     return html`<ul class=${shell}><${PageRow} s=${s} active=${s.url === curSrc} subbed=${subbedUrls.has(s.url)} onPlay=${onPlay} onOpen=${onOpen} onToggle=${() => onToggle(s)} onSession=${onSession} hasSession=${hasSession} lead=${html`<${Favicon} url=${s.url} size="w-10 h-10" />`} sub=${g.domain} t=${t} /></ul>`;
@@ -825,18 +828,17 @@ function DomainCard({ g, curSrc, subbedUrls, onPlay, onOpen, onToggle, onSession
       <${Favicon} url=${g.items[0].url} size="w-10 h-10" />
       <div class="min-w-0 flex-1">
         <div class="font-semibold truncate leading-tight">${g.name}</div>
-        <div class=${`${MONO} text-base-content/70 truncate`}>${g.domain}</div>
+        <div class="text-[0.7rem] font-mono text-base-content/70 truncate">${g.domain}</div>
       </div>
-      <span class=${`${MONO} text-base-content/70 px-1`}>${g.items.length}</span>
-      <button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 text-muted" aria-label=${T(t, "openSite")} onClick=${() => onOpen(g.items[0])}>${Icon("lucide:external-link", "text-lg")}</button>
-      ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "text-muted"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(g.items[0])}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
+      <span class="text-xs font-mono text-base-content/70 tabular-nums px-1">${g.items.length}</span>
+      <button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-70" aria-label=${T(t, "openSite")} onClick=${() => onOpen(g.items[0])}>${Icon("lucide:external-link", "text-lg")}</button>
+      ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(g.items[0])}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
     </header>
     <ul class="divide-y divide-base-300/60">
       ${g.items.map((s) => html`<${PageRow} s=${s} active=${s.url === curSrc} subbed=${subbedUrls.has(s.url)} onPlay=${onPlay} onToggle=${() => onToggle(s)} lead=${html`<span class=${`shrink-0 rounded-full ${s.url === curSrc ? "w-1.5 h-5 bg-primary" : "w-1.5 h-1.5 bg-base-content/30"}`}></span>`} t=${t} key=${s.url} />`)}
     </ul>
   </section>`;
 }
-
 export function sources({ S, undo }) {
   const t = useStore(S.t), screen = useStore(S.screen);
   const subs = useStore($subs), curSrc = useStore($src), watchedN = useStore($watched).size, sessions = useStore($sessions);
@@ -848,7 +850,7 @@ export function sources({ S, undo }) {
 
   return html`<${Fragment}>
     <div class="flex flex-col gap-4 @container">
-      <button id="add-url" class="btn btn-primary gap-2" onClick=${() => S.screen.set("source")}>${Icon("lucide:plus")} ${T(t, "addUrl")}</button>
+      <button id="add-url" class="btn btn-primary rounded-2xl gap-2" onClick=${() => S.screen.set("source")}>${Icon("lucide:plus")} ${T(t, "addUrl")}</button>
 
       <div class="flex flex-col gap-2.5">
         <div class="text-sm font-semibold px-1 flex items-center gap-1.5">${Icon("lucide:bookmark", "text-primary")} ${T(t, "subs")}</div>
@@ -856,18 +858,18 @@ export function sources({ S, undo }) {
           ? mine.map((g) => html`<${DomainCard} g=${g} curSrc=${curSrc} subbedUrls=${subbedUrls} onPlay=${play} onOpen=${openSite} onToggle=${(s) => unsubscribe(s.url)} onSession=${editSession} sessions=${sessions} t=${t} key=${g.domain} />`)
           : html`<div class="text-sm text-base-content/70 px-1 py-3">${T(t, "noSubs")}</div>`}
       </div>
+
       ${discover.length ? html`<div class="flex flex-col gap-2.5">
         <div class="text-sm font-semibold px-1 flex items-center gap-1.5">${Icon("lucide:compass")} ${T(t, "discover")}</div>
         ${discover.map((g) => html`<${DomainCard} g=${g} curSrc=${curSrc} subbedUrls=${subbedUrls} onPlay=${play} onOpen=${openSite} onToggle=${(s) => subscribe(s)} t=${t} key=${g.domain} />`)}
       </div>` : null}
-      ${watchedN > 0 ? html`<button id="clear-watched" class="btn btn-ghost btn-sm gap-2 text-base-content/70 self-center mt-2" onClick=${clearWatched} data-haptic="bump">${Icon("lucide:rotate-ccw")} ${T(t, "clearWatched", { n: watchedN })}</button>` : null}
+
+      ${watchedN > 0 ? html`<button id="clear-watched" class="btn btn-ghost btn-sm rounded-2xl gap-2 text-base-content/70 self-center mt-2" onClick=${clearWatched} data-haptic="bump">${Icon("lucide:rotate-ccw")} ${T(t, "clearWatched", { n: watchedN })}</button>` : null}
     </div>
     ${screen === "source" ? html`<${SourceSheet} S=${S} t=${t} />` : null}
     ${screen === "session" ? html`<${SessionSheet} S=${S} t=${t} undo=${undo} />` : null}
   </${Fragment}>`;
 }
-
-
 
 
 export function liked({ S, toast }) {
@@ -880,16 +882,17 @@ export function liked({ S, toast }) {
     $items.set([...sorted.slice(i), ...sorted.slice(0, i)]);
     $active.set(0); $restoreTo.set(0);
   };
-  if (!sorted.length) return html`<div class="flex flex-col items-center justify-center gap-3 text-muted text-center" style="min-height:60vh">${Icon("lucide:heart", "text-6xl")}<div class="text-sm max-w-[16rem]">${T(t, "likedEmpty")}</div></div>`;
+  if (!sorted.length) return html`<div class="flex flex-col items-center justify-center gap-3 text-muted text-center" style="min-height:60vh">${Icon("lucide:heart", "text-6xl opacity-30")}<div class="text-sm max-w-[16rem]">${T(t, "likedEmpty")}</div></div>`;
   return html`<div data-liked class="grid grid-cols-3 gap-1.5">
-    ${sorted.map((l, i) => html`<div class="relative aspect-[9/16] rounded-[var(--ms-r)] overflow-hidden sf-inset" key=${l.id}>
-      <button data-liked-tile class="absolute inset-0 w-full h-full active:scale-[.98] transition-transform" aria-label=${l.title || l.host} onClick=${() => playAt(i)}>
+    
+    ${sorted.map((l, i) => html`<div class="relative aspect-[9/16] rounded-xl overflow-hidden sf-inset" key=${l.id}>
+      <button data-liked-tile class="absolute inset-0 w-full h-full active:scale-[.98] transition" aria-label=${l.title || l.host} onClick=${() => playAt(i)}>
         ${l.poster
           ? html`<img src=${l.poster} alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onError=${(e) => e.currentTarget.remove()} />`
-          : html`<div class="absolute inset-0 flex items-center justify-center text-muted">${Icon("lucide:play", "text-2xl")}</div>`}
-        <div class="absolute inset-x-0 bottom-0 p-1.5 pt-6 bg-gradient-to-t from-black/75 to-transparent"><div class=${`${MONO} text-white/90 truncate text-left`}>${l.title || l.host}</div></div>
+          : html`<div class="absolute inset-0 flex items-center justify-center">${Icon("lucide:play", "text-2xl opacity-40")}</div>`}
+        <div class="absolute inset-x-0 bottom-0 p-1.5 pt-6 bg-gradient-to-t from-black/75 to-transparent"><div class="text-[10px] text-white/90 truncate text-left">${l.title || l.host}</div></div>
       </button>
-      <button class="absolute top-1 right-1 btn btn-xs btn-circle bg-black/45 border-0 hover:bg-black/70" style=${LIKE} aria-label=${T(t, "unlike")} data-haptic="bump" onClick=${() => unlike(l.id)}>${Icon("lucide:heart", "text-sm fill-current")}</button>
+      <button class="absolute top-1 right-1 btn btn-xs btn-circle bg-black/45 border-0 text-rose-400 hover:bg-black/70" aria-label=${T(t, "unlike")} data-haptic="bump" onClick=${() => unlike(l.id)}>${Icon("lucide:heart", "text-sm fill-current")}</button>
     </div>`)}
   </div>`;
 }

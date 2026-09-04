@@ -64,8 +64,6 @@
   --ds-scatter-a: .8;
   --ds-corner: url("/_rt/ds-n-corner.webp");   
   --ds-corner-a: .55;
-  --lm-lip:      rgba(255, 238, 208, .58);     
-  --lm-lip-glow: color-mix(in oklch, var(--app-accent) 26%, transparent);
 
   --sf-rim:        var(--lm-rim);
   --sf-shadow:     rgba(0, 0, 0, .85);
@@ -79,7 +77,6 @@
   --sf-press-face: #0A0A0D;
   --sf-press-top:  rgba(0, 0, 0, .7);
   --sf-track-face: #1B1B21;   
-
   --ms-vol-key:    rgba(255, 238, 208, .035);   
   --ms-vol-bounce: color-mix(in oklch, var(--app-accent) 12%, transparent);
   --ms-vol-rim:    rgba(255, 232, 196, .07);    
@@ -102,8 +99,7 @@
   --ds-scatter-a: .9;
   --ds-corner: url("/_rt/ds-d-corner.webp");   
   --ds-corner-a: .8;
-  --lm-lip:      rgba(20, 18, 16, .18);        
-  --lm-lip-glow: transparent;
+
   --sf-rim:        var(--lm-rim);
   --sf-shadow:     rgba(40, 32, 20, .18);
   --sf-drop:       0 0 0 1px var(--lm-rim), inset 0 1px 0 var(--lm-rim-hi), 0 10px var(--lm-g) var(--lm-gs) var(--nm-cast);
@@ -116,7 +112,6 @@
   --sf-press-face: #ECE9E1;
   --sf-press-top:  rgba(40, 32, 20, .18);
   --sf-track-face: #D8D3C7;   
-
   
   --ms-vol-key:    rgba(255, 255, 255, .85);
   --ms-vol-bounce: color-mix(in oklch, var(--app-accent) 8%, transparent);

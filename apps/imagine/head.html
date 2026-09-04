@@ -1,0 +1,10 @@
+  <style>
+    .im-scrim-b{background:linear-gradient(to top,rgba(0,0,0,.7),transparent)}
+    .im-scrim-t{background:linear-gradient(to bottom,rgba(0,0,0,.45),transparent)}
+    .im-chip{background:rgba(0,0,0,.55);color:#fff}
+    
+    .im-light{position:absolute;left:0;bottom:0;height:2px;width:var(--pct,4%);background:var(--app-accent);box-shadow:0 0 8px var(--app-accent);transition:width .6s ease}
+    .im-more{animation:im-breathe 1.2s ease-in-out infinite}
+    @keyframes im-breathe{0%,100%{opacity:.25}50%{opacity:.9}}
+    @media(prefers-reduced-motion:reduce){.im-more{animation:none;opacity:.6}.im-light{transition:none}}
+  </style>

@@ -12,7 +12,7 @@ const MAX_AV = 12;
 function readTheme() {
   const cs = getComputedStyle(document.documentElement);
   const g = (v, f) => (cs.getPropertyValue(v).trim() || f);
-  return { ink: g("--color-base-content", "#ECECEE"), accent: g("--color-secondary", "#9F8CF6") };
+  return { ink: g("--color-base-content", "#F2EEE6"), accent: g("--app-accent", "#F2B84B") };
 }
 
 function constellation(n) {
@@ -57,7 +57,7 @@ export function Finale({ devs = [], t, open = false, onClose }) {
 
     const hexA = (hex, a) => {
       const m = /^#?([0-9a-f]{6})$/i.exec(hex);
-      if (!m) return `rgba(200,200,220,${a})`;
+      if (!m) return `rgba(242,238,230,${a})`;
       const v = parseInt(m[1], 16);
       return `rgba(${(v >> 16) & 255},${(v >> 8) & 255},${v & 255},${a})`;
     };
@@ -119,19 +119,20 @@ export function Finale({ devs = [], t, open = false, onClose }) {
             class="ms-reveal absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1"
             style=${`left:${pts[i].x * 100}%;top:${pts[i].y * 100}%;animation-delay:${i * 90}ms`}>
             <span class="relative block">
-              <span class="absolute -inset-1.5 rounded-full blur-md" style="background:radial-gradient(circle,var(--color-secondary),transparent 70%);opacity:.5"></span>
+              
+              <span class="absolute -inset-1.5 rounded-full blur-md" style="background:radial-gradient(circle,var(--app-accent),transparent 70%);opacity:.5"></span>
               <img src=${avatarSrc(d)} alt=${d.name || d.owner} width="44" height="44" loading="lazy"
                 class="relative w-11 h-11 rounded-full object-cover ring-2 ring-base-100 bg-base-300" />
             </span>
-            <span class="text-[0.6rem] font-mono text-base-content/75 max-w-[5rem] truncate">${d.name || d.owner}</span>
+            <span class="font-mono text-[length:var(--ms-label)] text-base-content/75 max-w-[5rem] truncate">${d.name || d.owner}</span>
           </a>`)}
         </div>
         
-        ${extra > 0 ? html`<div class="absolute right-3 bottom-2 text-xs font-medium text-muted">${T(t, "andMore").replace("{n}", String(extra))}</div>` : null}
+        ${extra > 0 ? html`<div class="absolute right-3 bottom-2 font-mono text-[length:var(--ms-label)] font-medium text-muted">${T(t, "andMore").replace("{n}", String(extra))}</div>` : null}
       </div>
 
       <p class="text-sm text-base-content/70 leading-relaxed text-center max-w-xs mx-auto">${T(t, "finaleBody")}</p>
-      <button class="btn btn-primary rounded-2xl gap-2 self-center" data-haptic="bump" onClick=${onClose}>
+      <button class="btn btn-primary rounded-full gap-2 self-center" data-haptic="bump" onClick=${onClose}>
         ${T(t, "finaleBack")}<iconify-icon icon="lucide:arrow-right"></iconify-icon>
       </button>
     </div>
