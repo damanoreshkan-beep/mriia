@@ -1,0 +1,13 @@
+  <style>
+    .ic-pane{background:color-mix(in srgb,var(--color-base-100) 85%,transparent);color:var(--color-base-content);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+    .ic-pane:active{background:color-mix(in srgb,var(--color-base-100) 95%,transparent)}
+    .ic-slot{background:color-mix(in srgb,var(--color-base-100) 90%,transparent);color:var(--color-base-content);box-shadow:0 0 0 1px var(--lm-rim, rgba(255,232,196,.11))}
+    .ic-slot:hover{box-shadow:0 0 0 1px var(--lm-rim-hi, rgba(255,238,208,.2))}
+    .ic-veil{background:color-mix(in srgb,var(--color-base-100) 90%,transparent);transition:background-color .7s ease}
+    .ic-veil[data-thin]{background:color-mix(in srgb,var(--color-base-100) 70%,transparent)}
+    .ic-chip{background:color-mix(in srgb,var(--color-base-100) 90%,transparent)}
+    
+    .ic-caret{display:inline-block;width:2px;height:1em;vertical-align:-.12em;background:var(--app-accent);animation:ic-blink 1s steps(2) infinite}
+    @keyframes ic-blink{to{opacity:0}}
+    .ic-line{height:1px;width:100%;background:linear-gradient(90deg,transparent,var(--app-accent),transparent);opacity:.6}
+    @media(prefers-reduced-motion:reduce){.ic-caret{animation:none}.ic-veil{transition:none}}</style>

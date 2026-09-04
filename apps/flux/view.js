@@ -2,6 +2,7 @@ import { html } from "htm/preact";
 import { useState, useEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
+import { Island } from "/_rt/ui.js";
 import { camera } from "/_rt/sensors.js";
 import { CameraPrime } from "/_rt/camprime.js";
 import { motionCells, motionEnergy, centroidOf } from "/_rt/motion.js";
@@ -125,7 +126,7 @@ export function flux({ S }) {
   };
   useEffect(() => () => { try { oscRef.current?.stop(); engRef.current?.close(); } catch {  } }, []);
 
-  return html`<div class="ms-stage z-20 bg-base-200 flex flex-col">
+  return html`<div class="ms-stage z-20 bg-base-100 flex flex-col" data-flux=${!enabled ? "prime" : err ? "error" : "live"} data-energy=${Math.round(energy * 100)}>
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
       ${enabled && !err && !gate ? html`<video ref=${videoRef} autoplay muted playsinline class=${`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ghost ? "opacity-20" : "opacity-0"}`}></video>` : null}
       <canvas ref=${sampleRef} class="hidden"></canvas>
@@ -135,12 +136,13 @@ export function flux({ S }) {
       </div>` : null}
     </div>
 
-    <div class="shrink-0 sf-raised sf-e2 px-4 pt-3 pb-3 flex items-center justify-center gap-3">
+    
+    <${Island} pinned className="flex items-center justify-center gap-[var(--ms-gap)]">
       <button data-ghost aria-label=${T(t, "ghost")} aria-pressed=${ghost} onClick=${() => setGhost((g) => !g)} class=${`btn btn-circle btn-sm ${ghost ? "btn-primary" : "btn-ghost"}`}>${Icon(ghost ? "lucide:eye" : "lucide:eye-off", "text-lg")}</button>
       <button data-sound aria-label=${T(t, "sound")} aria-pressed=${sound} onClick=${toggleSound} class=${`btn btn-circle btn-sm ${sound ? "btn-primary" : "btn-ghost"}`}>${Icon(sound ? "lucide:volume-2" : "lucide:volume-x", "text-lg")}</button>
       <button data-clear aria-label=${T(t, "clear")} data-haptic="bump" onClick=${clear} class="btn btn-ghost btn-sm btn-circle">${Icon("lucide:trash-2", "text-lg")}</button>
-      <button data-save aria-label=${T(t, "save")} onClick=${save} class="btn btn-primary gap-2 px-5">${Icon("lucide:download")}${T(t, "save")}</button>
-    </div>
+      <button data-save aria-label=${T(t, "save")} onClick=${save} class="btn btn-primary btn-sm rounded-full gap-2 px-5">${Icon("lucide:download")}${T(t, "save")}</button>
+    <//>
     ${!enabled || err ? html`<${CameraPrime} loc=${loc} reason=${T(t, "primeReason")} onEnable=${() => setEnabled(true)} onSettings=${() => S.screen.set("perms")} denied=${err === "denied"} unavailable=${err === "unavailable" || err === "unsupported"} />` : null}
   </div>`;
 }
