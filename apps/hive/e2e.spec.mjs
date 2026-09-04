@@ -40,7 +40,6 @@ export default [
     },
   },
   {
-  {
     name: "list: the order is systemic, persisted, and does not reshuffle", run: async (h) => {
       await h.click('[data-tab="list"]'); await h.wait(400);
       const before = await h.text("[data-live]");
