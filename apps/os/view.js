@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { atom } from "nanostores";
 import { T } from "/_rt/i18n.js";
-import { Panel } from "/_rt/ui.js";
+import { Panel, Segmented } from "/_rt/ui.js";
 import { gate } from "/_rt/gate.js";
 import { shell, ERR } from "/_rt/shell.js";
 import { buildApk, apkFilename } from "/_rt/apk.js";
@@ -12,6 +12,8 @@ import { PERMISSIONS, GROUPS, permLabels, permState, permRequest, refreshHeld, h
 import { classify, orderPorts, tallyPorts } from "/_rt/portid.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const LABEL = "font-mono text-[length:var(--ms-label)] tracking-wider";
+const CAPTION = "text-[length:var(--ms-label)] leading-tight text-center line-clamp-2";
 
 const $runs = atom({});
 const record = (id, v) => $runs.set({ ...$runs.get(), [id]: v });
@@ -148,7 +150,7 @@ function Launcher({ S, loc, t, toast }) {
         <span class="grid place-items-center aspect-square w-full rounded-[var(--ms-r-in)] sf-raised sf-e2">
           ${Icon("lucide:layout-grid", "text-2xl text-primary")}
         </span>
-        <span class="text-[11px] leading-tight text-center line-clamp-2 text-base-content/80">${T(t, "storeTile")}</span>
+        <span class=${`${CAPTION} text-base-content/80`}>${T(t, "storeTile")}</span>
       </a>
       ${ordered.map((k) => {
         const st = states[k] || "unknown";
@@ -160,7 +162,7 @@ function Launcher({ S, loc, t, toast }) {
             ${Icon(PERMISSIONS[k].icon, "text-2xl text-base-content")}
             ${TILE_DOT[st] ? html`<span class=${`absolute -top-1 -right-1 size-2.5 rounded-full ring-2 ring-base-100 ${TILE_DOT[st]}`} aria-hidden="true"></span>` : null}
           </span>
-          <span class=${`text-[11px] leading-tight text-center line-clamp-2 ${dim ? "text-base-content/50" : "text-base-content/80"}`}>${L[k]}</span>
+          <span class=${`${CAPTION} ${dim ? "text-muted" : "text-base-content/80"}`}>${L[k]}</span>
         </button>`;
       })}
     </div>
@@ -285,14 +287,15 @@ function Explorer({ S, t, loc, toast }) {
             ${Icon("lucide:share-2", "text-base")}
           </button>
         </div>
-        <div class="font-mono text-xs text-muted">${p.mime || "?"} · ${size(p.bytes, loc)}</div>
+        <div class=${`${LABEL} text-muted`}>${p.mime || "?"} · ${size(p.bytes, loc)}</div>
         ${p.src ? html`<img src=${p.src} alt=${p.name} class="w-full rounded-[var(--ms-r-in)] bg-base-200" />`
-          : p.text != null ? html`<pre class="font-mono text-xs whitespace-pre-wrap break-all max-h-[60vh] overflow-y-auto rounded-[var(--ms-r-in)] bg-base-200 p-3">${p.text}</pre>`
+          : p.text != null ? html`<pre class="font-mono text-xs whitespace-pre-wrap break-all rounded-[var(--ms-r-in)] sf-inset p-3">${p.text}</pre>`
           : html`<div class="text-sm text-muted">${T(t, "fsNoPreview")}</div>`}
       </div>
     <//>`;
   }
 
+  
   if (!fs.root) {
     return html`<${Panel} title=${T(t, "fsTitle")}>
       <div data-fs-roots class="flex flex-col gap-2 pt-1">
@@ -301,17 +304,18 @@ function Explorer({ S, t, loc, toast }) {
             onClick=${() => fsEnterRoot(S, r)}>
           ${Icon("lucide:folder", "text-xl text-primary shrink-0")}
           <span class="min-w-0 flex-1 truncate">${r.name}</span>
-          ${Icon("lucide:chevron-right", "text-base text-base-content/40 shrink-0")}
+          ${Icon("lucide:chevron-right", "text-base text-muted shrink-0")}
         </button>`)}
-        <button id="fs-grant" data-fs-grant class="btn btn-sm btn-primary w-full gap-2 mt-1"
+        <button id="fs-grant" data-fs-grant class="btn btn-sm btn-primary rounded-full w-full gap-2 mt-1"
             disabled=${fs.busy} onClick=${() => fsGrant(S)}>
           ${Icon("lucide:folder-plus")}<span>${T(t, "fsGrant")}</span>
         </button>
-        ${fs.error ? html`<div class="text-xs text-error">${fs.error}</div>` : null}
+        ${fs.error ? html`<div class="text-sm text-error">${fs.error}</div>` : null}
       </div>
     <//>`;
   }
 
+  
   const trail = fs.trail.length <= 2
     ? fs.trail.map((f) => f.name).join(" / ")
     : `… / ${fs.trail.slice(-2).map((f) => f.name).join(" / ")}`;
@@ -326,19 +330,20 @@ function Explorer({ S, t, loc, toast }) {
       </button>
     </div>
     <div data-fs-list>
-      ${fs.error ? html`<div class="py-3 text-xs text-error">${fs.error}</div>` : null}
+      ${fs.error ? html`<div class="py-3 text-sm text-error">${fs.error}</div>` : null}
       ${!fs.error && !fs.busy && !fs.entries.length ? html`<div class="py-3 text-sm text-muted">${T(t, "fsEmpty")}</div>` : null}
       ${ordered(fs.entries, loc).map((e) => html`<button key=${e.docId} data-fs-entry=${e.name}
           class="flex items-center gap-3 py-2.5 w-full border-b border-base-content/10 last:border-0 text-left"
           onClick=${() => enter(e)}>
         ${Icon(FILE_ICON(e.mime, e.dir), `text-xl shrink-0 ${e.dir ? "text-primary" : "text-muted"}`)}
         <span class="min-w-0 flex-1 truncate">${e.name}</span>
-        ${e.dir ? Icon("lucide:chevron-right", "text-base text-base-content/40 shrink-0")
-          : html`<span class="text-xs tabular-nums text-base-content/45 shrink-0">${size(e.size, loc)}</span>`}
+        ${e.dir ? Icon("lucide:chevron-right", "text-base text-muted shrink-0")
+          : html`<span class=${`${LABEL} tabular-nums text-muted shrink-0`}>${size(e.size, loc)}</span>`}
       </button>`)}
     </div>
   <//>`;
 }
+
 
 function Row({ id, t, loc }) {
   const runs = useStore($runs);
@@ -351,15 +356,15 @@ function Row({ id, t, loc }) {
     <span class=${`size-2 rounded-full shrink-0 ${DOT[st]}`} aria-hidden="true"></span>
     <div class="min-w-0 flex-1">
       <div class="font-mono text-sm truncate">${id}</div>
-      <div class="text-xs text-muted truncate">
+      <div class=${`${LABEL} text-muted truncate`}>
         ${st === "none" ? T(t, "stNone") : st === "stale" ? T(t, "stStale") : a.android.length ? a.android.join(" · ") : T(t, "noPerm")}
       </div>
       <!-- The result goes UNDER the name, across the full width. On the right it had ~8.5rem and
            truncated anything real: a LAN URL, a permission name, an exception. A result you cannot read
            is the same as no result — and this console exists to be read. -->
-      ${last ? html`<div class=${`mt-1 flex items-baseline gap-2 text-xs tabular-nums ${last.ok ? "text-base-content/80" : "text-error"}`}>
-        <span data-result=${id} class="font-mono break-all min-w-0">${last.text}</span>
-        <span class="text-base-content/45 shrink-0">${last.ms} ms</span>
+      ${last ? html`<div class=${`mt-1 flex items-baseline gap-2 font-mono text-[length:var(--ms-label)] tabular-nums ${last.ok ? "text-base-content/80" : "text-error"}`}>
+        <span data-result=${id} class="break-all min-w-0">${last.text}</span>
+        <span class="text-muted shrink-0">${last.ms} ms</span>
       </div>` : null}
     </div>
     <button class="btn btn-sm btn-circle btn-ghost shrink-0" disabled=${busy || !PROBE[id]}
@@ -368,6 +373,7 @@ function Row({ id, t, loc }) {
     </button>
   </div>`;
 }
+
 
 function Console({ S, t, toast }) {
   const loc = useStore(S.locale);
@@ -378,6 +384,7 @@ function Console({ S, t, toast }) {
   const done = ids.filter((id) => runs[id]).length;
   const failed = ids.filter((id) => runs[id] && !runs[id].ok).length;
 
+  
   const runAll = async () => {
     if (all) return;
     setAll(true);
@@ -386,28 +393,29 @@ function Console({ S, t, toast }) {
     toast?.(T(t, "ranAll"));
   };
 
-  return html`<div class="flex flex-col gap-3 pt-1">
-    <div data-bridge class="flex flex-col gap-3 rounded-[var(--ms-r)] sf-raised sf-e2 p-4">
+  return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
+    
+    <${Panel} data-bridge>
       <div class="flex items-center gap-3">
         <span class=${`size-2.5 rounded-full shrink-0 ${present ? "bg-success" : "bg-base-content/25"}`} aria-hidden="true"></span>
         <div class="min-w-0 flex-1">
           <div class="font-medium truncate">${present ? T(t, "bridgeOn") : T(t, "bridgeOff")}</div>
-          <div class="font-mono text-xs text-muted truncate">${present ? `bridge ${shell.version}` : T(t, "bridgeOffHint")}</div>
+          <div class=${`${LABEL} text-muted truncate`}>${present ? `bridge ${shell.version}` : T(t, "bridgeOffHint")}</div>
         </div>
-        ${done ? html`<span data-tally class="font-mono text-xs tabular-nums shrink-0 ${failed ? "text-error" : "text-success"}">${done}/${ids.length}</span>` : null}
+        ${done ? html`<span data-tally class=${`${LABEL} tabular-nums shrink-0 ${failed ? "text-error" : "text-success"}`}>${done}/${ids.length}</span>` : null}
       </div>
       <!-- The checklist walk is the whole point of this screen, so it gets its own full-width row rather
            than competing with the status line for it — which truncated the status on a 360px phone. -->
-      <button id="run-all" class="btn btn-sm btn-primary w-full gap-2" disabled=${all} data-run-all onClick=${runAll}>
+      <button id="run-all" class="btn btn-sm btn-primary rounded-full w-full gap-2" disabled=${all} data-run-all onClick=${runAll}>
         ${Icon("lucide:list-checks")}<span>${T(t, "runAll")}</span>
       </button>
-    </div>
+    <//>
 
     ${groups().map(([cap, ids2]) => html`<${Panel} key=${cap}>
       <div class="flex items-center gap-2 pb-1">
         ${Icon(CAP_ICON[cap] || "lucide:box", "text-base text-primary")}
         <span class="font-semibold text-sm">${T(t, `cap_${cap}`)}</span>
-        <span class="font-mono text-[11px] text-base-content/45 ml-auto">${cap}</span>
+        <span class=${`${LABEL} text-muted ml-auto`}>${cap}</span>
       </div>
       ${ids2.map((id) => html`<${Row} key=${id} id=${id} t=${t} loc=${loc} />`)}
     <//>`)}
@@ -417,6 +425,7 @@ function Console({ S, t, toast }) {
     <${Report} S=${S} t=${t} toast=${toast} />
   </div>`;
 }
+
 
 const MINUTES = [1, 5, 15, 60];
 
@@ -440,6 +449,7 @@ export function alarms({ S, t, toast }) {
     try {
       const at = Date.now() + mins * 60_000;
       const r = await shell.call("alarm.set", { id: `os-${at}`, at, title: T(t, "probeAlarmTitle"), body: T(t, "probeAlarmBody") });
+      
       toast?.(r.exact ? T(t, "alExact") : T(t, "alInexact"));
       await refresh();
     } catch (e) { toast?.(e?.code || T(t, "alFailed")); } finally { setBusy(false); }
@@ -449,17 +459,17 @@ export function alarms({ S, t, toast }) {
     try { await shell.call("alarm.cancel", { id }); await refresh(); } catch { toast?.(T(t, "alFailed")); }
   };
 
-  return html`<div class="flex flex-col gap-3 pt-1">
-    ${why ? html`<div data-alarm-blocked class="flex items-center gap-3 rounded-[var(--ms-r)] sf-raised sf-e2 p-4">
-      ${Icon("lucide:smartphone", "text-xl text-base-content/50")}
-      <span class="text-sm text-muted">${why === ERR.staleBridge ? T(t, "stStale") : T(t, "stNone")}</span>
-    </div>` : html`<${Panel} title=${T(t, "alNew")}>
-      <div class="flex items-center gap-2 pt-1">
-        ${MINUTES.map((m) => html`<button key=${m} data-min=${m} aria-pressed=${mins === m}
-            class=${`btn btn-sm flex-1 tabular-nums ${mins === m ? "btn-primary" : "btn-ghost"}`}
-            onClick=${() => setMins(m)}>${m} ${T(t, "alMin")}</button>`)}
+  return html`<div data-alarms data-blocked=${why ? "1" : "0"} data-mins=${mins} class="flex flex-col gap-[var(--ms-gap)] pt-1">
+    ${why ? html`<${Panel} data-alarm-blocked>
+      <div class="flex items-center gap-3">
+        ${Icon("lucide:smartphone", "text-xl text-muted")}
+        <span class="text-sm text-muted">${why === ERR.staleBridge ? T(t, "stStale") : T(t, "stNone")}</span>
       </div>
-      <button id="al-set" class="btn btn-sm btn-primary w-full gap-2 mt-3" disabled=${busy} onClick=${schedule}>
+    <//>` : html`<${Panel} title=${T(t, "alNew")}>
+      
+      <${Segmented} attr="data-min" label=${T(t, "alNew")} value=${mins} onChange=${setMins}
+        items=${MINUTES.map((m) => ({ id: m, label: `${m} ${T(t, "alMin")}` }))} />
+      <button id="al-set" class="btn btn-sm btn-primary rounded-full w-full gap-2" disabled=${busy} onClick=${schedule}>
         ${Icon("lucide:alarm-clock-plus")}<span>${T(t, "alSet")}</span>
       </button>
     <//>`}
@@ -471,7 +481,7 @@ export function alarms({ S, t, toast }) {
             ${Icon("lucide:alarm-clock", "text-base text-primary shrink-0")}
             <div class="min-w-0 flex-1">
               <div class="text-sm truncate">${a.title}</div>
-              <div class="font-mono text-xs text-muted tabular-nums">${new Date(a.at).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" })}</div>
+              <div class=${`${LABEL} text-muted tabular-nums`}>${new Date(a.at).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" })}</div>
             </div>
             <button class="btn btn-sm btn-circle btn-ghost shrink-0" data-drop=${a.id}
                 aria-label=${`${T(t, "alDrop")} ${a.title}`} onClick=${() => drop(a.id)}>
@@ -482,9 +492,11 @@ export function alarms({ S, t, toast }) {
   </div>`;
 }
 
+
 const SEEN_MS = 20_000;                       
 const WIFI_MS = 30_000;
 const band = (freq) => (!freq ? "" : freq >= 5925 ? "6 GHz" : freq >= 5000 ? "5 GHz" : "2.4 GHz");
+
 const cellRadius = (rssi) => {
   const clamped = Math.max(-125, Math.min(-55, rssi));
   return 12 + ((-55 - clamped) / 70) * 78;
@@ -493,11 +505,13 @@ const rssiRadius = (rssi) => {
   const clamped = Math.max(-100, Math.min(-30, rssi));
   return 12 + ((-30 - clamped) / 70) * 78;    
 };
+
 const angleOf = (addr) => {
   let h = 2166136261;
   for (let i = 0; i < addr.length; i++) { h ^= addr.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (((Math.imul(h >>> 0, 2654435761) >>> 0) / 4294967296) * 360) * (Math.PI / 180);
 };
+
 
 const GATE_DEVICES = [
   { addr: "02:00:00:00:AA:01", name: "Gate Beacon", rssi: -52 },
@@ -515,16 +529,19 @@ export function radar({ S, t, toast }) {
   const [held, setHeld] = useState(null);
   const [events, setEvents] = useState(0);
   const stopRef = useRef(null);
+  
   const [nets, setNets] = useState([]);
   const [cells, setCells] = useState([]);
   const [throttled, setThrottled] = useState(false);
   const wifiRef = useRef(null);
+  
   const [hosts, setHosts] = useState([]);
   const [sweep, setSweep] = useState(null);        
   const [lanOn, setLanOn] = useState(false);       
   const [lanErr, setLanErr] = useState(null);
   const lanRef = useRef(null);
 
+  
   const [show, setShow] = useState({ ble: true, wifi: true, cell: true, lan: true });
   const toggle = (k) => setShow((s) => ({ ...s, [k]: !s[k] }));
 
@@ -532,9 +549,11 @@ export function radar({ S, t, toast }) {
     const n = (s) => s.split(".").reduce((v, o) => v * 256 + (parseInt(o, 10) || 0), 0);
     return n(a.ip) - n(b.ip);
   };
+  
   const upsertHost = (h) => {
     if (!h) return;
     if (h.done) { setSweep({ scanned: h.scanned, found: h.found, sources: h.sources, done: true }); return; }
+    
     if (h.progress) { setSweep((s) => (s?.done ? s : { scanned: h.scanned, total: h.total })); return; }
     if (h.started || h.ack || !h.ip) return;
     setHosts((prev) => {
@@ -548,14 +567,17 @@ export function radar({ S, t, toast }) {
       });
     });
   };
+  
   const [locOn, setLocOn] = useState(null);
   useEffect(() => {
     refreshHeld().then(() => setHeld(heldPermissions()));
+    
     if (shell.has("system.info")) shell.call("system.info", {}).then((i) => setLocOn(i.locationOn)).catch(() => {});
   }, []);
   const why = shell.whyCapability("ble");
   const L = permLabels(loc);
 
+  
   const [started, setStarted] = useState(false);
   const [ack, setAck] = useState(false);
   const upsert = (d) => {
@@ -566,6 +588,7 @@ export function radar({ S, t, toast }) {
     return [...rest, { ...d, at: Date.now() }].sort((a, b) => b.rssi - a.rssi);
   }); };
 
+  
   const sweepRadios = async () => {
     if (shell.has("wifi.scan")) {
       try {
@@ -591,9 +614,11 @@ export function radar({ S, t, toast }) {
     stopRef.current = shell.subscribe("ble.scan", {}, upsert, (e) => { setErr(e?.detail || e?.code || ERR.failed); setScanning(false); });
     sweepRadios();
     wifiRef.current = setInterval(sweepRadios, WIFI_MS);
+    
     setHosts([]); setSweep(null); setLanErr(null); setLanOn(false);
     if (shell.has("lan.scan")) {
       setLanOn(true);
+      
       lanRef.current = shell.subscribe("lan.scan", {}, upsertHost, (e) => {
         setLanErr(e?.detail || e?.code || ERR.failed);
         setLanOn(false);
@@ -602,6 +627,7 @@ export function radar({ S, t, toast }) {
   };
   const stop = () => {
     setScanning(false);
+    
     try { stopRef.current?.(); } catch {  }
     stopRef.current = null;
     clearInterval(wifiRef.current);
@@ -610,6 +636,7 @@ export function radar({ S, t, toast }) {
     lanRef.current = null;
   };
   useEffect(() => {
+    
     if (gate) {
       sweepRadios();
       setLanOn(true);            
@@ -622,6 +649,7 @@ export function radar({ S, t, toast }) {
     };
   }, []);
 
+  
   useEffect(() => {
     if (gate) return;
     const id = setInterval(() => setDevices((prev) => prev.filter((d) => Date.now() - d.at < SEEN_MS)), 2000);
@@ -630,7 +658,7 @@ export function radar({ S, t, toast }) {
 
   const fresh = (d) => Math.max(0.25, 1 - (Date.now() - d.at) / SEEN_MS);
 
-  return html`<div class="flex flex-col gap-3 pt-1">
+  return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
     <${Panel}>
       <div data-radar class="relative mx-auto w-full max-w-[20rem] aspect-square">
         <svg viewBox="0 0 200 200" class="w-full h-full text-base-content" aria-hidden="true">
@@ -677,7 +705,7 @@ export function radar({ S, t, toast }) {
         <!-- The counters ARE the filter. One row instead of two, and every kind is present even at zero —
              which is the point: a network the sweep never reached and a network with nothing on it were
              indistinguishable while the row only appeared once something was found. -->
-        <div data-kinds class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 font-mono text-xs tabular-nums">
+        <div data-kinds class=${`absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 ${LABEL} tabular-nums`}>
           ${[
             ["ble", "lucide:bluetooth", devices.length],
             ["wifi", "lucide:wifi", nets.length],
@@ -692,11 +720,11 @@ export function radar({ S, t, toast }) {
         </div>
       </div>
 
-      <button id="radar-toggle" class=${`btn btn-sm w-full gap-2 mt-2 ${scanning ? "" : "btn-primary"}`}
+      <button id="radar-toggle" class=${`btn btn-sm rounded-full w-full gap-2 mt-2 ${scanning ? "" : "btn-primary"}`}
           disabled=${!!why} data-scanning=${scanning} onClick=${() => (scanning ? stop() : start())}>
         ${Icon(scanning ? "lucide:square" : "lucide:radar")}<span>${T(t, scanning ? "radarStop" : "radarStart")}</span>
       </button>
-      ${held && shell.present ? html`<div data-ble-perms class="flex flex-wrap gap-x-3 gap-y-1 pt-2 font-mono text-[11px]">
+      ${held && shell.present ? html`<div data-ble-perms class=${`flex flex-wrap gap-x-3 gap-y-1 pt-2 ${LABEL}`}>
         <!-- Both radios' permissions, deduped: fine location is shared, and listing it twice would read
              as two different facts about the same switch. -->
         ${[...new Set([...shell.androidFor("ble"), ...shell.androidFor("wifi"), ...shell.androidFor("cell")])].filter((p) => p in held).map((p) => html`<span key=${p} class=${held[p] ? "text-success" : "text-error"}>${held[p] ? "+" : "−"} ${p}</span>`)}
@@ -746,15 +774,16 @@ export function radar({ S, t, toast }) {
           sub: [c.pci != null ? `PCI ${c.pci}` : "", c.cid != null ? `CID ${c.cid}` : "", c.arfcn != null ? `ARFCN ${c.arfcn}` : ""].filter(Boolean).join(" · "),
           rssi: c.rssi ?? -999,
         })),
+        
       ].sort((a, b) => b.rssi - a.rssi).map((e) => html`<div key=${e.key} data-dev=${e.key} data-kind=${e.kind}
           class="flex items-center gap-3 py-2 border-b border-base-content/10 last:border-0">
         ${Icon(e.kind === "wifi" ? "lucide:wifi" : e.kind === "cell" ? "lucide:radio-tower" : "lucide:bluetooth",
           `text-base shrink-0 ${e.kind === "ble" ? "text-primary" : e.strong ? "text-base-content" : "text-muted"}`)}
         <div class="min-w-0 flex-1">
           <div class="text-sm truncate">${e.name}</div>
-          <div class="font-mono text-[11px] text-muted truncate">${e.sub}</div>
+          <div class=${`${LABEL} text-muted truncate`}>${e.sub}</div>
         </div>
-        <div class="font-mono text-xs tabular-nums shrink-0">${e.rssi}<span class="text-base-content/45">dBm</span></div>
+        <div class="font-mono text-sm tabular-nums shrink-0">${e.rssi}<span class=${`${LABEL} text-muted`}>dBm</span></div>
       </div>`)}
     <//>` : null}
     <!-- The network is a different question from the radar above it — not "what is radiating near me" but
@@ -765,7 +794,7 @@ export function radar({ S, t, toast }) {
         <span class="font-semibold text-sm min-w-0 flex-1 truncate">${T(t, "radarHosts")}</span>
         <!-- "6 of 254" rather than a count alone: a sweep that ended having looked at everything and one
              that is still a third of the way through produce the same six rows otherwise. -->
-        <span data-lan-sweep class="font-mono text-[11px] text-base-content/45 tabular-nums shrink-0">
+        <span data-lan-sweep class=${`${LABEL} text-muted tabular-nums shrink-0`}>
           ${sweep?.done ? `${sweep.found}/${sweep.scanned}` : sweep ? `${sweep.scanned}/${sweep.total}` : hosts.length}
         </span>
       </div>
@@ -780,13 +809,14 @@ export function radar({ S, t, toast }) {
         ${Icon(h.via.includes("ssdp") ? "lucide:tv-minimal" : "lucide:hard-drive", "text-base text-muted shrink-0")}
         <div class="min-w-0 flex-1">
           <div class="text-sm truncate">${h.name || h.ip}</div>
-          <div class="font-mono text-[11px] text-muted truncate">${h.name ? `${h.ip}${h.ports ? ` · ${h.ports}` : ""}` : (h.ports || T(t, "hostQuiet"))}</div>
+          <div class=${`${LABEL} text-muted truncate`}>${h.name ? `${h.ip}${h.ports ? ` · ${h.ports}` : ""}` : (h.ports || T(t, "hostQuiet"))}</div>
         </div>
       </div>`)}
     <//>` : null}
 
   </div>`;
 }
+
 
 function Report({ S, t, toast }) {
   const loc = useStore(S.locale);
@@ -798,14 +828,17 @@ function Report({ S, t, toast }) {
   const load = async () => {
     try { setInfo(await shell.call("system.info", {})); setErr(null); }
     catch (e) { setErr(e?.code || ERR.failed); setInfo(null); }
+    
     try { setLogs((await shell.call("system.logs", {})).lines || []); } catch { setLogs([]); }
   };
+  
   useEffect(() => { load(); }, []);
 
   const lines = () => {
     const rows = [
       ["bridge", shell.present ? String(shell.version) : "—"],
       ["catalogue", `${shell.actions.length}`],
+      
       ["version", info ? `${info.version || "?"} (${info.build ?? "?"})` : "—"],
       ["installed", info?.installed ? new Date(info.installed).toLocaleString(loc) : "—"],
       ["granted", info?.caps || "—"],
@@ -829,23 +862,25 @@ function Report({ S, t, toast }) {
     <${Panel} title=${T(t, "reportTitle")}>
       <div data-report class="flex flex-col">
         ${lines().map(([k, v]) => html`<div key=${k} class="flex items-baseline gap-3 py-1.5 border-b border-base-content/10 last:border-0">
-          <span class="font-mono text-xs text-muted w-20 shrink-0 truncate">${k}</span>
+          <span class=${`${LABEL} text-muted w-20 shrink-0 truncate`}>${k}</span>
           <span class="font-mono text-sm min-w-0 flex-1 break-all">${v}</span>
         </div>`)}
       </div>
     <//>
-    ${err ? html`<div class="text-xs text-error px-1">${err === ERR.unsupported ? T(t, "stNone") : err}</div>` : null}
+    ${err ? html`<div class="text-sm text-error px-1">${err === ERR.unsupported ? T(t, "stNone") : err}</div>` : null}
     <div class="flex gap-2">
-      <button id="rep-load" class="btn btn-sm btn-primary flex-1 gap-2" onClick=${load}>${Icon("lucide:refresh-cw")}<span>${T(t, "reload")}</span></button>
-      <button id="rep-copy" class="btn btn-sm flex-1 gap-2" onClick=${copy}>${Icon("lucide:copy")}<span>${T(t, "copy")}</span></button>
+      <button id="rep-load" class="btn btn-sm btn-primary rounded-full flex-1 gap-2" onClick=${load}>${Icon("lucide:refresh-cw")}<span>${T(t, "reload")}</span></button>
+      <button id="rep-copy" class="btn btn-sm rounded-full flex-1 gap-2" onClick=${copy}>${Icon("lucide:copy")}<span>${T(t, "copy")}</span></button>
     </div>
   </div>`;
 }
 
+
 function Perms({ S, t, toast }) {
   const loc = useStore(S.locale);
-  return html`<div class="flex flex-col gap-3 pt-1"><${Launcher} S=${S} loc=${loc} t=${t} toast=${toast} /></div>`;
+  return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1"><${Launcher} S=${S} loc=${loc} t=${t} toast=${toast} /></div>`;
 }
+
 
 function Station({ S, t, toast }) {
   const [st, setSt] = useState(null);
@@ -861,6 +896,7 @@ function Station({ S, t, toast }) {
       if (st?.running) { await shell.call("server.stop", {}); }
       else {
         await shell.call("server.start", { port: 8080 });
+        
         const page = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">`
           + `<title>${T(t, "title")}</title><body style="font:16px system-ui;padding:2rem"><h1>${T(t, "title")}</h1>`;
         await shell.call("server.put", { path: "/", contentType: "text/html; charset=utf-8", base64: btoa(unescape(encodeURIComponent(page))) });
@@ -870,7 +906,7 @@ function Station({ S, t, toast }) {
   };
 
   const on = !!st?.running;
-  return html`<div class="flex flex-col gap-3 pt-1">
+  return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
     <${Panel}>
       <div data-station class="flex flex-col">
         <${Field} label=${T(t, "srvState")} value=${on ? T(t, "srvOn") : T(t, "srvOff")} tone=${on ? "ok" : ""} />
@@ -880,7 +916,7 @@ function Station({ S, t, toast }) {
         ${on ? html`<${Field} label=${T(t, "srvServed")} value=${String(st.hits ?? 0)} mono />` : null}
         ${on ? html`<${Field} label=${T(t, "srvRoutes")} value=${String(st.routes ?? 0)} mono />` : null}
       </div>
-      <button id="srv-toggle" data-on=${on} class=${`btn btn-sm w-full gap-2 mt-3 ${on ? "" : "btn-primary"}`}
+      <button id="srv-toggle" data-on=${on} class=${`btn btn-sm rounded-full w-full gap-2 mt-3 ${on ? "" : "btn-primary"}`}
           disabled=${busy || !shell.has("server.start")} onClick=${toggle}>
         <!-- Power, not play: a station is switched on, and a play/square pair would claim this is a media
              transport — which is exactly what preflight reads it as, and it is right to. -->
@@ -890,24 +926,30 @@ function Station({ S, t, toast }) {
   </div>`;
 }
 
+
 const SERVICE_ICON = {
   http: "lucide:globe", tls: "lucide:lock", ssh: "lucide:terminal",
+  
   redis: "lucide:database", pop3: "lucide:mail", imap: "lucide:mail", "smtp-or-ftp": "lucide:split",
   gone: "lucide:circle-slash", unknown: "lucide:circle-help",
 };
+
 const CONF_TONE = { product: "text-success", protocol: "text-success", ambiguous: "text-warning" };
 const SERVICE_NAME = { http: "HTTP", tls: "TLS", ssh: "SSH", redis: "Redis", pop3: "POP3", imap: "IMAP", "smtp-or-ftp": "SMTP / FTP" };
+
 
 const GATE_PORTS = [
   { port: 22, family: "4", probe: "passive", hex: "5353482d322e302d4f70656e5353485f392e362044656269616e2d322b6465623132753300", ms: 2 },
   { port: 443, family: "4", probe: "tls", hex: "160303004a020000460303", tls: "handshake_ok", cert: "CN=localhost, O=microspec gate, C=UA", proto: "TLSv1.3", ms: 31 },
   { port: 5432, family: "6", probe: "silent", hex: "", ms: 1 },
+  
   { port: 21, family: "4", probe: "passive", hex: "323230205365727669636520726561647920666f72206e657720757365720d0a", ms: 4 },
   { port: 41642, family: "4", gone: true, ms: 0 },
 ];
 
 function Ports({ S, t, toast }) {
   const [rows, setRows] = useState(() => (gate ? GATE_PORTS : []));
+  
   const [sweep, setSweep] = useState(() => (gate
     ? { scanned: 131070, total: 131070, found: 6, elapsed: 2841, addrs: "127.0.0.1,::1", done: true }
     : null));
@@ -919,6 +961,7 @@ function Ports({ S, t, toast }) {
   const upsert = (o) => {
     if (!o || o.ack || o.started) return;
     if (o.done) { setSweep({ scanned: o.scanned, total: o.total, found: o.found, elapsed: o.elapsed, addrs: o.addrs, done: true }); setRunning(false); return; }
+    
     if (o.progress) { setSweep((s) => (s?.done ? s : { scanned: o.scanned, total: o.total, found: o.found })); return; }
     if (!o.port) return;
     setRows((prev) => [...prev.filter((r) => key(r) !== key(o)), o]);
@@ -938,6 +981,7 @@ function Ports({ S, t, toast }) {
     stopRef.current = null;
   };
   useEffect(() => {
+    
     if (gate) shell.subscribe("lan.ports", {}, upsert, () => {});
     return () => { try { stopRef.current?.(); } catch {  } };
   }, []);
@@ -946,14 +990,16 @@ function Ports({ S, t, toast }) {
   const seen = orderPorts(rows.map((o) => ({ ...o, ...classify(o) })));
   const tally = tallyPorts(seen);
 
+  
   const evidence = (r) => {
     if (r.confidence === "gone") return T(t, "portGone");
     if (r.detail) return r.detail;
     if (r.confidence === "protocol" || r.confidence === "ambiguous") return T(t, "portProto");
+    
     return [T(t, r.probe === "silent" || !r.hex ? "portSilent" : "portNoise"), r.hint ? `${r.hint}?` : ""].filter(Boolean).join(" · ");
   };
 
-  return html`<div class="flex flex-col gap-3 pt-1">
+  return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
     <${Panel}>
       <div class="flex items-center gap-2 pb-1">
         ${Icon("lucide:plug", "text-base text-primary shrink-0")}
@@ -961,7 +1007,7 @@ function Ports({ S, t, toast }) {
         <!-- ONE number. "6 · 4" was open and named — the same two-bare-numbers defect the station line and
              the bridge line each had to be fixed for, made a third time. How many identified themselves is
              already on every row, in the colour of its icon. -->
-        <span data-ports-tally class="font-mono text-[11px] text-base-content/45 tabular-nums shrink-0">
+        <span data-ports-tally class=${`${LABEL} text-muted tabular-nums shrink-0`}>
           ${sweep && !sweep.done && running ? `${sweep.scanned}/${sweep.total}` : tally.open}
         </span>
       </div>
@@ -981,20 +1027,20 @@ function Ports({ S, t, toast }) {
                "CN=localhost, O=micros…" is the half that carries no information. -->
           <!-- break-words, never break-all: break-all split "номером" across two lines and left a lone
                "00" under a 200, which reads as corrupted output rather than a wrapped line. -->
-          <div class="font-mono text-[11px] text-muted line-clamp-2 break-words">${evidence(r)}</div>
+          <div class=${`${LABEL} text-muted line-clamp-2 break-words`}>${evidence(r)}</div>
         </div>
         <!-- The port, and only for ::1 the family beside it — a "v4" on every row would be a column that
              is the same in all but a handful of them. -->
-        <div class="font-mono text-xs tabular-nums shrink-0">${r.port}${r.family === "6" ? html`<span class="text-base-content/45">/6</span>` : null}</div>
+        <div class="font-mono text-sm tabular-nums shrink-0">${r.port}${r.family === "6" ? html`<span class=${`${LABEL} text-muted`}>/6</span>` : null}</div>
       </div>`)}
 
-      <button id="ports-toggle" class=${`btn btn-sm w-full gap-2 mt-3 ${running ? "" : "btn-primary"}`}
+      <button id="ports-toggle" class=${`btn btn-sm rounded-full w-full gap-2 mt-3 ${running ? "" : "btn-primary"}`}
           disabled=${!!why} data-scanning=${running} onClick=${() => (running ? stop() : start())}>
         ${Icon(running ? "lucide:square" : "lucide:radar")}<span>${T(t, running ? "radarStop" : "radarStart")}</span>
       </button>
       <!-- Said once, where the list is, because every row on this screen is bounded by it: a sweep can only
            report what answered a connect, and Android lets nobody ask which app owns the socket. -->
-      ${seen.length ? html`<div data-ports-limit class="pt-2 font-mono text-[11px] text-base-content/45">${T(t, "portsLimit")}</div>` : null}
+      ${seen.length ? html`<div data-ports-limit class=${`pt-2 ${LABEL} text-muted`}>${T(t, "portsLimit")}</div>` : null}
     <//>
 
     <!-- What was ASKED, which is what makes the list above mean anything. "Nothing answered" after ten
@@ -1010,23 +1056,24 @@ function Ports({ S, t, toast }) {
   </div>`;
 }
 
+
 const TONE = { ok: "text-success", warn: "text-warning", bad: "text-error" };
 function Field({ label, value, sub, mono, tone, wrap }) {
   return html`<div class="flex items-baseline gap-3 py-2 border-b border-base-content/10 last:border-0">
-    <span class="font-mono text-[11px] uppercase tracking-wide text-muted w-24 shrink-0 truncate">${label}</span>
+    <span class=${`${LABEL} uppercase text-muted w-24 shrink-0 truncate`}>${label}</span>
     <div class="min-w-0 flex-1">
       <!-- The wrap flag exists for the one value a person reads out loud: an address that ends in an
            ellipsis is not an address, and it cleared the reference device by two pixels. (No backticks in
            a comment inside a tagged template — they close the literal, as this one just did.) -->
       <div class=${`text-sm ${wrap ? "break-all" : "truncate"} ${mono ? "font-mono" : ""} ${TONE[tone] || ""}`}>${value}</div>
-      ${sub ? html`<div class="font-mono text-[11px] text-muted truncate">${sub}</div>` : null}
+      ${sub ? html`<div class=${`${LABEL} text-muted truncate`}>${sub}</div>` : null}
     </div>
   </div>`;
 }
 
+
 const $home = atom(null);        
 const HOME_MS = 30_000;          
-
 export function home({ S, t, toast }) {
   const loc = useStore(S.locale);
   const screen = useStore($home);
@@ -1034,6 +1081,7 @@ export function home({ S, t, toast }) {
   const [batt, setBatt] = useState(null);
   const [net, setNet] = useState(null);
   const [roots, setRoots] = useState(null);
+  
   const [ble, setBle] = useState(null);
   const [usb, setUsb] = useState(null);
   const [alarms, setAlarms] = useState(null);
@@ -1041,6 +1089,7 @@ export function home({ S, t, toast }) {
   const [upd, setUpd] = useState(false);
 
   const read = async () => {
+    
     if (shell.has("system.info")) { try { setInfo(await shell.call("system.info", {})); } catch {  } }
     if (shell.has("system.battery")) { try { setBatt(await shell.call("system.battery", {})); } catch { setBatt(null); } }
     if (shell.has("wifi.info")) { try { setNet(await shell.call("wifi.info", {})); } catch { setNet(null); } }
@@ -1052,17 +1101,20 @@ export function home({ S, t, toast }) {
   };
   useEffect(() => {
     read();
+    
     if (gate) {
       const want = new URLSearchParams(location.search).get("home");
       if (want && ["perms", "console", "station", "ports"].includes(want)) { $home.set(want); S.stack.set([want]); }
     }
     const id = setInterval(read, HOME_MS);
+    
     return () => { clearInterval(id); $home.set(null); if (S.stack.get().length) S.stack.set([]); };
   }, []);
 
   useEffect(() => S.stack.listen((v) => { if (!(v?.length) && $home.get()) $home.set(null); }), []);
   const open = (id) => { $home.set(id); S.stack.set([id]); };
 
+  
   const update = async () => {
     if (upd) return;
     setUpd(true);
@@ -1075,10 +1127,12 @@ export function home({ S, t, toast }) {
     } catch (e) { toast?.(e?.code || T(t, "updFailed")); } finally { setUpd(false); }
   };
 
-  if (screen === "perms") return html`<${Perms} S=${S} t=${t} toast=${toast} />`;
-  if (screen === "console") return html`<${Console} S=${S} t=${t} toast=${toast} />`;
-  if (screen === "station") return html`<${Station} S=${S} t=${t} toast=${toast} />`;
-  if (screen === "ports") return html`<${Ports} S=${S} t=${t} toast=${toast} />`;
+  
+  const sub = (body) => html`<div data-home data-screen=${screen}>${body}</div>`;
+  if (screen === "perms") return sub(html`<${Perms} S=${S} t=${t} toast=${toast} />`);
+  if (screen === "console") return sub(html`<${Console} S=${S} t=${t} toast=${toast} />`);
+  if (screen === "station") return sub(html`<${Station} S=${S} t=${t} toast=${toast} />`);
+  if (screen === "ports") return sub(html`<${Ports} S=${S} t=${t} toast=${toast} />`);
 
   const battLine = !batt ? "—"
     : [`${batt.level}%`, T(t, batt.charging ? "battCharging" : "battIdle"),
@@ -1094,20 +1148,23 @@ export function home({ S, t, toast }) {
   const TILES = [
     ["store", "lucide:layout-grid", T(t, "storeTile"), null],
     ["station", "lucide:server", T(t, "tileStation"), () => open("station")],
+    
     ["ports", "lucide:plug", T(t, "tilePorts"), () => open("ports")],
     ["perms", "lucide:shield-check", T(t, "tilePerms"), () => open("perms")],
     ["console", "lucide:terminal", T(t, "tileConsole"), () => open("console")],
   ];
 
-  return html`<div class="flex flex-col gap-3 pt-1">
-    ${shell.updateAvailable ? html`<div data-update class="flex items-center gap-3 rounded-[var(--ms-r)] sf-raised sf-e2 p-4">
-      ${Icon("lucide:download", "text-xl text-warning shrink-0")}
-      <div class="min-w-0 flex-1">
-        <div class="font-medium truncate">${T(t, "updTitle")}</div>
-        <div class="font-mono text-xs text-muted truncate">bridge ${shell.version} → ${shell.catalogueVersion}</div>
+  return html`<div data-home data-screen="home" data-bridge-on=${shell.present ? "1" : "0"} class="flex flex-col gap-[var(--ms-gap)] pt-1">
+    ${shell.updateAvailable ? html`<${Panel} data-update>
+      <div class="flex items-center gap-3">
+        ${Icon("lucide:download", "text-xl text-warning shrink-0")}
+        <div class="min-w-0 flex-1">
+          <div class="font-medium truncate">${T(t, "updTitle")}</div>
+          <div class=${`${LABEL} text-muted truncate`}>bridge ${shell.version} → ${shell.catalogueVersion}</div>
+        </div>
+        <button id="do-update" class="btn btn-sm btn-warning rounded-full shrink-0" disabled=${upd} onClick=${update}>${T(t, "updBtn")}</button>
       </div>
-      <button id="do-update" class="btn btn-sm btn-warning shrink-0" disabled=${upd} onClick=${update}>${T(t, "updBtn")}</button>
-    </div>` : null}
+    <//>` : null}
 
     <${Panel}>
       <div data-state class="flex flex-col">
@@ -1139,7 +1196,7 @@ export function home({ S, t, toast }) {
           <span class="grid place-items-center aspect-square w-full rounded-[var(--ms-r-in)] sf-raised sf-e2">
             ${Icon(icon, "text-2xl text-base-content")}
           </span>
-          <span class="text-[11px] leading-tight text-center line-clamp-2 text-base-content/80">${label}</span>
+          <span class=${`${CAPTION} text-base-content/80`}>${label}</span>
         <//>`;
         return onClick
           ? html`<button key=${id} data-go=${id} class="flex flex-col items-center gap-1.5 min-w-0" onClick=${onClick}>${inner}</button>`
@@ -1149,6 +1206,7 @@ export function home({ S, t, toast }) {
   </div>`;
 }
 
+
 export function files({ S, t, toast }) {
   const loc = useStore(S.locale);
   useEffect(() => {
@@ -1157,6 +1215,7 @@ export function files({ S, t, toast }) {
     return () => { if (S.stack.get().length) S.stack.set([]); };   
   }, []);
 
+  
   useEffect(() => S.stack.listen((v) => {
     const cur = $fs.get();
     const now = v?.length || 0;
@@ -1165,5 +1224,5 @@ export function files({ S, t, toast }) {
     fsOpenFolder(S, cur.root, cur.trail.slice(0, Math.max(1, now + 1)));
   }), []);
 
-  return html`<div class="flex flex-col gap-3 pt-1"><${Explorer} S=${S} t=${t} loc=${loc} toast=${toast} /></div>`;
+  return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1"><${Explorer} S=${S} t=${t} loc=${loc} toast=${toast} /></div>`;
 }

@@ -14,14 +14,13 @@ const urlFor = (lat, lng) =>
   "&current=european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen,olive_pollen" +
   "&hourly=european_aqi&timezone=auto&forecast_days=2";
 
-const AQ = [["#41C06F", "#177F46"], ["#9BCB3C", "#5A7D14"], ["#E4C13A", "#8A6D00"], ["#E7742E", "#A24810"], ["#EC5A4A", "#B63125"], ["#C94BBA", "#8E2A86"]];
-const AQ_INK = [["#A1BCAB", "#395D49"], ["#ABBC8A", "#516130"], ["#C8B56C", "#6D5C1B"], ["#E0AB8A", "#8D4C23"], ["#EDA29A", "#A4362C"], ["#E2A0DA", "#8E2A86"]];
+const AQ = ["#41C06F", "#9BCB3C", "#E4C13A", "#E7742E", "#EC5A4A", "#C94BBA"];
 const clamp = (b, n) => Math.max(0, Math.min(n, b));
-const fillFor = (b) => AQ[clamp(b, 5)][0];                                   
-const inkFor = (b) => `light-dark(${AQ_INK[clamp(b, 5)][1]},${AQ_INK[clamp(b, 5)][0]})`; 
+const fillFor = (b) => AQ[clamp(b, 5)];
 const AQI_KEYS = ["aqiGood", "aqiFair", "aqiModerate", "aqiPoor", "aqiVeryPoor", "aqiExtreme"];
-const POLLEN_INK = [null, inkFor(0), inkFor(2), inkFor(3), inkFor(4)];
 const POLLEN_DOT = [null, fillFor(0), fillFor(2), fillFor(3), fillFor(4)];
+const dot = (fill) => html`<span class="w-2 h-2 rounded-full shrink-0" aria-hidden="true" style=${`background:${fill}`}></span>`;
+const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const POLLEN_KEYS = ["pnNone", "pnLow", "pnModerate", "pnHigh", "pnVeryHigh"];
 
 const POLLUTANTS = [
@@ -111,12 +110,12 @@ export function air({ S }) {
   }, [loc.lat, loc.lng]);
 
   const ready = useReveal(!!data);
-  if (err && !data) return html`<div class="flex flex-col items-center text-muted py-20 gap-2 text-center px-6">${Icon("lucide:cloud-off", "text-3xl")}<span>${T(t, "statusError")}</span></div>`;
-  if (!ready) return html`<div class="flex flex-col gap-5 items-center">
-    <div class="w-36 h-36 rounded-full border-[6px] flex items-center justify-center" style="border-color:var(--sf-track-face)"><span class="text-5xl font-bold tabular-nums text-base-content/40"><${Scramble} len=${2} /></span></div>
-    <div class="text-lg font-bold text-base-content/50"><${Scramble} len=${8} /></div>
-    <div class="w-full max-w-[420px] h-28 rounded-2xl overflow-hidden sf-inset"><${Pixels} /></div>
-    <div class="w-full max-w-[420px] flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div class="flex items-center justify-between text-base-content/50 border-b border-base-300/50 pb-2" key=${i}><${Scramble} len=${7} /><${Scramble} len=${5} /></div>`)}</div>
+  if (err && !data) return html`<div data-air data-ready="0" data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:cloud-off", "text-4xl")}<span class="font-medium">${T(t, "statusError")}</span></div>`;
+  if (!ready) return html`<div data-air data-ready="0" class="flex flex-col gap-[calc(var(--ms-gap)*1.5)] items-center">
+    <div class="w-36 h-36 rounded-full border-[6px] flex items-center justify-center" style="border-color:var(--sf-track-face)"><span class="text-5xl font-bold tabular-nums text-muted"><${Scramble} len=${2} /></span></div>
+    <div class="text-lg font-bold text-muted"><${Scramble} len=${8} /></div>
+    <div class="w-full max-w-[420px] h-28 rounded-[var(--ms-r)] overflow-hidden sf-inset"><${Pixels} /></div>
+    <div class="w-full max-w-[420px] flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div class="flex items-center justify-between text-muted border-b border-base-300/50 pb-2" key=${i}><${Scramble} len=${7} /><${Scramble} len=${5} /></div>`)}</div>
   </div>`;
 
   const c = data.current;
@@ -128,41 +127,42 @@ export function air({ S }) {
 
   const active = POLLENS.map((p) => ({ ...p, v: c[p.f] })).filter((p) => p.v != null && p.v > 0).sort((a, b2) => b2.v - a.v);
 
-  return html`<div class="flex flex-col gap-5 items-center">
-    <!-- current AQI gauge -->
+  return html`<div data-air data-ready="1" data-band=${band} class="flex flex-col gap-[calc(var(--ms-gap)*1.5)] items-center">
+    <!-- current AQI gauge: the number is ink; the band is the arc's hue -->
     <div class="relative w-36 h-36 flex items-center justify-center">
       ${gauge(aqi, band)}
       <div class="absolute flex flex-col items-center">
-        <div data-aqi class="text-5xl font-bold tabular-nums leading-none" style=${`color:${inkFor(band)}`}>${aqi}</div>
-        <div class="text-[0.6rem] font-mono uppercase text-muted mt-1">AQI</div>
+        <div data-aqi class="text-5xl font-bold tabular-nums leading-none">${aqi}</div>
+        <div class=${`${LABEL} mt-1`}>AQI</div>
       </div>
     </div>
-    <div class="flex flex-col items-center gap-0.5 -mt-2 text-center px-4">
-      <div class="text-lg font-bold" style=${`color:${inkFor(band)}`}>${T(t, AQI_KEYS[clamp(band, 5)])}</div>
-      <div class="text-xs text-muted inline-flex items-center gap-1" data-live>${Icon("lucide:map-pin", "text-[0.7rem]")}${loc.place || T(t, loc.located ? "myLocation" : "place")} · ${T(t, "updated")} ${hhmm(c.time)}</div>
+    <div class="flex flex-col items-center gap-0.5 -mt-2 text-center px-[var(--ms-pad)]">
+      <div class="text-lg font-bold inline-flex items-center gap-2">${dot(fillFor(band))}${T(t, AQI_KEYS[clamp(band, 5)])}</div>
+      <div class="text-sm text-muted inline-flex items-center gap-1" data-live>${Icon("lucide:map-pin", "text-[0.85em]")}${loc.place || T(t, loc.located ? "myLocation" : "place")} · ${T(t, "updated")} ${hhmm(c.time)}</div>
     </div>
 
     <!-- 24-hour forecast -->
     <div class="w-full max-w-[420px] flex flex-col gap-1">
-      <div class="text-[0.62rem] font-mono uppercase text-muted px-1">${T(t, "forecastLabel")}</div>
+      <div class=${`${LABEL} px-1`}>${T(t, "forecastLabel")}</div>
       <svg viewBox=${`0 0 100 ${H}`} class="w-full" style="height:96px" preserveAspectRatio="none">
         ${hrs.map((h, i) => html`<rect x=${(i * bw + bw * 0.12).toFixed(2)} y=${yOf(h.aqi).toFixed(2)} width=${(bw * 0.76).toFixed(2)} height=${Math.max(0.6, H - yOf(h.aqi)).toFixed(2)} rx="0.5" fill=${fillFor(eaqiBand(h.aqi))} key=${i}></rect>`)}
       </svg>
-      <div class="relative h-4 text-[0.55rem] font-mono text-muted">
+      <div class="relative h-4 font-mono text-[length:var(--ms-label)] text-muted">
         ${ticks.map((d) => html`<span class="absolute -translate-x-1/2 whitespace-nowrap" style=${`left:${Math.min(94, Math.max(4, (d.i + 0.5) * bw)).toFixed(1)}%`} key=${d.i}>${d.label}</span>`)}
       </div>
     </div>
 
-    <!-- pollutants: each value coloured by its own EEA sub-index band -->
+    <!-- pollutants: each value carries its own EEA sub-index band as the dot beside it -->
     <div class="w-full max-w-[420px] flex flex-col gap-1">
-      <div class="text-[0.62rem] font-mono uppercase text-muted px-1 mb-0.5">${T(t, "pollutantsLabel")}</div>
+      <div class=${`${LABEL} px-1 mb-0.5`}>${T(t, "pollutantsLabel")}</div>
       ${POLLUTANTS.map((p) => {
         const v = c[p.f], pb = pollutantBand(p.sp, v);
-        return html`<div class="flex items-baseline justify-between gap-2 py-1.5 border-b border-base-300/50 last:border-0" key=${p.sp}>
+        return html`<div class="flex items-center justify-between gap-2 py-1.5 border-b border-base-300/50 last:border-0" key=${p.sp}>
           <span class="font-mono text-sm font-semibold shrink-0">${p.label}</span>
-          <span class="flex items-baseline gap-1 min-w-0">
-            <span class="tabular-nums font-bold text-lg" style=${pb >= 0 ? `color:${inkFor(pb)}` : ""}>${v != null ? Math.round(v) : "—"}</span>
-            <span class="text-xs text-muted @max-[240px]:hidden">µg/m³</span>
+          <span class="flex items-baseline gap-1.5 min-w-0">
+            ${pb >= 0 ? dot(fillFor(pb)) : html`<span class="w-2 h-2 rounded-full sf-inset shrink-0" aria-hidden="true"></span>`}
+            <span class="tabular-nums font-bold text-lg">${v != null ? Math.round(v) : "—"}</span>
+            <span class="font-mono text-[length:var(--ms-label)] text-muted @max-[240px]:hidden">µg/m³</span>
           </span>
         </div>`;
       })}
@@ -170,14 +170,14 @@ export function air({ S }) {
 
     <!-- pollen: active species, banded -->
     <div class="w-full max-w-[420px] flex flex-col gap-1">
-      <div class="text-[0.62rem] font-mono uppercase text-muted px-1 mb-0.5">${T(t, "pollenLabel")}</div>
+      <div class=${`${LABEL} px-1 mb-0.5`}>${T(t, "pollenLabel")}</div>
       ${active.length ? active.map((p) => {
         const pb = pollenBand(p.sp, p.v);
         return html`<div class="flex items-center gap-2 py-1.5 border-b border-base-300/50 last:border-0" key=${p.sp}>
-          <span class="w-2 h-2 rounded-full shrink-0" style=${`background:${POLLEN_DOT[pb] || "var(--fallback-bc,currentColor)"}`}></span>
+          ${POLLEN_DOT[pb] ? dot(POLLEN_DOT[pb]) : html`<span class="w-2 h-2 rounded-full sf-inset shrink-0" aria-hidden="true"></span>`}
           <span class="font-medium truncate flex-1 min-w-0">${T(t, p.key)}</span>
-          <span class="text-sm font-semibold shrink-0" style=${POLLEN_INK[pb] ? `color:${POLLEN_INK[pb]}` : ""}>${T(t, POLLEN_KEYS[pb])}</span>
-          <span class="tabular-nums text-xs text-muted text-right shrink-0 @max-[280px]:hidden">${Math.round(p.v)} ${T(t, "grains")}</span>
+          <span class="text-sm font-semibold shrink-0">${T(t, POLLEN_KEYS[pb])}</span>
+          <span class="tabular-nums font-mono text-[length:var(--ms-label)] text-muted text-right shrink-0 @max-[280px]:hidden">${Math.round(p.v)} ${T(t, "grains")}</span>
         </div>`;
       }) : html`<div class="flex items-center gap-2 py-1.5 text-muted"><span class="w-2 h-2 rounded-full sf-inset shrink-0"></span><span>${T(t, "pnNone")}</span></div>`}
     </div>
