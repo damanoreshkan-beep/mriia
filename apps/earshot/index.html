@@ -49,6 +49,12 @@
     }
   }
   </script>
+  <style>
+    .es-mine{box-shadow:var(--sf-sink),0 0 0 1px color-mix(in oklch,var(--app-accent) 60%,transparent)}
+    .es-live{animation:es-live 1.6s ease-in-out infinite}
+    @keyframes es-live{0%,100%{opacity:1}50%{opacity:.35}}
+    @media(prefers-reduced-motion:reduce){.es-live{animation:none}}
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Чутно</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

@@ -12,6 +12,7 @@ import {
 } from "/_rt/earshot.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const LABEL = "font-mono text-[length:var(--ms-label)] tracking-wider text-base-content/70";
 
 const HOLD_MS = 60_000;
 
@@ -160,14 +161,15 @@ function Line({ row, loc }) {
   return html`<div data-voice=${row.sender.toString(16)} data-mine=${row.mine ? "1" : "0"}
       class=${`flex flex-col gap-0.5 max-w-[85%] ${row.mine ? "ml-auto items-end" : "items-start"}`}>
     <div class="flex items-center gap-1.5 px-1">
-      <span class="w-2 h-2 rounded-full shrink-0" style=${`background:hsl(${hue} 70% 55%)`}></span>
-      <span class="font-mono text-[0.7rem] text-base-content/70">${name}</span>
+      <span class="w-2 h-2 rounded-full shrink-0" style=${row.mine ? "background:var(--app-accent)" : `background:hsl(${hue} 70% 55%)`}></span>
+      <span class=${LABEL}>${name}</span>
     </div>
-    <div class=${`min-w-0 rounded-2xl px-3 py-2 ${row.mine ? "bg-[var(--app-accent)]/20 border border-[var(--app-accent)]" : "sf-raised sf-e2"}`}>
+    
+    <div class=${`min-w-0 rounded-[var(--ms-r)] px-3 py-2 ${row.mine ? "sf-inset es-mine" : "sf-raised sf-e2"}`}>
       <div class="break-words text-base-content">
         ${row.mine ? row.text : html`<${Scramble} text=${row.text} minMs=${420} />`}
       </div>
-      <div class=${`font-mono text-[0.7rem] text-base-content/70 ${row.mine ? "text-right" : ""}`}>${at}</div>
+      <div class=${`${LABEL} ${row.mine ? "text-right" : ""}`}>${at}</div>
     </div>
   </div>`;
 }
@@ -194,11 +196,13 @@ export function airView({ S, t }) {
 
   const fit = fitText(draft);
 
-  return html`<div class="flex flex-col gap-3 px-[var(--ms-pad)] pb-[calc(var(--dock-h)+11rem)]">
+  return html`<div data-earshot data-listening=${listening ? "1" : "0"} data-lines=${rows.length} data-blocked=${blocked || err ? "1" : "0"}
+      class="flex flex-col gap-[var(--ms-gap)] px-[var(--ms-pad)] pb-[calc(var(--dock-h)+11rem)]">
     <div data-scanner class="flex items-center gap-2 pt-1 text-base-content/70">
-      <span class=${`w-1.5 h-1.5 rounded-full ${listening ? "bg-[var(--app-accent)]" : "bg-base-content/30"} ${listening && !gate ? "animate-pulse" : ""}`}></span>
-      <span class="font-mono text-[0.7rem]">${packets}</span>
-      <span class="font-mono text-[0.7rem]">${T(t, "packets")}</span>
+      
+      <span class=${`w-1.5 h-1.5 rounded-full ${listening ? "bg-[var(--app-accent)]" : "bg-base-content/30"} ${listening && !gate ? "es-live" : ""}`}></span>
+      <span class=${`${LABEL} tabular-nums`}>${packets}</span>
+      <span class=${LABEL}>${T(t, "packets")}</span>
     </div>
 
     ${rows.length
@@ -206,28 +210,30 @@ export function airView({ S, t }) {
           ${rows.map((row) => html`<${Line} key=${row.key} row=${row} loc=${loc} />`)}
           <div ref=${endRef}></div>
         </div>`
-      : html`<div data-empty class="py-16 text-center text-base-content/70">${T(t, "quiet")}</div>`}
+      
+      
+      : html`<div data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:radio", "text-4xl")}<span class="font-medium">${T(t, "quiet")}</span></div>`}
 
     <${Island} pinned=${true} className="w-full max-w-[36rem] flex flex-col gap-[var(--ms-gap)]">
       ${blocked
         ? html`<div data-blocked class="flex items-start gap-2 min-w-0">
-            ${Icon("lucide:triangle-alert", "text-[1.1em] shrink-0 mt-0.5 text-[var(--app-accent)]")}
+            ${Icon("lucide:triangle-alert", "text-[length:var(--ms-icon)] shrink-0 mt-0.5 text-warning")}
             <span class="min-w-0 text-base-content">${T(t, blocked)}</span>
           </div>`
         : null}
       ${err
         ? html`<div data-err class="flex items-start gap-2 min-w-0">
-            ${Icon("lucide:triangle-alert", "text-[1.1em] shrink-0 mt-0.5 text-[var(--app-accent)]")}
-            <span class="min-w-0 break-words font-mono text-[0.8rem] text-base-content">${String(err)}</span>
+            ${Icon("lucide:triangle-alert", "text-[length:var(--ms-icon)] shrink-0 mt-0.5 text-error")}
+            <span class="min-w-0 break-words font-mono text-sm text-base-content">${String(err)}</span>
             ${needPerm
-              ? html`<button data-grant class="btn btn-sm btn-primary shrink-0 ml-auto" onClick=${grant}>${T(t, "allow")}</button>`
+              ? html`<button data-grant class="btn btn-sm btn-primary rounded-full shrink-0 ml-auto" onClick=${grant}>${T(t, "allow")}</button>`
               : null}
           </div>`
         : null}
       ${!gate && shell.why("ble.advertise") && !err && !blocked
         ? html`<div data-needs class="flex items-center gap-2 min-w-0">
-            ${Icon("lucide:radio-tower", "text-[1.1em] shrink-0 text-base-content/70")}
-            <span class="min-w-0 text-base-content/70">${T(t, shell.why("ble.advertise") === ERR.staleBridge ? "needsUpdate" : "needsApp")}</span>
+            ${Icon("lucide:radio-tower", "text-[length:var(--ms-icon)] shrink-0 text-muted")}
+            <span class="min-w-0 text-muted">${T(t, shell.why("ble.advertise") === ERR.staleBridge ? "needsUpdate" : "needsApp")}</span>
           </div>`
         : null}
       <form class="flex items-center gap-2 min-w-0"
@@ -236,10 +242,11 @@ export function airView({ S, t }) {
           class="input input-ghost flex-1 min-w-0 px-3 focus:outline-none"
           aria-label=${T(t, "say")} placeholder=${T(t, "say")}
           value=${draft} onInput=${(e) => setDraft(e.currentTarget.value)} />
-        <span data-left class="font-mono text-[0.8rem] shrink-0 ${fit.left ? "text-base-content/70" : "text-[var(--app-accent)]"}">${fit.left}</span>
+        
+        <span data-left class=${`font-mono text-sm tabular-nums shrink-0 ${fit.left ? "text-base-content/70" : "text-warning"}`}>${fit.left}</span>
         <button data-throw type="submit" disabled=${fit.bytes === 0}
-                class="btn btn-sm btn-primary shrink-0" aria-label=${T(t, "send")}>
-          ${Icon("lucide:send-horizontal", "text-[1.1em]")}
+                class="btn btn-sm btn-primary btn-circle shrink-0" aria-label=${T(t, "send")}>
+          ${Icon("lucide:send-horizontal", "text-[length:var(--ms-icon)]")}
         </button>
       </form>
     </${Island}>
