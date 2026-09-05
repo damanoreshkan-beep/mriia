@@ -19,7 +19,7 @@ export default [
       await h.click('[data-mat="ink"]'); await h.wait(120);
       h.expect(await h.attr('[data-mat="ink"]', "aria-pressed") === "true", "Туш не активна");
       h.expect(await h.attr('[data-mat="lum"]', "aria-pressed") === "false", "Сяйво лишилось активним");
-      h.expect(await h.attr("[data-live]", "data-mat") === "ink", "сцена не знає про Туш");
+      h.expect(await h.attr("[data-live]", "data-material") === "ink", "сцена не знає про Туш");
     },
   },
   {
