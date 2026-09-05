@@ -15,19 +15,70 @@ void main(void) {
   gl_Position = filterVertexPosition();
   vTextureCoord = filterTextureCoord();
 }`;
-const EDGE_FRAG = `
+
+const FLOW_FRAG = `
+in vec2 vTextureCoord;
+out vec4 finalColor;
+uniform sampler2D uTexture;
+uniform sampler2D uPrevLuma;
+uniform sampler2D uPrevFlow;
+uniform highp vec4 uInputSize;
+uniform vec4 uInputClamp;
+uniform float uMax;
+float L(sampler2D s, vec2 uv) { vec3 c = texture(s, clamp(uv, uInputClamp.xy, uInputClamp.zw)).rgb; return dot(c, vec3(0.299, 0.587, 0.114)); }
+void main() {
+  vec2 t = uInputSize.zw;
+  float sxx = 0.0, sxy = 0.0, syy = 0.0, sxt = 0.0, syt = 0.0;
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 q = vTextureCoord + vec2(float(i), float(j)) * t;
+    float ix = (L(uTexture, q + vec2(t.x, 0.0)) - L(uTexture, q - vec2(t.x, 0.0))) * 0.5;
+    float iy = (L(uTexture, q + vec2(0.0, t.y)) - L(uTexture, q - vec2(0.0, t.y))) * 0.5;
+    float it = L(uTexture, q) - L(uPrevLuma, q);
+    sxx += ix * ix; sxy += ix * iy; syy += iy * iy; sxt += ix * it; syt += iy * it;
+  }
+  float det = sxx * syy - sxy * sxy;
+  vec2 f = vec2(0.0);
+  if (det > 1e-6) f = vec2(-(syy * sxt - sxy * syt), -(sxx * syt - sxy * sxt)) / det;
+  f = clamp(f, vec2(-uMax), vec2(uMax));
+  vec2 pf = (texture(uPrevFlow, vTextureCoord).xy - 0.5) * 2.0 * uMax;
+  f = mix(pf, f, 0.5);
+  finalColor = vec4(f / (2.0 * uMax) + 0.5, 0.0, 1.0);
+}`;
+
+const ANCHOR_FRAG = `
+in vec2 vTextureCoord;
+out vec4 finalColor;
+uniform sampler2D uTexture;
+uniform sampler2D uFlow;
+uniform highp vec4 uInputSize;
+uniform vec4 uInputClamp;
+uniform float uMax;
+uniform float uFlowScale;
+uniform float uPeriod;
+uniform vec2 uDrift;
+void main() {
+  vec2 f = (texture(uFlow, vTextureCoord).xy - 0.5) * 2.0 * uMax * uFlowScale;   // px of this pass
+  vec2 src = clamp(vTextureCoord - f * uInputSize.zw, uInputClamp.xy, uInputClamp.zw);
+  vec2 a = texture(uTexture, src).xy;
+  finalColor = vec4(fract(a - f / uPeriod + uDrift), 0.0, 1.0);
+}`;
+
+const TRACE_FRAG = `
 in vec2 vTextureCoord;
 out vec4 finalColor;
 uniform sampler2D uTexture;
 uniform sampler2D uMatTexture;
+uniform sampler2D uAnchor;
 uniform highp vec4 uInputSize;
 uniform vec4 uInputClamp;
 uniform float uStrength;
 uniform float uStep;
 uniform float uFloor;
-uniform vec2 uMatScale;
-uniform vec2 uMatOffset;
+uniform float uPeriod;
 uniform float uInvert;
+uniform float uShade;
+uniform float uShadeOn;
+uniform vec2 uShadeBand;
 float lum(vec2 d) {
   vec2 uv = clamp(vTextureCoord + d, uInputClamp.xy, uInputClamp.zw);
   vec3 c = texture(uTexture, uv).rgb;
@@ -36,129 +87,161 @@ float lum(vec2 d) {
 void main() {
   vec2 t = uInputSize.zw * uStep;
   float tl = lum(vec2(-t.x, -t.y)), tc = lum(vec2(0.0, -t.y)), tr = lum(vec2(t.x, -t.y));
-  float ml = lum(vec2(-t.x, 0.0)),                              mr = lum(vec2(t.x, 0.0));
+  float ml = lum(vec2(-t.x, 0.0)),  cc = lum(vec2(0.0)),        mr = lum(vec2(t.x, 0.0));
   float bl = lum(vec2(-t.x, t.y)),  bc = lum(vec2(0.0, t.y)),  br = lum(vec2(t.x, t.y));
   float gx = (tr + 2.0 * mr + br) - (tl + 2.0 * ml + bl);
   float gy = (bl + 2.0 * bc + br) - (tl + 2.0 * tc + tr);
   float e = smoothstep(uFloor, 1.0, length(vec2(gx, gy)) * uStrength);
-  vec3 m = texture(uMatTexture, fract(vTextureCoord * uInputSize.xy * uMatScale + uMatOffset)).rgb;
+  float tone = mix(1.0 - cc, cc, uShadeOn);                       // the shadows (0) or the lights (1) take the material
+  float shade = uShade * smoothstep(uShadeBand.x, uShadeBand.y, tone);
+  float w = clamp(e + shade, 0.0, 1.0);
+  vec2 a = texture(uAnchor, vTextureCoord).xy;
+  vec3 m = texture(uMatTexture, fract(vTextureCoord * uInputSize.xy / uPeriod + a)).rgb;
   m = mix(m, 1.0 - m, uInvert);   // TD Level → invert: a pale material draws DARK lines on the light theme
-  finalColor = vec4(m * e, e);   // premultiplied: the material where a contour is, nothing elsewhere
+  finalColor = vec4(m * w, w);
 }`;
+
+const ECHO_FRAG = `
+in vec2 vTextureCoord;
+out vec4 finalColor;
+uniform sampler2D uTexture;
+uniform sampler2D uFlow;
+uniform highp vec4 uInputSize;
+uniform vec4 uInputClamp;
+uniform float uMax;
+uniform float uFlowScale;
+void main() {
+  vec2 f = (texture(uFlow, vTextureCoord).xy - 0.5) * 2.0 * uMax * uFlowScale;
+  finalColor = texture(uTexture, clamp(vTextureCoord - f * uInputSize.zw, uInputClamp.xy, uInputClamp.zw));
+}`;
+
+const FLOW_RES = 0.25;   
+const FLOW_MAX = 6;      
 
 export async function createGraph(P, app, opts = {}) {
   const loadTex = opts.loadTex || ((url) => P.Assets.load(url));
   const out = new P.Container();                   
   const base = new P.Sprite(P.Texture.EMPTY); base.anchor.set(0.5);
   const drain = new P.ColorMatrixFilter();
-  const traced = new P.Sprite(P.Texture.EMPTY); traced.anchor.set(0.5);
+  const camSrc = new P.Sprite(P.Texture.EMPTY); camSrc.anchor.set(0.5);
   const white = P.Texture.WHITE.source;
-  const edge = P.Filter.from({ gl: { vertex: FILTER_VERT, fragment: EDGE_FRAG, name: "portal-edge" }, resources: {
-    edgeUniforms: {
-      uStrength: { value: 2, type: "f32" }, uStep: { value: 1, type: "f32" }, uFloor: { value: 0.15, type: "f32" },
-      uMatScale: { value: new P.Point(1 / 512, 1 / 512), type: "vec2<f32>" }, uMatOffset: { value: new P.Point(0, 0), type: "vec2<f32>" },
-      uInvert: { value: 0, type: "f32" },
-    },
-    uMatTexture: white, uMatSampler: white.style,
-  } });
-  traced.filters = [edge];
+  const mk = (frag, resources) => P.Filter.from({ gl: { vertex: FILTER_VERT, fragment: frag }, resources, resolution: "inherit" });
+  const f32 = (v) => ({ value: v, type: "f32" });
+  const v2 = (x, y) => ({ value: new P.Point(x, y), type: "vec2<f32>" });
+  const flowSpr = new P.Sprite(P.Texture.EMPTY);
+  const flow = mk(FLOW_FRAG, { flowU: { uMax: f32(FLOW_MAX) }, uPrevLuma: white, uPrevLumaSampler: white.style, uPrevFlow: white, uPrevFlowSampler: white.style });
+  flowSpr.filters = [flow];
+  const anchorSpr = new P.Sprite(P.Texture.EMPTY);
+  const anchor = mk(ANCHOR_FRAG, { anchorU: { uMax: f32(FLOW_MAX), uFlowScale: f32(4), uPeriod: f32(256), uDrift: v2(0, 0) }, uFlow: white, uFlowSampler: white.style });
+  anchorSpr.filters = [anchor];
+  const traced = new P.Sprite(P.Texture.EMPTY);
+  const trace = mk(TRACE_FRAG, {
+    traceU: { uStrength: f32(2), uStep: f32(1), uFloor: f32(0.15), uPeriod: f32(256), uInvert: f32(0), uShade: f32(0), uShadeOn: f32(0), uShadeBand: v2(0.35, 0.75) },
+    uMatTexture: white, uMatSampler: white.style, uAnchor: white, uAnchorSampler: white.style,
+  });
+  traced.filters = [trace];
   const loop = new P.Container();
   const echo = new P.Sprite(P.Texture.EMPTY); echo.anchor.set(0.5);
-  const fresh = new P.Sprite(P.Texture.EMPTY); fresh.anchor.set(0.5);
-  const field = new P.TilingSprite({ texture: P.Texture.EMPTY, width: 8, height: 8 }); field.renderable = false;
-  let ripple = null;
+  const echoF = mk(ECHO_FRAG, { echoU: { uMax: f32(FLOW_MAX), uFlowScale: f32(4) }, uFlow: white, uFlowSampler: white.style });
+  const fresh = new P.Sprite(P.Texture.EMPTY);
   loop.addChild(echo, fresh);
-  const view = new P.Sprite(P.Texture.EMPTY); view.anchor.set(0.5); view.blendMode = "add";
-  const twin = new P.Sprite(P.Texture.EMPTY); twin.anchor.set(0.5); twin.visible = false; twin.blendMode = "add";
-  const maskL = new P.Graphics(), maskR = new P.Graphics();
-  out.addChild(base, view, twin, field);
-  const textures = new Map();
-  let linesRT = null, rt = [null, null], flip = 0, size = { w: 0, h: 0, r: 1 }, mirror = false, preset = null, time = 0;
-  const scroll = { x: 0, y: 0 };
+  const view = new P.Sprite(P.Texture.EMPTY); view.blendMode = "add";
+  out.addChild(base, view);
+  const textures = new Map(), blank = new P.Container();
+  let rt = null, size = { w: 0, h: 0, r: 1 }, flip = 0, mirror = false, preset = null, time = 0, running = false;
+  const drift = { x: 0, y: 0 };
 
   const W = () => app.screen.width, H = () => app.screen.height;
   const ensure = () => {
     const w = W(), h = H(), r = Math.min(preset?.detail || 1, app.renderer.resolution);
-    if (size.w === w && size.h === h && size.r === r && rt[0]) return;
+    if (size.w === w && size.h === h && size.r === r && rt) return;
     size = { w, h, r };
-    rt.forEach((t) => t?.destroy(true)); linesRT?.destroy(true);
-    const mk = () => P.RenderTexture.create({ width: w, height: h, resolution: r });
-    rt = [mk(), mk()]; linesRT = mk();
-    field.width = w; field.height = h;
-    for (const s of [echo, fresh, view, twin]) s.position.set(w / 2, h / 2);
-    maskL.clear().rect(0, 0, w / 2, h).fill(0xffffff); maskR.clear().rect(w / 2, 0, w / 2, h).fill(0xffffff);
+    if (rt) for (const t of Object.values(rt).flat()) t.destroy(true);
+    const R = (res) => P.RenderTexture.create({ width: w, height: h, resolution: res });
+    rt = { cam: R(r), luma: [R(FLOW_RES), R(FLOW_RES)], flow: [R(FLOW_RES), R(FLOW_RES)], anchor: [R(r), R(r)], lines: R(r), loop: [R(r), R(r)] };
+    flip = 0; running = false;
+    for (const s of [flowSpr, anchorSpr, traced, fresh, view]) s.position.set(0, 0);
+    echo.position.set(w / 2, h / 2); echo.filters = [echoF];
+    const fs = r / FLOW_RES;   
+    anchor.resources.anchorU.uniforms.uFlowScale = fs; echoF.resources.echoU.uniforms.uFlowScale = fs;
     fitCam();
   };
   const fitCam = () => {
     const tw = base.texture.width, th = base.texture.height, w = W(), h = H();
     if (!(tw > 1 && th > 1)) return;
     const k = Math.max(w / tw, h / th);
-    for (const s of [base, traced]) { s.scale.set(k * (mirror ? -1 : 1), k); s.position.set(w / 2, h / 2); }
+    for (const s of [base, camSrc]) { s.scale.set(k * (mirror ? -1 : 1), k); s.position.set(w / 2, h / 2); }
   };
   const tex = async (name) => {
     if (!name) return null;
     if (!textures.has(name)) textures.set(name, loadTex(name));
     return textures.get(name);
   };
+  const bind = (filter, name, src) => { filter.resources[name] = src; filter.resources[`${name}Sampler`] = src.style; };
+  const period = (p, src) => Math.max(8, src.width * (p.lines?.scale || 0.25));
 
   return {
     out,
     /** The picture: a video or still texture, mirrored for the front camera. */
-    setSource(texture, mirrored) { base.texture = texture; traced.texture = texture; mirror = !!mirrored; fitCam(); },
-    /** Apply a preset's graph (`tex`, `edge`, `lines`, `echo`, `base`, `mirror`) — the post chain is the caller's. */
+    setSource(texture, mirrored) { base.texture = texture; camSrc.texture = texture; mirror = !!mirrored; fitCam(); },
+    /** Apply a preset's graph (`tex`, `edge`, `lines`, `shade`, `echo`, `base`) — the post chain is the caller's. */
     async setPreset(p, textureUrlOf) {
       preset = p;
       const t = p.tex ? await tex(textureUrlOf(p.tex)) : null;
       if (preset !== p) return;   
-      const u = edge.resources.edgeUniforms.uniforms;
+      const src = t ? t.source : white, per = period(p, src);
+      const u = trace.resources.traceU.uniforms;
       u.uStrength = p.edge?.strength ?? 2; u.uStep = p.edge?.step ?? 1; u.uFloor = p.edge?.floor ?? 0.15;
-      const src = t ? t.source : white, sc = p.lines?.scale || 1;
-      edge.resources.uMatTexture = src; edge.resources.uMatSampler = src.style;
-      u.uMatScale.set(1 / (src.width * sc), 1 / (src.height * sc));
-      u.uInvert = p.lines?.invert ? 1 : 0;
-      fresh.alpha = p.lines?.alpha ?? 0.6;
-      const amt = p.lines?.ripple || 0;
-      if (amt && t) {
-        field.texture = t;
-        if (!ripple) ripple = new P.DisplacementFilter({ sprite: field, scale: amt });
-        else ripple.scale.set(amt, amt);
-        fresh.filters = [ripple];
-      } else fresh.filters = null;
+      u.uPeriod = per; u.uInvert = p.lines?.invert ? 1 : 0;
+      u.uShade = p.shade?.amount ?? 0; u.uShadeOn = p.shade?.on === "light" ? 1 : 0;
+      u.uShadeBand.set(p.shade?.band?.[0] ?? 0.35, p.shade?.band?.[1] ?? 0.75);
+      bind(trace, "uMatTexture", src);
+      anchor.resources.anchorU.uniforms.uPeriod = per;
+      fresh.alpha = p.lines?.alpha ?? 0.7;
       echo.visible = !!p.echo;
       base.tint = p.base?.dim != null ? Math.round(p.base.dim * 255) * 0x010101 : (p.base?.tint ?? 0xffffff);
       drain.reset(); if (p.base?.sat) drain.saturate(p.base.sat, false);
       base.filters = p.base?.sat ? [drain] : null;
-      view.blendMode = twin.blendMode = p.lines?.blend || "add";
-      twin.visible = !!p.mirror;
-      if (p.mirror) { if (!maskL.parent) out.addChild(maskL, maskR); twin.scale.set(-1, 1); }
-      else if (maskL.parent) out.removeChild(maskL, maskR);
-      view.mask = p.mirror ? maskR : null; twin.mask = p.mirror ? maskL : null;
+      view.blendMode = p.lines?.blend || "add";
+      running = false;   
     },
-    /** One frame: scroll the fields, trace, loop, show. */
+    /** One frame: copy, flow, anchor, trace, echo, loop, show. */
     tick(dt) {
       ensure();
-      const p = preset; if (!p) return;
+      const p = preset; if (!p || !(base.texture.width > 1)) return;
       time += dt;
-      const u = edge.resources.edgeUniforms.uniforms;
-      const k = p.lines?.tempo ?? 1;
-      const sp = p.lines?.speed; if (sp) { scroll.x += sp[0] * k * dt; scroll.y += sp[1] * k * dt; u.uMatOffset.set(scroll.x * u.uMatScale.x, scroll.y * u.uMatScale.y); }
-      const fs = p.lines?.fieldSpeed; if (fs) { field.tilePosition.x += fs[0] * k * dt; field.tilePosition.y += fs[1] * k * dt; }
-      if (p.lines?.breathe) fresh.alpha = (p.lines.alpha ?? 0.6) * (1 + p.lines.breathe * Math.sin(time * (p.lines.rate || 0.8)));
-      app.renderer.render({ container: traced, target: linesRT, clear: true });
-      fresh.texture = linesRT;
+      const R = rt, cur = flip, prev = 1 - flip, render = (container, target, clearColor) => app.renderer.render({ container, target, clear: true, clearColor });
+      render(camSrc, R.cam); render(camSrc, R.luma[cur]);
+      if (!running) {   
+        render(camSrc, R.luma[prev]);
+        render(blank, R.flow[prev], [0.5, 0.5, 0, 1]); render(blank, R.anchor[prev], [0, 0, 0, 1]); render(blank, R.loop[prev], [0, 0, 0, 0]);
+        running = true;
+      }
+      flowSpr.texture = R.luma[cur]; bind(flow, "uPrevLuma", R.luma[prev].source); bind(flow, "uPrevFlow", R.flow[prev].source);
+      render(flowSpr, R.flow[cur]);
+      const k = p.lines?.tempo ?? 1, sp = p.lines?.speed || [0, 0], per = anchor.resources.anchorU.uniforms.uPeriod;
+      drift.x = sp[0] * k * dt / per; drift.y = sp[1] * k * dt / per;
+      anchor.resources.anchorU.uniforms.uDrift.set(drift.x, drift.y);
+      anchorSpr.texture = R.anchor[prev]; bind(anchor, "uFlow", R.flow[cur].source);
+      render(anchorSpr, R.anchor[cur]);
+      traced.texture = R.cam; bind(trace, "uAnchor", R.anchor[cur].source);
+      if (p.lines?.breathe) fresh.alpha = (p.lines.alpha ?? 0.7) * (1 + p.lines.breathe * Math.sin(time * (p.lines.rate || 0.8)));
+      render(traced, R.lines);
+      fresh.texture = R.lines;
       if (p.echo) {
-        echo.texture = rt[1 - flip];
+        echo.texture = R.loop[prev]; bind(echoF, "uFlow", R.flow[cur].source);
         echo.alpha = p.echo.decay ?? 0.9;
         const z = p.echo.zoom ?? 1; echo.scale.set(z, z);
         echo.rotation = p.echo.rot ?? 0;
       }
-      app.renderer.render({ container: loop, target: rt[flip], clear: true });
-      view.texture = rt[flip]; twin.texture = rt[flip];
-      flip = 1 - flip;
+      render(loop, R.loop[cur]);
+      view.texture = R.loop[cur];
+      flip = prev;
     },
     destroy() {
-      rt.forEach((t) => t?.destroy(true)); linesRT?.destroy(true);
-      out.destroy({ children: true }); traced.destroy(); loop.destroy({ children: true });
+      if (rt) for (const t of Object.values(rt).flat()) t.destroy(true);
+      out.destroy({ children: true }); loop.destroy({ children: true });
+      for (const s of [camSrc, flowSpr, anchorSpr, traced]) s.destroy();
     },
   };
 }
