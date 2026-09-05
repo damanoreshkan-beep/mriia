@@ -6,6 +6,7 @@ import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { Island, Stage, Sheet } from "/_rt/ui.js";
 import { CamStage } from "/_rt/camstage.js";
+import { GodotStage, godotAvailable, godotSave } from "/_rt/godotstage.js";
 import { downloadUrl } from "/_rt/apk.js";
 import { PRESETS, IDS, KNOBS, tuned, knobValue, buildChain } from "./presets.js";
 import { createGraph } from "./graph.js";
@@ -15,6 +16,7 @@ const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 const thumb = (id) => new URL(`assets/style-${id}.webp`, import.meta.url).href;
 const texUrl = (id) => new URL(`assets/tex-${id}.webp`, import.meta.url).href;
 const mockURL = new URL("assets/mock.webp", import.meta.url).href;
+const packURL = new URL("assets/portal.pck", import.meta.url).href;   
 const KEY = "portal:preset";
 const TUNE = (id) => `portal:tune:${id}`;
 const docMaterial = () => document.documentElement.getAttribute("data-material") || "lum";
@@ -31,6 +33,7 @@ const fmt = (v, step) => (step >= 1 ? String(Math.round(v)) : v.toFixed(step >= 
 
 export function portal({ S, toast, screen, closeScreen }) {
   const t = useStore(S.t), loc = useStore(S.locale);
+  const engine = godotAvailable();                
   const [ready, setReady] = useState(false);      
   const [caps, setCaps] = useState(null);         
   const [torch, setTorch] = useState(false);
@@ -39,6 +42,7 @@ export function portal({ S, toast, screen, closeScreen }) {
   const [facing, setFacing] = useState("environment");
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(() => loadTune(firstPreset()));   
+  const [fps, setFps] = useState(0);              
   const canvasRef = useRef();
   const px = useRef({ P: null, F: null, app: null, graph: null, filters: [], source: null, pending: null }).current;
 
@@ -59,16 +63,15 @@ export function portal({ S, toast, screen, closeScreen }) {
     px.filters = buildChain(F, id, lite, o);
     graph.out.filters = px.filters.length ? px.filters : null;
   };
-  useEffect(() => { apply(); }, [preset, light, ready, over]);
+  useEffect(() => { if (!engine) apply(); }, [preset, light, ready, over]);
   const onVideo = (el, { mirror }) => {
     px.pending = el ? { el, mirror } : null;
     const { graph, P } = px; if (!graph || !P) return;
     if (el) { px.source = P.Texture.from(el); graph.setSource(px.source, mirror); setReady(true); }
     else setReady(false);
   };
-
   useEffect(() => {
-    if (!hasGL() || !canvasRef.current) return;
+    if (engine || !hasGL() || !canvasRef.current) return;
     let alive = true;
     (async () => {
       let P, F;
@@ -87,21 +90,31 @@ export function portal({ S, toast, screen, closeScreen }) {
       if (px.pending) onVideo(px.pending.el, px.pending);   
     })();
     return () => { alive = false; try { px.graph?.destroy(); px.app?.destroy(); } catch {  } px.app = null; px.graph = null; };
-  }, []);
+  }, [engine]);
+
+  const params = { facing, preset, light, knobs: over, mark: gate };
+  const onEngineState = (f) => {
+    if (f.state === "running") { setReady(true); if (typeof f.fps === "number") setFps(Math.round(f.fps)); }
+    else if (f.state === "stopped" || f.state === "failed") { setReady(false); if (f.state === "failed") toast?.(T(t, "eEngine")); }
+  };
 
   const pick = (id) => { setPreset(id); setOver(loadTune(id)); try { localStorage.setItem(KEY, id); } catch {  } };
   const turn = (path, v) => { const o = { ...overRef.current, [path]: v }; setOver(o); saveTune(preset, o); };
   const resetTune = () => { setOver({}); saveTune(preset, {}); };
   const flip = () => { setTorch(false); setFacing((f) => f === "user" ? "environment" : "user"); };
   const save = async () => {
-    const { app, graph } = px; if (!app || !graph || busy) return;
+    if (busy || !ready) return;
     setBusy(true);
     try {
-      const c = app.renderer.extract.canvas(app.stage);
-      const blob = await new Promise((r) => c.toBlob(r, "image/png"));
-      if (!blob) throw new Error("no frame");
-      const url = URL.createObjectURL(blob);
-      try { await downloadUrl(url, `portal-${preset}-${Date.now()}.png`); toast?.(T(t, "saved")); } finally { URL.revokeObjectURL(url); }
+      if (engine) { await godotSave(`portal-${preset}-${Date.now()}.png`); }
+      else {
+        const { app } = px; if (!app) throw new Error("no stage");
+        const c = app.renderer.extract.canvas(app.stage);
+        const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+        if (!blob) throw new Error("no frame");
+        const url = URL.createObjectURL(blob);
+        try { await downloadUrl(url, `portal-${preset}-${Date.now()}.png`); toast?.(T(t, "saved")); } finally { URL.revokeObjectURL(url); }
+      }
     } catch { toast?.(T(t, "eSave")); }
     finally { setBusy(false); }
   };
@@ -109,17 +122,21 @@ export function portal({ S, toast, screen, closeScreen }) {
   const knobs = KNOBS[preset] || KNOBS.plain;
   return html`<${Fragment}>
     <style>${CSS}</style>
-    <div data-live="1" data-preset=${preset} data-mode=${light ? "light" : "dark"} data-facing=${facing} data-tuned=${Object.keys(over).length ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
+    <div data-live="1" data-preset=${preset} data-mode=${light ? "light" : "dark"} data-facing=${facing} data-stage=${engine ? "godot" : "web"} data-tuned=${Object.keys(over).length ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
       <${Stage}>
-        <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} facing=${facing} torch=${torch} still=${gate ? mockURL : null}
-          onVideo=${onVideo} onState=${(s) => setCaps(s.caps)}>
-          <canvas ref=${canvasRef} data-portal aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
-          <div aria-hidden="true" class="pt-scrim fixed inset-x-0 top-0 z-[1] pointer-events-none"></div>
-        <//>
+        ${engine
+          ? html`<${GodotStage} pack=${packURL} params=${params} onState=${onEngineState}>
+              <div aria-hidden="true" class="pt-scrim fixed inset-x-0 top-0 z-[1] pointer-events-none"></div>
+              ${fps ? html`<span data-fps class="absolute left-3 top-[calc(var(--hdr-h,3.5rem)+0.25rem)] z-[2] font-mono text-[length:var(--ms-label)] text-muted tabular-nums pointer-events-none">${fps} fps</span>` : null}
+            <//>`
+          : html`<${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} facing=${facing} torch=${torch} still=${gate ? mockURL : null}
+              onVideo=${onVideo} onState=${(s) => setCaps(s.caps)}>
+              <canvas ref=${canvasRef} data-portal aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
+              <div aria-hidden="true" class="pt-scrim fixed inset-x-0 top-0 z-[1] pointer-events-none"></div>
+            <//>`}
       <//>
       <div class="shrink-0 relative z-[2]">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
-        
         <div data-strip role="group" aria-label=${T(t, "material")} class="overflow-x-auto flex items-start gap-1 -mx-1 px-1">
           ${IDS.map((id) => { const p = PRESETS[id], active = preset === id; return html`<button key=${id} data-mat=${id} aria-pressed=${active} aria-label=${T(t, p.key)}
               class="shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => pick(id)}>
@@ -128,7 +145,6 @@ export function portal({ S, toast, screen, closeScreen }) {
             <span class=${`font-mono uppercase tracking-wide text-[0.58rem] leading-none truncate max-w-full ${active ? "text-base-content" : "text-base-content/70"}`}>${T(t, p.key)}</span>
           </button>`; })}
         </div>
-        
         <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 min-h-[3.9rem]">
           <div class="flex items-center justify-start gap-1">
             <button data-tune class=${`${tool} ${Object.keys(over).length ? "text-[var(--app-accent)]" : ""}`} aria-label=${T(t, "tune")} title=${T(t, "tune")} onClick=${() => S.screen.set("tune")}>${Icon("lucide:sliders-horizontal", "text-lg")}</button>
