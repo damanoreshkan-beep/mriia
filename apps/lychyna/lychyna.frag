@@ -23,11 +23,11 @@ vec2 cover(vec2 uv){
 vec3 pick(vec2 p){ return texture(cam, clamp(p, 0.0, 1.0)).rgb; }
 float lum(vec2 p){ return luma(pick(p)); }
 float lumS(vec2 p, vec2 r){ return (lum(p)*2.0 + lum(p+vec2(r.x,0)) + lum(p-vec2(r.x,0)) + lum(p+vec2(0,r.y)) + lum(p-vec2(0,r.y)))/6.0; }
-vec2 sobel(vec2 p, vec2 t){
-  vec2 h = t*0.5;
-  float l00=lumS(p+t*vec2(-1,-1),h), l10=lumS(p+t*vec2(0,-1),h), l20=lumS(p+t*vec2(1,-1),h);
-  float l01=lumS(p+t*vec2(-1, 0),h),                            l21=lumS(p+t*vec2(1, 0),h);
-  float l02=lumS(p+t*vec2(-1, 1),h), l12=lumS(p+t*vec2(0, 1),h), l22=lumS(p+t*vec2(1, 1),h);
+vec2 sobel(vec2 p, vec2 t, vec2 h){
+  p += h;
+  float l00=lum(p+t*vec2(-1,-1)), l10=lum(p+t*vec2(0,-1)), l20=lum(p+t*vec2(1,-1));
+  float l01=lum(p+t*vec2(-1, 0)),                          l21=lum(p+t*vec2(1, 0));
+  float l02=lum(p+t*vec2(-1, 1)), l12=lum(p+t*vec2(0, 1)), l22=lum(p+t*vec2(1, 1));
   return vec2((l20+2.0*l21+l22)-(l00+2.0*l01+l02), (l02+2.0*l12+l22)-(l00+2.0*l10+l20));
 }
 vec2 camAt(vec2 frag){ vec2 uv = frag/res; uv.y = 1.0 - uv.y; return cover(uv); }
@@ -48,12 +48,11 @@ void main(){
   vec3 c = pick(p); float l = luma(c);
   vec2 ts = vec2(textureSize(cam, 0));
   vec2 tx = 3.0/ts, tw = 8.0/ts;
-  float meanL = 0.0;
-  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) meanL += lumS(vec2(0.2 + 0.3*float(i), 0.2 + 0.3*float(j)), tw);
-  float gain = clamp(0.42/max(meanL/9.0, 0.02), 1.0, 2.8);
+  float gain = max(ink.w, 1.0);
   float ls = clamp(lumS(p, tx)*gain, 0.0, 1.0);
-  vec2 g = sobel(p, tx); float e = length(g);
-  vec2 gW = sobel(p, tw); float eW = length(gW);
+  vec2 hf = 0.5/ts;
+  vec2 g = sobel(p, tx, hf); float e = length(g);
+  vec2 gW = sobel(p, tw, hf); float eW = length(gW);
   float rad = length((uv-0.5)*vec2(asp, 1.0));
 
   if (m == 0) {
@@ -119,7 +118,7 @@ void main(){
     float ang = atan(gW.y, gW.x);
     float trace = smoothstep(0.16, 0.42, eW) * (0.3 + 0.7*smoothstep(0.5, 1.0, abs(cos(ang*4.0))));
     vec2 cellP = camAt((floor(gq) + 0.5)*G);
-    float busy = length(sobel(cellP, tw));
+    float busy = length(sobel(cellP, tw, hf));
     float pad = smoothstep(0.13, 0.09, length(gf - 0.5)) * smoothstep(0.10, 0.25, busy) * step(0.35, lumS(cellP, tx));
     vec3 gold = vec3(0.92, 0.76, 0.36);
     col = vec3(0.02, 0.03, 0.025) + grid + ls*0.10*vec3(0.9, 0.55, 0.25) + gold*(trace*0.95 + pad*0.9);
