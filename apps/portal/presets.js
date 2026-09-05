@@ -36,7 +36,6 @@ export const PRESETS = {
     lines: { alpha: 0.8, speed: [50, 30], scale: 1.2, ripple: 14, fieldSpeed: [30, 20] },
     echo: { decay: 0.85, zoom: 1, rot: 0 },
     base: { tint: 0x404040, sat: -0.9 },
-    mirror: "x",
     chain: [
       ["ReflectionFilter", { mirror: false, boundary: 0.5, amplitude: [0, 6], waveLength: [30, 110], alpha: [1, 1] }],
       ["AdvancedBloomFilter", { threshold: 0.4, bloomScale: 0.8, brightness: 1, blur: 6, quality: 4 }, { threshold: 0.65, bloomScale: 0.4 }],
@@ -66,7 +65,6 @@ export const PRESETS = {
     lines: { alpha: 0.8, speed: [80, 0], scale: 1.1, ripple: 4, fieldSpeed: [40, 0] },
     echo: { decay: 0.8, zoom: 1, rot: 0 },
     base: { tint: 0x2a2a2a, sat: -0.8 },
-    mirror: "x",
     chain: [
       ["CRTFilter", { curvature: 0, lineWidth: 1.5, lineContrast: 0.25, noise: 0.04, noiseSize: 1, vignetting: 0.35, vignettingAlpha: 0.6 }, { lineContrast: 0.15, vignetting: 0.2 }],
       ["ColorOverlayFilter", { color: 0xE5C15A, alpha: 0.1 }, { color: 0x6E4F00, alpha: 0.08 }],
@@ -86,7 +84,6 @@ export const PRESETS = {
     lines: { alpha: 0.9, speed: [25, 25], scale: 1.2, ripple: 18, fieldSpeed: [30, 30], breathe: 0.3, rate: 0.8 },
     echo: { decay: 0.9, zoom: 1.03, rot: 0 },
     base: { tint: 0x585858, sat: -0.8 },
-    mirror: "x",
     chain: [
       ["AdjustmentFilter", { contrast: 1.2, brightness: 1 }, { contrast: 1.1 }],
       ["BulgePinchFilter", { radius: 0.6, strength: 0.25 }, { strength: 0.15 }],
