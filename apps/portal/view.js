@@ -8,11 +8,13 @@ import { Island, Stage } from "/_rt/ui.js";
 import { camera, wakeLock } from "/_rt/sensors.js";
 import { CameraPrime } from "/_rt/camprime.js";
 import { downloadUrl } from "/_rt/apk.js";
-import { PRESETS, IDS, buildChain } from "./presets.js";
+import { PRESETS, IDS, graphOf, buildChain } from "./presets.js";
+import { createGraph } from "./graph.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 const thumb = (id) => new URL(`assets/style-${id}.webp`, import.meta.url).href;
+const texUrl = (id) => new URL(`assets/tex-${id}.webp`, import.meta.url).href;
 const mockURL = new URL("assets/mock.webp", import.meta.url).href;
 const KEY = "portal:preset";
 const docMaterial = () => document.documentElement.getAttribute("data-material") || "lum";
@@ -33,7 +35,7 @@ export function portal({ S, toast }) {
   const [facing, setFacing] = useState("environment");
   const [busy, setBusy] = useState(false);
   const canvasRef = useRef(), videoRef = useRef();
-  const px = useRef({ P: null, F: null, app: null, sprite: null, filters: [], mirror: false, W: 0, H: 0 }).current;
+  const px = useRef({ P: null, F: null, app: null, graph: null, filters: [], source: null }).current;
   const on = enabled && !err;
 
   useEffect(() => {
@@ -42,26 +44,18 @@ export function portal({ S, toast }) {
     return () => mo.disconnect();
   }, []);
 
-  const fit = () => {
-    const { app, sprite } = px; if (!app || !sprite) return;
-    const W = app.screen.width, H = app.screen.height, tw = sprite.texture.width, th = sprite.texture.height;
-    if (!(tw > 0 && th > 0)) return;
-    const k = Math.max(W / tw, H / th);
-    sprite.scale.set(k * (px.mirror ? -1 : 1), k);
-    sprite.position.set(W / 2, H / 2);
-    px.W = W; px.H = H;
-  };
-  const mount = (texture) => {
-    const { app, P } = px; if (!app) return;
-    if (px.sprite) { app.stage.removeChild(px.sprite); px.sprite.destroy({ texture: true, textureSource: true }); px.sprite = null; }
-    const s = new P.Sprite(texture); s.anchor.set(0.5);
-    px.sprite = s; app.stage.addChild(s); px.W = 0;
-    fit(); apply(); setReady(true);
-  };
-  const apply = () => { if (!px.sprite || !px.F) return; px.filters = buildChain(px.F, presetRef.current, lightRef.current); px.sprite.filters = px.filters; };
   const presetRef = useRef(preset); presetRef.current = preset;
   const lightRef = useRef(light); lightRef.current = light;
+  const apply = async () => {
+    const { graph, F } = px; if (!graph || !F) return;
+    const id = presetRef.current, lite = lightRef.current;
+    await graph.setPreset(graphOf(id, lite), texUrl);
+    if (presetRef.current !== id || lightRef.current !== lite) return;
+    px.filters = buildChain(F, id, lite);
+    graph.out.filters = px.filters.length ? px.filters : null;
+  };
   useEffect(() => { apply(); }, [preset, light, ready]);
+  const mount = (texture, mirror) => { const { graph } = px; if (!graph) return; px.source = texture; graph.setSource(texture, mirror); setReady(true); };
 
   useEffect(() => {
     if (!hasGL() || !canvasRef.current) return;
@@ -74,13 +68,16 @@ export function portal({ S, toast }) {
       const app = new P.Application();
       await app.init({ canvas: canvasRef.current, resizeTo: globalThis, resolution: Math.min(2, globalThis.devicePixelRatio || 1), autoDensity: true, preference: "webgl", antialias: false, backgroundAlpha: 1, background: 0x000000 });
       if (!alive) { app.destroy(); return; }
-      px.P = P; px.F = F; px.app = app;
+      const graph = await createGraph(P, app);
+      if (!alive) { graph.destroy(); app.destroy(); return; }
+      app.stage.addChild(graph.out);
+      px.P = P; px.F = F; px.app = app; px.graph = graph;
       canvasRef.current.dataset.render = "pixi";
-      app.ticker.add((tk) => { const dt = tk.deltaMS / 1000; for (const f of px.filters) if (typeof f.time === "number") f.time += dt; fit(); });
-      if (gate) { const tex = await P.Assets.load(mockURL); if (alive) mount(tex); }
-      else if (videoRef.current && videoRef.current.readyState >= 2) mount(P.Texture.from(videoRef.current));
+      app.ticker.add((tk) => { const dt = tk.deltaMS / 1000; for (const f of px.filters) if (typeof f.time === "number") f.time += dt; graph.tick(dt); });
+      if (gate) { const tex = await P.Assets.load(mockURL); if (alive) mount(tex, false); }
+      else if (videoRef.current && videoRef.current.readyState >= 2) mount(P.Texture.from(videoRef.current), facing === "user");
     })();
-    return () => { alive = false; try { px.app?.destroy(); } catch {  } px.app = null; px.sprite = null; };
+    return () => { alive = false; try { px.graph?.destroy(); px.app?.destroy(); } catch {  } px.app = null; px.graph = null; };
   }, []);
 
   useEffect(() => {
@@ -90,7 +87,7 @@ export function portal({ S, toast }) {
     setReady(false);
     const wl = wakeLock.acquire();
     const v = videoRef.current;
-    const onPlaying = () => { if (!alive || !px.P) return; px.mirror = facing === "user"; mount(px.P.Texture.from(v)); };
+    const onPlaying = () => { if (!alive || !px.P) return; mount(px.P.Texture.from(v), facing === "user"); };
     v?.addEventListener("playing", onPlaying);
     camera.start(v, (e) => { if (alive) setErr(e); }, { facingMode: facing }).then((s) => { if (alive) stop = s; else s(); });
     return () => { alive = false; v?.removeEventListener("playing", onPlaying); stop(); wl?.release?.(); };
@@ -98,7 +95,7 @@ export function portal({ S, toast }) {
 
   const pick = (id) => { setPreset(id); try { localStorage.setItem(KEY, id); } catch {  } };
   const save = async () => {
-    const { app, sprite } = px; if (!app || !sprite || busy) return;
+    const { app, graph } = px; if (!app || !graph || busy) return;
     setBusy(true);
     try {
       const c = app.renderer.extract.canvas(app.stage);
