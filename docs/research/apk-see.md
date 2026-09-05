@@ -1,5 +1,9 @@
 
-(`libxi1` → `libxi6`, виправлено), далі не йшло. Усе нижче — план і виміри, не факт роботи.
+(`--build | --up | --down | <app> [--power godot] [--wait ms] [--tap x,y] | --lab <apk>`), бут ~1:40 під
+вкладеним KVM, гість онлайн після `cmd wifi connect-network AndroidWifi open` (у `--up`). **Перший улов — за
+хвилину після мережі**: причина крашу порталу на S25 (`--main-pack` заборонений бібліотекою Godot без
+`disable_path_overrides=no`), далі три помилки в нашому GDScript/Java і кеш паку без валідації. Нижче — план
+(виконано пп. 1–3), виміри й лабораторія.
 
 ## Навіщо
 see-под для APK: збірка через `/feed/apk` → `adb install` → запуск → `screencap` + `logcat` + вердикт.
