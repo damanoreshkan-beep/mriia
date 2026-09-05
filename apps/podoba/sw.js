@@ -1,6 +1,6 @@
 self.MS = {
-  app: "lychyna",
-  version: "7cd17b7f0c",
+  app: "podoba",
+  version: "c7d03127ed",
   precache: [
     "./",
     "./i18n/en.json",
@@ -8,8 +8,8 @@ self.MS = {
     "./icon.svg",
     "./icons/apple-touch-icon.png",
     "./index.html",
-    "./lychyna.frag",
     "./manifest.json",
+    "./podoba.frag",
     "./spec.json",
     "./state.js",
     "./view.js",

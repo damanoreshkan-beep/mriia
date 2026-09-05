@@ -11,7 +11,7 @@ import { STYLES, styleOf } from "/_rt/styles.js";
 
 const EDIT = `${VPS_PROXY}/image/edit`;
 const UPSCALE = `${VPS_PROXY}/image/upscale`;
-const MAT_KEY = "lychyna:mat";
+const MAT_KEY = "podoba:mat";
 const savedMat = () => { try { const m = localStorage.getItem(MAT_KEY); return STYLES.some((s) => s.id === m) ? m : "lum"; } catch { return "lum"; } };
 /** The gate's camera: a still of our own (assets/mock.webp) — the shot, the store's captures, the keeper's stand-in. */
 export const mockURL = new URL("assets/mock.webp", import.meta.url).href;
@@ -48,7 +48,7 @@ export async function shoot(frame, ctx) {
   if (frame.length > 9_000_000) return fail(r, "eBig");
   notifyAsk();
   const block = styleOf(st.mat)?.block || STYLES[0].block;
-  const prompt = `edit this photo, keep the same scene with every object, person, pose, framing and composition exactly as photographed and clearly recognisable; change only the surface material and the rendering, rich in detail and saturated: ${block}`;
+  const prompt = `the same photograph reimagined, ${block}, the photograph's own scene and objects kept`;
   jobBase = EDIT;
   try { job = await startJob(EDIT, { image: frame, prompt, seed, k: 1 }); }
   catch (e) { return fail(r, e.code || "eNetwork"); }
@@ -61,7 +61,7 @@ export async function shoot(frame, ctx) {
   const size = await sizeOf(res.blob);   
   if (r !== run) { revoke(res.url); return; }
   patch({ phase: "done", out: { url: res.url, w: size?.w || 0, h: size?.h || 0, by: res.by, ext: extOf(res.blob) }, live: null });
-  if (document.visibilityState === "hidden") notify({ id: "lychyna-done", title: T(ctx.t, "title"), body: T(ctx.t, "notifDone"), url: "./" }).catch(() => {});
+  if (document.visibilityState === "hidden") notify({ id: "podoba-done", title: T(ctx.t, "title"), body: T(ctx.t, "notifDone"), url: "./" }).catch(() => {});
 }
 
 function fail(r, code) {
