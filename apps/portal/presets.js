@@ -97,7 +97,7 @@ export const PRESETS = {
 };
 export const IDS = Object.keys(PRESETS);
 
-const K = (id, path, min, max, step = 0.01) => ({ id, path, min, max, step });
+const K = (id, path, min, max, step = 0.01, def) => ({ id, path, min, max, step, def });
 const C = {
   intensity: K("kIntensity", "lines.alpha", 0, 1, 0.01),
   sharp: K("kSharp", "edge.strength", 0.5, 6, 0.1),
@@ -112,6 +112,12 @@ const C = {
   detail: K("kDetail", "detail", 1, 2, 0.5),
 };
 const GLOW = (i) => K("kGlow", `chain.${i}.bloomScale`, 0, 2, 0.05);
+export const ENGINE_KNOBS = [
+  K("kLook", "look.amount", 0, 1, 0.05, 1),
+  K("kLife", "motion.lift", 0, 6, 0.1, 2.5),
+  K("kWind", "echo.warp", 0, 20, 0.5, 4),
+  K("kShimmer", "lines.shimmer", 0, 1, 0.05, 0.15),
+];
 export const KNOBS = {
   lum: [C.intensity, C.hatch, C.grain, C.sharp, C.tempo, C.trail, GLOW(0), C.sat, C.ground, C.detail],
   paper: [C.intensity, C.hatch, C.grain, C.sharp, C.floor, C.trail, C.ground, C.detail],
@@ -162,6 +168,7 @@ export function knobValue(id, light, over, knob) {
   if (knob.path === "base.sat") return g.base?.sat ?? 0;
   if (knob.path === "lines.tempo") return g.lines?.tempo ?? 1;
   if (knob.path === "detail") return g.detail ?? 1;
+  if (knob.def !== undefined) return getPath(g, knob.path) ?? knob.def;
   return getPath(g, knob.path) ?? knob.min;
 }
 

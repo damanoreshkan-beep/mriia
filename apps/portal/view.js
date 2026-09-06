@@ -9,7 +9,7 @@ import { CamStage } from "/_rt/camstage.js";
 import { GodotStage, godotAvailable, godotSave } from "/_rt/godotstage.js";
 import { downloadUrl } from "/_rt/apk.js";
 import { report } from "/_rt/telemetry.js";
-import { PRESETS, IDS, KNOBS, tuned, knobValue, buildChain } from "./presets.js";
+import { PRESETS, IDS, KNOBS, ENGINE_KNOBS, tuned, knobValue, buildChain } from "./presets.js";
 import { createGraph } from "./graph.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -95,8 +95,11 @@ export function portal({ S, toast, screen, closeScreen }) {
 
   const params = { facing, preset, light, knobs: over, mark: gate };
   const onEngineState = (f) => {
-    if (f.state === "running") { setReady(true); if (typeof f.fps === "number") setFps(Math.round(f.fps)); }
-    else if (f.state === "stopped" || f.state === "failed") {
+    if (f.state === "running") {
+      setReady(true);
+      if (typeof f.fps === "number") setFps(Math.round(f.fps));
+      if (typeof f.detail === "string" && /^(camera|saved|save:)/.test(f.detail)) report("engine.note", { detail: f.detail });
+    } else if (f.state === "stopped" || f.state === "failed") {
       setReady(false);
       if (f.state === "failed") { report("engine.fail", { detail: f.detail || "" }); toast?.(T(t, "eEngine")); }
     }
@@ -123,7 +126,7 @@ export function portal({ S, toast, screen, closeScreen }) {
     finally { setBusy(false); }
   };
 
-  const knobs = KNOBS[preset] || KNOBS.plain;
+  const knobs = [...(KNOBS[preset] || KNOBS.plain), ...(engine ? ENGINE_KNOBS : [])];   
   return html`<${Fragment}>
     <style>${CSS}</style>
     <div data-live="1" data-preset=${preset} data-mode=${light ? "light" : "dark"} data-facing=${facing} data-stage=${engine ? "godot" : "web"} data-tuned=${Object.keys(over).length ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
