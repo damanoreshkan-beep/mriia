@@ -1,5 +1,5 @@
 
-const hud = '[data-swarm] [data-live]';
+const hud = '[data-swarm] [data-readout]';
 const num = (h, name) => h.attr(hud, `data-${name}`).then((v) => +v || 0);
 
 async function until(h, fn, ms = 12000, step = 250) {

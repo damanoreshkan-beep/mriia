@@ -1,6 +1,6 @@
 self.MS = {
   app: "flux",
-  version: "7b06284df0",
+  version: "df12b318b2",
   precache: [
     "./",
     "./i18n/en.json",
@@ -19,6 +19,7 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/camprime.js",
+    "/_rt/camstage.js",
     "/_rt/db.js",
     "/_rt/decor.css",
     "/_rt/enrich.js",

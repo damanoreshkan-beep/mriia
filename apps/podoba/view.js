@@ -6,8 +6,7 @@ import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { GlStage } from "/_rt/glstage.js";
 import { Island, Stage } from "/_rt/ui.js";
-import { camera, wakeLock } from "/_rt/sensors.js";
-import { CameraPrime } from "/_rt/camprime.js";
+import { CamStage } from "/_rt/camstage.js";
 import { MAX_SIDE } from "/_rt/intake.js";
 import { downloadUrl, shareFile } from "/_rt/apk.js";
 import { STYLES, styleIndex } from "/_rt/styles.js";
@@ -25,47 +24,21 @@ const CSS = `.ly-in{animation:lyIn 1.2s ease-out both}@keyframes lyIn{from{opaci
 .ly-scrim{height:calc(var(--hdr-h,3.5rem) * 1.9);background:linear-gradient(to bottom,light-dark(rgba(246,244,238,.72),rgba(0,0,0,.62)) 0%,light-dark(rgba(246,244,238,.36),rgba(0,0,0,.32)) 35%,light-dark(rgba(246,244,238,.08),rgba(0,0,0,.07)) 75%,transparent 100%)}
 .ly-scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--app-accent),transparent);box-shadow:0 0 18px 4px color-mix(in oklch,var(--app-accent) 55%,transparent);animation:lyScan 2.6s ease-in-out infinite}
 @keyframes lyScan{0%{top:2%}50%{top:98%}100%{top:2%}}
-.ly-focus{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:1.5px solid var(--app-accent);box-shadow:0 0 0 1px rgba(0,0,0,.35);animation:lyFocus .9s ease-out both;pointer-events:none}
-@keyframes lyFocus{0%{transform:scale(1.4);opacity:0}25%{opacity:1}100%{transform:scale(1);opacity:0}}
-@media (prefers-reduced-motion:reduce){.ly-in,.ly-sh,.ly-scan,.ly-focus{animation:none}.ly-focus{opacity:.8}}`;
-
-const camPoint = (u, v, vw, vh, mirror) => {
-  const asp = (globalThis.innerWidth || 1) / (globalThis.innerHeight || 1), ca = vw / (vh || 1);
-  let x = u - 0.5, y = v - 0.5;
-  if (ca > asp) x *= asp / ca; else y *= ca / asp;
-  x += 0.5; y += 0.5;
-  return { x: Math.min(1, Math.max(0, mirror ? 1 - x : x)), y: Math.min(1, Math.max(0, y)) };
-};
+@media (prefers-reduced-motion:reduce){.ly-in,.ly-sh,.ly-scan{animation:none}}`;
 
 export function podoba({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
   const st = useStore(M.$st);
   const live = st.phase === "live", working = st.phase === "working", enhancing = st.phase === "enhancing", failed = st.phase === "error";
   const shown = (st.phase === "done" || enhancing) && !!st.out, done = st.phase === "done" && !!st.out;
-  const [enabled, setEnabled] = useState(gate);   
-  const [err, setErr] = useState(null);
-  const [ready, setReady] = useState(gate);       
+  const [ready, setReady] = useState(false);      
   const [caps, setCaps] = useState(null);         
   const [torch, setTorch] = useState(false);
-  const [focus, setFocus] = useState(null);       
-  const videoRef = useRef(), mockRef = useRef(), ctl = useRef(null);
+  const camEl = useRef(null);    
   const frozen = useRef(null);   
   const ctx = { t, loc };
-  const on = enabled && !err;
-  const armed = gate || (on && ready);
-
-  useEffect(() => {
-    if (gate || !enabled) return;
-    if (!camera.supported) { setErr("unsupported"); return; }
-    let alive = true, stop = () => {};
-    setReady(false); setCaps(null); setTorch(false); ctl.current = null;
-    const wl = wakeLock.acquire();
-    const v = videoRef.current;
-    const onPlaying = () => { if (!alive) return; ctl.current = camera.controls(v); setCaps(ctl.current.caps); setReady(true); };
-    v?.addEventListener("playing", onPlaying);
-    camera.start(v, (e) => { if (alive) setErr(e); }, { facingMode: st.facing }).then((s) => { if (alive) stop = s; else s(); });
-    return () => { alive = false; v?.removeEventListener("playing", onPlaying); stop(); wl?.release?.(); };
-  }, [enabled, st.facing]);
+  const armed = ready;
+  useEffect(() => { setTorch(false); }, [st.facing]);   
 
   const [, tick] = useState(0);
   useEffect(() => { if (!working && !enhancing) return; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [working, enhancing]);
@@ -84,7 +57,7 @@ export function podoba({ S, toast }) {
     const cv = document.createElement("canvas"); cv.width = 16; cv.height = 16;
     const g = cv.getContext("2d", { willReadFrequently: true });
     const id = setInterval(() => {
-      const src = M.$st.get().phase === "live" ? (gate ? mockRef.current : videoRef.current) : frozen.current;
+      const src = M.$st.get().phase === "live" ? camEl.current : frozen.current;
       const w = src?.videoWidth || src?.naturalWidth || src?.width || 0;
       if (!(w > 0) || !g) return;
       try { g.drawImage(src, 0, 0, 16, 16); } catch { return; }
@@ -97,39 +70,10 @@ export function podoba({ S, toast }) {
   const now = useRef(st); now.current = st;
   const ink = () => [0.90, 0.79, 0.54, chan.gain];
   const vary = () => [chan.busy, chan.arrive, styleIndex(now.current.mat) / 10, now.current.phase === "live" && now.current.facing === "user" ? 1 : 0];
-  const cam = () => now.current.phase === "live" ? (gate ? mockRef.current : videoRef.current) : frozen.current;
-
-  const pinch = useRef({ pts: new Map(), d0: 0, z0: 1, z: 1, raf: 0 }).current;
-  const onDown = (e) => {
-    if (!live || !armed) return;
-    pinch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now(), moved: false });
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    if (pinch.pts.size === 2) { const [a, b] = [...pinch.pts.values()]; pinch.d0 = Math.hypot(a.x - b.x, a.y - b.y) || 1; pinch.z0 = pinch.z; }
-  };
-  const onMove = (e) => {
-    const p = pinch.pts.get(e.pointerId); if (!p) return;
-    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 8) p.moved = true;
-    p.cx = e.clientX; p.cy = e.clientY;
-    if (pinch.pts.size !== 2 || !caps?.zoom) return;
-    const [a, b] = [...pinch.pts.values()];
-    const d = Math.hypot((a.cx ?? a.x) - (b.cx ?? b.x), (a.cy ?? a.y) - (b.cy ?? b.y));
-    const z = Math.min(caps.zoom.max, Math.max(caps.zoom.min, pinch.z0 * d / pinch.d0));
-    pinch.z = z;
-    if (!pinch.raf) pinch.raf = requestAnimationFrame(() => { pinch.raf = 0; ctl.current?.zoom(pinch.z); });   
-  };
-  const onUp = (e) => {
-    const p = pinch.pts.get(e.pointerId); pinch.pts.delete(e.pointerId);
-    if (!p || p.moved || pinch.pts.size || performance.now() - p.t > 350 || !caps?.focus) return;
-    const v = videoRef.current, r = e.currentTarget.getBoundingClientRect();
-    const pt = camPoint(e.clientX / (globalThis.innerWidth || 1), e.clientY / (globalThis.innerHeight || 1), v?.videoWidth || 3, v?.videoHeight || 4, st.facing === "user");
-    ctl.current?.focusAt(pt.x, pt.y);
-    setFocus({ x: e.clientX - r.left, y: e.clientY - r.top, k: Date.now() });
-  };
-  useEffect(() => { pinch.z = 1; }, [st.facing]);
-  useEffect(() => { if (!focus) return; const id = setTimeout(() => setFocus(null), 950); return () => clearTimeout(id); }, [focus]);
+  const cam = () => now.current.phase === "live" ? camEl.current : frozen.current;
 
   const shoot = () => {
-    const src = gate ? mockRef.current : videoRef.current;
+    const src = camEl.current;
     const w = src?.videoWidth || src?.naturalWidth || 0, h = src?.videoHeight || src?.naturalHeight || 0;
     if (!(w > 0 && h > 0)) return;
     const k = Math.min(1, MAX_SIDE / Math.max(w, h));
@@ -140,7 +84,6 @@ export function podoba({ S, toast }) {
     frozen.current = c;
     M.shoot(c.toDataURL("image/jpeg", 0.9), ctx);
   };
-  const toggleTorch = async () => { const next = !torch; if (await ctl.current?.torch(next)) setTorch(next); };
   const name = () => `podoba-${st.mat}-${Date.now()}.${st.out?.ext || "png"}`;
   const save = async () => { if (!st.out) return; try { await downloadUrl(st.out.url, name()); toast?.(T(t, "saved")); } catch { toast?.(T(t, "eNetwork")); } };
   const share = async () => { if (!st.out) return; try { const r = await shareFile(await (await fetch(st.out.url)).blob(), name()); if (r === "saved") toast?.(T(t, "saved")); } catch { toast?.(T(t, "eNetwork")); } };
@@ -161,20 +104,18 @@ export function podoba({ S, toast }) {
       <button data-lightbox-close aria-label=${T(t, "close")} class="absolute top-3 right-3 btn btn-circle btn-sm bg-black/50 text-white border-0" onClick=${() => S.screen.set(null)}>${Icon("lucide:x", "text-base")}</button>
     </div>` : null}
 
-    <div data-live=${on || gate ? "1" : null} data-phase=${st.phase} data-material=${st.mat} data-facing=${st.facing} data-ready=${armed ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
-      <${Stage} className=${live && armed ? "touch-none" : ""}>
+    <div data-readout data-phase=${st.phase} data-material=${st.mat} data-facing=${st.facing} data-ready=${armed ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
+      <${Stage}>
         
-        <div data-gestures class="absolute inset-0" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onPointerCancel=${onUp} onClick=${() => done && S.screen.set("view")}>
-          ${focus ? html`<div key=${focus.k} data-focus aria-hidden="true" class="ly-focus" style=${`left:${focus.x}px;top:${focus.y}px`}></div>` : null}
-        </div>
-        <video ref=${videoRef} autoplay muted playsinline aria-hidden="true" class="absolute w-px h-px opacity-0 pointer-events-none"></video>
-        ${gate ? html`<img ref=${mockRef} src=${M.mockURL} alt="" aria-hidden="true" class="absolute w-px h-px opacity-0 pointer-events-none" />` : null}
-        ${on || gate ? null : html`<${CameraPrime} loc=${loc} reason=${T(t, "primeReason")} privacy=${T(t, "primePrivacy")} privacyIcon="lucide:cloud-upload"
-          onEnable=${() => { setErr(null); setEnabled(true); }} onSettings=${() => S.screen.set("perms")} denied=${err === "denied"} unavailable=${err === "unavailable" || err === "unsupported"} />`}
+        <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")}
+            privacy=${T(t, "primePrivacy")} privacyIcon="lucide:cloud-upload"
+            facing=${st.facing} torch=${torch} still=${gate ? M.mockURL : null} show=${false} fullscreen=${false}
+            onVideo=${(el) => { camEl.current = el; }} onState=${(s) => { setReady(!!s.ready); setCaps(s.caps); }}>
+          ${live ? null : html`<div data-keeper-tap class="absolute inset-0 z-[2]" onClick=${() => done && S.screen.set("view")}></div>`}
+        <//>
       <//>
       <div class="shrink-0">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
-        
         <div data-strip role="group" aria-label=${T(t, "material")} class="ly-strip overflow-x-auto flex items-start gap-1 -mx-1 px-1">
           ${STYLES.map((s) => { const active = st.mat === s.id; return html`<button key=${s.id} data-mat=${s.id} aria-pressed=${active} aria-label=${T(t, s.key)}
               class="shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => M.setMat(s.id)}>
@@ -182,10 +123,9 @@ export function podoba({ S, toast }) {
             <span class=${`font-mono uppercase tracking-wide text-[0.58rem] leading-none truncate max-w-full ${active ? "text-base-content" : "text-base-content/70"}`}>${T(t, s.key)}</span>
           </button>`; })}
         </div>
-        
         <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 min-h-[3.9rem]">
           <div class="flex items-center gap-1">
-            ${live && caps?.torch ? html`<button data-torch aria-pressed=${torch} class=${`${tool} ${torch ? "text-[var(--app-accent)]" : ""}`} aria-label=${T(t, "torch")} title=${T(t, "torch")} onClick=${toggleTorch}>${Icon(torch ? "lucide:zap" : "lucide:zap-off", "text-lg")}</button>` : null}
+            ${live && caps?.torch ? html`<button data-torch aria-pressed=${torch} class=${`${tool} ${torch ? "text-[var(--app-accent)]" : ""}`} aria-label=${T(t, "torch")} title=${T(t, "torch")} onClick=${() => setTorch((v) => !v)}>${Icon(torch ? "lucide:zap" : "lucide:zap-off", "text-lg")}</button>` : null}
             ${working || enhancing ? html`<button data-act="stop" class=${tool} aria-label=${T(t, "stop")} title=${T(t, "stop")} onClick=${M.again}>${Icon("lucide:x", "text-lg")}</button>` : null}
             ${done ? (st.out.hd && st.out.w ? html`<span data-px class=${`${mono} text-base-content/70 truncate`}>${st.out.w}×${st.out.h}</span>` : act("hd", "lucide:gem", T(t, "hd"), () => M.enhance(ctx))) : null}
           </div>

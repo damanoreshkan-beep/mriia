@@ -1,6 +1,6 @@
 self.MS = {
   app: "pipette",
-  version: "610e792f5a",
+  version: "ce7871c155",
   precache: [
     "./",
     "./i18n/en.json",
@@ -18,6 +18,7 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/camprime.js",
+    "/_rt/camstage.js",
     "/_rt/colour.js",
     "/_rt/db.js",
     "/_rt/decor.css",

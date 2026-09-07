@@ -4,7 +4,7 @@ export default [
   {
     name: "сцена: орби з нотами + лади + play", run: async (h) => {
       await ready(h);
-      h.expect((await h.count("[data-live]")) === 1, "немає сцени");
+      h.expect((await h.count("[data-readout]")) === 1, "немає сцени");
       h.expect((await h.count("[data-orb]")) === 5, "немає 5 нот-орбів");
       h.expect((await h.count("[data-scale]")) === 7, "немає 7 ладів");
       h.expect((await h.count("#play")) === 1, "немає play");

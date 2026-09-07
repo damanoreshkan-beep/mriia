@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Segmented, Panel, Slider } from "/_rt/ui.js";
-import { CameraPrime } from "/_rt/camprime.js";
+import { CamStage } from "/_rt/camstage.js";
 import { gate } from "/_rt/gate.js";
 import { downloadBlob } from "/_rt/apk.js";
 
@@ -22,13 +22,12 @@ const FX = [
   ["fxVivid", "saturate(1.6) contrast(1.16)"],
   ["fxFade", "contrast(0.82) brightness(1.1) saturate(0.78)"],
 ];
+const CONSTRAINTS = { width: { ideal: 1920 }, height: { ideal: 1920 } };
 const ASPECTS = ["1:1", "4:5", "16:9"];
 const arOf = (a) => (a === "4:5" ? 4 / 5 : a === "16:9" ? 16 / 9 : 1);
 
 export function cam({ S }) {
   const t = useStore(S.t), loc = useStore(S.locale);
-  const [enabled, setEnabled] = useState(gate);
-  const [err, setErr] = useState(null);
   const [facing, setFacing] = useState("environment");
   const [fx, setFx] = useState(0);
   const [expo, setExpo] = useState(1);
@@ -38,37 +37,17 @@ export function cam({ S }) {
   const [torch, setTorch] = useState(false);
   const [timer, setTimer] = useState(0);          
   const [aspect, setAspect] = useState("1:1");
-  const [caps, setCaps] = useState({ torch: false, zoom: null });
+  const [caps, setCaps] = useState(null);         
+  const [ready, setReady] = useState(false);      
   const [shot, setShot] = useState(null);         
   const [count, setCount] = useState(0);          
   const [flash, setFlash] = useState(false);      
   const [frontFlash, setFrontFlash] = useState(false); 
   const [lit, setLit] = useState(false);          
 
-  const videoRef = useRef(), streamRef = useRef(null), trackRef = useRef(null), timerRef = useRef(0);
+  const videoRef = useRef(), timerRef = useRef(0);
   const filterStr = () => `${FX[fx][1]} brightness(${expo.toFixed(2)})`.trim();
 
-  useEffect(() => {
-    if (gate || !enabled) return;
-    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { setErr("unsupported"); return; }
-    let live = true;
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false });
-        if (!live) { stream.getTracks().forEach((tr) => tr.stop()); return; }
-        streamRef.current = stream; const track = stream.getVideoTracks()[0]; trackRef.current = track;
-        const v = videoRef.current; if (v) { v.srcObject = stream; v.setAttribute?.("playsinline", ""); try { await v.play?.(); } catch {  } }
-        let c = {}; try { c = track.getCapabilities?.() || {}; } catch {  }
-        setCaps({ torch: !!c.torch, zoom: c.zoom && c.zoom.max > c.zoom.min ? c.zoom : null });
-      } catch (e) { if (live) setErr(e && e.name === "NotAllowedError" ? "denied" : "unavailable"); }
-    })();
-    return () => { live = false; try { streamRef.current?.getTracks().forEach((tr) => tr.stop()); } catch {  } streamRef.current = null; trackRef.current = null; const v = videoRef.current; try { if (v) v.srcObject = null; } catch {  } };
-  }, [enabled, facing]);
-
-  useEffect(() => { const tr = trackRef.current; if (!tr || !caps.torch) return; try { tr.applyConstraints({ advanced: [{ torch }] }); } catch {  } }, [torch, caps.torch]);
-  useEffect(() => { const tr = trackRef.current, z = caps.zoom; if (!tr || !z) return; try { tr.applyConstraints({ advanced: [{ zoom: Math.min(z.max, Math.max(z.min, z.min + (zoom - 1) * (z.max - z.min) / 2)) }] }); } catch {  } }, [zoom, caps.zoom]);
-
-  const enable = () => { buzz(); setEnabled(true); };
   const cycleTimer = () => { buzz(); setTimer((v) => (v === 0 ? 3 : v === 3 ? 10 : 0)); };
   const cycleAspect = () => { buzz(); setAspect((a) => ASPECTS[(ASPECTS.indexOf(a) + 1) % ASPECTS.length]); };
   const flip = () => { buzz(); setTorch(false); setFacing((f) => (f === "environment" ? "user" : "environment")); };
@@ -127,13 +106,17 @@ export function cam({ S }) {
         <div class="flex-1 min-h-0 flex items-center justify-center">
           <div data-screen class="relative aspect-square max-h-full max-w-full w-full rounded-[var(--ms-r-in)] overflow-hidden sf-inset">
             ${gate ? html`<div class="absolute inset-0 bg-neutral" aria-hidden="true"></div>` : null}
-            ${enabled && !err && !gate ? html`<video ref=${videoRef} autoplay muted playsinline class="absolute inset-0 w-full h-full object-cover" style=${`filter:${filterStr()};transform:scale(${zoom.toFixed(3)})${showMirror ? " scaleX(-1)" : ""}`}></video>` : null}
+            
+            <div class="absolute inset-0" style=${ready ? `filter:${filterStr()};transform:scale(${zoom.toFixed(3)})${showMirror ? " scaleX(-1)" : ""}` : null}>
+              <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} primeFull
+                facing=${facing} torch=${torch} constraints=${CONSTRAINTS} still=${null} show=${true} fullscreen=${false} gestures=${false}
+                onVideo=${(el) => { videoRef.current = el; }} onState=${(s) => { setCaps(s.caps); setReady(s.ready); }} />
+            </div>
             ${grid ? html`<div class="absolute inset-0 pointer-events-none" aria-hidden="true">
               <div class="absolute left-1/3 top-0 bottom-0 w-px bg-white/25"></div><div class="absolute left-2/3 top-0 bottom-0 w-px bg-white/25"></div>
               <div class="absolute top-1/3 left-0 right-0 h-px bg-white/25"></div><div class="absolute top-2/3 left-0 right-0 h-px bg-white/25"></div>
             </div>` : null}
             ${aspect !== "1:1" ? cropBars(aspect) : null}
-            
             ${frontFlash && facing === "user" && !lit ? html`<div class="absolute inset-0 rounded-[inherit] pointer-events-none border-[3px] border-white/90" aria-hidden="true"></div>` : null}
             <div class="absolute inset-3 pointer-events-none" aria-hidden="true">
               ${["top-0 left-0 border-t-2 border-l-2 rounded-tl-md", "top-0 right-0 border-t-2 border-r-2 rounded-tr-md", "bottom-0 left-0 border-b-2 border-l-2 rounded-bl-md", "bottom-0 right-0 border-b-2 border-r-2 rounded-br-md"].map((c, i) => html`<span key=${i} class=${`absolute w-5 h-5 border-white/30 ${c}`}></span>`)}
@@ -160,7 +143,7 @@ export function cam({ S }) {
             ${Toggle(facing === "user", "lucide:switch-camera", T(t, "aFlip"), flip)}
             ${facing === "user"
               ? Toggle(frontFlash, "lucide:zap", T(t, "aFrontFlash"), () => { buzz(); setFrontFlash((v) => !v); })
-              : (caps.torch ? Toggle(torch, "lucide:flashlight", T(t, "aTorch"), () => { buzz(); setTorch((v) => !v); }) : null)}
+              : (caps?.torch ? Toggle(torch, "lucide:flashlight", T(t, "aTorch"), () => { buzz(); setTorch((v) => !v); }) : null)}
             ${Toggle(grid, "lucide:grid-3x3", T(t, "aGrid"), () => { buzz(); setGrid((v) => !v); })}
             ${Toggle(timer > 0, "lucide:timer", T(t, "aTimer"), cycleTimer, timer > 0 ? html`<span class="text-xs font-mono font-bold">${timer}</span>` : null)}
             ${Toggle(showMirror, "lucide:flip-horizontal-2", T(t, "aMirror"), () => { buzz(); setMirror((v) => !v); })}
@@ -179,13 +162,9 @@ export function cam({ S }) {
         </div>
       <//>
     </div>
-
-    
     ${lit ? html`<div class="fixed inset-0 z-40 bg-white" aria-hidden="true"></div>` : null}
-    ${!enabled || err ? html`<${CameraPrime} loc=${loc} reason=${T(t, "primeReason")} onEnable=${enable} onSettings=${() => S.screen.set("perms")} denied=${err === "denied"} unavailable=${err === "unavailable" || err === "unsupported"} />` : null}
   </${Fragment}>`;
 }
-
 function cropBars(aspect) {
   
   if (aspect === "4:5") return html`<div class="absolute inset-0 pointer-events-none" aria-hidden="true"><div class="absolute inset-y-0 left-0 w-[10%] bg-black/55"></div><div class="absolute inset-y-0 right-0 w-[10%] bg-black/55"></div></div>`;

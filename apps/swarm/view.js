@@ -9,8 +9,8 @@ import { T } from "/_rt/i18n.js";
 import { Sheet } from "/_rt/ui.js";
 import { Pixels } from "/_rt/skeleton.js";
 import { gate } from "/_rt/gate.js";
-import { camera, compass, tilt, wakeLock, haptic } from "/_rt/sensors.js";
-import { CameraPrime } from "/_rt/camprime.js";
+import { compass, tilt, haptic } from "/_rt/sensors.js";
+import { CamStage } from "/_rt/camstage.js";
 import { S, SFX, packInput, decodeEntry, wrapT, lockOn, betterRun } from "/_rt/swarm.js";
 import { renderFrame } from "./render.js";
 import { loadEngine, makeClock, makeSound, GATE_SEED } from "./engine.js";
@@ -46,12 +46,11 @@ export function swarm(props) {
   const soundOn = useStore($sound) === "1";
   const over = useStore($over);
 
-  const [enabled, setEnabled] = useState(gate);
-  const [camErr, setCamErr] = useState(null);
+  const [live, setLive] = useState(false);        
   const [ready, setReady] = useState(false);
   const [engErr, setEngErr] = useState("");
 
-  const stage = useRef(null), cv = useRef(null), video = useRef(null), hud = useRef(null);
+  const stage = useRef(null), cv = useRef(null), hud = useRef(null);
   const waveEl = useRef(null), scoreEl = useRef(null), comboEl = useRef(null), hearts = useRef(null);
   const eng = useRef(null), sound = useRef(null);
   const seed = useRef(gate ? GATE_SEED : (Math.random() * 0xffffffff) >>> 0);
@@ -59,26 +58,10 @@ export function swarm(props) {
   const fell = useRef(null), restartRef = useRef(null);
 
   const arm = useCallback(() => { sound.current?.arm(); }, []);
-  const onEnable = useCallback(async () => {
-    
-    
-    try { await compass.request(); } catch {  }
-    setCamErr(null); setEnabled(true);
-  }, []);
 
   
   useEffect(() => {
-    if (gate || !enabled) return;
-    
-    
-    let disposed = false, stop = () => {};
-    (async () => { const s = await camera.start(video.current, setCamErr); if (disposed) s(); else stop = s; })();
-    return () => { disposed = true; stop(); };
-  }, [enabled]);
-
-  
-  useEffect(() => {
-    if (gate || !enabled) return;
+    if (gate || !live) return;
     
     const stopC = compass.start((deg) => { headingT.current = deg * 10; }, { trueNorth: false, look: true });
     const stopT = tilt.start(({ beta }) => {
@@ -86,9 +69,8 @@ export function swarm(props) {
       
       pitchT.current = Math.max(-450, Math.min(450, (beta - 80) * 10));
     });
-    const lock = wakeLock.acquire();
-    return () => { stopC(); stopT(); lock.release(); };
-  }, [enabled]);
+    return () => { stopC(); stopT(); };
+  }, [live]);
 
   
   useEffect(() => {
@@ -267,11 +249,15 @@ export function swarm(props) {
     <div class="ms-stage z-20 bg-black overflow-hidden select-none" ref=${stage} data-swarm>
       ${gate ? html`<div class="absolute inset-0" aria-hidden="true"
         style="background:radial-gradient(130% 90% at 50% 18%, #141210, #000000 68%)"></div>` : null}
-      ${enabled && !camErr && !gate ? html`<video ref=${video} autoplay muted playsinline
-        class="absolute inset-0 w-full h-full object-cover" aria-hidden="true"></video>` : null}
-      <canvas ref=${cv} class="absolute inset-0 w-full h-full touch-none" role="img"
+      
+      
+      <${CamStage} loc=${loc} reason=${T(t, "camReason")} onSettings=${() => A.screen.set("perms")}
+          onEnable=${() => { compass.request().catch(() => {}); }}
+          show=${true} fullscreen=${false} gestures=${false} onState=${(s) => setLive(s.ready)}>
+      <canvas ref=${cv} class="absolute inset-0 z-[2] w-full h-full touch-none" role="img"
         aria-label=${T(t, "screenAlt")} onPointerDown=${arm}></canvas>
-      <div ref=${hud} data-live class="absolute inset-0 pointer-events-none p-3 text-white font-mono">
+
+      <div ref=${hud} data-readout class="absolute inset-0 z-[2] pointer-events-none p-3 text-white font-mono">
         
         <div class="flex flex-wrap items-start justify-between gap-2">
           <div class="flex items-center gap-2 min-w-0">
@@ -310,20 +296,17 @@ export function swarm(props) {
         </button>
       </div>
 
-      ${!ready && !engErr ? html`<div class="absolute inset-0 grid place-items-center"><${Pixels} cls="w-full h-full" /></div>` : null}
-      ${engErr ? html`<div class="absolute inset-0 grid place-items-center text-center px-4 text-white/70 text-sm" data-err>${T(t, "noEngine")}</div>` : null}
+      ${!ready && !engErr ? html`<div class="absolute inset-0 z-[2] grid place-items-center"><${Pixels} cls="w-full h-full" /></div>` : null}
+      ${engErr ? html`<div class="absolute inset-0 z-[2] grid place-items-center text-center px-4 text-white/70 text-sm" data-err>${T(t, "noEngine")}</div>` : null}
 
-      ${over ? html`<div class="absolute inset-0 grid place-items-center overflow-hidden bg-black/45" data-over>
+      ${over ? html`<div class="absolute inset-0 z-[2] grid place-items-center overflow-hidden bg-black/45" data-over>
         <button class="sf-raised sf-press active:sf-pressed bg-base-100 rounded-[var(--ms-r)] gap-1 flex flex-col items-center max-w-full max-h-full px-[var(--ms-pad)] py-[calc(var(--ms-pad)*0.7)]"
           onClick=${restart} data-restart>
           <span class=${`${LABEL} text-base-content/70`}>${T(t, "gameOver")}</span>
           <span class="font-mono text-[length:var(--ms-title)]">${T(t, "wave")} ${best?.wave ?? 1}</span>
         </button>
       </div>` : null}
-
-      ${(!enabled || camErr) && !gate ? html`<${CameraPrime} loc=${loc} reason=${T(t, "camReason")}
-        denied=${camErr === "denied"} unavailable=${camErr === "unavailable" || camErr === "unsupported"}
-        onEnable=${onEnable} onSettings=${onEnable} />` : null}
+      <//>
     </div>
 
     ${screen === "records" ? html`<${Sheet} id="records" open=${true} onClose=${() => A.screen.set(null)}
