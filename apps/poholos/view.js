@@ -7,7 +7,8 @@ import { T } from "/_rt/i18n.js";
 import { Island } from "/_rt/ui.js";
 import { permRequest } from "/_rt/permissions.js";
 import { shell } from "/_rt/shell.js";
-import { start, sendPublic, sendPrivate, diagnose, report, $state, $peers, $room, $threads, $queued, $fault, $log } from "./mesh.js";
+import { GlStage } from "/_rt/glstage.js";
+import { start, sendPublic, sendPrivate, diagnose, report, field, sites, siteOf, bump, $state, $peers, $room, $threads, $queued, $fault, $log } from "./mesh.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const clock = (ts, loc) => Number.isFinite(ts) ? new Date(ts).toLocaleTimeString(loc === "uk" ? "uk-UA" : "en-US", { hour: "2-digit", minute: "2-digit" }) : "";
@@ -16,6 +17,23 @@ const RCPT = { sent: "rcptSent", delivered: "rcptDelivered", read: "rcptRead", q
 
 const $peer = atom(null);   
 
+const acc = { rgb: [0.35, 0.84, 0.88, 1], at: 0, probe: null };
+function accent() {
+  const now = performance.now();
+  if (now - acc.at < 500) return acc.rgb;
+  acc.at = now;
+  try {
+    if (!acc.probe) {
+      acc.probe = document.createElement("span");
+      acc.probe.style.cssText = "position:absolute;width:0;height:0;color:var(--app-accent)";
+      document.body.appendChild(acc.probe);
+    }
+    const m = getComputedStyle(acc.probe).color.match(/[\d.]+/g);
+    if (m && m.length >= 3) acc.rgb = [+m[0] / 255, +m[1] / 255, +m[2] / 255, 1];
+  } catch {  }
+  return acc.rgb;
+}
+
 function Presence({ t }) {
   const s = useStore($state);
   const alone = s.peerCount === 0;
@@ -23,9 +41,31 @@ function Presence({ t }) {
     <div class="ph-near">
       <span class="ph-dot" data-alone=${alone ? "1" : "0"}></span>
       <span>${near(t, s.peerCount)}</span>
-      ${!alone && s.maxHops > 1 && html`<span class="ph-near-sub">· ${T(t, "hops", { k: s.maxHops })}</span>`}
     </div>
   <//>`;
+}
+
+function Field({ t, peers, onPeer }) {
+  const s = useStore($state);
+  return html`<div class="ph-field" data-peers=${peers.length}>
+    <div class="ph-sites">
+      ${peers.slice(0, 8).map((p) => {
+        const [x, y] = siteOf(p.peerID || "");
+        return html`<button key=${p.peerID} class="ph-site"
+          style=${`left:${50 + x * 62}%;top:${50 + y * 62}%`}
+          onClick=${() => onPeer(p.peerID)}>
+          <span class="ph-site-dot"></span>
+          <span class="ph-site-name">${p.nick || p.peerID.slice(0, 6)}</span>
+          <span class="ph-site-id">${(p.peerID || "").slice(0, 4)}</span>
+        </button>`;
+      })}
+      <div class="ph-site ph-site-me" style="left:50%;top:50%">
+        <span class="ph-site-dot"></span>
+        <span class="ph-site-name">${T(t, "you")}</span>
+      </div>
+    </div>
+    <p class="ph-field-note">${T(t, s.peerCount === 0 ? "fieldSearching" : "fieldNote")}</p>
+  </div>`;
 }
 
 function Composer({ t, placeholder, onSend }) {
@@ -60,6 +100,7 @@ export function room({ S }) {
   const loc = useStore(S.locale);
   const s = useStore($state);
   const msgs = useStore($room);
+  const peers = useStore($peers);
   const queued = useStore($queued);
   const fault = useStore($fault);
   useEffect(() => { start(); }, []);
@@ -69,15 +110,21 @@ export function room({ S }) {
     ${Icon("lucide:alert-triangle", "opacity-80")} ${T(t, "faultBanner")}</div>`;
 
   if (msgs.length === 0) return html`<${Fragment}>
-    <div class="ph-wrap h-full">
-      ${Hero("lucide:radio", s.peerCount === 0 ? T(t, "roomEmptyAlone") : T(t, "roomEmptyPeers", { n: s.peerCount }))}
+    <div class="ph-wrap h-full" data-near data-peers=${s.peerCount}>
+      <${GlStage} shader=${new URL("near.frag", import.meta.url)} zClass="z-0"
+        seed=${0.37} ink=${accent} vary=${field} points=${sites} />
+      <${Presence} t=${t} />
+      <${Field} t=${t} peers=${peers} onPeer=${(id) => { $peer.set(id); S.tab.set("dm"); }} />
       <${Fault} />
-      <${Composer} t=${t} placeholder=${T(t, "composerRoom")} onSend=${(v) => sendPublic(v)} />
+      <${Composer} t=${t} placeholder=${T(t, "composerRoom")} onSend=${(v) => { sendPublic(v); bump(); }} />
     </div>
   <//>`;
 
   return html`<${Fragment}>
-    <div class="ph-wrap h-full">
+    <div class="ph-wrap h-full" data-near data-peers=${s.peerCount}>
+      
+      <${GlStage} shader=${new URL("near.frag", import.meta.url)} zClass="z-0"
+        seed=${0.37} ink=${accent} vary=${field} points=${sites} />
       <${Presence} t=${t} />
       <div class="ph-feed" ref=${feed}>
         ${msgs.map((m, i) => m.sys
@@ -91,10 +138,11 @@ export function room({ S }) {
       </div>
       <${Fault} />
       ${queued && !fault && html`<div class="ph-banner">${Icon("lucide:clock", "opacity-70")} ${T(t, "queuedBanner")}</div>`}
-      <${Composer} t=${t} placeholder=${T(t, "composerRoom")} onSend=${(v) => sendPublic(v)} />
+      <${Composer} t=${t} placeholder=${T(t, "composerRoom")} onSend=${(v) => { sendPublic(v); bump(); }} />
     </div>
   <//>`;
 }
+
 
 export function dm({ S }) {
   const t = useStore(S.t);
@@ -116,7 +164,7 @@ export function dm({ S }) {
         ${peers.map((p) => html`<button key=${p.peerID} class="ph-peer" onClick=${() => $peer.set(p.peerID)}>
           <span class="ph-dot"></span>
           <span class="flex-1 min-w-0"><span class="block truncate">${p.nick}</span>
-            <span class="ph-meta !float-none !m-0 !opacity-60">${p.hops === 1 ? T(t, "nearOne") : T(t, "hops", { k: p.hops })}</span></span>
+            <span class="ph-meta !float-none !m-0 !opacity-60 font-mono">${(p.peerID || "").slice(0, 8)}</span></span>
           ${Icon("lucide:chevron-right", "text-muted shrink-0 opacity-60")}
         </button>`)}
       </div>
@@ -124,10 +172,13 @@ export function dm({ S }) {
   <//>`;
 }
 
+
+
+
+
 const VERDICT = { Ok: "ok", Perm: "err", Location: "warn", BtOff: "warn", BtNone: "err", NeedsApp: "warn", Stale: "warn", WrongApk: "err", Fault: "err" };
 
 const apkLacksMesh = (d) => typeof d.caps === "string" && !d.caps.split(",").map((c) => c.trim()).includes("mesh");
-
 function verdictOf(d) {
   if (!d) return null;
   if (!shell.present) return { key: "NeedsApp" };
