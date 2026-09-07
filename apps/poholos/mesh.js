@@ -112,6 +112,7 @@ export async function diagnose() {
     capability: shell.hasCapability("mesh") ? "granted" : `no — ${shell.whyCapability("mesh") || "unknown"}`,
     meshStart: shell.has("mesh.start") ? "available" : `no — ${shell.why("mesh.start") || "unknown"}`,
     needs: permAndroid("mesh"),
+    caps: null, device: null,
     held: null, missing: null, locationOn: null, ble: null, mesh: null, bridgeLog: null,
     state: { ...$state.get() }, fault: $fault.get(),
   };
@@ -119,6 +120,8 @@ export async function diagnose() {
   try {
     const info = await shell.call("system.info", {});
     d.held = info.perms || null;
+    d.caps = info.caps ?? null;
+    d.device = `${info.model || "?"} · Android ${info.release || "?"} (sdk ${info.sdk ?? "?"}) · ${info.pkg || "?"} · bridge ${info.bridge ?? "?"}`;
     d.locationOn = info.locationOn ?? null;
     if (d.held) d.missing = d.needs.filter((p) => !d.held[p]);
   } catch (e) { d.held = `system.info failed: ${faultOf(e).code}`; }
@@ -132,7 +135,10 @@ export async function diagnose() {
 export function report(d) {
   const L = [];
   L.push(`поголос · ${d.at}`);
+  L.push(`device:     ${d.device ?? "—"}`);
   L.push(`shell:      ${d.shell}`);
+  L.push(`apk caps:   ${d.caps ?? "—"}`);
+  L.push(`  mesh in apk caps: ${d.caps == null ? "—" : d.caps.split(",").map((c) => c.trim()).includes("mesh") ? "yes" : "NO — this install does not carry the mesh flavour"}`);
   L.push(`capability: ${d.capability}`);
   L.push(`mesh.start: ${d.meshStart}`);
   L.push(`needs:      ${d.needs.join(", ") || "—"}`);

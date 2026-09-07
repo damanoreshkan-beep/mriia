@@ -124,11 +124,14 @@ export function dm({ S }) {
   <//>`;
 }
 
-const VERDICT = { Ok: "ok", Perm: "err", Location: "warn", BtOff: "warn", BtNone: "err", NeedsApp: "warn", Stale: "warn", Fault: "err" };
+const VERDICT = { Ok: "ok", Perm: "err", Location: "warn", BtOff: "warn", BtNone: "err", NeedsApp: "warn", Stale: "warn", WrongApk: "err", Fault: "err" };
+
+const apkLacksMesh = (d) => typeof d.caps === "string" && !d.caps.split(",").map((c) => c.trim()).includes("mesh");
 
 function verdictOf(d) {
   if (!d) return null;
   if (!shell.present) return { key: "NeedsApp" };
+  if (apkLacksMesh(d)) return { key: "WrongApk" };
   if (d.meshStart !== "available") return { key: String(d.meshStart).includes("stale") ? "Stale" : "NeedsApp" };
   if (d.missing && d.missing.length) return { key: "Perm", p: d.missing.join(", ") };
   if (d.locationOn === false) return { key: "Location" };
@@ -179,7 +182,10 @@ export function logs({ S }) {
     <section class="ph-logsec">
       <h2 class="ph-logh">${T(t, "logsState")}</h2>
       <dl class="ph-kv">
+        <dt>${T(t, "logsRowDevice")}</dt><dd>${d?.device || "—"}</dd>
         <dt>${T(t, "logsRowShell")}</dt><dd>${d?.shell || "—"}</dd>
+        <dt>${T(t, "logsRowCaps")}</dt>
+        <dd>${d?.caps == null ? "—" : html`<span class="ph-perm" data-held=${apkLacksMesh(d) ? "0" : "1"}>mesh ${T(t, apkLacksMesh(d) ? "logsNo" : "logsYes")}</span><span class="ph-capsraw">${d.caps}</span>`}</dd>
         <dt>${T(t, "logsRowCap")}</dt><dd>${d?.capability || "—"}</dd>
         <dt>${T(t, "logsRowAction")}</dt><dd>${d?.meshStart || "—"}</dd>
         <dt>${T(t, "logsRowHeld")}</dt>
