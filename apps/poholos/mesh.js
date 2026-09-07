@@ -1,45 +1,76 @@
 import { atom, map } from "nanostores";
-import { shell } from "/_rt/shell.js";
+import { shell, ERR } from "/_rt/shell.js";
 import { gate } from "/_rt/gate.js";
+import { permAndroid, refreshHeld, heldPermissions } from "/_rt/permissions.js";
 
 export const $state = atom({ running: false, peerCount: 0, maxHops: 0, myPeerID: "", nick: "" });
 export const $peers = atom([]);          
 export const $room = atom([]);           
 export const $threads = map({});         
 export const $queued = atom(false);      
+export const $fault = atom(null);        
+export const $log = atom([]);            
+
+const RING = 200;
+export function note(kind, text) {
+  const line = { t: Date.now(), kind, text: String(text) };
+  const next = [...$log.get(), line];
+  $log.set(next.length > RING ? next.slice(-RING) : next);
+  return line;
+}
+const faultOf = (e) => ({ code: (e && e.code) || ERR.failed, detail: (e && (e.detail || e.message)) || String(e) });
 
 const live = () => shell.present && shell.has("mesh.start");
 const demo = () => gate || (typeof location !== "undefined" && /[?&](mock|demo)=/.test(location.search));
 let cancels = [];
 
 async function startLive() {
+  note("call", "mesh.start");
   const { peerID, nick } = await shell.call("mesh.start", {});
+  note("ok", `mesh.start → peerID ${peerID || "—"} nick ${nick || "—"}`);
   $state.set({ ...$state.get(), running: true, myPeerID: peerID, nick });
+  await checkHeld();
   cancels.push(shell.subscribe("mesh.peers", {}, (list) => {
     const peers = list?.peers || [];
+    note("peers", `${peers.length} · ${peers.map((p) => `${p.nick}/${p.hops}h`).join(", ") || "—"}`);
     $peers.set(peers);
     $state.set({ ...$state.get(), peerCount: peers.length, maxHops: Math.max(0, ...peers.map((p) => p.hops || 0)) });
-  }));
+  }, (e) => note("err", `mesh.peers: ${faultOf(e).code} ${faultOf(e).detail}`)));
   cancels.push(shell.subscribe("mesh.messages", {}, (m) => {
+    note("in", `${m.kind === "private" ? "private" : "public"} from ${m.nick || m.fromPeerID}: ${m.text}`);
     if (m.kind === "private") {
       const t = $threads.get()[m.fromPeerID] || [];
       $threads.setKey(m.fromPeerID, [...t, { id: m.msgId, text: m.text, ts: m.ts, mine: false }]);
     } else {
       $room.set([...$room.get(), { id: m.msgId, from: m.fromPeerID, nick: m.nick, text: m.text, ts: m.ts, mine: false }]);
     }
-  }));
+  }, (e) => note("err", `mesh.messages: ${faultOf(e).code} ${faultOf(e).detail}`)));
   cancels.push(shell.subscribe("mesh.receipts", {}, (r) => {
+    note("rcpt", `${r.msgId} → ${r.state}`);
     for (const [pid, arr] of Object.entries($threads.get())) {
       const i = arr.findIndex((x) => x.id === r.msgId);
       if (i >= 0) { const copy = arr.slice(); copy[i] = { ...copy[i], status: r.state }; $threads.setKey(pid, copy); }
     }
-  }));
+  }, (e) => note("err", `mesh.receipts: ${faultOf(e).code} ${faultOf(e).detail}`)));
+}
+
+async function checkHeld() {
+  await refreshHeld();
+  const held = heldPermissions();
+  if (!held) return;
+  const missing = permAndroid("mesh").filter((p) => !held[p]);
+  note("perm", missing.length ? `MISSING ${missing.join(", ")}` : `held ${permAndroid("mesh").length}/4`);
+  if (missing.length) $fault.set({ code: "denied", detail: missing.join(", ") });
 }
 
 export async function start() {
   if ($state.get().running) return;
   if (demo()) return startMock();
-  if (live()) return startLive();
+  if (live()) {
+    try { return await startLive(); }
+    catch (e) { const f = faultOf(e); $fault.set(f); note("err", `mesh.start: ${f.code} ${f.detail}`); return; }
+  }
+  note("idle", shell.present ? `no mesh.start on this bridge (v${shell.version})` : "no shell — browser");
   $state.set({ ...$state.get(), running: true, myPeerID: "", nick: $state.get().nick || "" });
 }
 export function stop() { cancels.forEach((c) => c && c()); cancels = []; }
@@ -54,7 +85,10 @@ export async function sendPublic(text) {
   const msg = { id: rid(), from: $state.get().myPeerID, nick: $state.get().nick, text, ts: Date.now(), mine: true };
   $room.set([...$room.get(), msg]);
   $queued.set($state.get().peerCount === 0);       
-  if (live()) await shell.call("mesh.sendPublic", { text });
+  if (!live()) return;
+  note("out", `public: ${text}`);
+  try { await shell.call("mesh.sendPublic", { text }); }
+  catch (e) { const f = faultOf(e); $fault.set(f); note("err", `mesh.sendPublic: ${f.code} ${f.detail}`); }
 }
 
 export async function sendPrivate(peerID, text) {
@@ -62,17 +96,68 @@ export async function sendPrivate(peerID, text) {
   const t = $threads.get()[peerID] || [];
   const msg = { id: rid(), text, ts: Date.now(), mine: true, status: "sent" };
   $threads.setKey(peerID, [...t, msg]);
-  if (live()) await shell.call("mesh.sendPrivate", { peerID, text });
-  else mockAck(peerID, msg.id);
+  if (live()) {
+    note("out", `private → ${peerID}: ${text}`);
+    try { await shell.call("mesh.sendPrivate", { peerID, text }); }
+    catch (e) { const f = faultOf(e); $fault.set(f); note("err", `mesh.sendPrivate: ${f.code} ${f.detail}`); }
+  } else mockAck(peerID, msg.id);
 }
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 
+export async function diagnose() {
+  const d = {
+    at: new Date().toISOString(),
+    shell: shell.present ? `bridge ${shell.version} (catalogue ${shell.catalogueVersion})` : "absent — plain browser",
+    capability: shell.hasCapability("mesh") ? "granted" : `no — ${shell.whyCapability("mesh") || "unknown"}`,
+    meshStart: shell.has("mesh.start") ? "available" : `no — ${shell.why("mesh.start") || "unknown"}`,
+    needs: permAndroid("mesh"),
+    held: null, missing: null, locationOn: null, ble: null, mesh: null, bridgeLog: null,
+    state: { ...$state.get() }, fault: $fault.get(),
+  };
+  if (!shell.present) return d;
+  try {
+    const info = await shell.call("system.info", {});
+    d.held = info.perms || null;
+    d.locationOn = info.locationOn ?? null;
+    if (d.held) d.missing = d.needs.filter((p) => !d.held[p]);
+  } catch (e) { d.held = `system.info failed: ${faultOf(e).code}`; }
+  try { d.ble = await shell.call("ble.state", {}); } catch (e) { d.ble = `ble.state failed: ${faultOf(e).code}`; }
+  try { d.mesh = await shell.call("mesh.state", {}); } catch (e) { d.mesh = `mesh.state failed: ${faultOf(e).code}`; }
+  try { d.bridgeLog = (await shell.call("system.logs", {})).lines || []; } catch { d.bridgeLog = null; }
+  return d;
+}
+
+/** */
+export function report(d) {
+  const L = [];
+  L.push(`поголос · ${d.at}`);
+  L.push(`shell:      ${d.shell}`);
+  L.push(`capability: ${d.capability}`);
+  L.push(`mesh.start: ${d.meshStart}`);
+  L.push(`needs:      ${d.needs.join(", ") || "—"}`);
+  L.push(`held:       ${d.held && typeof d.held === "object" ? d.needs.map((p) => `${p}=${d.held[p] ? "yes" : "NO"}`).join(" ") : d.held ?? "—"}`);
+  L.push(`location:   ${d.locationOn === null ? "—" : d.locationOn ? "on" : "OFF — a BLE scan returns empty with no error"}`);
+  L.push(`ble:        ${typeof d.ble === "object" && d.ble ? JSON.stringify(d.ble) : d.ble ?? "—"}`);
+  L.push(`mesh:       ${typeof d.mesh === "object" && d.mesh ? JSON.stringify(d.mesh) : d.mesh ?? "—"}`);
+  L.push(`page state: ${JSON.stringify(d.state)}`);
+  L.push(`fault:      ${d.fault ? `${d.fault.code} ${d.fault.detail}` : "none"}`);
+  L.push("");
+  L.push("-- events (page) --");
+  for (const l of $log.get()) L.push(`${new Date(l.t).toISOString().slice(11, 19)} ${l.kind.padEnd(5)} ${l.text}`);
+  L.push("");
+  L.push("-- bridge (system.logs) --");
+  for (const l of d.bridgeLog || []) L.push(String(l));
+  return L.join("\n");
+}
+
 function startMock() {
   const me = "you";
+  note("mock", "no transport — the deterministic demo is driving this screen");
   $state.set({ running: true, peerCount: 0, maxHops: 0, myPeerID: me, nick: $state.get().nick || "anon4f2a" });
   if (typeof location !== "undefined" && /[?&]mock=empty/.test(location.search)) return;
   const seed = () => {
+    note("peers", "2 · anon5aa3/1h, мандрівник/2h");
     $peers.set([
       { peerID: "5aa3", nick: "anon5aa3", hops: 1, lastSeen: Date.now() },
       { peerID: "0f68", nick: "мандрівник", hops: 2, lastSeen: Date.now() - 8000 },
