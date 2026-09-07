@@ -38,8 +38,8 @@ async function startLive() {
 
 export async function start() {
   if ($state.get().running) return;
-  if (live()) return startLive();
   if (demo()) return startMock();
+  if (live()) return startLive();
   $state.set({ ...$state.get(), running: true, myPeerID: "", nick: $state.get().nick || "" });
 }
 export function stop() { cancels.forEach((c) => c && c()); cancels = []; }
