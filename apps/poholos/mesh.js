@@ -71,6 +71,7 @@ const rid = () => Math.random().toString(36).slice(2, 10);
 function startMock() {
   const me = "you";
   $state.set({ running: true, peerCount: 0, maxHops: 0, myPeerID: me, nick: $state.get().nick || "anon4f2a" });
+  if (typeof location !== "undefined" && /[?&]mock=empty/.test(location.search)) return;
   const seed = () => {
     $peers.set([
       { peerID: "5aa3", nick: "anon5aa3", hops: 1, lastSeen: Date.now() },
