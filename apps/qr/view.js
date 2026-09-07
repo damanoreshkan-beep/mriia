@@ -76,7 +76,7 @@ export function qr({ S, toast }) {
     <!-- camera aperture -->
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
       <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")}
-          show=${true} fullscreen=${false} gestures=${false} primeFull=${true}
+          show=${true} fullscreen=${false} gestures=${false} pinch=${true} primeFull=${true}
           onVideo=${(el) => setSource(el)} onState=${(s) => setReady(s.ready)}
           className="flex items-center justify-center">
         
