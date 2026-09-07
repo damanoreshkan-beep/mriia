@@ -52,6 +52,8 @@ export function cam({ S }) {
   const cycleAspect = () => { buzz(); setAspect((a) => ASPECTS[(ASPECTS.indexOf(a) + 1) % ASPECTS.length]); };
   const flip = () => { buzz(); setTorch(false); setFacing((f) => (f === "environment" ? "user" : "environment")); };
 
+  const showMirror = mirror !== (facing === "user");
+
   const grab = () => {
     const v = videoRef.current; if (!v || !(v.videoWidth > 0)) return;
     try {
@@ -60,7 +62,7 @@ export function cam({ S }) {
       const ar = arOf(aspect); let ow = 1200, oh = Math.round(1200 / ar); if (ar < 1) { oh = 1200; ow = Math.round(1200 * ar); }
       const out = document.createElement("canvas"); out.width = ow; out.height = oh;
       const ctx = out.getContext("2d"); ctx.filter = filterStr();
-      if (mirror || facing === "user") { ctx.translate(ow, 0); ctx.scale(-1, 1); }
+      if (showMirror) { ctx.translate(ow, 0); ctx.scale(-1, 1); }   
       const scale = Math.max(ow / src, oh / src), dw = src * scale, dh = src * scale;
       ctx.drawImage(v, sx, sy, src, src, (ow - dw) / 2, (oh - dh) / 2, dw, dh);
       out.toBlob((blob) => {
@@ -83,7 +85,6 @@ export function cam({ S }) {
   };
   useEffect(() => () => clearInterval(timerRef.current), []);
 
-  const showMirror = mirror !== (facing === "user");   
   const Toggle = (on, icon, label, onClick, extra) => html`<button aria-pressed=${!!on} aria-label=${label} onClick=${onClick} class=${`btn btn-circle btn-sm ${on ? "btn-primary" : "bg-base-100 text-base-content/80"}`}>${extra || Icon(icon, "text-base")}</button>`;
 
   return html`<${Fragment}>
@@ -107,7 +108,7 @@ export function cam({ S }) {
           <div data-screen class="relative aspect-square max-h-full max-w-full w-full rounded-[var(--ms-r-in)] overflow-hidden sf-inset">
             ${gate ? html`<div class="absolute inset-0 bg-neutral" aria-hidden="true"></div>` : null}
             
-            <div class="absolute inset-0" style=${ready ? `filter:${filterStr()};transform:scale(${zoom.toFixed(3)})${showMirror ? " scaleX(-1)" : ""}` : null}>
+            <div class="absolute inset-0" style=${ready ? `filter:${filterStr()};transform:scale(${zoom.toFixed(3)})` : null}>
               <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} primeFull
                 facing=${facing} torch=${torch} constraints=${CONSTRAINTS} still=${null} show=${true} fullscreen=${false} gestures=${false}
                 onVideo=${(el) => { videoRef.current = el; }} onState=${(s) => { setCaps(s.caps); setReady(s.ready); }} />
@@ -162,11 +163,13 @@ export function cam({ S }) {
         </div>
       <//>
     </div>
+
+    
     ${lit ? html`<div class="fixed inset-0 z-40 bg-white" aria-hidden="true"></div>` : null}
   </${Fragment}>`;
 }
+
 function cropBars(aspect) {
-  
   if (aspect === "4:5") return html`<div class="absolute inset-0 pointer-events-none" aria-hidden="true"><div class="absolute inset-y-0 left-0 w-[10%] bg-black/55"></div><div class="absolute inset-y-0 right-0 w-[10%] bg-black/55"></div></div>`;
   return html`<div class="absolute inset-0 pointer-events-none" aria-hidden="true"><div class="absolute inset-x-0 top-0 h-[22%] bg-black/55"></div><div class="absolute inset-x-0 bottom-0 h-[22%] bg-black/55"></div></div>`;
 }
