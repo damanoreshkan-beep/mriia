@@ -6,6 +6,7 @@ import { collection, idbSupported } from "/_rt/db.js";
 import { startJob, followOne, cancelJob } from "/_rt/imagejob.js";
 import { shareFile, downloadBlob } from "/_rt/apk.js";
 import { toDataURL, mockArt } from "/_rt/intake.js";
+import { toEnglish } from "/_rt/translate.js";
 import { report } from "/_rt/telemetry.js";
 
 const BASE = `${VPS_PROXY}/video`;
@@ -138,9 +139,14 @@ export async function generate() {
     if (blob) land({ blob, by: model || "mock", words, pic: src, dur: 1.5, res: "192x256" }); else fail(run, "eFailed");
     return;
   }
+  let sent = words;
+  if (words) {
+    try { sent = await toEnglish(words); } catch (e) { fail(run, e?.code || "eTranslate"); return; }
+    if (run !== runs) return;
+  }
   let id;
   try {
-    const body = { prompt: words, ...(model ? { model } : {}) };
+    const body = { prompt: sent, ...(model ? { model } : {}) };
     if (src) {
       let sent; try { sent = await toDataURL(src); } catch { throw { code: "eFailed" }; }
       if (run !== runs) return;
