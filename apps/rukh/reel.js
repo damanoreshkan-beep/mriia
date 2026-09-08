@@ -7,8 +7,9 @@ import { report } from "/_rt/telemetry.js";
 
 const BASE = `${VPS_PROXY}/video`;
 const SCENARIO = `${VPS_PROXY}/scenario`;
-/** What one call to the pool actually returns; the pools are measured at 2.0–3.5 s (edge/video.js). */
-export const CHUNK_SEC = 3;
+/** The chunk. The edge clamps to the same number and writes
+ *  it into the Space's own Duration control where the row has one; see `CHUNK_MAX_SEC` in edge/video.js. */
+export const CHUNK_SEC = 2;
 /** */
 export const LENGTHS = [15, 30, 60];
 const MIN_CLIP_BYTES = 4096;
@@ -114,7 +115,7 @@ export async function runReel({ prompt, firstFrame = "", locale = "en" }) {
       let beatEn;
       try { beatEn = await toEnglish(beat); } catch { setChunk(i, { status: "error" }); carry = ""; continue; }
       if (run !== runs) return;
-      const body = { prompt: beatEn, ...(carry ? { image: carry } : {}) };
+      const body = { prompt: beatEn, seconds: CHUNK_SEC, ...(carry ? { image: carry } : {}) };
       const id = await startJob(BASE, body);
       if (run !== runs) { cancelJob(BASE, id); return; }
       live = id;
