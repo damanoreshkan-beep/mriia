@@ -140,12 +140,26 @@ export function stop() { cancels.forEach((c) => c && c()); cancels = []; }
 
 export async function rescan() {
   note("rescan", "manual restart of the mesh transport");
-  stop();
+  stop();                                    
+  if (live()) {
+    note("call", "mesh.stop");
+    try { const r = await shell.call("mesh.stop", {}); note("ok", `mesh.stop → running ${r?.running}`); }
+    catch (e) { const f = faultOf(e); note("err", `mesh.stop: ${f.code} ${f.detail}`); }
+  }
   $peers.set([]);
   $fault.set(null);
   $state.set({ ...$state.get(), running: false, peerCount: 0 });
   bump();
   await start();
+}
+
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && live() && $state.get().running) {
+      note("wake", "foreground — rescanning the mesh transport");
+      rescan();
+    }
+  });
 }
 
 export async function setNick(nick) {
