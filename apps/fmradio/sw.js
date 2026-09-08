@@ -1,6 +1,6 @@
 self.MS = {
   app: "fmradio",
-  version: "c9dad24982",
+  version: "8a5d7456f4",
   precache: [
     "./",
     "./i18n/en.json",
@@ -52,6 +52,7 @@ self.MS = {
     "/_rt/themes.json",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/usage.js",
     "/_rt/usbsession.js",
     "/_rt/validate.js",
     "/_rt/version.js",

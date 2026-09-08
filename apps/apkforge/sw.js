@@ -1,6 +1,6 @@
 self.MS = {
   app: "apkforge",
-  version: "5f56bceeae",
+  version: "7591547b62",
   precache: [
     "./",
     "./i18n/en.json",
@@ -53,6 +53,7 @@ self.MS = {
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/urlquery.js",
+    "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",

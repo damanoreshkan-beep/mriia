@@ -1,6 +1,6 @@
 self.MS = {
   app: "hive",
-  version: "5bb57e59f8",
+  version: "307723f006",
   precache: [
     "./",
     "./i18n/en.json",
@@ -53,6 +53,7 @@ self.MS = {
     "/_rt/themes.json",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",

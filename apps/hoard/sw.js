@@ -1,6 +1,6 @@
 self.MS = {
   app: "hoard",
-  version: "22cb4dc5f2",
+  version: "474464e109",
   precache: [
     "./",
     "./hoard.frag",
@@ -54,6 +54,7 @@ self.MS = {
     "/_rt/themes.json",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",

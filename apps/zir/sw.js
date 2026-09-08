@@ -1,6 +1,6 @@
 self.MS = {
   app: "zir",
-  version: "a22e9cd597",
+  version: "3c3f188f46",
   precache: [
     "./",
     "./i18n/en.json",
@@ -60,6 +60,7 @@ self.MS = {
     "/_rt/themes.json",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
