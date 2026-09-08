@@ -138,6 +138,16 @@ export async function start() {
 }
 export function stop() { cancels.forEach((c) => c && c()); cancels = []; }
 
+export async function rescan() {
+  note("rescan", "manual restart of the mesh transport");
+  stop();
+  $peers.set([]);
+  $fault.set(null);
+  $state.set({ ...$state.get(), running: false, peerCount: 0 });
+  bump();
+  await start();
+}
+
 export async function setNick(nick) {
   $state.set({ ...$state.get(), nick });
   if (live()) await shell.call("mesh.setNick", { name: nick });
