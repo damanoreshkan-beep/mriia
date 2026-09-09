@@ -1,6 +1,6 @@
 self.MS = {
   app: "jobx",
-  version: "e30e04c3e5",
+  version: "70ca2d57d1",
   precache: [
     "./",
     "./i18n/en.json",
@@ -10,7 +10,6 @@ self.MS = {
     "./index.html",
     "./manifest.json",
     "./spec.json",
-    "./uamap.js",
     "./view.js",
     "/_rt/account.js",
     "/_rt/ai-core.js",
