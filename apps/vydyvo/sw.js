@@ -1,6 +1,6 @@
 self.MS = {
   app: "vydyvo",
-  version: "be8424fa58",
+  version: "cf699c188a",
   precache: [
     "./",
     "./i18n/en.json",
@@ -56,6 +56,7 @@ self.MS = {
     "/_rt/theme-lum.css",
     "/_rt/theme.css",
     "/_rt/themes.json",
+    "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/usage.js",

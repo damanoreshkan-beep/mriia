@@ -1,6 +1,6 @@
 self.MS = {
   app: "tarot",
-  version: "6a746fc2d8",
+  version: "2902466866",
   precache: [
     "./",
     "./hero.wgsl",
@@ -52,6 +52,7 @@ self.MS = {
     "/_rt/theme-lum.css",
     "/_rt/theme.css",
     "/_rt/themes.json",
+    "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/usage.js",

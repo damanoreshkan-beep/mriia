@@ -1,6 +1,6 @@
 self.MS = {
   app: "portal",
-  version: "aec2386aa7",
+  version: "e79c223446",
   precache: [
     "./",
     "./graph.js",
@@ -54,6 +54,7 @@ self.MS = {
     "/_rt/theme-lum.css",
     "/_rt/theme.css",
     "/_rt/themes.json",
+    "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
     "/_rt/usage.js",
