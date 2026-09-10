@@ -1,4 +1,5 @@
 import { html } from "htm/preact";
+import { Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { atom } from "nanostores";
@@ -32,12 +33,18 @@ const DISTRICTS = {
 };
 
 const DEV_HOST = typeof location !== "undefined" && /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1)/.test(location.hostname);
+const NOW = Date.now();
 const MOCK_JOBS = [
-  { id: "1", title: "Frontend-розробник", company: "Dreamware", lat: 50.452, lon: 30.480, address: "Шевченківський", salary: "60 000–90 000 ₴", employment: "remote", description: "Preact, невеликі PWA, чистий код. Гнучкий графік, дружня команда, віддалена робота.", contact: "@dreamware_jobs", poster: "Octocat", ms: Date.now() },
-  { id: "2", title: "Бариста", company: "Кава Гармонія", lat: 50.475, lon: 30.515, address: "Подільський", salary: "22 000 ₴", employment: "part", description: "Ранкові зміни, навчаємо з нуля, чай і кава безкоштовно.", contact: "hr@harmony.ua", poster: "Ірина", ms: Date.now() },
-  { id: "3", title: "Менеджер із продажу", company: "Кратос", lat: 50.425, lon: 30.540, address: "Печерський", salary: "37 500–90 000 ₴", employment: "full", description: "Повна зайнятість, вища освіта, CRM. Провідний постачальник комплектуючих.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: Date.now() },
-  { id: "4", title: "Кухар", company: "KFC", lat: 50.510, lon: 30.500, address: "Оболонський", salary: "27 000 ₴", employment: "full", description: "Готові взяти студента, людину з інвалідністю, пенсіонера. Навчання коштом компанії.", contact: "@kfc_jobs", poster: "KFC", ms: Date.now() },
-  { id: "5", title: "Інженер-електронік", company: "Sempal", lat: 50.400, lon: 30.630, address: "Дарницький", salary: "60 000–100 000 ₴", employment: "full", description: "Досвід від 2 років, C++, Assembler. Провідний український виробник.", contact: "hr@sempal.com", poster: "Sempal", ms: Date.now() },
+  { id: "1", title: "Frontend-розробник", company: "Dreamware", lat: 50.4470, lon: 30.5060, address: "Київ, вулиця Богдана Хмельницького, 32", salary: "60 000–90 000 ₴", employment: "remote", description: "Preact, невеликі PWA, чистий код.\n\nГнучкий графік, дружня команда, віддалена робота.", contact: "@dreamware_jobs", poster: "Octocat", ms: NOW },
+  { id: "2", title: "Бариста", company: "Кава Гармонія", lat: 50.4590, lon: 30.5165, address: "Київ, Андріївський узвіз, 10", salary: "22 000 ₴", employment: "part", description: "Ранкові зміни, навчаємо з нуля, чай і кава безкоштовно.", contact: "hr@harmony.ua", poster: "Ірина", ms: NOW },
+  { id: "3", title: "Менеджер із продажу", company: "Кратос", lat: 50.4302, lon: 30.5350, address: "Київ, вулиця Лесі Українки, 26", salary: "37 500–90 000 ₴", employment: "full", description: "Повна зайнятість, вища освіта, CRM. Провідний постачальник комплектуючих.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: NOW },
+  { id: "4", title: "Кухар", company: "KFC", lat: 50.5085, lon: 30.4990, address: "Київ, проспект Оболонський, 21б", salary: "27 000 ₴", employment: "full", description: "Готові взяти студента, людину з інвалідністю, пенсіонера. Навчання коштом компанії.", contact: "@kfc_jobs", poster: "KFC", ms: NOW },
+  { id: "5", title: "Інженер-електронік", company: "Sempal", lat: 50.4010, lon: 30.6320, address: "Київ, вулиця Здолбунівська, 7д", salary: "60 000–100 000 ₴", employment: "full", description: "Досвід від 2 років, C++, Assembler. Провідний український виробник.", contact: "hr@sempal.com", poster: "Sempal", ms: NOW },
+  { id: "6", title: "Майстер встановлення автомагнітол на ОС Android, автоелектрик", company: "Automod", lat: 50.4282, lon: 30.6710, address: "Київ, вулиця Бориспільська, 7А", salary: "60 000 – 100 000 грн · % від виконаних робіт", employment: "", description: "Новий інсталяційний центр, запис на два тижні вперед. Досвід монтажу додаткового обладнання, знання автоелектрики.", contact: "https://www.work.ua/jobs/7980039/", poster: "work.ua", ms: NOW },
+  { id: "7", title: "Бухгалтер у юридичну компанію", company: "Grain Law Firm", lat: 50.4142, lon: 30.5267, address: "Київ, вулиця Джона Маккейна, 1", salary: "За результатами співбесіди", employment: "", description: "Ведення бухгалтерського та податкового обліку, звітність, контроль руху коштів. Досвід від 3 років.", contact: "https://www.work.ua/jobs/8047563/", poster: "work.ua", ms: NOW },
+  { id: "8", title: "Помічник категорійного менеджера", company: "Гривня Цент", lat: 50.4908, lon: 30.4969, address: "Київ, проспект Степана Бандери, 23г", salary: "", employment: "", description: "Замовлення постачальникам, контроль поставок, звірки з контрагентами, моніторинг цін.", contact: "https://www.work.ua/jobs/8507581/", poster: "work.ua", ms: NOW },
+  { id: "9", title: "Менеджер по роботі з клієнтами", company: "Nova", lat: 50.4340, lon: 30.4470, address: "Київ, вулиця Казимира Малевича, 86Н", salary: "45 000 грн", employment: "remote", description: "Вхідні звернення, CRM, супровід угод. Віддалено, гнучкий графік.", contact: "hr@nova.ua", poster: "Nova", ms: NOW },
+  { id: "10", title: "Юрист", company: "Кратос", lat: 50.4302, lon: 30.5350, address: "Київ, вулиця Лесі Українки, 26", salary: "50 000 ₴", employment: "full", description: "Договірна робота, супровід закупівель.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: NOW },
 ];
 
 const $jobs = atom(gate ? MOCK_JOBS : []);
@@ -80,14 +87,15 @@ function palette() {
   const base2 = themeRGB("--color-base-200", [10, 10, 12]);
   const base3 = themeRGB("--color-base-300", [22, 22, 26]);
   const ink = themeRGB("--color-base-content", [235, 235, 235]);
-  const accent = themeRGB("--app-accent", [0, 229, 255]);
+  const accent = themeRGB("--app-accent", [242, 184, 75]);
+  const accent2 = themeRGB("--app-accent-2", [92, 228, 220]);
   const dark = (ink[0] + ink[1] + ink[2]) / 3 > 140;    
   return {
     dark, bg: base2, accent,
     building: mix(base2, ink, dark ? 0.16 : 0.26),
     buildingLine: [...mix(base3, ink, 0.5), dark ? 110 : 90],
-    water: [...mix(base3, accent, dark ? 0.3 : 0.4), 210],
-    waterLine: [...mix(base3, accent, 0.55), 160],
+    water: [...mix(base3, accent2, dark ? 0.35 : 0.45), 210],
+    waterLine: [...mix(base3, accent2, 0.6), 160],
     road: [...mix(base2, ink, 0.34), 160],
     district: [...ink, dark ? 55 : 50],
     pillBg: [...base1, 240], pillText: [...ink, 255], pillBorder: [...accent, 255],
@@ -105,11 +113,22 @@ function shortSalary(s) {
   return nums.length >= 2 ? `${k(nums[0])}–${k(nums[1])} ${cur}` : `${k(nums[0])} ${cur}`;
 }
 
-const clusterJobs = (jobs) => {
-  const g = new Map();
-  for (const j of jobs) { if (!Number.isFinite(j.lat) || !Number.isFinite(j.lon)) continue; const k = `${j.lat.toFixed(3)}_${j.lon.toFixed(3)}`; (g.get(k) || g.set(k, []).get(k)).push(j); }
-  return [...g.values()].map((grp) => ({ coordinates: [grp.reduce((s, j) => s + j.lon, 0) / grp.length, grp.reduce((s, j) => s + j.lat, 0) / grp.length], count: grp.length, jobs: grp }));
-};
+const PILL_W = 112, PILL_H = 34;    
+const BEAM_M = 220, PILL_Z = 300;   
+function clusterJobs(jobs, vp) {
+  const out = [];
+  for (const j of jobs) {
+    if (!Number.isFinite(j.lat) || !Number.isFinite(j.lon)) continue;
+    const [x, y] = vp.project([j.lon, j.lat, PILL_Z]);
+    let hit = null;
+    for (const c of out) if (Math.abs(c.x - x) < PILL_W && Math.abs(c.y - y) < PILL_H) { hit = c; break; }
+    if (!hit) { out.push({ x, y, lon: j.lon, lat: j.lat, count: 1, jobs: [j] }); continue; }
+    hit.jobs.push(j); hit.count++;
+    const k = 1 / hit.count;                                   
+    hit.x += (x - hit.x) * k; hit.y += (y - hit.y) * k; hit.lon += (j.lon - hit.lon) * k; hit.lat += (j.lat - hit.lat) * k;
+  }
+  return out.map((c) => ({ coordinates: [c.lon, c.lat], count: c.count, jobs: c.jobs }));
+}
 const CELL = 0.006, BLD_ZOOM = 12.5, CELL_RADIUS = 4;
 
 async function makeDeck(canvas) {
@@ -120,17 +139,22 @@ async function makeDeck(canvas) {
 
   const geo = {};
   const grab = async (n) => { try { geo[n] = await (await fetch(`${GEO}/${n}.json`)).json(); } catch { geo[n] = null; } };
-  await grab("districts"); await grab("water"); await grab("roads"); await grab("metro"); await grab("buildings");
+  await Promise.all([grab("districts"), grab("water"), grab("roads"), grab("metro")]);
   const bGrid = new Map();
-  if (geo.buildings && geo.buildings.features) for (const f of geo.buildings.features) {
-    f.properties._h = f.properties.h || 12;
-    const p = f.geometry.coordinates[0][0];
-    const k = `${Math.floor(p[0] / CELL)}_${Math.floor(p[1] / CELL)}`;
-    let cell = bGrid.get(k); if (!cell) bGrid.set(k, cell = { type: "FeatureCollection", features: [] });
-    cell.features.push(f);
-  }
+  const binBuildings = () => {
+    if (!geo.buildings || !geo.buildings.features) return;
+    for (const f of geo.buildings.features) {
+      f.properties._h = f.properties.h || 12;
+      const p = f.geometry.coordinates[0][0];
+      const k = `${Math.floor(p[0] / CELL)}_${Math.floor(p[1] / CELL)}`;
+      let cell = bGrid.get(k); if (!cell) bGrid.set(k, cell = { type: "FeatureCollection", features: [] });
+      cell.features.push(f);
+    }
+  };
 
-  let zoom = VIEW.zoom, cLng = VIEW.longitude, cLat = VIEW.latitude, pal = palette(), jobs = [], onPick = () => {}, curClusters = [], cellSig = "";
+  let zoom = VIEW.zoom, cLng = VIEW.longitude, cLat = VIEW.latitude, cPitch = VIEW.pitch, cBearing = VIEW.bearing;
+  let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], cellSig = "", curVp = null;
+  const viewportNow = () => curVp || new D.WebMercatorViewport({ width: canvas.clientWidth || 384, height: canvas.clientHeight || 832, longitude: cLng, latitude: cLat, zoom, pitch: cPitch, bearing: cBearing });
   const visCells = () => {
     if (zoom < BLD_ZOOM || !bGrid.size) return [];
     const ci = Math.floor(cLng / CELL), cj = Math.floor(cLat / CELL), out = [];
@@ -149,16 +173,16 @@ async function makeDeck(canvas) {
     for (const key of visCells()) {
       L.push(new D.GeoJsonLayer({ id: `bld-${key}`, data: bGrid.get(key), extruded: true, opacity: pal.dark ? 0.92 : 0.97, getElevation: (f) => f.properties._h, getFillColor: pal.building, material: { ambient: pal.dark ? 0.5 : 0.62, diffuse: 0.55, shininess: 1, specularColor: [0, 0, 0] }, pickable: false, updateTriggers: { getFillColor: [pal] } }));
     }
-    const cl = clusterJobs(jobs);
+    const cl = clusterJobs(jobs, viewportNow());
     curClusters = cl;                              
     if (cl.length) {
       const label = (d) => (d.count > 1 ? String(d.count) : (shortSalary(d.jobs[0] && d.jobs[0].salary) || ""));
       const pilled = cl.filter((d) => label(d));
-      L.push(new D.ColumnLayer({ id: "beam", data: cl, diskResolution: 12, radius: 6, extruded: true, elevationScale: 1, getPosition: (d) => d.coordinates, getElevation: 220, getFillColor: pal.beam, pickable: false }));
+      L.push(new D.ColumnLayer({ id: "beam", data: cl, diskResolution: 12, radius: 6, extruded: true, elevationScale: 1, getPosition: (d) => d.coordinates, getElevation: BEAM_M, getFillColor: pal.beam, pickable: false }));
       L.push(new D.ScatterplotLayer({ id: "anchor", data: cl, getPosition: (d) => d.coordinates, radiusUnits: "pixels", getRadius: 5, radiusMinPixels: 5, radiusMaxPixels: 9, getFillColor: pal.anchor, stroked: true, getLineColor: [255, 255, 255, 200], lineWidthUnits: "pixels", getLineWidth: 1.5, pickable: true }));
       L.push(new D.TextLayer({
         id: "pills", data: pilled, pickable: true, billboard: true, sizeUnits: "pixels",
-        getPosition: (d) => [d.coordinates[0], d.coordinates[1], 220], getPixelOffset: [0, -12],
+        getPosition: (d) => [d.coordinates[0], d.coordinates[1], PILL_Z],
         getText: label, getSize: (d) => (d.count > 1 ? 15 : 13), sizeMinPixels: 11, sizeMaxPixels: 20,
         background: true, backgroundBorderRadius: 11, backgroundPadding: [10, 6, 10, 6], getBackgroundColor: (d) => (d.count > 1 ? pal.clusterBg : pal.pillBg),
         getBorderColor: pal.pillBorder, getBorderWidth: 1.2,
@@ -176,10 +200,10 @@ async function makeDeck(canvas) {
     let best = null, bd = Infinity;
     for (const c of curClusters) {
       const lab = c.count > 1 ? String(c.count) : (shortSalary(c.jobs[0] && c.jobs[0].salary) || "");
-      const [px, py] = vp.project([c.coordinates[0], c.coordinates[1], 220]);   
-      const [gx, gy] = vp.project([c.coordinates[0], c.coordinates[1], 0]);      
+      const [px, py] = vp.project([c.coordinates[0], c.coordinates[1], PILL_Z]);   
+      const [gx, gy] = vp.project([c.coordinates[0], c.coordinates[1], 0]);        
       let dPill = Infinity;
-      if (lab) { const cx = px, cy = py - 12, hw = lab.length * 4.4 + 14, hh = 15;
+      if (lab) { const cx = px, cy = py, hw = lab.length * 4.4 + 14, hh = 15;
         dPill = Math.hypot(Math.max(Math.abs(x - cx) - hw, 0), Math.max(Math.abs(y - cy) - hh, 0)); }
       const dDot = Math.hypot(x - gx, y - gy);                                    
       const d = Math.min(dPill, dDot);
@@ -193,12 +217,14 @@ async function makeDeck(canvas) {
     getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "grab"),
     onClick: (info) => { const c = (info && info.object && info.object.jobs) ? info.object : pickCluster(info && info.x, info && info.y); if (c && c.jobs) onPick(c); },
     onViewStateChange: ({ viewState }) => {
-      zoom = viewState.zoom; cLng = viewState.longitude; cLat = viewState.latitude;
-      const sig = visCells().join(",");
+      zoom = viewState.zoom; cLng = viewState.longitude; cLat = viewState.latitude; cPitch = viewState.pitch; cBearing = viewState.bearing;
+      curVp = deck.getViewports()[0] || null;
+      const sig = `${visCells().join(",")}|${Math.round(zoom * 4)}|${Math.round(cPitch / 10)}|${Math.round(cBearing / 20)}`;
       if (sig !== cellSig) { cellSig = sig; deck.setProps({ layers: layers() }); }
     },
     layers: [],
   });
+  grab("buildings").then(() => { binBuildings(); cellSig = ""; deck.setProps({ layers: layers() }); });
   return {
     rebuild(next) { if (next.pal) pal = next.pal; if (next.jobs) jobs = next.jobs; if ("onPick" in next) onPick = next.onPick; deck.setProps({ layers: layers(), style: { background: `rgb(${pal.bg.join(",")})` } }); },
     destroy() { try { deck.finalize(); } catch {  } },
@@ -218,20 +244,22 @@ function MapStage({ isDark, jobs, onPick }) {
 
 const kmFromCentre = (lat, lon) => (!Number.isFinite(lat) || !Number.isFinite(lon)) ? null : Math.round(Math.hypot((lat - KYIV.lat) * 111.32, (lon - KYIV.lon) * 111.32 * Math.cos(KYIV.lat * Math.PI / 180)) * 10) / 10;
 const applyLink = (c) => /^https?:\/\//i.test(c) ? c : /^@/.test(c) ? `https://t.me/${c.slice(1)}` : /@/.test(c) ? `mailto:${c}` : null;
+const streetOf = (a) => String(a || "").replace(/^\s*(Київ|Kyiv)\s*,\s*/i, "");
+const salaryHasWords = (s) => /[A-Za-zА-Яа-яІіЇїЄєҐґ]{4,}/.test(String(s || ""));
 
 function JobRow({ t, j, onOpen }) {
-  const km = kmFromCentre(j.lat, j.lon);
+  const km = kmFromCentre(j.lat, j.lon), pay = shortSalary(j.salary), street = streetOf(j.address);
   return html`<button data-job-row class="w-full text-left card sf-raised sf-e2 rounded-[var(--ms-r)] active:scale-[.99] transition" onClick=${onOpen}>
-    <div class="card-body p-[var(--ms-pad)] gap-1">
+    <div class="card-body p-[var(--ms-pad)] gap-1.5">
       <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0"><div data-job-title class="font-semibold leading-tight truncate">${j.title}</div>
+        <div class="min-w-0 flex-1"><div data-job-title class="font-semibold leading-tight line-clamp-2">${j.title}</div>
           <div class="text-[0.88rem] text-muted truncate">${j.company}</div></div>
-        ${j.salary ? html`<div class="shrink-0 font-mono text-[0.8rem] font-semibold whitespace-nowrap">${j.salary}</div>` : null}
+        ${pay ? html`<div class="shrink-0 font-mono text-[0.8rem] font-semibold whitespace-nowrap tabular-nums pt-0.5">${pay}</div>` : null}
       </div>
-      <div class="flex items-center gap-2 text-[0.76rem] text-muted">
-        ${j.employment && empKey[j.employment] ? html`<span class="badge badge-sm badge-ghost">${T(t, empKey[j.employment])}</span>` : null}
-        ${j.address ? html`<span class="flex items-center gap-1">${Icon("lucide:map-pin", "text-[0.95em]")}${j.address}</span>` : null}
-        ${km != null ? html`<span>· ${km} ${T(t, "kmFromCentre")}</span>` : null}
+      <div class="flex items-center gap-2 text-[0.76rem] text-muted min-w-0">
+        ${j.employment && empKey[j.employment] ? html`<span class="badge badge-sm badge-ghost shrink-0">${T(t, empKey[j.employment])}</span>` : null}
+        ${street ? html`<span class="flex items-center gap-1 min-w-0">${Icon("lucide:map-pin", "text-[0.95em] shrink-0")}<span class="truncate">${street}</span></span>` : null}
+        ${km != null ? html`<span class="ml-auto shrink-0 whitespace-nowrap font-mono tabular-nums">${km} ${T(t, "km")}</span>` : null}
       </div>
     </div>
   </button>`;
@@ -250,14 +278,16 @@ function Page({ t, title, onBack, children }) {
 function JobPage({ t, id, onBack }) {
   const j = jobById(id);
   if (!j) return html`<${Page} t=${t} title=${T(t, "job")} onBack=${onBack}><div class="text-muted py-10 text-center">—</div><//>`;
-  const km = kmFromCentre(j.lat, j.lon), link = applyLink(j.contact);
-  return html`<${Page} t=${t} title=${j.title} onBack=${onBack}>
+  const km = kmFromCentre(j.lat, j.lon), link = applyLink(j.contact), pay = shortSalary(j.salary);
+  return html`<${Page} t=${t} title=${T(t, "job")} onBack=${onBack}>
     <div class="flex flex-col gap-[var(--ms-gap)]">
       <div>
-        <div class="text-2xl font-bold leading-tight">${j.title}</div>
+        <h1 class="text-2xl font-bold leading-tight break-words">${j.title}</h1>
         <div class="text-base-content/80 mt-0.5">${j.company}</div>
       </div>
-      ${j.salary ? html`<div class="text-xl font-mono font-semibold">${j.salary}</div>` : null}
+      ${pay
+        ? html`<div><div class="text-xl font-mono font-semibold tabular-nums">${pay}</div>${salaryHasWords(j.salary) ? html`<div class="text-[0.85rem] text-muted">${j.salary}</div>` : null}</div>`
+        : j.salary ? html`<div class="text-base-content/80">${j.salary}</div>` : null}
       <div class="flex flex-wrap gap-1.5">
         ${j.employment && empKey[j.employment] ? html`<span class="badge badge-neutral">${T(t, empKey[j.employment])}</span>` : null}
         ${j.address ? html`<span class="badge badge-ghost gap-1">${Icon("lucide:map-pin")}${j.address}</span>` : null}
@@ -336,23 +366,24 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
   const isDark = !/light/i.test(String(theme || ""));
   useEffect(() => { loadJobs(); }, []);
 
-  return html`<div data-stage class="fixed inset-0 z-0 overflow-hidden bg-base-200">
-    ${showMap ? html`<${MapStage} isDark=${isDark} jobs=${jobs} onPick=${(c) => openScreen(`job:${(c.jobs && c.jobs[0] || {}).id}`)} />` : null}
-    ${!showMap || !glReady
-      ? html`<div class="absolute inset-0 grid place-items-center px-8 text-center text-muted pointer-events-none">
-          <div>${Icon("lucide:map", "text-4xl opacity-40")}<p class="mt-3">${T(t, "mapHint")}</p></div>
-        </div>` : null}
+  return html`<${Fragment}>
+    <div data-stage class="fixed inset-0 z-0 overflow-hidden bg-base-200">
+      ${showMap ? html`<${MapStage} isDark=${isDark} jobs=${jobs} onPick=${(c) => openScreen(`job:${(c.jobs && c.jobs[0] || {}).id}`)} />` : null}
+      ${!showMap || !glReady
+        ? html`<div class="absolute inset-0 grid place-items-center px-8 text-center text-muted pointer-events-none">
+            <div>${Icon("lucide:map", "text-4xl opacity-40")}<p class="mt-3">${T(t, "mapHint")}</p></div>
+          </div>` : null}
 
-    <!-- the one island: post a job. Island(pinned) owns the dock clearance (measured --dock-h), so the app
-         never hand-writes chrome geometry; className makes the glass tray hug the primary CTA. -->
-    <${Island} pinned at="bottom" tone="glass" className="!p-1 rounded-full">
-      <button data-post class="btn btn-primary gap-2 rounded-full px-5" onClick=${() => { $sent.set(false); $err.set(null); openScreen("post"); }}>
-        ${Icon("lucide:plus", "text-[1.15em]")}<span class="font-medium">${T(t, "postCta")}</span>
-      </button>
-    <//>
-
+      <!-- the one island: post a job. Island(pinned) owns the dock clearance (measured --dock-h), so the app
+           never hand-writes chrome geometry; className makes the glass tray hug the primary CTA. -->
+      <${Island} pinned at="bottom" tone="glass" className="!p-1 rounded-full">
+        <button data-post class="btn btn-primary gap-2 rounded-full px-5" onClick=${() => { $sent.set(false); $err.set(null); openScreen("post"); }}>
+          ${Icon("lucide:plus", "text-[1.15em]")}<span class="font-medium">${T(t, "postCta")}</span>
+        </button>
+      <//>
+    </div>
     <${Screens} t=${t} loc=${loc} screen=${screen} close=${closeScreen} />
-  </div>`;
+  <//>`;
 }
 
 export function listView({ t, S, screen, openScreen, closeScreen }) {
