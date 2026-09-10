@@ -113,15 +113,18 @@ function shortSalary(s) {
   return nums.length >= 2 ? `${k(nums[0])}–${k(nums[1])} ${cur}` : `${k(nums[0])} ${cur}`;
 }
 
-const PILL_W = 112, PILL_H = 34;    
+const PILL_H = 34, PILL_GAP = 8;    
 const BEAM_M = 220, PILL_Z = 300;   
+const labelOf = (c) => (c.count > 1 ? String(c.count) : (shortSalary(c.jobs[0] && c.jobs[0].salary) || ""));
+const pillW = (lab) => (lab ? lab.length * 7.6 + 20 : 12);
 function clusterJobs(jobs, vp) {
   const out = [];
   for (const j of jobs) {
     if (!Number.isFinite(j.lat) || !Number.isFinite(j.lon)) continue;
     const [x, y] = vp.project([j.lon, j.lat, PILL_Z]);
+    const wj = pillW(shortSalary(j.salary) || "");
     let hit = null;
-    for (const c of out) if (Math.abs(c.x - x) < PILL_W && Math.abs(c.y - y) < PILL_H) { hit = c; break; }
+    for (const c of out) if (Math.abs(c.x - x) < (wj + pillW(labelOf(c))) / 2 + PILL_GAP && Math.abs(c.y - y) < PILL_H) { hit = c; break; }
     if (!hit) { out.push({ x, y, lon: j.lon, lat: j.lat, count: 1, jobs: [j] }); continue; }
     hit.jobs.push(j); hit.count++;
     const k = 1 / hit.count;                                   
@@ -176,7 +179,7 @@ async function makeDeck(canvas) {
     const cl = clusterJobs(jobs, viewportNow());
     curClusters = cl;                              
     if (cl.length) {
-      const label = (d) => (d.count > 1 ? String(d.count) : (shortSalary(d.jobs[0] && d.jobs[0].salary) || ""));
+      const label = labelOf;
       const pilled = cl.filter((d) => label(d));
       L.push(new D.ColumnLayer({ id: "beam", data: cl, diskResolution: 12, radius: 6, extruded: true, elevationScale: 1, getPosition: (d) => d.coordinates, getElevation: BEAM_M, getFillColor: pal.beam, pickable: false }));
       L.push(new D.ScatterplotLayer({ id: "anchor", data: cl, getPosition: (d) => d.coordinates, radiusUnits: "pixels", getRadius: 5, radiusMinPixels: 5, radiusMaxPixels: 9, getFillColor: pal.anchor, stroked: true, getLineColor: [255, 255, 255, 200], lineWidthUnits: "pixels", getLineWidth: 1.5, pickable: true }));
@@ -199,11 +202,11 @@ async function makeDeck(canvas) {
     const vp = deck.getViewports()[0]; if (!vp) return null;
     let best = null, bd = Infinity;
     for (const c of curClusters) {
-      const lab = c.count > 1 ? String(c.count) : (shortSalary(c.jobs[0] && c.jobs[0].salary) || "");
+      const lab = labelOf(c);
       const [px, py] = vp.project([c.coordinates[0], c.coordinates[1], PILL_Z]);   
       const [gx, gy] = vp.project([c.coordinates[0], c.coordinates[1], 0]);        
       let dPill = Infinity;
-      if (lab) { const cx = px, cy = py, hw = lab.length * 4.4 + 14, hh = 15;
+      if (lab) { const cx = px, cy = py, hw = pillW(lab) / 2, hh = PILL_H / 2;
         dPill = Math.hypot(Math.max(Math.abs(x - cx) - hw, 0), Math.max(Math.abs(y - cy) - hh, 0)); }
       const dDot = Math.hypot(x - gx, y - gy);                                    
       const d = Math.min(dPill, dDot);
