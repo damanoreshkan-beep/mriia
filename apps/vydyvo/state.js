@@ -1,5 +1,6 @@
 import { atom } from "nanostores";
 import { gate } from "/_rt/gate.js";
+import { session } from "/_rt/auth.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { T } from "/_rt/i18n.js";
 import { toEnglish } from "/_rt/translate.js";
@@ -119,7 +120,8 @@ function tick() {
   const g = $gen.get();
   const online = gate || (typeof navigator === "undefined" || navigator.onLine !== false);
   const ahead = $frames.get().filter((f) => !f.shown && f.mode === m && f.preset === w).length;
-  if (g.phase !== "working" && now >= g.until && ahead < AHEAD && online) generate();
+  const signedIn = gate || !!(session.get() && session.get().sid);
+  if (g.phase !== "working" && now >= g.until && ahead < AHEAD && online && signedIn) generate();
 }
 
 /** A theme flip with no frame of the new mode must not wait out a refusal's backoff — race now. */
