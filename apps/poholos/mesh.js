@@ -84,6 +84,9 @@ export function field() {
 const live = () => shell.present && shell.has("mesh.start");
 const demo = () => gate || (typeof location !== "undefined" && /[?&](mock|demo)=/.test(location.search));
 let cancels = [];
+let starting = false;
+let rescanning = false;
+let hiddenAt = 0;
 
 async function startLive() {
   note("call", "mesh.start");
@@ -127,35 +130,42 @@ async function checkHeld() {
 }
 
 export async function start() {
-  if ($state.get().running) return;
-  if (demo()) return startMock();
-  if (live()) {
-    try { return await startLive(); }
-    catch (e) { const f = faultOf(e); $fault.set(f); note("err", `mesh.start: ${f.code} ${f.detail}`); return; }
-  }
-  note("idle", shell.present ? `no mesh.start on this bridge (v${shell.version})` : "no shell — browser");
-  $state.set({ ...$state.get(), running: true, myPeerID: "", nick: $state.get().nick || "" });
+  if ($state.get().running || starting) return;
+  starting = true;
+  try {
+    if (demo()) return await startMock();
+    if (live()) {
+      try { return await startLive(); }
+      catch (e) { const f = faultOf(e); $fault.set(f); note("err", `mesh.start: ${f.code} ${f.detail}`); return; }
+    }
+    note("idle", shell.present ? `no mesh.start on this bridge (v${shell.version})` : "no shell — browser");
+    $state.set({ ...$state.get(), running: true, myPeerID: "", nick: $state.get().nick || "" });
+  } finally { starting = false; }
 }
 export function stop() { cancels.forEach((c) => c && c()); cancels = []; }
 
 export async function rescan() {
-  note("rescan", "manual restart of the mesh transport");
-  stop();                                    
-  if (live()) {
-    note("call", "mesh.stop");
-    try { const r = await shell.call("mesh.stop", {}); note("ok", `mesh.stop → running ${r?.running}`); }
-    catch (e) { const f = faultOf(e); note("err", `mesh.stop: ${f.code} ${f.detail}`); }
-  }
-  $peers.set([]);
-  $fault.set(null);
-  $state.set({ ...$state.get(), running: false, peerCount: 0 });
-  bump();
-  await start();
+  if (rescanning) return;                    
+  rescanning = true;
+  try {
+    note("rescan", "manual restart of the mesh transport");
+    stop();                                  
+    if (live()) {
+      note("call", "mesh.stop");
+      try { const r = await shell.call("mesh.stop", {}); note("ok", `mesh.stop → running ${r?.running}`); }
+      catch (e) { const f = faultOf(e); note("err", `mesh.stop: ${f.code} ${f.detail}`); }
+    }
+    $fault.set(null);
+    $state.set({ ...$state.get(), running: false });
+    await start();
+  } finally { rescanning = false; }
 }
 
 if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
   document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
     if (document.visibilityState === "visible" && live() && $state.get().running) {
+      if (Date.now() - hiddenAt < 3000) return;
       note("wake", "foreground — rescanning the mesh transport");
       rescan();
     }
