@@ -122,7 +122,7 @@ async function makeDeck(canvas) {
   await grab("districts"); await grab("water"); await grab("roads"); await grab("metro"); await grab("buildings");
   if (geo.buildings && geo.buildings.features) for (const f of geo.buildings.features) f.properties._h = f.properties.h || 12;
 
-  let zoom = VIEW.zoom, lod = lodFor(VIEW.zoom), pal = palette(), jobs = [], onPick = () => {};
+  let zoom = VIEW.zoom, lod = lodFor(VIEW.zoom), pal = palette(), jobs = [], onPick = () => {}, curClusters = [];
   const bCache = new Map();
   const bAt = (l) => {
     if (!geo.buildings) return null;
@@ -140,14 +140,14 @@ async function makeDeck(canvas) {
     const b = bAt(lod);
     if (b) L.push(new D.GeoJsonLayer({ id: "buildings", data: b, extruded: true, opacity: pal.dark ? 0.82 : 0.92, getElevation: (f) => f.properties._h, getFillColor: pal.building, getLineColor: pal.buildingLine, material: { ambient: pal.dark ? 0.4 : 0.65, diffuse: 0.6, shininess: 30, specularColor: pal.accent }, pickable: false, updateTriggers: { getFillColor: [pal], getLineColor: [pal] } }));
     const cl = clusterJobs(jobs);
+    curClusters = cl;                              
     if (cl.length) {
-      const pick = (i) => { if (i && i.object) onPick(i.object); };
       const label = (d) => (d.count > 1 ? String(d.count) : (shortSalary(d.jobs[0] && d.jobs[0].salary) || ""));
       const pilled = cl.filter((d) => label(d));
       L.push(new D.ColumnLayer({ id: "beam", data: cl, diskResolution: 12, radius: 6, extruded: true, elevationScale: 1, getPosition: (d) => d.coordinates, getElevation: 220, getFillColor: pal.beam, pickable: false }));
-      L.push(new D.ScatterplotLayer({ id: "anchor", data: cl, getPosition: (d) => d.coordinates, radiusUnits: "pixels", getRadius: 5, radiusMinPixels: 5, radiusMaxPixels: 9, getFillColor: pal.anchor, stroked: true, getLineColor: [255, 255, 255, 200], lineWidthUnits: "pixels", getLineWidth: 1.5, pickable: true, onClick: pick }));
+      L.push(new D.ScatterplotLayer({ id: "anchor", data: cl, getPosition: (d) => d.coordinates, radiusUnits: "pixels", getRadius: 5, radiusMinPixels: 5, radiusMaxPixels: 9, getFillColor: pal.anchor, stroked: true, getLineColor: [255, 255, 255, 200], lineWidthUnits: "pixels", getLineWidth: 1.5, pickable: true }));
       L.push(new D.TextLayer({
-        id: "pills", data: pilled, pickable: true, onClick: pick, billboard: true, sizeUnits: "pixels",
+        id: "pills", data: pilled, pickable: true, billboard: true, sizeUnits: "pixels",
         getPosition: (d) => [d.coordinates[0], d.coordinates[1], 220], getPixelOffset: [0, -12],
         getText: label, getSize: (d) => (d.count > 1 ? 15 : 13), sizeMinPixels: 11, sizeMaxPixels: 20,
         background: true, backgroundBorderRadius: 11, backgroundPadding: [10, 6, 10, 6], getBackgroundColor: (d) => (d.count > 1 ? pal.clusterBg : pal.pillBg),
@@ -160,11 +160,28 @@ async function makeDeck(canvas) {
     return L;
   }
 
+  function pickCluster(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !curClusters.length) return null;
+    const vp = deck.getViewports()[0]; if (!vp) return null;
+    let best = null, bd = Infinity;
+    for (const c of curClusters) {
+      const lab = c.count > 1 ? String(c.count) : (shortSalary(c.jobs[0] && c.jobs[0].salary) || "");
+      const [px, py] = vp.project([c.coordinates[0], c.coordinates[1], 220]);   
+      const [gx, gy] = vp.project([c.coordinates[0], c.coordinates[1], 0]);      
+      let dPill = Infinity;
+      if (lab) { const cx = px, cy = py - 12, hw = lab.length * 4.4 + 14, hh = 15;
+        dPill = Math.hypot(Math.max(Math.abs(x - cx) - hw, 0), Math.max(Math.abs(y - cy) - hh, 0)); }
+      const dDot = Math.hypot(x - gx, y - gy);                                    
+      const d = Math.min(dPill, dDot);
+      if (d < bd) { bd = d; best = c; }
+    }
+    return bd <= 14 ? best : null;               
+  }
   const deck = new D.Deck({
     canvas, initialViewState: VIEW, controller: { dragRotate: true, touchRotate: true }, views: new D.MapView({ repeat: false }),
     useDevicePixels: Math.min(globalThis.devicePixelRatio || 1, 1.5),
-    pickingRadius: 12,                          
     getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "grab"),
+    onClick: (info) => { const c = (info && info.object && info.object.jobs) ? info.object : pickCluster(info && info.x, info && info.y); if (c && c.jobs) onPick(c); },
     onViewStateChange: ({ viewState }) => { zoom = viewState.zoom; const nl = lodFor(zoom); if (nl !== lod) { lod = nl; deck.setProps({ layers: layers() }); } },
     layers: [],
   });
