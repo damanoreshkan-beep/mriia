@@ -14,10 +14,24 @@ const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}><
 const EMPLOYMENT = ["full", "part", "remote", "contract", "internship"];
 const empKey = { full: "empFull", part: "empPart", remote: "empRemote", contract: "empContract", internship: "empInternship" };
 
-const GEO = "https://dreamstudio.mooo.com/kyiv";     
+const GEO = "https://dreamstudio.mooo.com/geo";      
 const DECK_URL = "https://esm.sh/deck.gl@9.4.0";      
-const KYIV = { lat: 50.4501, lon: 30.5234 };
-const VIEW = { longitude: KYIV.lon, latitude: KYIV.lat, zoom: 11.0, pitch: 55, bearing: -18, minZoom: 10, maxZoom: 18 };
+
+const CITIES = {
+  kyiv:    { uk: "Київ",   en: "Kyiv",    lat: 50.4501, lon: 30.5234, s: 50.213, w: 30.236, n: 50.591, e: 30.827 },
+  kharkiv: { uk: "Харків", en: "Kharkiv", lat: 49.9935, lon: 36.2304, s: 49.90,  w: 36.10,  n: 50.08,  e: 36.40 },
+  odesa:   { uk: "Одеса",  en: "Odesa",   lat: 46.4825, lon: 30.7233, s: 46.36,  w: 30.60,  n: 46.60,  e: 30.82 },
+  dnipro:  { uk: "Дніпро", en: "Dnipro",  lat: 48.4647, lon: 35.0462, s: 48.38,  w: 34.90,  n: 48.55,  e: 35.15 },
+  lviv:    { uk: "Львів",  en: "Lviv",    lat: 49.8397, lon: 24.0297, s: 49.78,  w: 23.92,  n: 49.89,  e: 24.12 },
+};
+const CITY_IDS = Object.keys(CITIES);
+const cityName = (id, loc) => { const c = CITIES[id] || CITIES.kyiv; return /uk/i.test(loc || "uk") ? c.uk : c.en; };
+const inCity = (j, id) => { const c = CITIES[id]; return !!c && Number.isFinite(j.lat) && Number.isFinite(j.lon) && j.lat >= c.s && j.lat <= c.n && j.lon >= c.w && j.lon <= c.e; };
+const viewFor = (id) => { const c = CITIES[id] || CITIES.kyiv; return { longitude: c.lon, latitude: c.lat, zoom: 11.0, pitch: 55, bearing: -18, minZoom: 10, maxZoom: 18 }; };
+const KYIV = CITIES.kyiv;   
+const readCity = () => { try { const c = localStorage.getItem("jobx.city"); return c && CITIES[c] ? c : "kyiv"; } catch { return "kyiv"; } };
+const $city = atom(readCity());
+$city.listen((c) => { try { localStorage.setItem("jobx.city", c); } catch {  } });
 
 const DISTRICTS = {
   shevchenkivskyi: { uk: "Шевченківський", en: "Shevchenkivskyi", lat: 50.452, lon: 30.480 },
@@ -114,7 +128,7 @@ function shortSalary(s) {
 }
 
 const PILL_H = 34, PILL_GAP = 8;    
-const BEAM_M = 220, PILL_Z = 300;   
+const BLOCK_H = 40, PILL_Z = 54;    
 const labelOf = (c) => (c.count > 1 ? String(c.count) : (shortSalary(c.jobs[0] && c.jobs[0].salary) || ""));
 const pillW = (lab) => (lab ? lab.length * 7.6 + 20 : 12);
 function clusterJobs(jobs, vp) {
@@ -134,15 +148,18 @@ function clusterJobs(jobs, vp) {
 }
 const BLD_ZOOM = 12.5;
 
-async function makeDeck(canvas) {
+async function makeDeck(canvas, cityId) {
   if (isGate) return null;
   try { if (!canvas.getContext("webgl2")) return null; } catch { return null; }
   let D; try { D = await import(DECK_URL); } catch { return null; }
   if (!D || !D.Deck) return null;
 
+  const VIEW = viewFor(cityId);                 
+  const gbase = `${GEO}/${cityId}`;             
   const geo = {};
-  const grab = async (n) => { try { geo[n] = await (await fetch(`${GEO}/${n}.json`)).json(); } catch { geo[n] = null; } };
-  await Promise.all([grab("districts"), grab("water"), grab("roads"), grab("metro")]);
+  const grab = async (n) => { try { geo[n] = await (await fetch(`${gbase}/${n}.json`)).json(); } catch { geo[n] = null; } };
+  const baseLayers = cityId === "kyiv" ? ["water", "roads", "districts", "metro"] : ["water", "roads"];
+  await Promise.all(baseLayers.map(grab));
 
   let zoom = VIEW.zoom, cLng = VIEW.longitude, cLat = VIEW.latitude, cPitch = VIEW.pitch, cBearing = VIEW.bearing;
   let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], camSig = "", curVp = null;
@@ -156,7 +173,7 @@ async function makeDeck(canvas) {
     if (geo.metro && geo.metro.lines) L.push(new D.GeoJsonLayer({ id: "metro", data: geo.metro.lines, filled: false, stroked: true, getLineColor: (f) => { const c = (f.properties && f.properties.color) || pal.accent; return [c[0], c[1], c[2], 200]; }, getLineWidth: 4, lineWidthUnits: "meters", lineWidthMinPixels: 2, lineWidthMaxPixels: 5, pickable: false }));
     if (zoom >= BLD_ZOOM) {
       L.push(new D.MVTLayer({
-        id: "buildings", data: `${GEO}/tiles/{z}/{x}/{y}.pbf`, minZoom: 13, maxZoom: 16,
+        id: "buildings", data: `${gbase}/tiles/{z}/{x}/{y}.pbf`, minZoom: 13, maxZoom: 16,
         extruded: true, opacity: pal.dark ? 0.92 : 0.97, getElevation: (f) => (f.properties && f.properties.h) || 12,
         getFillColor: pal.building, material: { ambient: pal.dark ? 0.5 : 0.62, diffuse: 0.55, shininess: 1, specularColor: [0, 0, 0] },
         pickable: false, updateTriggers: { getFillColor: [pal] },
@@ -167,8 +184,7 @@ async function makeDeck(canvas) {
     if (cl.length) {
       const label = labelOf;
       const pilled = cl.filter((d) => label(d));
-      L.push(new D.ColumnLayer({ id: "beam", data: cl, diskResolution: 12, radius: 6, extruded: true, elevationScale: 1, getPosition: (d) => d.coordinates, getElevation: BEAM_M, getFillColor: pal.beam, pickable: false }));
-      L.push(new D.ScatterplotLayer({ id: "anchor", data: cl, getPosition: (d) => d.coordinates, radiusUnits: "pixels", getRadius: 5, radiusMinPixels: 5, radiusMaxPixels: 9, getFillColor: pal.anchor, stroked: true, getLineColor: [255, 255, 255, 200], lineWidthUnits: "pixels", getLineWidth: 1.5, pickable: true }));
+      L.push(new D.ColumnLayer({ id: "highlight", data: cl, diskResolution: 4, radius: 15, angle: 45, extruded: true, elevationScale: 1, getPosition: (d) => d.coordinates, getElevation: BLOCK_H, getFillColor: pal.accent, opacity: 0.9, material: { ambient: 0.7, diffuse: 0.4, shininess: 1, specularColor: [0, 0, 0] }, pickable: true }));
       L.push(new D.TextLayer({
         id: "pills", data: pilled, pickable: true, billboard: true, sizeUnits: "pixels",
         getPosition: (d) => [d.coordinates[0], d.coordinates[1], PILL_Z],
@@ -219,20 +235,22 @@ async function makeDeck(canvas) {
   };
 }
 
-function MapStage({ isDark, jobs, onPick }) {
+function MapStage({ isDark, city, jobs, onPick }) {
   const ref = useRef(null), ctl = useRef(null);
   useEffect(() => {
     let dead = false;
-    (async () => { const c = await makeDeck(ref.current); if (dead) { c && c.destroy(); return; } ctl.current = c; if (c) { $glReady.set(true); c.rebuild({ pal: palette(), jobs: $jobs.get(), onPick }); } })();
+    (async () => { const c = await makeDeck(ref.current, city); if (dead) { c && c.destroy(); return; } ctl.current = c; if (c) { $glReady.set(true); c.rebuild({ pal: palette(), jobs, onPick }); } })();
     return () => { dead = true; $glReady.set(false); ctl.current && ctl.current.destroy(); ctl.current = null; };
-  }, []);
+  }, [city]);
   useEffect(() => { ctl.current && ctl.current.rebuild({ pal: palette(), jobs, onPick }); }, [isDark, jobs]);
   return html`<canvas ref=${ref} data-map class="absolute inset-0 w-full h-full block" aria-hidden="true"></canvas>`;
 }
 
-const kmFromCentre = (lat, lon) => (!Number.isFinite(lat) || !Number.isFinite(lon)) ? null : Math.round(Math.hypot((lat - KYIV.lat) * 111.32, (lon - KYIV.lon) * 111.32 * Math.cos(KYIV.lat * Math.PI / 180)) * 10) / 10;
+const cityOfPt = (lat, lon) => CITY_IDS.find((id) => inCity({ lat, lon }, id));
+const kmFromCentre = (lat, lon) => { if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null; const c = CITIES[cityOfPt(lat, lon) || "kyiv"]; return Math.round(Math.hypot((lat - c.lat) * 111.32, (lon - c.lon) * 111.32 * Math.cos(c.lat * Math.PI / 180)) * 10) / 10; };
 const applyLink = (c) => /^https?:\/\//i.test(c) ? c : /^@/.test(c) ? `https://t.me/${c.slice(1)}` : /@/.test(c) ? `mailto:${c}` : null;
-const streetOf = (a) => String(a || "").replace(/^\s*(Київ|Kyiv)\s*,\s*/i, "");
+const CITY_NAMES = CITY_IDS.flatMap((id) => [CITIES[id].uk, CITIES[id].en]);
+const streetOf = (a) => { let s = String(a || ""); for (const nm of CITY_NAMES) s = s.replace(new RegExp(`^\\s*${nm}\\s*,\\s*`, "i"), ""); return s; };
 const salaryHasWords = (s) => /[A-Za-zА-Яа-яІіЇїЄєҐґ]{4,}/.test(String(s || ""));
 
 function JobRow({ t, j, onOpen }) {
@@ -297,16 +315,19 @@ function Field({ label, children }) {
 }
 function PostPage({ t, loc, onBack }) {
   const sent = useStore($sent), posting = useStore($posting), err = useStore($err), f = useStore($form);
+  const city = useStore($city);
   const input = "input input-bordered w-full bg-base-100";
   const submit = async () => {
     if ($posting.get()) return;
     if (!f.title.trim() || !f.company.trim() || !f.description.trim() || !f.contact.trim()) { $err.set("errFields"); return; }
-    const d = DISTRICTS[f.district] || DISTRICTS.shevchenkivskyi;
+    let lat, lon, address;
+    if (city === "kyiv") { const d = DISTRICTS[f.district] || DISTRICTS.shevchenkivskyi; lat = d.lat; lon = d.lon; address = (loc === "en" ? d.en : d.uk); }
+    else { const c = CITIES[city]; lat = c.lat; lon = c.lon; address = cityName(city, loc); }
     const sess = session.get();
     if (!gate && !(sess && sess.sid)) { $err.set("needLogin"); return; }
     $err.set(null); $posting.set(true);
     try {
-      if (!gate) { const r = await fetch(`${VPS_PROXY}/jobs/post`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sid: sess.sid, title: f.title, company: f.company, salary: f.salary, employment: f.employment, description: f.description, contact: f.contact, lat: d.lat, lon: d.lon, address: (loc === "en" ? d.en : d.uk) }) }); if (!r.ok) throw new Error("post " + r.status); }
+      if (!gate) { const r = await fetch(`${VPS_PROXY}/jobs/post`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sid: sess.sid, title: f.title, company: f.company, salary: f.salary, employment: f.employment, description: f.description, contact: f.contact, city, lat, lon, address }) }); if (!r.ok) throw new Error("post " + r.status); }
       $sent.set(true); ["title", "company", "salary", "description", "contact"].forEach((k) => $form.setKey(k, ""));
     } catch { $err.set("errFailed"); }
     $posting.set(false);
@@ -323,11 +344,15 @@ function PostPage({ t, loc, onBack }) {
             <${Field} label=${T(t, "fldCompany")}><input data-f-company class=${input} value=${f.company} maxlength="100" placeholder=${T(t, "fldCompanyPh")} onInput=${(e) => $form.setKey("company", e.currentTarget.value)} /><//>
             <${Field} label=${T(t, "fldSalary")}><input data-f-salary class=${input} value=${f.salary} maxlength="80" placeholder=${T(t, "fldSalaryPh")} onInput=${(e) => $form.setKey("salary", e.currentTarget.value)} /><//>
           </div>
-          <${Field} label=${T(t, "fldDistrict")}>
-            <select data-f-district class="select select-bordered w-full bg-base-100" value=${f.district} onChange=${(e) => $form.setKey("district", e.currentTarget.value)}>
-              ${Object.entries(DISTRICTS).map(([k, d]) => html`<option value=${k} selected=${f.district === k}>${loc === "en" ? d.en : d.uk}</option>`)}
-            </select>
-          <//>
+          ${city === "kyiv"
+            ? html`<${Field} label=${T(t, "fldDistrict")}>
+                <select data-f-district class="select select-bordered w-full bg-base-100" value=${f.district} onChange=${(e) => $form.setKey("district", e.currentTarget.value)}>
+                  ${Object.entries(DISTRICTS).map(([k, d]) => html`<option value=${k} selected=${f.district === k}>${loc === "en" ? d.en : d.uk}</option>`)}
+                </select>
+              <//>`
+            : html`<${Field} label=${T(t, "fldCity")}>
+                <div class="input input-bordered w-full bg-base-100 flex items-center gap-2 opacity-80">${Icon("lucide:map-pin", "text-primary")}${cityName(city, loc)}</div>
+              <//>`}
           <${Field} label=${T(t, "fldEmployment")}>
             <div class="flex flex-wrap gap-1.5">${EMPLOYMENT.map((e) => html`<button type="button" data-emp=${e} class=${`btn btn-sm rounded-full ${f.employment === e ? "btn-primary" : "btn-ghost border border-base-content/15"}`} onClick=${() => $form.setKey("employment", e)}>${T(t, empKey[e])}</button>`)}</div>
           <//>
@@ -339,28 +364,55 @@ function PostPage({ t, loc, onBack }) {
   <//>`;
 }
 
+function CityPage({ t, loc, onBack }) {
+  const city = useStore($city);
+  const pick = (id) => { $city.set(id); onBack(); };
+  return html`<${Page} t=${t} title=${T(t, "cityTitle")} onBack=${onBack}>
+    <div class="flex flex-col gap-[var(--ms-gap)]">
+      ${CITY_IDS.map((id) => html`<button key=${id} data-city-opt=${id} onClick=${() => pick(id)}
+        class=${`w-full text-left card sf-raised rounded-[var(--ms-r)] active:scale-[.99] transition ${id === city ? "ring-2 ring-primary" : ""}`}>
+        <div class="card-body p-[var(--ms-pad)] flex-row items-center gap-3">
+          ${Icon("lucide:building-2", "text-xl text-primary")}
+          <div class="flex-1 font-semibold">${cityName(id, loc)}</div>
+          ${id === city ? Icon("lucide:check", "text-primary text-xl") : null}
+        </div>
+      </button>`)}
+    </div>
+  <//>`;
+}
+
 function Screens({ t, loc, screen, close }) {
   if (screen === "post") return html`<${PostPage} t=${t} loc=${loc} onBack=${close} />`;
+  if (screen === "city") return html`<${CityPage} t=${t} loc=${loc} onBack=${close} />`;
   if (screen && screen.startsWith("job:")) return html`<${JobPage} t=${t} id=${screen.slice(4)} onBack=${close} />`;
   return null;
 }
 
 export function mapView({ t, S, screen, openScreen, closeScreen }) {
   const jobs = useStore($jobs);
+  const city = useStore($city);
   const theme = useStore(S.theme);
   const loc = useStore(S.locale);
   const glReady = useStore($glReady);
   const [showMap] = useState(!isGate);
   const isDark = !/light/i.test(String(theme || ""));
   useEffect(() => { loadJobs(); }, []);
+  const cityJobs = jobs.filter((j) => inCity(j, city));   
 
   return html`<${Fragment}>
     <div data-stage class="fixed inset-0 z-0 overflow-hidden bg-base-200">
-      ${showMap ? html`<${MapStage} isDark=${isDark} jobs=${jobs} onPick=${(c) => openScreen(`job:${(c.jobs && c.jobs[0] || {}).id}`)} />` : null}
+      ${showMap ? html`<${MapStage} isDark=${isDark} city=${city} jobs=${cityJobs} onPick=${(c) => openScreen(`job:${(c.jobs && c.jobs[0] || {}).id}`)} />` : null}
       ${!showMap || !glReady
         ? html`<div class="absolute inset-0 grid place-items-center px-8 text-center text-muted pointer-events-none">
             <div>${Icon("lucide:map", "text-4xl opacity-40")}<p class="mt-3">${T(t, "mapHint")}</p></div>
           </div>` : null}
+
+      <!-- city picker: a top pill (Island owns the header clearance) opening the big city page -->
+      <${Island} pinned at="top" tone="glass" className="!p-0.5 rounded-full">
+        <button data-city class="btn btn-ghost btn-sm gap-1.5 rounded-full px-3" onClick=${() => openScreen("city")}>
+          ${Icon("lucide:map-pin", "text-[1.05em] text-primary")}<span class="font-semibold">${cityName(city, loc)}</span>${Icon("lucide:chevron-down", "text-[0.9em] opacity-60")}
+        </button>
+      <//>
 
       <!-- the one island: post a job. Island(pinned) owns the dock clearance (measured --dock-h), so the app
            never hand-writes chrome geometry; className makes the glass tray hug the primary CTA. -->
@@ -376,19 +428,24 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
 
 export function listView({ t, S, screen, openScreen, closeScreen }) {
   const jobs = useStore($jobs);
+  const city = useStore($city);
   const loading = useStore($loading);
   const loc = useStore(S.locale);
   const [q, setQ] = useState("");
   useEffect(() => { loadJobs(); }, []);
+  const cityJobs = jobs.filter((j) => inCity(j, city));   
   const ql = q.trim().toLowerCase();
-  const shown = ql ? jobs.filter((j) => `${j.title} ${j.company} ${j.address || ""}`.toLowerCase().includes(ql)) : jobs;
+  const shown = ql ? cityJobs.filter((j) => `${j.title} ${j.company} ${j.address || ""}`.toLowerCase().includes(ql)) : cityJobs;
 
   return html`<div class="h-full min-h-0 flex flex-col">
-    <div class="px-[var(--ms-pad)] pt-2 pb-1">
-      <input data-search type="search" value=${q} placeholder=${T(t, "searchPh")} onInput=${(e) => setQ(e.currentTarget.value)} class="input input-bordered w-full bg-base-100" />
+    <div class="px-[var(--ms-pad)] pt-2 pb-1 flex items-center gap-2">
+      <button data-city class="btn btn-ghost btn-sm gap-1.5 rounded-full shrink-0 px-3" onClick=${() => openScreen("city")}>
+        ${Icon("lucide:map-pin", "text-[1.05em] text-primary")}<span class="font-semibold">${cityName(city, loc)}</span>${Icon("lucide:chevron-down", "text-[0.85em] opacity-60")}
+      </button>
+      <input data-search type="search" value=${q} placeholder=${T(t, "searchPh")} onInput=${(e) => setQ(e.currentTarget.value)} class="input input-bordered flex-1 min-w-0 bg-base-100" />
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto px-[var(--ms-pad)] pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)]">
-      ${loading && !jobs.length
+      ${loading && !cityJobs.length
         ? html`<div class="py-10 text-center text-muted">${T(t, "loadingJobs")}</div>`
         : shown.length
           ? html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">${shown.map((j) => html`<${JobRow} t=${t} j=${j} key=${j.id} onOpen=${() => openScreen(`job:${j.id}`)} />`)}</div>`
