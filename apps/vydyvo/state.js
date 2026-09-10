@@ -6,7 +6,7 @@ import { toEnglish } from "/_rt/translate.js";
 import { holdBackground } from "/_rt/bghold.js";
 import { suggest } from "/_rt/ai-text.js";
 import { startJob, follow, cancelJob } from "/_rt/imagejob.js";
-import { LINES, WORLDS, worldOf, voiceOf, composePrompt, mockFrame } from "./worlds.js";
+import { LINES, WORLDS, worldOf, voiceOf, composePrompt, mockFrame, seedUrl } from "./worlds.js";
 
 const OPTS_KEY = "ms:vydyvo:opts";
 const BASE = `${VPS_PROXY}/image`;
@@ -23,6 +23,8 @@ export const $opts = atom(loadOpts());
 export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch {  } };
 /** The chosen character's world id (worlds.js) — the grid's pick, `lum` until one is made or if the id is gone. */
 export const activeWorld = () => { const c = $opts.get().char; return WORLDS[c] ? c : "lum"; };
+/** The mode the DOCUMENT is in — the applied theme, which `?theme=` can override without touching the atom. */
+const docMode = () => (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "signal-light") ? "light" : "dark";
 
 export const $frames = atom([]);
 export const $stage = atom({ cur: null, prev: null, since: 0, slot: 0 });
@@ -40,8 +42,8 @@ function addFrame(f) {
   const id = newId(), frame = { id, li: lineOf(id), line: null, ts: Date.now(), shown: false, shownAt: 0, ...f };
   let list = [...$frames.get(), frame];
   const cur = $stage.get().cur;
-  while (list.length > CAP) {
-    const gone = list.filter((x) => x.shown && x.id !== cur).sort((a, b) => a.shownAt - b.shownAt)[0] || list.find((x) => x.id !== cur);
+  while (list.filter((x) => !x.seed).length > CAP) {
+    const gone = list.filter((x) => x.shown && !x.seed && x.id !== cur).sort((a, b) => a.shownAt - b.shownAt)[0] || list.find((x) => !x.seed && x.id !== cur);
     if (!gone) break;
     list = list.filter((x) => x !== gone); revoke(gone.url);
   }
@@ -90,6 +92,13 @@ function advance(now) {
 /** Skip to the next frame now (a tap on the picture). */
 export function skip() { advance(Date.now()); }
 
+export function ensureSeed(mode = docMode(), wid = activeWorld()) {
+  if ($frames.get().some((f) => f.mode === mode && f.preset === wid)) return;   
+  const id = addFrame({ url: seedUrl(wid, mode), preset: wid, mode, seed: true, w: 90, h: 160 });
+  const cur = current();
+  if (!cur || cur.mode !== mode || cur.preset !== wid) present(id, Date.now());  
+}
+
 let loopId = null, runs = 0, job = null, hold = null, ctxRef = null;
 /** Start the show loop once; `ctx.t` is the dictionary for the hold's words. Idempotent. */
 export function startLoop(ctx) {
@@ -100,12 +109,15 @@ export function startLoop(ctx) {
 }
 function tick() {
   const now = Date.now(), st = $stage.get(), o = $opts.get();
+  const m = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
+  const w = activeWorld();
+  ensureSeed(m, w);                              
+  const curF = current();
   if (!st.cur) { const first = unshown()[0] || $frames.get()[0]; if (first) present(first.id, now); }
+  else if (curF?.seed && unshown().some((f) => !f.seed && f.mode === m && f.preset === w)) advance(now);
   else if (now - st.since >= o.every * 1000) advance(now);
   const g = $gen.get();
   const online = gate || (typeof navigator === "undefined" || navigator.onLine !== false);
-  const m = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
-  const w = activeWorld();
   const ahead = $frames.get().filter((f) => !f.shown && f.mode === m && f.preset === w).length;
   if (g.phase !== "working" && now >= g.until && ahead < AHEAD && online) generate();
 }

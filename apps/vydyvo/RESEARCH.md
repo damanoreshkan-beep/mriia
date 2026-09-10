@@ -93,6 +93,22 @@ compare both, the veil fades in over the retiring picture, and its motes take th
 `--color-accent`.
 
 
+The first race often lands a weak picture, so the first impression was poor — and before it landed, the
+screen was the abstract waiting field. Fix: a ready-made full-frame picture of EVERY world in BOTH modes ships
+in the app (`assets/seed-<id>-<n|d>.webp`, 768×1344, made once with that world's OWN `composePrompt("", world,
+mode, false)` — the same prompt the world would generate, so the placeholder looks like the show). `seedUrl`
+in worlds.js addresses them. On first launch (and after any theme/world flip) `ensureSeed(mode, wid)`
+(state.js) drops a `{ seed: true }` frame of the page's side onto the stage through the NORMAL frame path — same
+`.vy-layer` drift and cross-fade — so the first real frame simply cross-fades in over it. It is raised BEFORE
+paint by a `useLayoutEffect` in view.js keyed on `[docMode, wid]`, so the eye never sees the empty field or a
+wrong-mode flash; `tick()` also calls it, and swaps a seed for a real frame of its side the moment one lands
+(not at the display timer). A seed is weightless (a shipped asset, no blob): `addFrame` never counts it against
+`CAP` nor evicts it, and `present()` frees it like any shown frame once a fresher picture takes the stage. The
+veil remains only as the fallback if a seed asset is ever absent. Generated locally via `zimg`
+(Z-Image-Turbo), the same FLUX-class engine `/feed/image` cascades to (that route is now signed-in only, so a
+keyless local generator produced the shipped assets).
+
+
 Until 2026-09-04 every landed frame was kept as a blob in IndexedDB and the show cycled the collection when
 the GPU said no. The owner saw the same pictures again and again: "не зберігай і не накопичуй в db нічого,
 постійно свіже, а те що пішло то ніколи не повернеш … на клієнті не кешуй, бо я бачу одне і те ж". Now: no

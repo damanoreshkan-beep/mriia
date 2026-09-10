@@ -121,6 +121,9 @@ export const nameOf = (id, mode, loc) => (NAMES[id] || NAMES.lum)[mode === "ligh
 /** The picker's micro-picture of a character in a mode: assets/char-<id>-<n|d>.webp, generated once on the pods. */
 export const thumbOf = (id, mode) => new URL(`assets/char-${id}-${mode === "light" ? "d" : "n"}.webp`, import.meta.url).href;
 
+/** The full-frame static placeholder for a world in a mode: assets/seed-<id>-<n|d>.webp. */
+export const seedUrl = (id, mode) => new URL(`assets/seed-${id}-${mode === "light" ? "d" : "n"}.webp`, import.meta.url).href;
+
 
 export const SYSTEM = {
   base: "a full-bleed wallpaper, cinematic, extremely detailed, the subject off-centre with generous empty space around it, no text, no letters, no words, no writing, no signage, no hieroglyphs, no logo, no watermark, no signature, no frame, no border",
