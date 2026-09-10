@@ -132,7 +132,7 @@ function clusterJobs(jobs, vp) {
   }
   return out.map((c) => ({ coordinates: [c.lon, c.lat], count: c.count, jobs: c.jobs }));
 }
-const CELL = 0.006, BLD_ZOOM = 12.5, CELL_RADIUS = 4;
+const BLD_ZOOM = 12.5;
 
 async function makeDeck(canvas) {
   if (isGate) return null;
@@ -143,29 +143,10 @@ async function makeDeck(canvas) {
   const geo = {};
   const grab = async (n) => { try { geo[n] = await (await fetch(`${GEO}/${n}.json`)).json(); } catch { geo[n] = null; } };
   await Promise.all([grab("districts"), grab("water"), grab("roads"), grab("metro")]);
-  const bGrid = new Map();
-  const binBuildings = () => {
-    if (!geo.buildings || !geo.buildings.features) return;
-    for (const f of geo.buildings.features) {
-      f.properties._h = f.properties.h || 12;
-      const p = f.geometry.coordinates[0][0];
-      const k = `${Math.floor(p[0] / CELL)}_${Math.floor(p[1] / CELL)}`;
-      let cell = bGrid.get(k); if (!cell) bGrid.set(k, cell = { type: "FeatureCollection", features: [] });
-      cell.features.push(f);
-    }
-  };
 
   let zoom = VIEW.zoom, cLng = VIEW.longitude, cLat = VIEW.latitude, cPitch = VIEW.pitch, cBearing = VIEW.bearing;
-  let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], cellSig = "", curVp = null;
+  let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], camSig = "", curVp = null;
   const viewportNow = () => curVp || new D.WebMercatorViewport({ width: canvas.clientWidth || 384, height: canvas.clientHeight || 832, longitude: cLng, latitude: cLat, zoom, pitch: cPitch, bearing: cBearing });
-  const visCells = () => {
-    if (zoom < BLD_ZOOM || !bGrid.size) return [];
-    const ci = Math.floor(cLng / CELL), cj = Math.floor(cLat / CELL), out = [];
-    for (let di = -CELL_RADIUS; di <= CELL_RADIUS; di++) for (let dj = -CELL_RADIUS; dj <= CELL_RADIUS; dj++) {
-      const k = `${ci + di}_${cj + dj}`; if (bGrid.has(k)) out.push(k);
-    }
-    return out;
-  };
 
   function layers() {
     const L = [];
@@ -173,8 +154,13 @@ async function makeDeck(canvas) {
     if (geo.water) L.push(new D.GeoJsonLayer({ id: "water", data: geo.water, filled: true, stroked: true, getFillColor: pal.water, getLineColor: pal.waterLine, lineWidthMinPixels: 1, pickable: false }));
     if (geo.roads) L.push(new D.GeoJsonLayer({ id: "roads", data: geo.roads, filled: false, stroked: true, getLineColor: pal.road, getLineWidth: (f) => { const h = f.properties && f.properties.hw; return h === "motorway" || h === "trunk" ? 12 : h === "primary" ? 9 : h === "secondary" ? 6 : 3; }, lineWidthUnits: "meters", lineWidthMinPixels: 0.5, lineWidthMaxPixels: 4, pickable: false }));
     if (geo.metro && geo.metro.lines) L.push(new D.GeoJsonLayer({ id: "metro", data: geo.metro.lines, filled: false, stroked: true, getLineColor: (f) => { const c = (f.properties && f.properties.color) || pal.accent; return [c[0], c[1], c[2], 200]; }, getLineWidth: 4, lineWidthUnits: "meters", lineWidthMinPixels: 2, lineWidthMaxPixels: 5, pickable: false }));
-    for (const key of visCells()) {
-      L.push(new D.GeoJsonLayer({ id: `bld-${key}`, data: bGrid.get(key), extruded: true, opacity: pal.dark ? 0.92 : 0.97, getElevation: (f) => f.properties._h, getFillColor: pal.building, material: { ambient: pal.dark ? 0.5 : 0.62, diffuse: 0.55, shininess: 1, specularColor: [0, 0, 0] }, pickable: false, updateTriggers: { getFillColor: [pal] } }));
+    if (zoom >= BLD_ZOOM) {
+      L.push(new D.MVTLayer({
+        id: "buildings", data: `${GEO}/tiles/{z}/{x}/{y}.pbf`, minZoom: 13, maxZoom: 16,
+        extruded: true, opacity: pal.dark ? 0.92 : 0.97, getElevation: (f) => (f.properties && f.properties.h) || 12,
+        getFillColor: pal.building, material: { ambient: pal.dark ? 0.5 : 0.62, diffuse: 0.55, shininess: 1, specularColor: [0, 0, 0] },
+        pickable: false, updateTriggers: { getFillColor: [pal] },
+      }));
     }
     const cl = clusterJobs(jobs, viewportNow());
     curClusters = cl;                              
@@ -222,12 +208,11 @@ async function makeDeck(canvas) {
     onViewStateChange: ({ viewState }) => {
       zoom = viewState.zoom; cLng = viewState.longitude; cLat = viewState.latitude; cPitch = viewState.pitch; cBearing = viewState.bearing;
       curVp = deck.getViewports()[0] || null;
-      const sig = `${visCells().join(",")}|${Math.round(zoom * 4)}|${Math.round(cPitch / 10)}|${Math.round(cBearing / 20)}`;
-      if (sig !== cellSig) { cellSig = sig; deck.setProps({ layers: layers() }); }
+      const sig = `${Math.round(zoom * 4)}|${Math.round(cPitch / 10)}|${Math.round(cBearing / 20)}`;
+      if (sig !== camSig) { camSig = sig; deck.setProps({ layers: layers() }); }
     },
     layers: [],
   });
-  grab("buildings").then(() => { binBuildings(); cellSig = ""; deck.setProps({ layers: layers() }); });
   return {
     rebuild(next) { if (next.pal) pal = next.pal; if (next.jobs) jobs = next.jobs; if ("onPick" in next) onPick = next.onPick; deck.setProps({ layers: layers(), style: { background: `rgb(${pal.bg.join(",")})` } }); },
     destroy() { try { deck.finalize(); } catch {  } },
