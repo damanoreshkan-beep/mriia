@@ -55,12 +55,20 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
   const loader = new GLTFLoader().setDRACOLoader(draco);
 
   const pool = new Map();       
+  const hipsOf = (obj) => { let h = null; obj.traverse((o) => { if (!h && /hips$/i.test(o.name)) h = o; }); return h ? { bone: h, y: h.position.y } : { bone: null, y: 0 }; };
+  const retargetHips = (clip, srcY, dstY) => {
+    if (!srcY || !dstY || Math.abs(srcY - dstY) < 1e-4) return clip;
+    const c = clip.clone(), r = dstY / srcY;
+    for (const t of c.tracks) if (/hips\.position$/i.test(t.name)) for (let i = 0; i < t.values.length; i++) t.values[i] *= r;
+    return c;
+  };
+  const _v = new THREE.Vector3();
   const cast = new Map();       
   let order = [];
   let dead = false, loaded = 0, camDist = 6, camY = 1.05, lookY = 0.95;
 
   for (const id of [...ORDER, "idle"]) {
-    loader.loadAsync(clipUrl(id)).then((g) => { if (!dead && g.animations[0]) { pool.set(id, g.animations[0]); assignMoves(); } }).catch(() => {});
+    loader.loadAsync(clipUrl(id)).then((g) => { if (!dead && g.animations[0]) { pool.set(id, { clip: g.animations[0], hipsY: hipsOf(g.scene).y }); assignMoves(); } }).catch(() => {});
   }
 
   function disposeEntry(e) {
@@ -108,9 +116,9 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
 
   function playMove(e, id, fade = 0.5) {
     if (!e || !e.mixer || e.current === id) return;
-    const clip = pool.get(id); if (!clip) return;
+    const src = pool.get(id); if (!src) return;
     let a = e.actions.get(id);
-    if (!a) { a = e.mixer.clipAction(clip); a.setLoop(THREE.LoopRepeat, Infinity); e.actions.set(id, a); }
+    if (!a) { a = e.mixer.clipAction(retargetHips(src.clip, src.hipsY, e.hipsY)); a.setLoop(THREE.LoopRepeat, Infinity); e.actions.set(id, a); }
     a.enabled = true; a.setEffectiveWeight(1); a.reset(); a.play();
     if (e.currentAction && e.currentAction !== a) a.crossFadeFrom(e.currentAction, fade, true);
     e.currentAction = a; e.current = id;
@@ -143,7 +151,8 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
     e.baseY = -box.min.y; root.position.y = e.baseY;
     root.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
     e.mixer = new THREE.AnimationMixer(root);
-    if (gltf.animations[0] && !pool.has(id)) pool.set(id, gltf.animations[0]);   
+    const hips = hipsOf(root); e.hips = hips.bone; e.hipsY = hips.y;            
+    if (gltf.animations[0] && !pool.has(id)) pool.set(id, { clip: gltf.animations[0], hipsY: e.hipsY });   
     e.baseScale = s; e.root = root;
     scene.add(root);
     e.shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 32), shadowMat);
@@ -203,6 +212,7 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
       e.mixer.timeScale = ts; e.mixer.update(dt);
       e.root.scale.set(e.baseScale * ex, e.baseScale * sq, e.baseScale * ex);
       e.root.position.y = e.baseY + hop;
+      if (e.hips && e.shadow) { e.root.updateMatrixWorld(); e.hips.getWorldPosition(_v); e.shadow.position.x = _v.x; e.shadow.position.z = _v.z; }
     }
 
     const tx = env.tiltX || 0, ty = env.tiltY || 0;
