@@ -1,4 +1,6 @@
-# jobx — research & build plan (3D Kyiv)
+# jobx — research & build plan
+
+
 
 **What it is.** jobx is a **3D map of Kyiv** (Kyiv only, location-based): jobs are glowing columns standing on a
 dark, tilted, theme-aware 3D city; a side panel lists them (logo, title, $/₴, tags, "X км від центру"). The
