@@ -328,11 +328,6 @@ const CSS = `
 :root[data-theme$="-light"] .dk-chip-off{background:color-mix(in oklch,var(--color-base-content) 5%,transparent);box-shadow:0 0 0 1px color-mix(in oklch,var(--color-base-content) 14%,transparent)}
 :root[data-theme$="-light"] .dk-enter{background:color-mix(in oklch,var(--color-base-100) 70%,transparent);color:var(--color-base-content)}
 :root[data-theme$="-light"] .dk-enter-ring{box-shadow:0 0 0 1px color-mix(in oklch,var(--color-base-content) 18%,transparent),0 0 40px 0 color-mix(in oklch,var(--app-accent) 45%,transparent)}
-.dk-dot{width:.5rem;height:.5rem;border-radius:9999px;background:var(--app-accent);box-shadow:0 0 8px var(--app-accent)}
-[data-rave][data-state="live"] .dk-dot{animation:adPulse .46s ease-in-out infinite}
-[data-rave][data-state="connecting"] .dk-dot,[data-rave][data-state="reconnecting"] .dk-dot{animation:adBlink 1s steps(2) infinite}
-@keyframes adPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.9);opacity:.55}}
-@keyframes adBlink{0%{opacity:1}50%{opacity:.25}}
 .dk-enter-ring{box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 40px 0 color-mix(in oklch,var(--app-accent) 55%,transparent)}
 @keyframes adBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 [data-enter] .dk-enter-ring{animation:adBreath 2.6s ease-in-out infinite}
@@ -342,7 +337,7 @@ const CSS = `
 .dk-chip{scroll-snap-align:center}
 
 :root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity .5s ease}
-@media(prefers-reduced-motion:reduce){.dk-dot,[data-enter] .dk-enter-ring{animation:none!important}:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
+@media(prefers-reduced-motion:reduce){[data-enter] .dk-enter-ring{animation:none!important}:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
 
 
 export function afterdark({ S }) {
@@ -359,7 +354,6 @@ export function afterdark({ S }) {
   const stage3d = useStore($stage3d), stage3dWhy = useStore($stage3dWhy);
   const bpm = useStore($bpm);
   const buffer = useStore($buffer);
-  const runway = buffer >= 60 ? `${Math.floor(buffer / 60)}:${String(buffer % 60).padStart(2, "0")}` : `0:${String(buffer).padStart(2, "0")}`;
   const fs = useStore($fs);
   const stageRef = useRef();
   const engineRef = useRef(null);
@@ -388,7 +382,6 @@ export function afterdark({ S }) {
   }, []);
 
   const onStage = new Set(cast);
-  const stateLine = state === "connecting" ? T(t, "connecting") : state === "reconnecting" ? T(t, "reconnecting") : state === "buffering" ? T(t, "buffering") : state === "offline" ? T(t, "offline") : state === "live" ? T(t, "live") : T(t, "idle");
   const onToggle = () => (entered ? toggle() : enter());
   const applyCast = (next) => { if (!next.length) return; $cast.set(JSON.stringify(next)); engineRef.current?.setCast?.(next); };
   const toggleGirl = (id) => { const c = getCast(); applyCast(c.includes(id) ? (c.length > 1 ? c.filter((x) => x !== id) : c) : [...c, id]); };
@@ -411,24 +404,12 @@ export function afterdark({ S }) {
     
     <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
     <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"} data-3d=${stage3d} data-3d-why=${stage3dWhy}
-      data-fs=${fs ? "yes" : "no"} data-bpm=${bpm || ""}
+      data-fs=${fs ? "yes" : "no"} data-bpm=${bpm || ""} data-buffer=${buffer}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
       
-      <div class="shrink-0 flex justify-center">
-        <${Island} tone="dark" className="dk-isle flex items-center gap-2.5 !py-1.5 !px-3.5 rounded-full">
-          <span class="dk-dot shrink-0"></span>
-          <span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] dk-ink">${T(t, "station")}</span>
-          <span class="dk-line w-px h-3"></span>
-          <span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] dk-ink-3">${T(t, "genre")}</span>
-          
-          ${entered ? html`<span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] dk-ink-2 tabular-nums" aria-live="polite">· ${stateLine}</span>` : null}
-          
-          ${entered && buffer > 0 ? html`<span class="dk-line w-px h-3"></span><span data-buffer=${buffer} class="flex items-center gap-1 font-mono tracking-wider text-[length:var(--ms-label)] dk-ink-2 tabular-nums"><iconify-icon icon="lucide:hard-drive-download" class="text-[length:var(--ms-label)]"></iconify-icon>${runway}</span>` : null}
-          
-          ${bpm ? html`<span class="dk-line w-px h-3"></span><span data-tempo class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-[var(--app-accent)] tabular-nums">${bpm} bpm</span>` : null}
-        </${Island}>
-      </div>
+      
       <div class="dk-void flex-1 min-h-0 relative" onPointerMove=${onPointer} ...${camHandlers}>
+        
         ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-start pt-[6%] gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
             class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
