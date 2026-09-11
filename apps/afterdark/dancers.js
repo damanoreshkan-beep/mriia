@@ -8,7 +8,7 @@ const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const TARGET_H = 1.7;
 const ORDER = GIRLS.map((g) => g.id);
-const clipUrl = (id) => new URL(`assets/clips/${id}.glb`, import.meta.url).href;
+const clipUrl = (id) => new URL(`assets/clip-${id}.glb`, import.meta.url).href;   
 
 const LIGHT = ["akai", "pirate"];                                   
 const GROOVE = ["kaya", "michelle", "nightshade", "louise", "kachujin"]; 
