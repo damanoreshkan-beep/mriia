@@ -9,6 +9,7 @@ import { T } from "/_rt/i18n.js";
 import { wakeLock } from "/_rt/sensors.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { gate } from "/_rt/gate.js";
+import { report } from "/_rt/telemetry.js";
 import { Island, Transport } from "/_rt/ui.js";
 import { GlStage } from "/_rt/glstage.js";
 import { retryDelay, progressCheck } from "/_rt/tide.js";
@@ -31,6 +32,8 @@ const $muted = persistentAtom("afterdark:muted", "0");
 const $entered = atom(gate);
 const $playing = atom(false);
 const $state = atom("idle");                                     
+const $stage3d = atom(gate ? "skipped" : "loading");             
+const $stage3dWhy = atom("");
 const muted = () => $muted.get() === "1";
 
 let el = null, ctx = null, src = null, analyser = null, freq = null, np = null, wl = null;
@@ -169,6 +172,8 @@ async function enter() {
 const CSS = `
 header.navbar{background:rgba(10,6,18,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.07)}
 header.navbar [data-title],header.navbar [data-battery]{color:rgba(255,255,255,.92)!important}
+
+header.navbar [data-title]{text-shadow:0 1px 2px #0A0510,0 0 14px #0A0510}
 .ad-dot{width:.5rem;height:.5rem;border-radius:9999px;background:var(--app-accent);box-shadow:0 0 8px var(--app-accent)}
 [data-rave][data-state="live"] .ad-dot{animation:adPulse .46s ease-in-out infinite}
 [data-rave][data-state="connecting"] .ad-dot,[data-rave][data-state="reconnecting"] .ad-dot{animation:adBlink 1s steps(2) infinite}
@@ -193,6 +198,7 @@ export function afterdark({ S }) {
   const state = useStore($state);
   const entered = useStore($entered);
   const mute = useStore($muted) === "1";
+  const stage3d = useStore($stage3d), stage3dWhy = useStore($stage3dWhy);
   const stageRef = useRef();
   const engineRef = useRef(null);
 
@@ -205,10 +211,10 @@ export function afterdark({ S }) {
       try {
         const { createDanceStage } = await import("./dancers.js");
         if (!stageRef.current) return;
-        engine = createDanceStage(stageRef.current, () => env);
+        engine = createDanceStage(stageRef.current, () => env, (st, why) => { $stage3d.set(st); $stage3dWhy.set(why || ""); if (st === "failed") report("stage3d.fail", { why: why || "" }); });
         engineRef.current = engine;
         if (engine.ok) engine.setCast(getCast());
-      } catch {  }
+      } catch (e) { $stage3d.set("failed"); $stage3dWhy.set(String(e && e.message || e).slice(0, 80)); report("stage3d.fail", { why: $stage3dWhy.get() }); }
     })();
     return () => { engine?.dispose?.(); engineRef.current = null; };
   }, []);
@@ -229,22 +235,22 @@ export function afterdark({ S }) {
       vary=${vary} ink=${ink} zClass="z-0" />
     <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
 
-    <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"}
+    <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"} data-3d=${stage3d} data-3d-why=${stage3dWhy}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
-      
       <div class="shrink-0 flex justify-center">
         <${Island} tone="dark" className="flex items-center gap-2.5 !py-1.5 !px-3.5 rounded-full">
           <span class="ad-dot shrink-0"></span>
           <span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-white/90">${T(t, "station")}</span>
           <span class="w-px h-3 bg-white/20"></span>
           <span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-white/65">${T(t, "genre")}</span>
-          <span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-white/80 tabular-nums" aria-live="polite">· ${stateLine}</span>
+          
+          ${entered ? html`<span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-white/80 tabular-nums" aria-live="polite">· ${stateLine}</span>` : null}
         </${Island}>
       </div>
 
-      
       <div class="flex-1 min-h-0 relative" onPointerMove=${onPointer}>
-        ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
+        
+        ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-start pt-[6%] gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
             class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
             <span class="ad-enter-ring w-24 h-24 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white">
@@ -257,6 +263,7 @@ export function afterdark({ S }) {
           <span class="font-mono uppercase tracking-[0.2em] text-[length:var(--ms-label)] text-white/55">${cast.length} / ${ALL_IDS.length} ${T(t, "onStage")}</span>
         </div>`}
       </div>
+
       
       <${Island} tone="dark" className="shrink-0 flex flex-col gap-[var(--ms-gap)] max-w-md w-full mx-auto">
         <div class="ad-strip flex items-center gap-2 overflow-x-auto -mx-1 px-1 py-0.5" role="group" aria-label=${T(t, "dancers")}>

@@ -18,11 +18,11 @@ const TIERS = { calm: CALM, light: LIGHT, groove: GROOVE, drive: DRIVE };
 
 const C_KEY = 0xffe9f4, C_MAG = 0xff3eb5, C_GRN = 0x39ff6a, C_GOLD = 0xf5b942;
 
-export function createDanceStage(canvas, getEnv, onReady) {
+export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "low-power" });
-  } catch { return { ok: false, setCast() {}, dispose() {} }; }
+  } catch (e) { onStatus("failed", String(e && e.message || e).slice(0, 80)); return { ok: false, setCast() {}, dispose() {} }; }
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -39,6 +39,18 @@ export function createDanceStage(canvas, getEnv, onReady) {
   const green = new THREE.DirectionalLight(C_GRN, 0.9); green.position.set(4, 2.2, 2); scene.add(green);
   const gold = new THREE.DirectionalLight(C_GOLD, 0.7); gold.position.set(0, 3, -4); scene.add(gold);
 
+  const radial = (inner, outer) => {
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const g = c.getContext("2d"), grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, inner); grad.addColorStop(1, outer); g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  };
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), new THREE.MeshStandardMaterial({ color: 0x07040c, roughness: 0.75, metalness: 0.25, transparent: true, opacity: 0.85, alphaMap: radial("#ffffff", "#000000") }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(0, -0.002, -2); scene.add(floor);
+  const lightPool = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ map: radial("rgba(255,62,181,0.30)", "rgba(255,62,181,0)"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  lightPool.rotation.x = -Math.PI / 2; lightPool.position.set(0, 0.004, -0.6); scene.add(lightPool);
+  const shadowMat = new THREE.MeshBasicMaterial({ map: radial("rgba(0,0,0,0.6)", "rgba(0,0,0,0)"), transparent: true, depthWrite: false });
+
   const draco = new DRACOLoader().setDecoderPath(DRACO_PATH);
   const loader = new GLTFLoader().setDRACOLoader(draco);
 
@@ -53,6 +65,7 @@ export function createDanceStage(canvas, getEnv, onReady) {
 
   function disposeEntry(e) {
     if (!e || !e.root) return;
+    if (e.shadow) { scene.remove(e.shadow); e.shadow.geometry.dispose(); e.shadow = null; }
     scene.remove(e.root); e.mixer?.stopAllAction();
     e.root.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
@@ -89,6 +102,7 @@ export function createDanceStage(canvas, getEnv, onReady) {
     for (const id of order) {
       const e = cast.get(id); if (!e || !e.root) continue;
       e.root.position.x = e.tx + e.centerDX; e.root.position.z = e.tz; e.root.rotation.y = e.yaw;
+      if (e.shadow) e.shadow.position.set(e.tx, 0.006, e.tz);
     }
   }
 
@@ -117,7 +131,7 @@ export function createDanceStage(canvas, getEnv, onReady) {
     cast.set(id, e);
     const token = ++e.token;
     let gltf;
-    try { gltf = await loader.loadAsync(glbUrl(id)); } catch { return; }
+    try { gltf = await loader.loadAsync(glbUrl(id)); } catch (err) { onStatus("failed", `${id}: ${String(err && err.message || err).slice(0, 80)}`); return; }
     if (dead || cast.get(id) !== e || e.token !== token) return;
     const root = gltf.scene;
     root.scale.setScalar(1);
@@ -132,10 +146,12 @@ export function createDanceStage(canvas, getEnv, onReady) {
     if (gltf.animations[0] && !pool.has(id)) pool.set(id, gltf.animations[0]);   
     e.baseScale = s; e.root = root;
     scene.add(root);
+    e.shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 32), shadowMat);
+    e.shadow.rotation.x = -Math.PI / 2; scene.add(e.shadow);
     computeLayout();
     playMove(e, pool.has(id) ? id : (pool.keys().next().value), 0);              
     assignMoves(0);                                                              
-    if (++loaded === 1) onReady?.();
+    if (++loaded === 1) onStatus("ready", id);
   }
 
   function setCast(ids) {
@@ -172,6 +188,8 @@ export function createDanceStage(canvas, getEnv, onReady) {
     green.intensity = (0.85 + 1.9 * Math.max(pulse * 0.7, kick)) * (1 - calm) + 0.45 * calm;
     gold.intensity = (0.6 + 1.3 * pulse) * (1 - calm) + 0.35 * calm;
     key.intensity = 2.0 + 0.7 * pulse * (1 - calm);
+    lightPool.material.opacity = (0.35 + 0.65 * pulse) * (1 - calm * 0.7); 
+    lightPool.scale.setScalar(1 + 0.12 * kick);
 
     const ts = still ? 1 : (0.9 + 0.45 * clamp(sEnergy * 1.5, 0, 1));
     const sq = 1 - 0.055 * kEff, ex = 1 + 0.05 * kEff, hop = 0.055 * kEff;
