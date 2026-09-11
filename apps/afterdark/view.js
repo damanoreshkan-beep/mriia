@@ -136,6 +136,7 @@ function vary() {
     env.tick += dt; pulse = idleGroove(env.tick); energy = pulse;
   }
   env.pulse = pulse; env.energy = energy;
+  env.playing = $playing.get();                                 
   env.dph += dt * 2.1;                                           
   env.sph = integratePhase(env.sph, dt, pulse);
   return [pulse, env.dph, env.sph, 1];                          
