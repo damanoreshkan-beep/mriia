@@ -21,7 +21,7 @@ import { MOVES, MOVE_IDS, DEFAULT_MOVES } from "./dances.js";
 import { readPalette, isDay, SLOTS } from "./palette.js";
 
 const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
-const LIVE = VPS_PROXY + "/live/live.m3u8";
+const LIVE = VPS_PROXY + "/live/master.m3u8";
 const IOS = typeof navigator !== "undefined" && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 const HLS_CFG = {
   lowLatencyMode: false,                        
@@ -198,7 +198,7 @@ const env = {
   pal: null, palTarget: null, day: 0, themeKey: "", frame: 0,
   cam: { yaw: 0, pitch: 0, zoom: 1 }, camT: { yaw: 0, pitch: 0, zoom: 1 },
 };
-const CAM = { yawMax: 1.05, pitchMin: -0.12, pitchMax: 0.62, zoomMin: 0.55, zoomMax: 1.8 };
+const CAM = { pitchMin: -0.12, pitchMax: 0.62, zoomMin: 0.55, zoomMax: 1.8 };   
 const ptrs = new Map();                                            
 let pinchDist = 0, lastTapAt = 0;
 function camDown(e) {
@@ -211,7 +211,7 @@ function camMove(e) {
   const p = ptrs.get(e.pointerId); if (!p) return;
   const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
   if (ptrs.size === 1) {
-    env.camT.yaw = clamp(env.camT.yaw - dx * 0.006, -CAM.yawMax, CAM.yawMax);
+    env.camT.yaw -= dx * 0.006;
     env.camT.pitch = clamp(env.camT.pitch + dy * 0.004, CAM.pitchMin, CAM.pitchMax);
   } else if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
