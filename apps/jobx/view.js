@@ -46,6 +46,42 @@ const DISTRICTS = {
   sviatoshynskyi: { uk: "Святошинський", en: "Sviatoshynskyi", lat: 50.455, lon: 30.360 },
 };
 
+const LANDMARKS = {
+  kyiv: [
+    { id: "maidan", uk: "Майдан Незалежності", en: "Maidan Nezalezhnosti", lat: 50.45024, lon: 30.52406 },
+    { id: "sofia", uk: "Софійський собор", en: "St Sophia Cathedral", lat: 50.45291, lon: 30.51425 },
+    { id: "lavra", uk: "Києво-Печерська лавра", en: "Kyiv Pechersk Lavra", lat: 50.435, lon: 30.55445 },
+    { id: "zoloti", uk: "Золоті ворота", en: "Golden Gate", lat: 50.44885, lon: 30.51337 },
+    { id: "motherland", uk: "Батьківщина-Мати", en: "Motherland Monument", lat: 50.42655, lon: 30.56307 },
+    { id: "vdng", uk: "ВДНГ", en: "VDNH", lat: 50.38085, lon: 30.47658 },
+    { id: "olymp", uk: "НСК Олімпійський", en: "Olimpiyskiy Stadium", lat: 50.43404, lon: 30.51897 },
+    { id: "kontraktova", uk: "Контрактова площа", en: "Kontraktova Square", lat: 50.46271, lon: 30.51839 },
+  ],
+  lviv: [
+    { id: "rynok", uk: "Площа Ринок", en: "Rynok Square", lat: 49.84193, lon: 24.03237 },
+    { id: "vysokyi", uk: "Високий замок", en: "High Castle", lat: 49.84817, lon: 24.03924 },
+    { id: "potocki", uk: "Палац Потоцьких", en: "Potocki Palace", lat: 49.83795, lon: 24.02693 },
+  ],
+  odesa: [
+    { id: "potemkin", uk: "Потьомкінські сходи", en: "Potemkin Stairs", lat: 46.4885, lon: 30.74188 },
+    { id: "derybasivska", uk: "Дерибасівська вулиця", en: "Derybasivska Street", lat: 46.48431, lon: 30.73574 },
+    { id: "prymorskyi", uk: "Приморський бульвар", en: "Prymorsky Boulevard", lat: 46.48786, lon: 30.74132 },
+  ],
+  kharkiv: [
+    { id: "derzhprom", uk: "Держпром", en: "Derzhprom", lat: 50.00486, lon: 36.23222 },
+    { id: "mirror", uk: "Дзеркальний струмінь", en: "Mirror Stream", lat: 49.99865, lon: 36.23471 },
+    { id: "annunciation", uk: "Благовіщенський собор", en: "Annunciation Cathedral", lat: 49.9909, lon: 36.22225 },
+  ],
+  dnipro: [
+    { id: "naberezhna", uk: "Дніпровська набережна", en: "Dnipro Embankment", lat: 48.44506, lon: 35.07754 },
+    { id: "menora", uk: "Менора", en: "Menorah Center", lat: 48.46371, lon: 35.05327 },
+    { id: "ostriv", uk: "Монастирський острів", en: "Monastyrsky Island", lat: 48.46008, lon: 35.08263 },
+  ],
+};
+const lmUrl = (id) => new URL(`assets/lm-${id}.webp`, import.meta.url).href;
+const LM_ZOOM = 12.5;   
+const LM_Z = 54;        
+
 const DEV_HOST = typeof location !== "undefined" && /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1)/.test(location.hostname);
 const NOW = Date.now();
 const MOCK_JOBS = [
@@ -115,6 +151,7 @@ function palette() {
     pillBg: [...base1, 240], pillText: [...ink, 255], pillBorder: [...accent, 255],
     clusterBg: [...accent, 245], clusterText: [...(dark ? base2 : [255, 255, 255]), 255],
     anchor: [...accent, 255], beam: [...accent, dark ? 70 : 90],
+    lmText: [...ink, 255], lmBg: [...base1, 224],
   };
 }
 
@@ -162,7 +199,8 @@ async function makeDeck(canvas, cityId) {
   await Promise.all(baseLayers.map(grab));
 
   let zoom = VIEW.zoom, cLng = VIEW.longitude, cLat = VIEW.latitude, cPitch = VIEW.pitch, cBearing = VIEW.bearing;
-  let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], camSig = "", curVp = null;
+  let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], camSig = "", curVp = null, loc = "uk";
+  const landmarks = LANDMARKS[cityId] || [];   
   const viewportNow = () => curVp || new D.WebMercatorViewport({ width: canvas.clientWidth || 384, height: canvas.clientHeight || 832, longitude: cLng, latitude: cLat, zoom, pitch: cPitch, bearing: cBearing });
 
   function layers() {
@@ -177,6 +215,25 @@ async function makeDeck(canvas, cityId) {
         extruded: true, opacity: pal.dark ? 0.92 : 0.97, getElevation: (f) => (f.properties && f.properties.h) || 12,
         getFillColor: pal.building, material: { ambient: pal.dark ? 0.5 : 0.62, diffuse: 0.55, shininess: 1, specularColor: [0, 0, 0] },
         pickable: false, updateTriggers: { getFillColor: [pal] },
+      }));
+    }
+    if (zoom >= LM_ZOOM && landmarks.length) {
+      L.push(new D.IconLayer({
+        id: "landmarks", data: landmarks, pickable: false, billboard: true,
+        sizeUnits: "pixels", getSize: 46, sizeMinPixels: 30, sizeMaxPixels: 56,
+        getPosition: (d) => [d.lon, d.lat, LM_Z],
+        getIcon: (d) => ({ url: lmUrl(d.id), width: 256, height: 256, anchorY: 128, mask: false }),
+        parameters: { depthTest: false },
+      }));
+      L.push(new D.TextLayer({
+        id: "landmark-labels", data: landmarks, pickable: false, billboard: true, sizeUnits: "pixels",
+        getPosition: (d) => [d.lon, d.lat, LM_Z], getText: (d) => (/uk/i.test(loc) ? d.uk : d.en),
+        getSize: 12, sizeMinPixels: 10, sizeMaxPixels: 15, getPixelOffset: [0, 33],
+        background: true, backgroundBorderRadius: 8, backgroundPadding: [7, 3, 7, 3],
+        getBackgroundColor: pal.lmBg, getColor: pal.lmText,
+        fontFamily: "'Geist', system-ui, sans-serif", fontWeight: 600, characterSet: "auto",
+        parameters: { depthTest: false },
+        updateTriggers: { getText: [loc], getBackgroundColor: [pal], getColor: [pal] },
       }));
     }
     const cl = clusterJobs(jobs, viewportNow());
@@ -230,19 +287,19 @@ async function makeDeck(canvas, cityId) {
     layers: [],
   });
   return {
-    rebuild(next) { if (next.pal) pal = next.pal; if (next.jobs) jobs = next.jobs; if ("onPick" in next) onPick = next.onPick; deck.setProps({ layers: layers(), style: { background: `rgb(${pal.bg.join(",")})` } }); },
+    rebuild(next) { if (next.pal) pal = next.pal; if (next.jobs) jobs = next.jobs; if ("onPick" in next) onPick = next.onPick; if ("loc" in next) loc = next.loc; deck.setProps({ layers: layers(), style: { background: `rgb(${pal.bg.join(",")})` } }); },
     destroy() { try { deck.finalize(); } catch {  } },
   };
 }
 
-function MapStage({ isDark, city, jobs, onPick }) {
+function MapStage({ isDark, city, jobs, onPick, loc }) {
   const ref = useRef(null), ctl = useRef(null);
   useEffect(() => {
     let dead = false;
-    (async () => { const c = await makeDeck(ref.current, city); if (dead) { c && c.destroy(); return; } ctl.current = c; if (c) { $glReady.set(true); c.rebuild({ pal: palette(), jobs, onPick }); } })();
+    (async () => { const c = await makeDeck(ref.current, city); if (dead) { c && c.destroy(); return; } ctl.current = c; if (c) { $glReady.set(true); c.rebuild({ pal: palette(), jobs, onPick, loc }); } })();
     return () => { dead = true; $glReady.set(false); ctl.current && ctl.current.destroy(); ctl.current = null; };
   }, [city]);
-  useEffect(() => { ctl.current && ctl.current.rebuild({ pal: palette(), jobs, onPick }); }, [isDark, jobs]);
+  useEffect(() => { ctl.current && ctl.current.rebuild({ pal: palette(), jobs, onPick, loc }); }, [isDark, jobs, loc]);
   return html`<canvas ref=${ref} data-map class="absolute inset-0 w-full h-full block" aria-hidden="true"></canvas>`;
 }
 
@@ -403,7 +460,7 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
 
   return html`<${Fragment}>
     <div data-stage class="fixed inset-0 z-0 overflow-hidden bg-base-200">
-      ${showMap ? html`<${MapStage} isDark=${isDark} city=${city} jobs=${cityJobs} onPick=${(c) => openScreen(`job:${(c.jobs && c.jobs[0] || {}).id}`)} />` : null}
+      ${showMap ? html`<${MapStage} isDark=${isDark} city=${city} jobs=${cityJobs} loc=${loc} onPick=${(c) => openScreen(`job:${(c.jobs && c.jobs[0] || {}).id}`)} />` : null}
       ${!showMap || !glReady
         ? html`<div class="absolute inset-0 grid place-items-center px-8 text-center text-muted pointer-events-none">
             <div>${Icon("lucide:map", "text-4xl opacity-40")}<p class="mt-3">${T(t, "mapHint")}</p></div>
