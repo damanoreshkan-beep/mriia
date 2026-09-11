@@ -181,9 +181,20 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     a.enabled = true; a.setEffectiveWeight(1); a.reset(); a.play();
     if (e.currentAction && e.currentAction !== a) a.crossFadeFrom(e.currentAction, fade, true);
     e.currentAction = a; e.current = id;
+    e.loops = 0; e.prevT = 0; e.wantLoops = id === "idle" ? 0 : 1 + ((Math.random() * 2) | 0);   
   }
 
   let tier = "groove", lastTierAt = 0, rotation = 0;
+  const NEIGHBOUR = { light: ["groove"], groove: ["light", "drive"], drive: ["groove"] };
+  function nextMove(e, list) {
+    let from = list;
+    if (Math.random() < 0.33) { const n = NEIGHBOUR[tier] || []; const t = n[(Math.random() * n.length) | 0]; if (t && tiers[t]?.length) from = tiers[t]; }
+    const loaded = from.filter((m) => pool.has(m) && m !== e.last && m !== "idle");
+    if (!loaded.length) return null;
+    const mine = loaded.filter((_, i) => ((i + Math.floor(e.seed * 97)) % 2) === 0);
+    const pick = (mine.length && Math.random() < 0.75) ? mine : loaded;
+    return pick[(Math.random() * pick.length) | 0];
+  }
   function assignMoves(fade = 0.5) {
     const list = tiers[tier] || tiers.groove;
     order.forEach((id, i) => {
@@ -194,7 +205,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
   }
 
   async function loadChar(id) {
-    const e = { root: null, mixer: null, actions: new Map(), current: null, currentAction: null, token: 0, tx: 0, tz: 0, yaw: 0, centerDX: 0, baseY: 0, baseScale: 1, ox: 0, oz: 0, hx: 0, hz: 0, nextSwap: performance.now() + 4000 + Math.random() * 7000, nextSwapBar: 2 + ((Math.random() * 4) | 0) };
+    const e = { root: null, mixer: null, actions: new Map(), current: null, currentAction: null, token: 0, tx: 0, tz: 0, yaw: 0, centerDX: 0, baseY: 0, baseScale: 1, ox: 0, oz: 0, hx: 0, hz: 0, loops: 0, wantLoops: 2, prevT: 0, bridgeUntil: 0, last: null, seed: Math.random() };
     cast.set(id, e);
     const token = ++e.token;
     let gltf;
@@ -272,7 +283,11 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     const target = !active ? "calm" : sEnergy < 0.14 ? "light" : sEnergy < 0.36 ? "groove" : "drive";
     const dwell = (target === "calm" || tier === "calm") ? 500 : 5000;
     const may = (target === "calm" || tier === "calm") ? now - lastTierAt > dwell : (locked ? phraseTick : now - lastTierAt > dwell);
-    if (target !== tier && may) { tier = target; lastTierAt = now; rotation++; assignMoves(0.6); }
+    if (target !== tier && may) {
+      tier = target; lastTierAt = now; rotation++;
+      if (tier === "calm") assignMoves(0.6);                                     
+      else for (const id of order) { const e = cast.get(id); if (e) e.wantLoops = Math.min(e.wantLoops, e.loops + 1); }   
+    }
 
     const day = clamp(env.day || 0, 0, 1), pal = env.pal;
     if (pal && pal.length >= 32) {
@@ -335,10 +350,13 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     const list = tiers[tier] || tiers.groove;
     for (const id of order) {
       const e = cast.get(id); if (!e || !e.mixer || !e.root) continue;
-      const due = locked ? (barTick && bar >= e.nextSwapBar) : now > e.nextSwap;
-      if (active && tier !== "calm" && list.length > 1 && due) {
-        let m = e.current; for (let k = 0; k < 4 && (m === e.current || !pool.has(m)); k++) m = list[(Math.random() * list.length) | 0];
-        playMove(e, m, 0.7); e.nextSwap = now + 7000 + Math.random() * 7000; e.nextSwapBar = bar + 4 + ((Math.random() * 4) | 0);
+      if (active && tier !== "calm" && e.currentAction) {
+        const fade = 0.4 + e.seed * 0.3;
+        if (e.current === "idle") {
+          if (now > e.bridgeUntil && (!locked || barTick)) { const m = nextMove(e, list); if (m) playMove(e, m, fade); }
+        } else if (e.loops >= e.wantLoops && pool.has("idle")) {
+          e.last = e.current; playMove(e, "idle", fade); e.bridgeUntil = now + 1200 + Math.random() * 800;
+        }
       }
       const src = pool.get(e.current);
       let ts = 1;
@@ -353,7 +371,9 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
             a.time = ((a.time + err * beatLen * 0.5) % src.clip.duration + src.clip.duration) % src.clip.duration; }
         }
       }
+      { const a = e.currentAction; if (a) { const d = a.getClip().duration; if (a.time + dt * ts >= d - 1e-3) e.hold = e.hold || { x: e.hx, z: e.hz }; } }
       e.mixer.timeScale = ts; e.mixer.update(dt);
+      { const a = e.currentAction; if (a) { if (a.time < e.prevT) e.loops++; e.prevT = a.time; } }
       e.root.scale.set(e.baseScale * ex, e.baseScale * sq, e.baseScale * ex);
       if (e.feet && e.feet.length) {
         e.root.position.y = 0; e.root.updateMatrixWorld(true);
