@@ -10,10 +10,11 @@ const TARGET_H = 1.7;
 const ORDER = GIRLS.map((g) => g.id);
 const clipUrl = (id) => new URL(`assets/clip-${id}.glb`, import.meta.url).href;   
 
+const CALM = ["idle"];                                             
 const LIGHT = ["akai", "pirate"];                                   
 const GROOVE = ["kaya", "michelle", "nightshade", "louise", "kachujin"]; 
 const DRIVE = ["arissa", "eve", "sophie", "jolleen"];              
-const TIERS = { calm: LIGHT, light: LIGHT, groove: GROOVE, drive: DRIVE };
+const TIERS = { calm: CALM, light: LIGHT, groove: GROOVE, drive: DRIVE };
 
 const C_KEY = 0xffe9f4, C_MAG = 0xff3eb5, C_GRN = 0x39ff6a, C_GOLD = 0xf5b942;
 
@@ -46,7 +47,7 @@ export function createDanceStage(canvas, getEnv, onReady) {
   let order = [];
   let dead = false, loaded = 0, camDist = 6, camY = 1.05, lookY = 0.95;
 
-  for (const id of ORDER) {
+  for (const id of [...ORDER, "idle"]) {
     loader.loadAsync(clipUrl(id)).then((g) => { if (!dead && g.animations[0]) { pool.set(id, g.animations[0]); assignMoves(); } }).catch(() => {});
   }
 
