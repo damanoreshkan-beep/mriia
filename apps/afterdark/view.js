@@ -14,11 +14,16 @@ import { Island, Transport } from "/_rt/ui.js";
 import { GlStage } from "/_rt/glstage.js";
 import { retryDelay, progressCheck } from "/_rt/tide.js";
 import { bassEnergy, stepPulse, idleGroove, integratePhase } from "/_rt/afterdark.js";
+import { spectralFlux, createBeatState, stepBeat, BPM_REF } from "/_rt/afterbeat.js";
 import { GIRLS } from "./girls.js";
+import { MOVES, MOVE_IDS, DEFAULT_MOVES } from "./dances.js";
 
 const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
 const AC = typeof AudioContext !== "undefined" ? AudioContext : (typeof globalThis !== "undefined" && globalThis.webkitAudioContext) || null;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const frac = (x) => x - Math.floor(x);
+const IDLE_BPM = 126;                                               
+const CHROME_IDLE_MS = 10000;                                       
 
 const DEFAULT_CAST = ["kaya", "michelle", "arissa"];
 const $cast = persistentAtom("afterdark:cast", JSON.stringify(DEFAULT_CAST));
@@ -28,15 +33,25 @@ function getCast() {
   a = Array.isArray(a) ? a.filter((id) => ALL_IDS.includes(id)) : [];
   return a.length ? a : DEFAULT_CAST.slice();
 }
+const $moves = persistentAtom("afterdark:moves", JSON.stringify(DEFAULT_MOVES));
+function getMoves() {
+  let a; try { a = JSON.parse($moves.get()); } catch { a = null; }
+  a = Array.isArray(a) ? a.filter((id) => MOVE_IDS.includes(id)) : [];
+  return a.length ? a : DEFAULT_MOVES.slice();
+}
+const TIER_TINT = { light: "#8B5CF6", groove: "#39FF6A", drive: "#FF3EB5" };
 const $muted = persistentAtom("afterdark:muted", "0");
 const $entered = atom(gate);
 const $playing = atom(false);
 const $state = atom("idle");                                     
 const $stage3d = atom(gate ? "skipped" : "loading");             
 const $stage3dWhy = atom("");
+const $bpm = atom(0);                                            
+const $chrome = atom(true);                                      
 const muted = () => $muted.get() === "1";
 
 let el = null, ctx = null, src = null, analyser = null, freq = null, np = null, wl = null;
+let beatAn = null, fdb = null, mag = null, magPrev = null;      
 let attempt = 0, retryTimer = null, stallTimer = null, connectTimer = null, liveTimer = null, mark = null;
 
 function attach(a) {
@@ -47,7 +62,9 @@ function attach(a) {
     ctx.resume();
     src = ctx.createMediaElementSource(a);
     if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 1024; analyser.smoothingTimeConstant = 0.4; freq = new Uint8Array(analyser.frequencyBinCount); analyser.connect(ctx.destination); }
+    if (!beatAn) { beatAn = ctx.createAnalyser(); beatAn.fftSize = 1024; beatAn.smoothingTimeConstant = 0; fdb = new Float32Array(beatAn.frequencyBinCount); mag = new Float32Array(beatAn.frequencyBinCount); magPrev = new Float32Array(beatAn.frequencyBinCount); }
     src.connect(analyser);
+    src.connect(beatAn);
   } catch { src = null; }
 }
 
@@ -113,6 +130,7 @@ if (typeof addEventListener !== "undefined") {
 
 function stop() {
   $playing.set(false); $state.set("idle");
+  disarmChrome();
   clearTimeout(connectTimer); clearTimeout(retryTimer); clearTimeout(stallTimer);
   attempt = 0;
   if (el) { const o = el; el = null; try { o.pause(); o.removeAttribute("src"); o.load(); } catch {  } }
@@ -125,30 +143,48 @@ const start = () => play({});
 const toggle = () => { $playing.get() ? stop() : start(); };
 function setMuted(m) { $muted.set(m ? "1" : "0"); if (el) { try { el.volume = m ? 0 : 1; } catch {  } } }
 
-const env = { last: 0, tick: 0, pulseState: { pulse: 0, baseline: 0 }, pulse: 0, energy: 0, dph: 0, sph: 0, tiltX: 0, tiltY: 0, ttx: 0, tty: 0, mode: "auto" };
+const env = {
+  last: 0, tick: 0, pulseState: { pulse: 0, baseline: 0 }, pulse: 0, energy: 0, dph: 0, sph: 0, tiltX: 0, tiltY: 0, ttx: 0, tty: 0, mode: "auto",
+  beatState: null, bpm: IDLE_BPM, beatPhase: 0, barPhase: 0, beatIndex: 0, confidence: 0, beatA: 0, barA: 0, lead: 0.08, drive: 0,
+};
 function vary() {
   const now = performance.now();
   const dt = env.last ? Math.min(0.1, (now - env.last) / 1000) : 0; env.last = now;
   let pulse, energy;
-  if (analyser && src && $playing.get() && $state.get() === "live") {
+  const live = analyser && src && $playing.get() && $state.get() === "live";
+  if (live) {
     analyser.getByteFrequencyData(freq);
     energy = bassEnergy(freq);
     env.pulseState = stepPulse(env.pulseState, energy);
     pulse = env.pulseState.pulse;
+    beatAn.getFloatFrequencyData(fdb);
+    for (let i = 0; i < fdb.length; i++) { const v = (fdb[i] + 100) / 70; mag[i] = v > 0 ? (v < 1 ? v : 1) : 0; }
+    const b = stepBeat(env.beatState, spectralFlux(mag, magPrev), now / 1000);
+    const t = mag; mag = magPrev; magPrev = t;
+    env.beatState = b.state; env.bpm = b.bpm; env.beatPhase = b.beatPhase; env.barPhase = b.barPhase; env.beatIndex = b.beatIndex; env.confidence = b.confidence;
+    env.lead = (ctx ? (ctx.outputLatency || 0) + (ctx.baseLatency || 0) : 0.06) + 1 / 60;
   } else {
     env.tick += dt; pulse = idleGroove(env.tick); energy = pulse;
+    env.bpm = IDLE_BPM; env.confidence = 0;
+    const beats = env.tick * IDLE_BPM / 60;
+    env.beatPhase = frac(beats); env.beatIndex = Math.floor(beats); env.barPhase = frac(beats / 4); env.lead = 0;
   }
+  const leadBeats = env.lead * env.bpm / 60;
+  env.beatA = frac(env.beatPhase + leadBeats); env.barA = frac(env.barPhase + leadBeats / 4);
+  const shown = env.confidence > 0.35 ? Math.round(env.bpm) : 0;
+  if (shown !== $bpm.get()) $bpm.set(shown);
   env.pulse = pulse; env.energy = energy;
   env.playing = $playing.get();                                 
-  env.dph += dt * 2.1;                                           
+  env.dph += dt * env.bpm / 60;                                  
   env.sph = integratePhase(env.sph, dt, pulse);
-  return [pulse, env.dph, env.sph, 1];                          
+  env.drive += (clamp((energy - 0.14) / 0.3, 0, 1) - env.drive) * clamp(dt * 2, 0, 1);
+  return [pulse, env.dph, env.sph, env.confidence * env.drive];
 }
 function ink() {
   if (env.mode === "auto") { const t = env.tick; env.ttx = Math.sin(t * 0.5) * 0.5; env.tty = Math.sin(t * 0.33) * 0.3; }
   env.tiltX += (env.ttx - env.tiltX) * 0.06;
   env.tiltY += (env.tty - env.tiltY) * 0.06;
-  return [env.tiltX, env.tiltY, 0, 0];
+  return [env.tiltX, env.tiltY, env.beatA, env.barA];
 }
 function armOrient() {
   env.mode = "orient";
@@ -162,11 +198,29 @@ function requestTilt() {
     else env.mode = "pointer";
   } catch { env.mode = "pointer"; }
 }
+function goFullscreen() {
+  try {
+    if (gate || typeof document === "undefined" || document.fullscreenElement) return;
+    const el = document.documentElement;
+    const r = el.requestFullscreen?.({ navigationUI: "hide" }) || el.webkitRequestFullscreen?.();
+    r?.catch?.(() => {});
+  } catch {  }
+}
+let chromeTimer = null;
+function armChrome() {
+  if (gate) return;
+  if (!$chrome.get()) $chrome.set(true);
+  clearTimeout(chromeTimer);
+  if ($entered.get()) chromeTimer = setTimeout(() => { if ($entered.get() && $playing.get()) $chrome.set(false); }, CHROME_IDLE_MS);
+}
+function disarmChrome() { clearTimeout(chromeTimer); chromeTimer = null; if (!$chrome.get()) $chrome.set(true); }
 async function enter() {
+  goFullscreen();
   $entered.set(true);
   try { if (AC) { ctx ||= new AC(); await ctx.resume(); } } catch {  }
   requestTilt();
   start();
+  armChrome();
 }
 
 const CSS = `
@@ -187,21 +241,41 @@ header.navbar [data-title]{text-shadow:0 1px 2px #0A0510,0 0 14px #0A0510}
 .dk-strip{scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x proximity}
 .dk-strip::-webkit-scrollbar{display:none}
 .dk-chip{scroll-snap-align:center}
-@media(prefers-reduced-motion:reduce){.dk-dot,[data-enter] .dk-enter-ring{animation:none!important}}`;
-
-
+[data-rave]{transition:opacity .7s ease}
+[data-rave][data-chrome="off"]{opacity:0;pointer-events:none}
+:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity .7s ease}
+@media(prefers-reduced-motion:reduce){.dk-dot,[data-enter] .dk-enter-ring{animation:none!important}[data-rave],:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
 export function afterdark({ S }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
   useStore($cast);                                                
+  useStore($moves);
   const cast = getCast();
+  const moves = getMoves();
   const playing = useStore($playing);
   const state = useStore($state);
   const entered = useStore($entered);
   const mute = useStore($muted) === "1";
   const stage3d = useStore($stage3d), stage3dWhy = useStore($stage3dWhy);
+  const bpm = useStore($bpm);
+  const chrome = useStore($chrome);
   const stageRef = useRef();
   const engineRef = useRef(null);
+
+  
+  
+  useEffect(() => {
+    if (typeof document === "undefined") return () => {};
+    if (chrome) delete document.documentElement.dataset.immersive; else document.documentElement.dataset.immersive = "";
+    return () => { delete document.documentElement.dataset.immersive; };
+  }, [chrome]);
+  useEffect(() => {
+    if (typeof addEventListener === "undefined") return () => {};
+    const onKey = () => armChrome();
+    addEventListener("keydown", onKey);
+    if (entered) armChrome();
+    return () => { removeEventListener("keydown", onKey); disarmChrome(); };
+  }, []);
 
   
   
@@ -214,7 +288,7 @@ export function afterdark({ S }) {
         if (!stageRef.current) return;
         engine = createDanceStage(stageRef.current, () => env, (st, why) => { $stage3d.set(st); $stage3dWhy.set(why || ""); if (st === "failed") report("stage3d.fail", { why: why || "" }); });
         engineRef.current = engine;
-        if (engine.ok) engine.setCast(getCast());
+        if (engine.ok) { engine.setMoves(getMoves()); engine.setCast(getCast()); }
       } catch (e) { $stage3d.set("failed"); $stage3dWhy.set(String(e && e.message || e).slice(0, 80)); report("stage3d.fail", { why: $stage3dWhy.get() }); }
     })();
     return () => { engine?.dispose?.(); engineRef.current = null; };
@@ -226,6 +300,13 @@ export function afterdark({ S }) {
   const applyCast = (next) => { if (!next.length) return; $cast.set(JSON.stringify(next)); engineRef.current?.setCast?.(next); };
   const toggleGirl = (id) => { const c = getCast(); applyCast(c.includes(id) ? (c.length > 1 ? c.filter((x) => x !== id) : c) : [...c, id]); };
   const pickAll = () => applyCast(cast.length >= ALL_IDS.length ? DEFAULT_CAST.slice() : ALL_IDS.slice());
+  const onMoves = new Set(moves);
+  const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+  const applyMoves = (next) => { if (!next.length) return; $moves.set(JSON.stringify(next)); engineRef.current?.setMoves?.(next); };
+  const toggleMove = (id) => { const m = getMoves(); applyMoves(m.includes(id) ? (m.length > 1 ? m.filter((x) => x !== id) : m) : [...m, id]); };
+  const pickStars = () => applyMoves(DEFAULT_MOVES.slice());
+  const pickAllMoves = () => applyMoves(moves.length >= MOVE_IDS.length ? DEFAULT_MOVES.slice() : MOVE_IDS.slice());
+  const isStars = sameSet(moves, DEFAULT_MOVES);
   const onPointer = (e) => { if (env.mode === "orient") return; env.mode = "pointer"; const r = e.currentTarget.getBoundingClientRect(); env.ttx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); env.tty = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1); };
 
   return html`<${Fragment}>
@@ -234,10 +315,12 @@ export function afterdark({ S }) {
     <div class="fixed inset-0 z-0" style="background:radial-gradient(120% 90% at 50% 8%, #1A0A22 0%, #0C0614 46%, #050308 100%)"></div>
     <${GlStage} shader=${new URL("afterdark.frag", import.meta.url)} seed=${((cast[0] || "a").charCodeAt(0) % 13) / 13}
       vary=${vary} ink=${ink} zClass="z-0" />
+    
     <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
+    ${!chrome ? html`<div data-reveal class="fixed inset-0 z-10" onPointerDown=${() => armChrome()} onPointerMove=${onPointer}></div>` : null}
     <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"} data-3d=${stage3d} data-3d-why=${stage3dWhy}
+      data-chrome=${chrome ? "on" : "off"} data-bpm=${bpm || ""} onPointerDown=${() => armChrome()}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
-      
       <div class="shrink-0 flex justify-center">
         <${Island} tone="dark" className="flex items-center gap-2.5 !py-1.5 !px-3.5 rounded-full">
           <span class="dk-dot shrink-0"></span>
@@ -246,6 +329,7 @@ export function afterdark({ S }) {
           <span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-white/65">${T(t, "genre")}</span>
           
           ${entered ? html`<span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-white/80 tabular-nums" aria-live="polite">· ${stateLine}</span>` : null}
+          ${bpm ? html`<span class="w-px h-3 bg-white/20"></span><span data-tempo class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-[var(--app-accent)] tabular-nums">${bpm} bpm</span>` : null}
         </${Island}>
       </div>
 
@@ -260,14 +344,36 @@ export function afterdark({ S }) {
             <span class="font-mono uppercase tracking-[0.28em] text-sm text-white/90">${T(t, "enter")}</span>
           </button>
         </div>` : html`<div class="absolute inset-x-0 bottom-1 flex justify-center pointer-events-none">
-          
           <span class="font-mono uppercase tracking-[0.2em] text-[length:var(--ms-label)] text-white/55">${cast.length} / ${ALL_IDS.length} ${T(t, "onStage")}</span>
         </div>`}
       </div>
 
       
       <${Island} tone="dark" className="shrink-0 flex flex-col gap-[var(--ms-gap)] max-w-md w-full mx-auto">
+        <div class="dk-strip flex items-center gap-2 overflow-x-auto -mx-1 px-1 py-0.5" role="group" aria-label=${T(t, "moves")} data-moves=${moves.length}>
+          
+          <button data-stars type="button" aria-pressed=${isStars ? "true" : "false"} aria-label=${T(t, "starMoves")} onClick=${pickStars}
+            class=${`dk-chip shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${isStars ? "bg-white/15 ring-2 ring-[var(--app-accent)]" : "bg-white/[.05] ring-1 ring-white/15 hover:opacity-100"}`}>
+            <iconify-icon icon="lucide:star" class="text-[length:var(--ms-label)] text-white/85"></iconify-icon>
+            <span class="font-mono uppercase text-[length:var(--ms-label)] tracking-wide text-white/85">${T(t, "starMoves")}</span>
+          </button>
+          <button data-all-moves type="button" aria-pressed=${moves.length >= MOVE_IDS.length ? "true" : "false"} aria-label=${T(t, "all")} onClick=${pickAllMoves}
+            class=${`dk-chip shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${moves.length >= MOVE_IDS.length ? "bg-white/15 ring-2 ring-[var(--app-accent)]" : "bg-white/[.05] ring-1 ring-white/15 hover:opacity-100"}`}>
+            <iconify-icon icon="lucide:sparkles" class="text-[length:var(--ms-label)] text-white/85"></iconify-icon>
+            <span class="font-mono uppercase text-[length:var(--ms-label)] tracking-wide text-white/85">${T(t, "all")}</span>
+          </button>
+          ${MOVES.map((m) => {
+            const on = onMoves.has(m.id), tint = TIER_TINT[m.tier] || TIER_TINT.groove;
+            return html`<button key=${m.id} data-move=${m.id} type="button" aria-pressed=${on ? "true" : "false"}
+              aria-label=${m.name} onClick=${() => toggleMove(m.id)}
+              class=${`dk-chip shrink-0 flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${on ? "bg-white/15 ring-2 ring-[var(--app-accent)]" : "bg-white/[.04] ring-1 ring-white/10 opacity-65 hover:opacity-100"}`}>
+              <span class="w-2 h-2 rounded-full shrink-0" style=${`background:${tint};box-shadow:${on ? `0 0 6px ${tint}` : "none"}`}></span>
+              <span class=${`font-mono text-[length:var(--ms-label)] tracking-wide whitespace-nowrap ${on ? "text-white" : "text-white/75"}`}>${m.name}</span>
+            </button>`;
+          })}
+        </div>
         <div class="dk-strip flex items-center gap-2 overflow-x-auto -mx-1 px-1 py-0.5" role="group" aria-label=${T(t, "dancers")}>
+          
           <button data-all type="button" aria-pressed=${cast.length >= ALL_IDS.length ? "true" : "false"}
             aria-label=${T(t, "all")} onClick=${pickAll}
             class=${`dk-chip shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${cast.length >= ALL_IDS.length ? "bg-white/15 ring-2 ring-[var(--app-accent)]" : "bg-white/[.05] ring-1 ring-white/15 hover:opacity-100"}`}>

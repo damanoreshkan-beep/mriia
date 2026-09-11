@@ -1,4 +1,5 @@
 import "./tests/acts_test.js";
+import "./tests/afterbeat_test.js";
 import "./tests/afterdark_test.js";
 import "./tests/ai_tarot_test.js";
 import "./tests/air_test.js";
