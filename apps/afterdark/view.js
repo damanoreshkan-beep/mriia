@@ -24,7 +24,7 @@ const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
 const LIVE = VPS_PROXY + "/live/master.m3u8";
 const IOS = typeof navigator !== "undefined" && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 const HLS_CFG = {
-  xhrSetup: (xhr) => { try { xhr.setRequestHeader("Range", "bytes=0-"); } catch {  } },
+  xhrSetup: (xhr, url) => { xhr.open("GET", url, true); xhr.setRequestHeader("Range", "bytes=0-"); },
   lowLatencyMode: false,                        
   liveSyncDuration: 300,                        
   liveSyncMode: "edge",                         

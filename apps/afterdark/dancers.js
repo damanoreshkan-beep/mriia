@@ -410,6 +410,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
       e.root.position.x = e.tx + e.centerDX + e.ox; e.root.position.z = e.tz + e.oz;
     }
     env.crowdMin = crowdMin;                                                    
+    env.moves = order.map((id) => cast.get(id)?.current || "");               
 
     const tx = env.tiltX || 0, ty = env.tiltY || 0;
     const cam = env.cam || {}, yaw = cam.yaw || 0, pitch = cam.pitch || 0, R = camDist * (cam.zoom || 1);
