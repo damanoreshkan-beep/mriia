@@ -219,7 +219,8 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     box = new THREE.Box3().setFromObject(root);
     e.centerDX = -(box.min.x + box.max.x) / 2;
     e.baseY = -box.min.y; root.position.y = e.baseY;
-    root.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
+    const aniso = renderer.capabilities.getMaxAnisotropy();
+    root.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; for (const m of [].concat(o.material || [])) for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"]) if (m[k]) { m[k].anisotropy = aniso; m[k].needsUpdate = true; } } });
     e.mixer = new THREE.AnimationMixer(root);
     const hips = hipsOf(root); e.hips = hips.bone; e.hipsY = hips.y; e.prefix = hips.prefix;   
     e.feet = []; root.traverse((o) => { if (/(Toe_End|ToeBase|Foot)$/i.test(o.name)) e.feet.push(o); });
