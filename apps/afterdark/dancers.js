@@ -152,6 +152,7 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
     root.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
     e.mixer = new THREE.AnimationMixer(root);
     const hips = hipsOf(root); e.hips = hips.bone; e.hipsY = hips.y;            
+    e.feet = []; root.traverse((o) => { if (/(Toe_End|ToeBase|Foot)$/i.test(o.name)) e.feet.push(o); });
     if (gltf.animations[0] && !pool.has(id)) pool.set(id, { clip: gltf.animations[0], hipsY: e.hipsY });   
     e.baseScale = s; e.root = root;
     scene.add(root);
@@ -211,7 +212,11 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
       }
       e.mixer.timeScale = ts; e.mixer.update(dt);
       e.root.scale.set(e.baseScale * ex, e.baseScale * sq, e.baseScale * ex);
-      e.root.position.y = e.baseY + hop;
+      if (e.feet && e.feet.length) {
+        e.root.position.y = 0; e.root.updateMatrixWorld(true);
+        let low = Infinity; for (const f of e.feet) { f.getWorldPosition(_v); if (_v.y < low) low = _v.y; }
+        e.root.position.y = (Number.isFinite(low) ? -low : e.baseY) + hop;
+      } else e.root.position.y = e.baseY + hop;
       if (e.hips && e.shadow) { e.root.updateMatrixWorld(); e.hips.getWorldPosition(_v); e.shadow.position.x = _v.x; e.shadow.position.z = _v.z; }
     }
 
