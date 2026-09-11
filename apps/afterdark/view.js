@@ -16,7 +16,7 @@ import { retryDelay, progressCheck } from "/_rt/tide.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { bassEnergy, stepPulse, idleGroove, integratePhase } from "/_rt/afterdark.js";
 import { spectralFlux, createBeatState, stepBeat, BPM_REF } from "/_rt/afterbeat.js";
-import { GIRLS } from "./girls.js";
+import { CHARACTERS, avatarUrl } from "./characters.js";
 import { MOVES, MOVE_IDS, DEFAULT_MOVES } from "./dances.js";
 import { readPalette, isDay, SLOTS } from "./palette.js";
 
@@ -26,13 +26,13 @@ const IOS = typeof navigator !== "undefined" && (/iP(hone|ad|od)/.test(navigator
 const HLS_CFG = {
   lowLatencyMode: false,                        
   liveSyncDuration: 300,                        
-  liveSyncMode: "buffered",                     
+  liveSyncMode: "edge",                         
   liveSyncOnStallIncrease: 0,                   
   maxLiveSyncPlaybackRate: 1,                   
   maxBufferLength: 330, maxMaxBufferLength: 900, maxBufferSize: 120 * 1024 * 1024,   
   backBufferLength: 120,
   fragLoadPolicy: { default: { maxTimeToFirstByteMs: 12000, maxLoadTimeMs: 30000, timeoutRetry: { maxNumRetry: 12, retryDelayMs: 1000, maxRetryDelayMs: 8000 }, errorRetry: { maxNumRetry: 12, retryDelayMs: 1000, maxRetryDelayMs: 8000 } } },
-  playlistLoadPolicy: { default: { maxTimeToFirstByteMs: 12000, maxLoadTimeMs: 20000, timeoutRetry: { maxNumRetry: 12, retryDelayMs: 1000, maxRetryDelayMs: 8000 }, errorRetry: { maxNumRetry: 12, retryDelayMs: 1000, maxRetryDelayMs: 8000 } } },
+  playlistLoadPolicy: { default: { maxTimeToFirstByteMs: 8000, maxLoadTimeMs: 12000, timeoutRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 4000 }, errorRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 4000 } } },   
 };
 const AC = typeof AudioContext !== "undefined" ? AudioContext : (typeof globalThis !== "undefined" && globalThis.webkitAudioContext) || null;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -41,7 +41,7 @@ const IDLE_BPM = 126;
 
 const DEFAULT_CAST = ["kaya", "michelle", "arissa"];
 const $cast = persistentAtom("afterdark:cast", JSON.stringify(DEFAULT_CAST));
-const ALL_IDS = GIRLS.map((g) => g.id);
+const ALL_IDS = CHARACTERS.map((g) => g.id);
 function getCast() {
   let a; try { a = JSON.parse($cast.get()); } catch { a = null; }
   a = Array.isArray(a) ? a.filter((id) => ALL_IDS.includes(id)) : [];
@@ -315,6 +315,8 @@ const CSS = `
 .dk-chip-on{background:rgba(255,255,255,.15);box-shadow:0 0 0 2px var(--app-accent)}
 .dk-chip-off{background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.14)}
 .dk-chip-dim{opacity:.65}.dk-chip-dim:hover{opacity:1}
+.dk-av{background:rgba(255,255,255,.06)}.dk-av:active{transform:scale(.94)}
+:root[data-theme$="-light"] .dk-av{background:color-mix(in oklch,var(--color-base-content) 8%,transparent)}
 .dk-enter{background:rgba(0,0,0,.5);color:#fff}
 
 .dk-dock{max-width:28rem;transition:max-width .45s cubic-bezier(.4,0,.2,1),padding .45s cubic-bezier(.4,0,.2,1)}
@@ -392,7 +394,7 @@ export function afterdark({ S }) {
   const onStage = new Set(cast);
   const onToggle = () => (entered ? toggle() : enter());
   const applyCast = (next) => { if (!next.length) return; $cast.set(JSON.stringify(next)); engineRef.current?.setCast?.(next); };
-  const toggleGirl = (id) => { const c = getCast(); applyCast(c.includes(id) ? (c.length > 1 ? c.filter((x) => x !== id) : c) : [...c, id]); };
+  const toggleChar = (id) => { const c = getCast(); applyCast(c.includes(id) ? (c.length > 1 ? c.filter((x) => x !== id) : c) : [...c, id]); };
   const pickAll = () => applyCast(cast.length >= ALL_IDS.length ? DEFAULT_CAST.slice() : ALL_IDS.slice());
   const onMoves = new Set(moves);
   const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
@@ -460,13 +462,14 @@ export function afterdark({ S }) {
             <iconify-icon icon="lucide:users" class="text-[length:var(--ms-label)] dk-ink-2"></iconify-icon>
             <span class="font-mono uppercase text-[length:var(--ms-label)] tracking-wide dk-ink-2">${T(t, "all")}</span>
           </button>
-          ${GIRLS.map((g) => {
+          
+          ${CHARACTERS.map((g) => {
             const on = onStage.has(g.id);
-            return html`<button key=${g.id} data-girl=${g.id} type="button" aria-pressed=${on ? "true" : "false"}
-              aria-label=${`${g.name} — ${T(t, g.danceKey)}`} onClick=${() => toggleGirl(g.id)}
-              class=${`dk-chip shrink-0 flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${on ? "dk-chip-on" : "dk-chip-off dk-chip-dim"}`}>
-              <span class="w-3.5 h-3.5 rounded-full shrink-0" style=${`background:${g.tint};box-shadow:${on ? `0 0 7px ${g.tint}` : "none"}`}></span>
-              <span class=${`font-mono text-[length:var(--ms-label)] tracking-wide ${on ? "dk-ink" : "dk-ink-3"}`}>${g.name}</span>
+            return html`<button key=${g.id} data-char=${g.id} type="button" aria-pressed=${on ? "true" : "false"}
+              aria-label=${g.name} title=${g.name} onClick=${() => toggleChar(g.id)}
+              class=${`dk-chip dk-av shrink-0 rounded-full p-0 transition-[box-shadow,transform,opacity] duration-200 ${on ? "" : "dk-chip-dim"}`}
+              style=${on ? `box-shadow:0 0 0 2px ${g.tint},0 0 12px ${g.tint}66` : ""}>
+              <img src=${avatarUrl(g.id)} alt="" width="40" height="40" loading="lazy" decoding="async" class="w-10 h-10 rounded-full object-cover block" />
             </button>`;
           })}
         </div>

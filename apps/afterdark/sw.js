@@ -1,12 +1,12 @@
 self.MS = {
   app: "afterdark",
-  version: "5ac39e83d5",
+  version: "213bbec005",
   precache: [
     "./",
     "./afterdark.frag",
+    "./characters.js",
     "./dancers.js",
     "./dances.js",
-    "./girls.js",
     "./i18n/en.json",
     "./i18n/uk.json",
     "./icon.svg",

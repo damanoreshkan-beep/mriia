@@ -2,14 +2,14 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import { GIRLS, glbUrl } from "./girls.js";
+import { CHARACTERS, glbUrl } from "./characters.js";
 import { DEFAULT_MOVES, moveUrl, tiersFor } from "./dances.js";
 
 const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const frac = (x) => x - Math.floor(x);
 const TARGET_H = 1.7;
-const ORDER = GIRLS.map((g) => g.id);
+const ORDER = CHARACTERS.map((g) => g.id);
 const IDLE_URL = new URL("assets/clip-idle.glb", import.meta.url).href;   
 const LOCK = 0.3;                                                    
 const CLIP_BPM_REF = 125;                                            
@@ -192,7 +192,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     });
   }
 
-  async function loadGirl(id) {
+  async function loadChar(id) {
     const e = { root: null, mixer: null, actions: new Map(), current: null, currentAction: null, token: 0, tx: 0, tz: 0, yaw: 0, centerDX: 0, baseY: 0, baseScale: 1, ox: 0, oz: 0, hx: 0, hz: 0, nextSwap: performance.now() + 4000 + Math.random() * 7000, nextSwapBar: 2 + ((Math.random() * 4) | 0) };
     cast.set(id, e);
     const token = ++e.token;
@@ -227,7 +227,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     if (!want.length) return;
     for (const id of [...cast.keys()]) if (!want.includes(id)) { disposeEntry(cast.get(id)); cast.delete(id); }
     order = want;
-    for (const id of want) if (!cast.has(id)) loadGirl(id);
+    for (const id of want) if (!cast.has(id)) loadChar(id);
     computeLayout();
   }
 
