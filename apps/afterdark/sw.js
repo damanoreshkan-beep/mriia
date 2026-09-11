@@ -1,9 +1,11 @@
 self.MS = {
   app: "afterdark",
-  version: "b4fc438ae9",
+  version: "1faff04424",
   precache: [
     "./",
     "./afterdark.frag",
+    "./dancers.js",
+    "./girls.js",
     "./i18n/en.json",
     "./i18n/uk.json",
     "./icon.svg",
@@ -70,6 +72,7 @@ self.MS = {
     "https://esm.sh/nanostores@0.11.4",
     "https://esm.sh/preact@10.27.1",
     "https://esm.sh/preact@10.27.1/hooks",
+    "https://esm.sh/three@0.171.0",
     "https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap",
   ],
 };

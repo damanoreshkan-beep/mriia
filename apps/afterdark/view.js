@@ -12,16 +12,14 @@ import { gate } from "/_rt/gate.js";
 import { Island, Transport } from "/_rt/ui.js";
 import { GlStage } from "/_rt/glstage.js";
 import { retryDelay, progressCheck } from "/_rt/tide.js";
-import { bassEnergy, stepPulse, idleGroove, integratePhase, GIRLS, girlById } from "/_rt/afterdark.js";
+import { bassEnergy, stepPulse, idleGroove, integratePhase } from "/_rt/afterdark.js";
+import { GIRLS, girlById, trioFor } from "./girls.js";
 
 const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
 const AC = typeof AudioContext !== "undefined" ? AudioContext : (typeof globalThis !== "undefined" && globalThis.webkitAudioContext) || null;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const spriteUrl = (id) => new URL(`assets/${id}.png`, import.meta.url).href;
-const depthUrl = (id) => new URL(`assets/${id}-depth.png`, import.meta.url).href;
-
-const $girl = persistentAtom("afterdark:girl", GIRLS[0].id);
+const $focus = persistentAtom("afterdark:focus", GIRLS[1].id);   
 const $muted = persistentAtom("afterdark:muted", "0");
 const $entered = atom(gate);
 const $playing = atom(false);
@@ -116,28 +114,24 @@ function stop() {
 const start = () => play({});
 const toggle = () => { $playing.get() ? stop() : start(); };
 function setMuted(m) { $muted.set(m ? "1" : "0"); if (el) { try { el.volume = m ? 0 : 1; } catch {  } } }
-function selectGirl(id) {
-  if (id === $girl.get()) return;
-  env.girlFade = 0; env.girlFadeTo = 1;                          
-  $girl.set(id);
-}
 
-const env = { last: 0, tick: 0, pulseState: { pulse: 0, baseline: 0 }, dph: 0, sph: 0, girlFade: gate ? 1 : 0, girlFadeTo: 1, tiltX: 0, tiltY: 0, ttx: 0, tty: 0, mode: "auto" };
+const env = { last: 0, tick: 0, pulseState: { pulse: 0, baseline: 0 }, pulse: 0, energy: 0, dph: 0, sph: 0, tiltX: 0, tiltY: 0, ttx: 0, tty: 0, mode: "auto" };
 function vary() {
   const now = performance.now();
   const dt = env.last ? Math.min(0.1, (now - env.last) / 1000) : 0; env.last = now;
-  let pulse;
+  let pulse, energy;
   if (analyser && src && $playing.get() && $state.get() === "live") {
     analyser.getByteFrequencyData(freq);
-    env.pulseState = stepPulse(env.pulseState, bassEnergy(freq));
+    energy = bassEnergy(freq);
+    env.pulseState = stepPulse(env.pulseState, energy);
     pulse = env.pulseState.pulse;
   } else {
-    env.tick += dt; pulse = idleGroove(env.tick);
+    env.tick += dt; pulse = idleGroove(env.tick); energy = pulse;
   }
+  env.pulse = pulse; env.energy = energy;
   env.dph += dt * 2.1;                                           
   env.sph = integratePhase(env.sph, dt, pulse);
-  env.girlFade += (env.girlFadeTo - env.girlFade) * 0.14;
-  return [pulse, env.dph, env.sph, clamp(env.girlFade, 0, 1)];
+  return [pulse, env.dph, env.sph, 1];                          
 }
 function ink() {
   if (env.mode === "auto") { const t = env.tick; env.ttx = Math.sin(t * 0.5) * 0.5; env.tty = Math.sin(t * 0.33) * 0.3; }
@@ -175,34 +169,57 @@ header.navbar [data-title],header.navbar [data-battery]{color:rgba(255,255,255,.
 .ad-enter-ring{box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 40px 0 color-mix(in oklch,var(--app-accent) 55%,transparent)}
 @keyframes adBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 [data-enter] .ad-enter-ring{animation:adBreath 2.6s ease-in-out infinite}
+
+.ad-strip{scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x proximity}
+.ad-strip::-webkit-scrollbar{display:none}
+.ad-chip{scroll-snap-align:center}
 @media(prefers-reduced-motion:reduce){.ad-dot,[data-enter] .ad-enter-ring{animation:none!important}}`;
 
 
 export function afterdark({ S }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
-  const girlId = useStore($girl);
+  const focusId = useStore($focus);
   const playing = useStore($playing);
   const state = useStore($state);
   const entered = useStore($entered);
   const mute = useStore($muted) === "1";
-  const voidRef = useRef();
+  const stageRef = useRef();
+  const engineRef = useRef(null);
 
   
-  useEffect(() => { if (gate) start(); return () => {}; }, []);
+  
+  useEffect(() => {
+    if (gate) { start(); return () => {}; }
+    let engine = null;
+    (async () => {
+      try {
+        const { createDanceStage } = await import("./dancers.js");
+        if (!stageRef.current) return;
+        engine = createDanceStage(stageRef.current, () => env);
+        engineRef.current = engine;
+        if (engine.ok) engine.setTrio(trioFor($focus.get()));
+      } catch {  }
+    })();
+    return () => { engine?.dispose?.(); engineRef.current = null; };
+  }, []);
 
+  const trio = trioFor(focusId);                                 
+  const focus = girlById(focusId);
   const stateLine = state === "connecting" ? T(t, "connecting") : state === "reconnecting" ? T(t, "reconnecting") : state === "offline" ? T(t, "offline") : state === "live" ? T(t, "live") : T(t, "idle");
   const onToggle = () => (entered ? toggle() : enter());
+  const setFocus = (id) => { if (id === $focus.get()) return; $focus.set(id); engineRef.current?.setTrio?.(trioFor(id)); };
   const onPointer = (e) => { if (env.mode === "orient") return; env.mode = "pointer"; const r = e.currentTarget.getBoundingClientRect(); env.ttx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); env.tty = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1); };
 
   return html`<${Fragment}>
     <style>${CSS}</style>
     
-    <div class="fixed inset-0 -z-10" style="background:radial-gradient(120% 90% at 50% 8%, #1A0A22 0%, #0C0614 46%, #050308 100%)"></div>
-    <${GlStage} shader=${new URL("afterdark.frag", import.meta.url)} seed=${(girlById(girlId).id.charCodeAt(0) % 13) / 13}
-      cam=${() => girlEl(girlId)} tex2=${depthUrl(girlId)} vary=${vary} ink=${ink} zClass="z-0" />
+    <div class="fixed inset-0 z-0" style="background:radial-gradient(120% 90% at 50% 8%, #1A0A22 0%, #0C0614 46%, #050308 100%)"></div>
+    <${GlStage} shader=${new URL("afterdark.frag", import.meta.url)} seed=${(focus.id.charCodeAt(0) % 13) / 13}
+      vary=${vary} ink=${ink} zClass="z-0" />
+    <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
 
-    <div data-rave data-state=${state} data-active-girl=${girlId} data-entered=${entered ? "yes" : "no"}
+    <div data-rave data-state=${state} data-focus=${focusId} data-entered=${entered ? "yes" : "no"}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
       
       <div class="shrink-0 flex justify-center">
@@ -216,7 +233,7 @@ export function afterdark({ S }) {
       </div>
 
       
-      <div ref=${voidRef} class="flex-1 min-h-0 relative" onPointerMove=${onPointer}>
+      <div class="flex-1 min-h-0 relative" onPointerMove=${onPointer}>
         ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
             class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
@@ -225,24 +242,25 @@ export function afterdark({ S }) {
             </span>
             <span class="font-mono uppercase tracking-[0.28em] text-sm text-white/90">${T(t, "enter")}</span>
           </button>
-        </div>` : null}
+        </div>` : html`<div class="absolute inset-x-0 bottom-1 flex justify-center pointer-events-none">
+          
+          <span class="font-mono uppercase tracking-[0.2em] text-[length:var(--ms-label)] text-white/55">${focus.name} · ${T(t, focus.danceKey)}</span>
+        </div>`}
       </div>
-
       
       <${Island} tone="dark" className="shrink-0 flex flex-col gap-[var(--ms-gap)] max-w-md w-full mx-auto">
-        <div class="flex items-center justify-center gap-3" role="group" aria-label=${T(t, "dancers")}>
+        <div class="ad-strip flex items-center gap-2 overflow-x-auto -mx-1 px-1 py-0.5" role="group" aria-label=${T(t, "dancers")}>
           ${GIRLS.map((g) => {
-            const on = g.id === girlId;
-            return html`<button key=${g.id} data-girl=${g.id} type="button" aria-pressed=${on ? "true" : "false"}
-              aria-label=${T(t, g.key)} onClick=${() => selectGirl(g.id)}
-              class=${`relative w-12 h-12 rounded-full overflow-hidden shrink-0 transition-transform ${on ? "ring-2 ring-[var(--app-accent)] scale-105" : "ring-1 ring-white/15 opacity-70 hover:opacity-100"}`}
-              style="background:#0C0614">
-              <img src=${spriteUrl(g.id)} alt="" loading="lazy" decoding="async"
-                class="absolute inset-0 w-full h-full object-cover" style="object-position:50% 16%" />
+            const lead = g.id === focusId;
+            const onStage = trio.includes(g.id);
+            return html`<button key=${g.id} data-girl=${g.id} type="button" aria-pressed=${lead ? "true" : "false"}
+              aria-label=${`${g.name} — ${T(t, g.danceKey)}`} onClick=${() => setFocus(g.id)}
+              class=${`ad-chip shrink-0 flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${lead ? "bg-white/15 ring-2 ring-[var(--app-accent)] scale-[1.03]" : onStage ? "bg-white/[.07] ring-1 ring-white/20" : "bg-white/[.03] ring-1 ring-white/10 opacity-70 hover:opacity-100"}`}>
+              <span class="w-3.5 h-3.5 rounded-full shrink-0" style=${`background:${g.tint};box-shadow:0 0 6px ${g.tint}88`}></span>
+              <span class=${`font-mono text-[length:var(--ms-label)] tracking-wide ${lead ? "text-white" : "text-white/80"}`}>${g.name}</span>
             </button>`;
           })}
         </div>
-        
         <${Transport} locale=${loc} playing=${playing} onToggle=${onToggle} stopIcon=${true}
           actions=${[
             { id: "mute", icon: mute ? "lucide:volume-x" : "lucide:volume-2", label: T(t, mute ? "aUnmute" : "aMute"), active: mute, pressed: mute, onClick: () => setMuted(!mute), attr: { "data-mute": "" } },
@@ -250,13 +268,4 @@ export function afterdark({ S }) {
       </${Island}>
     </div>
   </${Fragment}>`;
-}
-
-
-
-const imgs = {};
-function girlEl(id) {
-  if (typeof Image === "undefined") return null;
-  if (!imgs[id]) { const im = new Image(); im.decoding = "async"; im.src = spriteUrl(id); imgs[id] = im; }
-  return imgs[id];
 }
