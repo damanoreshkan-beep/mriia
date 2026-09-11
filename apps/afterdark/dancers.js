@@ -177,6 +177,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     const src = pool.get(id); if (!src) return;
     let a = e.actions.get(id);
     if (!a) { a = e.mixer.clipAction(retargetHips(src.clip, src.hipsY, e.hipsY, src.prefix, e.prefix)); a.setLoop(THREE.LoopRepeat, Infinity); e.actions.set(id, a); }
+    if (e.root && e.hips) e.hold = { x: e.hx, z: e.hz };
     a.enabled = true; a.setEffectiveWeight(1); a.reset(); a.play();
     if (e.currentAction && e.currentAction !== a) a.crossFadeFrom(e.currentAction, fade, true);
     e.currentAction = a; e.current = id;
@@ -348,7 +349,8 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
         if (barTick && a) {
           const beatLen = src.clip.duration / src.beats;
           const err = frac((env.beatPhase || 0) - frac(a.time / beatLen) + 0.5) - 0.5;   
-          a.time = ((a.time + err * beatLen * 0.5) % src.clip.duration + src.clip.duration) % src.clip.duration;
+          if (Math.abs(err) > 0.04) { e.hold = e.hold || { x: e.hx, z: e.hz };            
+            a.time = ((a.time + err * beatLen * 0.5) % src.clip.duration + src.clip.duration) % src.clip.duration; }
         }
       }
       e.mixer.timeScale = ts; e.mixer.update(dt);
@@ -359,6 +361,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
         e.root.position.y = (Number.isFinite(low) ? -low : e.baseY) + hop;
       } else e.root.position.y = e.baseY + hop;
       if (e.hips && e.shadow) { e.root.updateMatrixWorld(); e.hips.getWorldPosition(_v); e.shadow.position.x = _v.x; e.shadow.position.z = _v.z; e.hx = _v.x; e.hz = _v.z; }
+      if (e.hold && e.hips) { e.ox += e.hold.x - e.hx; e.oz += e.hold.z - e.hz; e.hx = e.hold.x; e.hz = e.hold.z; e.shadow.position.x = e.hx; e.shadow.position.z = e.hz; e.hold = null; }
     }
 
     let crowdMin = Infinity;
