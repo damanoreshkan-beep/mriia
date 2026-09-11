@@ -34,7 +34,6 @@ const AC = typeof AudioContext !== "undefined" ? AudioContext : (typeof globalTh
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const frac = (x) => x - Math.floor(x);
 const IDLE_BPM = 126;                                               
-const CHROME_IDLE_MS = 10000;                                       
 
 const DEFAULT_CAST = ["kaya", "michelle", "arissa"];
 const $cast = persistentAtom("afterdark:cast", JSON.stringify(DEFAULT_CAST));
@@ -55,10 +54,11 @@ const $muted = persistentAtom("afterdark:muted", "0");
 const $entered = atom(gate);
 const $playing = atom(false);
 const $state = atom("idle");                                     
+const $buffer = atom(0);                                         
 const $stage3d = atom(gate ? "skipped" : "loading");             
 const $stage3dWhy = atom("");
 const $bpm = atom(0);                                            
-const $chrome = atom(true);                                      
+const $fs = atom(false);                                         
 const muted = () => $muted.get() === "1";
 
 let el = null, ctx = null, src = null, analyser = null, freq = null, np = null, wl = null;
@@ -115,25 +115,34 @@ async function play({ reconnect = false } = {}) {
   a.crossOrigin = "anonymous";                                   
   a.volume = muted() ? 0 : 1;
   el = a;
-  const H = (!IOS && !dvrDead) ? await loadHls() : false;
-  if (el !== a) return;                                          
-  if (H && H.isSupported()) attachHls(a, H); else a.src = STREAM;
+
   $state.set(reconnect ? "reconnecting" : "connecting");
   let hadAudio = false;
   const armStall = () => { clearTimeout(stallTimer); stallTimer = setTimeout(() => { if (el === a && $state.get() !== "live") lost(a); }, 8000); };
   a.onplaying = () => { if (el !== a) return; attempt = 0; hadAudio = true; clearTimeout(connectTimer); clearTimeout(stallTimer); $state.set("live"); a.volume = muted() ? 0 : 1; };
-  a.onwaiting = a.onstalled = () => { if (el !== a) return; if (hadAudio) { $state.set("reconnecting"); armStall(); } };
   a.onended = () => { if (el === a) lost(a); };
   a.onerror = () => { if (el === a) lost(a); };
   connectTimer = setTimeout(() => { if (el === a && $state.get() !== "live") lost(a); }, 12000);
   attach(a);
+  const H = (!IOS && !dvrDead) ? await loadHls() : false;
+  if (el !== a) return;                                          
+  const dvr = !!(H && H.isSupported());
+  if (dvr) {
+    a.onstalled = null;
+    a.onwaiting = () => { if (el === a && hadAudio) $state.set("buffering"); };
+    attachHls(a, H);
+  } else {
+    a.onwaiting = a.onstalled = () => { if (el !== a) return; if (hadAudio) { $state.set("reconnecting"); armStall(); } };
+    a.src = STREAM;
+  }
+  a.dvr = dvr;
   const p = a.play();
   if (p && p.catch) p.catch((err) => { if (el !== a) return; if (err && err.name === "NotAllowedError") { stop(); return; } lost(a); });
   $playing.set(true);
   if (!wl) wl = wakeLock.acquire();
   hold();
   mark = null;
-  if (!liveTimer) liveTimer = setInterval(probe, 4000);
+  if (!liveTimer) liveTimer = setInterval(probe, 2000);
 }
 
 function lost(a) {
@@ -146,8 +155,10 @@ function lost(a) {
   retryTimer = setTimeout(() => { retryTimer = null; if ($playing.get()) play({ reconnect: true }); }, wait);
 }
 function probe() {
-  if (gate || !$playing.get() || !el || $state.get() !== "live") return;
-  const r = progressCheck({ time: el.currentTime, mark, now: performance.now() });
+  if (gate || !$playing.get() || !el) return;
+  try { const b = el.buffered; let ahead = 0; for (let i = 0; i < b.length; i++) if (b.start(i) <= el.currentTime + 0.5 && b.end(i) > el.currentTime) ahead = Math.max(ahead, b.end(i) - el.currentTime); const s = Math.floor(ahead); if (s !== $buffer.get()) $buffer.set(s); } catch {  }
+  if ($state.get() !== "live") return;
+  const r = progressCheck({ time: el.currentTime, mark, now: performance.now(), budget: el.dvr ? 120000 : 8000 });
   mark = r.mark;
   if (r.dead) lost(el);
 }
@@ -163,13 +174,12 @@ if (typeof addEventListener !== "undefined") {
 
 function stop() {
   $playing.set(false); $state.set("idle");
-  disarmChrome();
   clearTimeout(connectTimer); clearTimeout(retryTimer); clearTimeout(stallTimer);
   attempt = 0;
   killHls();
   if (el) { const o = el; el = null; try { o.pause(); o.removeAttribute("src"); o.load(); } catch {  } }
   if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
-  mark = null;
+  mark = null; $buffer.set(0);
   if (wl) { wl.release(); wl = null; }
   if (np) { np.release(); np = null; }
 }
@@ -181,7 +191,32 @@ const env = {
   last: 0, tick: 0, pulseState: { pulse: 0, baseline: 0 }, pulse: 0, energy: 0, dph: 0, sph: 0, tiltX: 0, tiltY: 0, ttx: 0, tty: 0, mode: "auto",
   beatState: null, bpm: IDLE_BPM, beatPhase: 0, barPhase: 0, beatIndex: 0, confidence: 0, beatA: 0, barA: 0, lead: 0.08, drive: 0,
   pal: null, palTarget: null, day: 0, themeKey: "", frame: 0,
+  cam: { yaw: 0, pitch: 0, zoom: 1 }, camT: { yaw: 0, pitch: 0, zoom: 1 },
 };
+const CAM = { yawMax: 1.05, pitchMin: -0.12, pitchMax: 0.62, zoomMin: 0.55, zoomMax: 1.8 };
+const ptrs = new Map();                                            
+let pinchDist = 0, lastTapAt = 0;
+function camDown(e) {
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch {  }
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchDist = Math.hypot(a.x - b.x, a.y - b.y); }
+  if (ptrs.size === 1) { const now = performance.now(); if (now - lastTapAt < 300) { env.camT = { yaw: 0, pitch: 0, zoom: 1 }; } lastTapAt = now; }
+}
+function camMove(e) {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+  if (ptrs.size === 1) {
+    env.camT.yaw = clamp(env.camT.yaw - dx * 0.006, -CAM.yawMax, CAM.yawMax);
+    env.camT.pitch = clamp(env.camT.pitch + dy * 0.004, CAM.pitchMin, CAM.pitchMax);
+  } else if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinchDist > 0 && d > 0) env.camT.zoom = clamp(env.camT.zoom * (pinchDist / d), CAM.zoomMin, CAM.zoomMax);
+    pinchDist = d;
+  }
+}
+function camUp(e) { ptrs.delete(e.pointerId); pinchDist = 0; }
+function camWheel(e) { env.camT.zoom = clamp(env.camT.zoom * (1 + e.deltaY * 0.0012), CAM.zoomMin, CAM.zoomMax); e.preventDefault(); }
+const camHandlers = { onPointerDown: camDown, onPointerMove: camMove, onPointerUp: camUp, onPointerCancel: camUp, onWheel: camWheel };
 function retheme() { env.palTarget = readPalette(); if (!env.pal) env.pal = new Float32Array(env.palTarget); }
 if (typeof globalThis !== "undefined") globalThis.__afterdark = env;   
 function themeKey() {
@@ -214,6 +249,8 @@ function vary() {
   const k = clamp(dt * 6, 0, 1);
   for (let i = 0; i < SLOTS * 4; i++) env.pal[i] += (env.palTarget[i] - env.pal[i]) * k;
   env.day += ((isDay() ? 1 : 0) - env.day) * k;
+  const kc = clamp(dt * 9, 0, 1);
+  env.cam.yaw += (env.camT.yaw - env.cam.yaw) * kc; env.cam.pitch += (env.camT.pitch - env.cam.pitch) * kc; env.cam.zoom += (env.camT.zoom - env.cam.zoom) * kc;
   const leadBeats = env.lead * env.bpm / 60;
   env.beatA = frac(env.beatPhase + leadBeats); env.barA = frac(env.barPhase + leadBeats / 4);
   const shown = env.confidence > 0.35 ? Math.round(env.bpm) : 0;
@@ -243,29 +280,21 @@ function requestTilt() {
     else env.mode = "pointer";
   } catch { env.mode = "pointer"; }
 }
-function goFullscreen() {
+function toggleFullscreen() {
   try {
-    if (gate || typeof document === "undefined" || document.fullscreenElement) return;
+    if (typeof document === "undefined") return;
+    if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
     const el = document.documentElement;
     const r = el.requestFullscreen?.({ navigationUI: "hide" }) || el.webkitRequestFullscreen?.();
     r?.catch?.(() => {});
   } catch {  }
 }
-let chromeTimer = null;
-function armChrome() {
-  if (gate) return;
-  if (!$chrome.get()) $chrome.set(true);
-  clearTimeout(chromeTimer);
-  if ($entered.get()) chromeTimer = setTimeout(() => { if ($entered.get() && $playing.get()) $chrome.set(false); }, CHROME_IDLE_MS);
-}
-function disarmChrome() { clearTimeout(chromeTimer); chromeTimer = null; if (!$chrome.get()) $chrome.set(true); }
+if (typeof document !== "undefined") document.addEventListener("fullscreenchange", () => $fs.set(!!document.fullscreenElement));
 async function enter() {
-  goFullscreen();
   $entered.set(true);
   try { if (AC) { ctx ||= new AC(); await ctx.resume(); } } catch {  }
   requestTilt();
   start();
-  armChrome();
 }
 
 const CSS = `
@@ -281,6 +310,8 @@ const CSS = `
 .dk-chip-off{background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.14)}
 .dk-chip-dim{opacity:.65}.dk-chip-dim:hover{opacity:1}
 .dk-enter{background:rgba(0,0,0,.5);color:#fff}
+
+.dk-void{touch-action:none;overscroll-behavior:contain}
 
 :root[data-theme$="-light"] .dk-bg{background:radial-gradient(120% 90% at 50% 8%, color-mix(in oklch,var(--color-base-100) 70%,white) 0%, var(--color-base-100) 50%, color-mix(in oklch,var(--color-base-100) 80%,var(--color-warning)) 100%)}
 :root[data-theme$="-light"] [data-rave] .dk-isle{background:color-mix(in oklch,var(--color-base-100) 74%,transparent);border-color:color-mix(in oklch,var(--color-base-content) 12%,transparent);color:var(--color-base-content);box-shadow:0 8px 30px -12px color-mix(in oklch,var(--color-base-content) 35%,transparent)}
@@ -305,10 +336,10 @@ const CSS = `
 .dk-strip::-webkit-scrollbar{display:none}
 .dk-chip{scroll-snap-align:center}
 
-[data-rave]{transition:opacity .7s ease}
-[data-rave][data-chrome="off"]{opacity:0;pointer-events:none}
-:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity .7s ease}
-@media(prefers-reduced-motion:reduce){.dk-dot,[data-enter] .dk-enter-ring{animation:none!important}[data-rave],:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
+:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity .5s ease}
+@media(prefers-reduced-motion:reduce){.dk-dot,[data-enter] .dk-enter-ring{animation:none!important}:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
+
+
 export function afterdark({ S }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
@@ -322,25 +353,18 @@ export function afterdark({ S }) {
   const mute = useStore($muted) === "1";
   const stage3d = useStore($stage3d), stage3dWhy = useStore($stage3dWhy);
   const bpm = useStore($bpm);
-  const chrome = useStore($chrome);
+  const buffer = useStore($buffer);
+  const runway = buffer >= 60 ? `${Math.floor(buffer / 60)}:${String(buffer % 60).padStart(2, "0")}` : `0:${String(buffer).padStart(2, "0")}`;
+  const fs = useStore($fs);
   const stageRef = useRef();
   const engineRef = useRef(null);
 
   
-  
   useEffect(() => {
     if (typeof document === "undefined") return () => {};
-    if (chrome) delete document.documentElement.dataset.immersive; else document.documentElement.dataset.immersive = "";
+    if (fs) document.documentElement.dataset.immersive = ""; else delete document.documentElement.dataset.immersive;
     return () => { delete document.documentElement.dataset.immersive; };
-  }, [chrome]);
-  useEffect(() => {
-    if (typeof addEventListener === "undefined") return () => {};
-    const onKey = () => armChrome();
-    addEventListener("keydown", onKey);
-    if (entered) armChrome();
-    return () => { removeEventListener("keydown", onKey); disarmChrome(); };
-  }, []);
-
+  }, [fs]);
   
   
   useEffect(() => {
@@ -359,7 +383,7 @@ export function afterdark({ S }) {
   }, []);
 
   const onStage = new Set(cast);
-  const stateLine = state === "connecting" ? T(t, "connecting") : state === "reconnecting" ? T(t, "reconnecting") : state === "offline" ? T(t, "offline") : state === "live" ? T(t, "live") : T(t, "idle");
+  const stateLine = state === "connecting" ? T(t, "connecting") : state === "reconnecting" ? T(t, "reconnecting") : state === "buffering" ? T(t, "buffering") : state === "offline" ? T(t, "offline") : state === "live" ? T(t, "live") : T(t, "idle");
   const onToggle = () => (entered ? toggle() : enter());
   const applyCast = (next) => { if (!next.length) return; $cast.set(JSON.stringify(next)); engineRef.current?.setCast?.(next); };
   const toggleGirl = (id) => { const c = getCast(); applyCast(c.includes(id) ? (c.length > 1 ? c.filter((x) => x !== id) : c) : [...c, id]); };
@@ -371,7 +395,7 @@ export function afterdark({ S }) {
   const pickStars = () => applyMoves(DEFAULT_MOVES.slice());
   const pickAllMoves = () => applyMoves(moves.length >= MOVE_IDS.length ? DEFAULT_MOVES.slice() : MOVE_IDS.slice());
   const isStars = sameSet(moves, DEFAULT_MOVES);
-  const onPointer = (e) => { if (env.mode === "orient") return; env.mode = "pointer"; const r = e.currentTarget.getBoundingClientRect(); env.ttx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); env.tty = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1); };
+  const onPointer = (e) => { if (env.mode === "orient" || ptrs.size) return; env.mode = "pointer"; const r = e.currentTarget.getBoundingClientRect(); env.ttx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); env.tty = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1); };
 
   return html`<${Fragment}>
     <style>${CSS}</style>
@@ -381,10 +405,8 @@ export function afterdark({ S }) {
       vary=${vary} ink=${ink} points=${() => env.pal} zClass="z-0" />
     
     <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
-
-    ${!chrome ? html`<div data-reveal class="fixed inset-0 z-10" onPointerDown=${() => armChrome()} onPointerMove=${onPointer}></div>` : null}
     <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"} data-3d=${stage3d} data-3d-why=${stage3dWhy}
-      data-chrome=${chrome ? "on" : "off"} data-bpm=${bpm || ""} onPointerDown=${() => armChrome()}
+      data-fs=${fs ? "yes" : "no"} data-bpm=${bpm || ""}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
       
       <div class="shrink-0 flex justify-center">
@@ -396,13 +418,12 @@ export function afterdark({ S }) {
           
           ${entered ? html`<span class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] dk-ink-2 tabular-nums" aria-live="polite">· ${stateLine}</span>` : null}
           
+          ${entered && buffer > 0 ? html`<span class="dk-line w-px h-3"></span><span data-buffer=${buffer} class="flex items-center gap-1 font-mono tracking-wider text-[length:var(--ms-label)] dk-ink-2 tabular-nums"><iconify-icon icon="lucide:hard-drive-download" class="text-[length:var(--ms-label)]"></iconify-icon>${runway}</span>` : null}
+          
           ${bpm ? html`<span class="dk-line w-px h-3"></span><span data-tempo class="font-mono uppercase tracking-wider text-[length:var(--ms-label)] text-[var(--app-accent)] tabular-nums">${bpm} bpm</span>` : null}
         </${Island}>
       </div>
-
-      
-      <div class="flex-1 min-h-0 relative" onPointerMove=${onPointer}>
-        
+      <div class="dk-void flex-1 min-h-0 relative" onPointerMove=${onPointer} ...${camHandlers}>
         ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-start pt-[6%] gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
             class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
@@ -411,10 +432,7 @@ export function afterdark({ S }) {
             </span>
             <span class="font-mono uppercase tracking-[0.28em] text-sm dk-ink">${T(t, "enter")}</span>
           </button>
-        </div>` : html`<div class="absolute inset-x-0 bottom-1 flex justify-center pointer-events-none">
-          
-          <span class="font-mono uppercase tracking-[0.2em] text-[length:var(--ms-label)] dk-ink-3">${cast.length} / ${ALL_IDS.length} ${T(t, "onStage")}</span>
-        </div>`}
+        </div>` : null}
       </div>
 
       
@@ -462,6 +480,7 @@ export function afterdark({ S }) {
         <${Transport} locale=${loc} playing=${playing} onToggle=${onToggle} stopIcon=${true}
           actions=${[
             { id: "mute", icon: mute ? "lucide:volume-x" : "lucide:volume-2", label: T(t, mute ? "aUnmute" : "aMute"), active: mute, pressed: mute, onClick: () => setMuted(!mute), attr: { "data-mute": "" } },
+            { id: "fs", icon: fs ? "lucide:minimize" : "lucide:maximize", label: T(t, fs ? "aExitFs" : "aFs"), active: fs, pressed: fs, onClick: toggleFullscreen, attr: { "data-fs-key": "" } },
           ]} />
       </${Island}>
     </div>
