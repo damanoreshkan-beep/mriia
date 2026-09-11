@@ -174,6 +174,7 @@ header.navbar{background:rgba(10,6,18,.9);backdrop-filter:blur(10px);-webkit-bac
 header.navbar [data-title],header.navbar [data-battery]{color:rgba(255,255,255,.92)!important}
 
 header.navbar [data-title]{text-shadow:0 1px 2px #0A0510,0 0 14px #0A0510}
+[data-rave] .btn-primary{background:#F2EEE6;border-color:#F2EEE6;color:#0A0510}
 .ad-dot{width:.5rem;height:.5rem;border-radius:9999px;background:var(--app-accent);box-shadow:0 0 8px var(--app-accent)}
 [data-rave][data-state="live"] .ad-dot{animation:adPulse .46s ease-in-out infinite}
 [data-rave][data-state="connecting"] .ad-dot,[data-rave][data-state="reconnecting"] .ad-dot{animation:adBlink 1s steps(2) infinite}
@@ -234,9 +235,9 @@ export function afterdark({ S }) {
     <${GlStage} shader=${new URL("afterdark.frag", import.meta.url)} seed=${((cast[0] || "a").charCodeAt(0) % 13) / 13}
       vary=${vary} ink=${ink} zClass="z-0" />
     <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
-
     <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"} data-3d=${stage3d} data-3d-why=${stage3dWhy}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
+      
       <div class="shrink-0 flex justify-center">
         <${Island} tone="dark" className="flex items-center gap-2.5 !py-1.5 !px-3.5 rounded-full">
           <span class="ad-dot shrink-0"></span>
@@ -248,8 +249,8 @@ export function afterdark({ S }) {
         </${Island}>
       </div>
 
+      
       <div class="flex-1 min-h-0 relative" onPointerMove=${onPointer}>
-        
         ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-start pt-[6%] gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
             class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
@@ -267,7 +268,6 @@ export function afterdark({ S }) {
       
       <${Island} tone="dark" className="shrink-0 flex flex-col gap-[var(--ms-gap)] max-w-md w-full mx-auto">
         <div class="ad-strip flex items-center gap-2 overflow-x-auto -mx-1 px-1 py-0.5" role="group" aria-label=${T(t, "dancers")}>
-          
           <button data-all type="button" aria-pressed=${cast.length >= ALL_IDS.length ? "true" : "false"}
             aria-label=${T(t, "all")} onClick=${pickAll}
             class=${`ad-chip shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-[background-color,box-shadow,transform,opacity] duration-200 ${cast.length >= ALL_IDS.length ? "bg-white/15 ring-2 ring-[var(--app-accent)]" : "bg-white/[.05] ring-1 ring-white/15 hover:opacity-100"}`}>
