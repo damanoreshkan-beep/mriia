@@ -181,7 +181,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     a.enabled = true; a.setEffectiveWeight(1); a.reset(); a.play();
     if (e.currentAction && e.currentAction !== a) a.crossFadeFrom(e.currentAction, fade, true);
     e.currentAction = a; e.current = id;
-    e.loops = 0; e.prevT = 0; e.wantLoops = id === "idle" ? 0 : 1 + ((Math.random() * 2) | 0);   
+    e.loops = 0; e.prevT = 0;
   }
 
   let tier = "groove", lastTierAt = 0, rotation = 0;
@@ -286,7 +286,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     if (target !== tier && may) {
       tier = target; lastTierAt = now; rotation++;
       if (tier === "calm") assignMoves(0.6);                                     
-      else for (const id of order) { const e = cast.get(id); if (e) e.wantLoops = Math.min(e.wantLoops, e.loops + 1); }   
+      else for (const id of order) { const e = cast.get(id); if (e) { e.phraseEnd = beatIndex; e.swapAt = now; } }   
     }
 
     const day = clamp(env.day || 0, 0, 1), pal = env.pal;
@@ -345,24 +345,25 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     gridU.uConf.value = locked ? conf : 0.35; gridU.uCalm.value = calm;
     gridU.uColor.value.copy(BAR_COLORS[colorIdx]); gridU.uColor2.value.copy(BAR_COLORS[(colorIdx + 1) % BAR_COLORS.length]);
 
-    const beatKick = Math.max(kEff, beatEnv * 0.6 * (1 - calm));
-    const sq = 1 - 0.055 * beatKick, ex = 1 + 0.05 * beatKick, hop = 0.055 * beatKick;
+    const beatKick = Math.max(kEff, beatEnv * 0.85 * (1 - calm));
+    const sq = 1 - 0.07 * beatKick, ex = 1 + 0.06 * beatKick, hop = 0.08 * beatKick;   
     const list = tiers[tier] || tiers.groove;
     for (const id of order) {
       const e = cast.get(id); if (!e || !e.mixer || !e.root) continue;
       if (active && tier !== "calm" && e.currentAction) {
-        const fade = 0.4 + e.seed * 0.3;
-        if (e.current === "idle") {
-          if (now > e.bridgeUntil && (!locked || barTick)) { const m = nextMove(e, list); if (m) playMove(e, m, fade); }
-        } else if (e.loops >= e.wantLoops && pool.has("idle")) {
-          e.last = e.current; playMove(e, "idle", fade); e.bridgeUntil = now + 1200 + Math.random() * 800;
+        if (e.phraseEnd == null) { e.phraseEnd = beatIndex + 8; e.swapAt = now + 3500 + Math.random() * 1500; }
+        const due = e.current === "idle" ? true : (locked ? (barTick && beatIndex >= e.phraseEnd) : now >= e.swapAt);
+        if (due) {
+          const m = nextMove(e, list);
+          if (m) { e.last = e.current; playMove(e, m, 0.3); }
+          e.phraseEnd = beatIndex + (Math.random() < 0.33 ? 16 : 8); e.swapAt = now + 3500 + Math.random() * 1500;
         }
       }
       const src = pool.get(e.current);
       let ts = 1;
       if (locked && src && !still && tier !== "calm") {
         const want = (env.bpm || CLIP_BPM_REF) / src.bpm;
-        ts = clamp(1 + (want - 1) * Math.max(SYNC_MIN, conf), 0.75, 1.3);
+        ts = clamp(1 + (want - 1) * Math.max(SYNC_MIN, conf), 0.95, 1.35);   
         const a = e.currentAction;
         if (barTick && a) {
           const beatLen = src.clip.duration / src.beats;
