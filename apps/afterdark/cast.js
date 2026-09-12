@@ -16,9 +16,9 @@ const chip = (on) => `btn btn-sm rounded-full h-auto min-h-0 py-1.5 gap-1.5 norm
 
 function MoveChip({ m, on, name }) {
   const tint = TIER_TINT[m.tier] || TIER_TINT.groove;
-  return html`<button key=${m.id} data-move=${m.id} type="button" aria-pressed=${on ? "true" : "false"} title=${name} onClick=${() => toggleMove(m.id)} class=${chip(on) + " pl-2 pr-3"}>
+  return html`<button key=${m.id} data-move=${m.id} type="button" aria-pressed=${on ? "true" : "false"} title=${name} onClick=${() => toggleMove(m.id)} class=${chip(on) + " pl-2 pr-3 max-w-full text-left"}>
     <span class="w-2 h-2 rounded-full shrink-0" style=${`background:${tint};box-shadow:${on ? `0 0 6px ${tint}` : "none"}`}></span>
-    <span class="font-mono text-[0.78rem] tracking-wide whitespace-nowrap">${name}</span>
+    <span class="font-mono text-[0.78rem] tracking-wide leading-tight min-w-0 [overflow-wrap:anywhere]">${name}</span>
   </button>`;
 }
 
@@ -51,8 +51,8 @@ export function castView({ S }) {
   const isStars = moves.length === DEFAULT_MOVES.length && DEFAULT_MOVES.every((id) => onFloor.has(id));
   const allDancesOn = allDanceIds.length > 0 && allDanceIds.every((id) => onFloor.has(id));
 
-  return html`<div data-cast-tab class="h-full min-h-0 overflow-y-auto pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)]">
-    <div class="sticky top-0 z-10 bg-base-200/90 backdrop-blur-md py-2 -mx-[var(--ms-pad)] px-[var(--ms-pad)]">
+  return html`<div data-cast-tab class="pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)] overflow-x-clip">
+    <div class="sticky z-10 bg-base-200/90 backdrop-blur-md py-2" style="top:calc(var(--hdr-h) + var(--ms-safe-top))">
       <${Segmented} attr="data-cast-section" size="sm" label=${T(t, "tabCast")} value=${section} onChange=${(v) => $section.set(v)}
         items=${[{ id: "chars", label: T(t, "dancers"), icon: "lucide:users", meta: String(cast.length) }, { id: "moves", label: T(t, "moves"), icon: "lucide:footprints", meta: String(moves.length) }]} />
     </div>
