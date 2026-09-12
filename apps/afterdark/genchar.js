@@ -58,7 +58,7 @@ export async function generateCharacter({ prompt, name, kind }) {
   $genCharError.set(""); $genCharPct.set(0); $genCharLoading.set("picture");
   try {
     const en = await toEnglish(prompt);
-    const job = await startJob(IMG, { prompt: en + LOOK, quality: "fast", aspect: "portrait", ratio: 0.75, seed: Math.floor(Math.random() * 1e9), k: 1 });
+    const job = await startJob(IMG, { prompt: en + LOOK, quality: "fast", aspect: "portrait", ratio: 0.75, seed: Math.floor(Math.random() * 1e9), k: 2 });
     let blob = null;
     const st = await follow({ base: IMG, job, alive, onLive: (l) => $genCharPct.set(l.pct || 0), onSlide: (s) => { blob ??= s.blob; } });
     if (!alive()) return;
