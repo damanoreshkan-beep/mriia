@@ -52,7 +52,7 @@ export function castView({ S }) {
   const allDancesOn = allDanceIds.length > 0 && allDanceIds.every((id) => onFloor.has(id));
 
   return html`<div data-cast-tab class="pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)] overflow-x-clip">
-    <div class="sticky z-10 bg-base-200/90 backdrop-blur-md py-2" style="top:calc(var(--hdr-h) + var(--ms-safe-top))">
+    <div class="py-2">
       <${Segmented} attr="data-cast-section" size="sm" label=${T(t, "tabCast")} value=${section} onChange=${(v) => $section.set(v)}
         items=${[{ id: "chars", label: T(t, "dancers"), icon: "lucide:users", meta: String(cast.length) }, { id: "moves", label: T(t, "moves"), icon: "lucide:footprints", meta: String(moves.length) }]} />
     </div>
