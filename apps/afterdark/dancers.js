@@ -105,7 +105,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
   const loading = new Set();
   const hipsOf = (obj) => { let h = null; obj.traverse((o) => { if (!h && /hips$/i.test(o.name)) h = o; }); return h ? { bone: h, y: h.position.y, prefix: h.name.replace(/hips$/i, "") } : { bone: null, y: 0, prefix: "" }; };
   const retargetHips = (clip, srcY, dstY, srcPrefix, dstPrefix) => {
-    const rename = srcPrefix && dstPrefix && srcPrefix !== dstPrefix;
+    const rename = srcPrefix !== dstPrefix;   
     const scale = srcY && dstY && Math.abs(srcY - dstY) >= 1e-4;
     if (!rename && !scale) return clip;
     const c = clip.clone(), r = scale ? dstY / srcY : 1;
@@ -236,7 +236,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
   }
 
   function setCast(ids) {
-    const want = ORDER.filter((id) => ids.includes(id));
+    const want = [...ORDER.filter((id) => ids.includes(id)), ...ids.filter((id) => !ORDER.includes(id))];   
     if (!want.length) return;
     for (const id of [...cast.keys()]) if (!want.includes(id)) { disposeEntry(cast.get(id)); cast.delete(id); }
     order = want;
