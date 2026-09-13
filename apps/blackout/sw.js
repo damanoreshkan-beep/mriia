@@ -1,6 +1,6 @@
 self.MS = {
   app: "blackout",
-  version: "ac5860913d",
+  version: "c42d315bd5",
   precache: [
     "./",
     "./gen.js",
@@ -11,6 +11,7 @@ self.MS = {
     "./index.html",
     "./manifest.json",
     "./rig.js",
+    "./sound.js",
     "./spec.json",
     "./stage.js",
     "./state.js",
@@ -19,6 +20,7 @@ self.MS = {
     "/_rt/account.js",
     "/_rt/ai-core.js",
     "/_rt/apk.js",
+    "/_rt/audio.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
     "/_rt/build.js",
