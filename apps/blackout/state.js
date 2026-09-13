@@ -3,6 +3,7 @@ import { persistentAtom } from "@nanostores/persistent";
 import { gate } from "/_rt/gate.js";
 import { session } from "/_rt/auth.js";
 import { fetchMyChars, removeChar } from "/_rt/genchar.js";
+import { watchPurchases } from "/_rt/coins.js";
 
 export const SKINS = [
   { id: "arissa", name: "Arissa", tint: "#F5B942", price: 0 },
@@ -69,6 +70,10 @@ export const coins = () => +$coins.get() || 0;
 /** Take `n` coins from the wallet; false when it cannot afford them. */
 export function spend(n) { const c = coins(); if (c < n) return false; $coins.set(String(c - n)); return true; }
 export const refund = (n) => $coins.set(String(coins() + n));
+/** Coins bought in Telegram Stars land here — the claim answers once per purchase, so the wallet grows exactly once. */
+export const $bought = atom(0);   
+export const credit = (n) => { if (n > 0) { $coins.set(String(coins() + n)); $bought.set(n); } };
+if (!gate) watchPurchases(credit);   
 
 export const $state = atom(gate ? "run" : "idle");
 export const $run = atom(gate ? { frame: 240, dist: 128, coins: 7, speed: 7.1, fps: 0, lane: 1, near: 0.35, boost: 4, ammo: 6, reload: false, kills: 2 } : { frame: 0, dist: 0, coins: 0, speed: 0, fps: 0, lane: 1, near: 0, boost: 0, ammo: 8, reload: false, kills: 0 });
