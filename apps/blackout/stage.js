@@ -129,7 +129,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
       if (street.drink(x, y, z)) { boostT = BOOST_S; sfx("can"); mood("boost", 0.4, 1); onEvent("boost", BOOST_S); }
       const o = street.hit(lane, z);
       if (o) {
-        const safe = o.kind === "jump" ? y - floor > JUMP_SAFE_Y : o.kind === "bin" ? y - floor > BIN_SAFE_Y : o.kind === "slide" ? slideT > 0 : false;
+        const safe = o.kind === "jump" ? y - floor > JUMP_SAFE_Y : o.kind === "bin" || o.kind === "car" ? y - floor > BIN_SAFE_Y : o.kind === "slide" ? slideT > 0 : false;   
         if (!safe) {
           if (boostT > 0) {   
             if (o.walker) { street.fell(o.walker); kills++; coins += 5; sfx("zombie-die"); onEvent("kill"); } else sfx(o.kind === "jump" ? "hit-wood" : o.kind === "slide" ? "hit-metal" : "hit-car");
