@@ -18,6 +18,12 @@ export const SKINS = [
   { id: "akai", name: "Akai", tint: "#F472B6", price: 220 },
 ];
 export const GEN_PRICE = 1000;   
+export const WEAPONS = [
+  { id: "pistol", name: "Pistol", price: 0, dmg: 1, rate: 3, mag: 8, reloadS: 1.1, lanes: 0, range: 28, tint: "#F5B942", sfx: "shot-pistol" },
+  { id: "shotgun", name: "Shotgun", price: 350, dmg: 2, rate: 1.2, mag: 4, reloadS: 1.6, lanes: 1, range: 14, tint: "#FB7185", sfx: "shot-shotgun" },
+  { id: "smg", name: "SMG", price: 600, dmg: 1, rate: 8, mag: 24, reloadS: 1.4, lanes: 0, range: 24, tint: "#22D3EE", sfx: "shot-smg" },
+];
+export const weaponById = (id) => WEAPONS.find((w) => w.id === id) || WEAPONS[0];
 const BUNDLED = new Set(["arissa"]);   
 
 export const $myChars = persistentAtom("blackout:myChars", "[]");
@@ -48,6 +54,15 @@ export const $runs = persistentAtom(`${NS}runs`, "0");
 export const $skin = persistentAtom(`${NS}skin`, "arissa");
 export const $owned = persistentAtom(`${NS}owned`, '["arissa"]');
 export const $muted = persistentAtom(`${NS}muted`, "0");   
+export const $weapon = persistentAtom(`${NS}weapon`, "pistol");
+export const $arms = persistentAtom(`${NS}arms`, '["pistol"]');
+export const arms = () => { try { const a = JSON.parse($arms.get()); return Array.isArray(a) ? a : ["pistol"]; } catch { return ["pistol"]; } };
+export function pickWeapon(id) {
+  const w = weaponById(id), have = arms();
+  if (!have.includes(w.id)) { if (!spend(w.price)) return false; $arms.set(JSON.stringify([...have, w.id])); }
+  $weapon.set(w.id);
+  return true;
+}
 export const muted = () => $muted.get() === "1";
 export const owned = () => { try { const a = JSON.parse($owned.get()); return Array.isArray(a) ? a : ["arissa"]; } catch { return ["arissa"]; } };
 export const coins = () => +$coins.get() || 0;
@@ -56,7 +71,7 @@ export function spend(n) { const c = coins(); if (c < n) return false; $coins.se
 export const refund = (n) => $coins.set(String(coins() + n));
 
 export const $state = atom(gate ? "run" : "idle");
-export const $run = atom(gate ? { frame: 240, dist: 128, coins: 7, speed: 7.1, fps: 0, lane: 1, near: 0.35 } : { frame: 0, dist: 0, coins: 0, speed: 0, fps: 0, lane: 1, near: 0 });
+export const $run = atom(gate ? { frame: 240, dist: 128, coins: 7, speed: 7.1, fps: 0, lane: 1, near: 0.35, boost: 4, ammo: 6, reload: false, kills: 2 } : { frame: 0, dist: 0, coins: 0, speed: 0, fps: 0, lane: 1, near: 0, boost: 0, ammo: 8, reload: false, kills: 0 });
 export const $phys = atom(gate ? "skipped" : "loading");
 export const $why = atom("");
 export const $last = atom({ dist: 0, coins: 0, record: false });   
