@@ -12,11 +12,12 @@ const CLIPS = {
   idle: { url: new URL("assets/clip-idle.glb", import.meta.url).href, loop: true },
   run: { url: new URL("assets/clip-run.glb", import.meta.url).href, loop: true, inPlace: true },
   jump: { url: new URL("assets/clip-jump.glb", import.meta.url).href, inPlace: true, fitTo: 0.7 },
+  vault: { url: new URL("assets/clip-vault.glb", import.meta.url).href, inPlace: true, fitTo: 1.1 },   
   slide: { url: new URL("assets/clip-slide.glb", import.meta.url).href, inPlace: true, fitTo: 0.85 },
   stumble: { url: new URL("assets/clip-stumble.glb", import.meta.url).href, inPlace: true, fitTo: 0.9 },
   death: { url: new URL("assets/clip-death.glb", import.meta.url).href, inPlace: true, hold: true },
 };
-const TARGET_H = 1.7, GRAVITY = -22, JUMP_V = 7.4, JUMP_SAFE_Y = 0.35, SLIDE_S = 0.75, LANE_LERP = 13;
+const TARGET_H = 1.7, GRAVITY = -22, JUMP_V = 7.4, VAULT_V = 8.4, JUMP_SAFE_Y = 0.35, BIN_SAFE_Y = 0.85, SLIDE_S = 0.75, LANE_LERP = 13;   
 const BASE_SPEED = 6.5, MAX_SPEED = 15, RAMP_M = 1500, RUN_CLIP_MS = 4.4;   
 const BOOST_S = 6, BOOST_K = 2;                                              
 const FACE_PX = 132;                                                         
@@ -114,7 +115,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
     const floor = street.floorAt(lane, z);
     if (airborne) {
       vy += GRAVITY * dt; y += vy * dt;
-      if (y <= floor && vy < 0) { y = floor; vy = 0; airborne = false; if (running) { sfx("land"); oneShot = null; play("run", 0.12); mood("land", 0.5); } }
+      if (y <= floor && vy < 0) { y = floor; vy = 0; airborne = false; if (running) { sfx("land"); mood("land", 0.5); if (current !== "vault") { oneShot = null; play("run", 0.12); } } }   
     } else if (floor - y > 0.6) {
       if (boostT > 0) { vy = JUMP_V; airborne = true; play("jump", 0.06, true); }
       else if (running) { sfx("hit-metal"); caught(now); }
@@ -128,15 +129,15 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
       if (street.drink(x, y, z)) { boostT = BOOST_S; sfx("can"); mood("boost", 0.4, 1); onEvent("boost", BOOST_S); }
       const o = street.hit(lane, z);
       if (o) {
-        const safe = o.kind === "jump" ? y - floor > JUMP_SAFE_Y : o.kind === "slide" ? slideT > 0 : false;
+        const safe = o.kind === "jump" ? y - floor > JUMP_SAFE_Y : o.kind === "bin" ? y - floor > BIN_SAFE_Y : o.kind === "slide" ? slideT > 0 : false;
         if (!safe) {
           if (boostT > 0) {   
             if (o.walker) { street.fell(o.walker); kills++; coins += 5; sfx("zombie-die"); onEvent("kill"); } else sfx(o.kind === "jump" ? "hit-wood" : o.kind === "slide" ? "hit-metal" : "hit-car");
             mood("smash", 0.6);
           } else {
-            sfx(o.kind === "jump" ? "hit-wood" : o.kind === "slide" ? "hit-metal" : o.kind === "walker" ? "zombie-hit" : "hit-car");
+            sfx(o.kind === "jump" ? "hit-wood" : o.kind === "slide" || o.kind === "bin" ? "hit-metal" : o.kind === "walker" ? "zombie-hit" : "hit-car");
             if (o.walker) street.fell(o.walker);   
-            if (o.kind === "dodge" || street.stumble()) caught(now);
+            if (o.kind === "dodge" || street.stumble()) caught(now);   
             else { stumbleT = 1.1; slideT = 0; play("stumble", 0.06, true); sfx("stumble"); sfx(Math.random() < 0.5 ? "zombie-growl-1" : "zombie-growl-2"); mood("hit", 1); onEvent("stumble"); }
           }
         }
@@ -205,7 +206,12 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
       if (state !== "run") return false;
       if (what === "left") { if (lane <= 0) return false; lane--; sfx("lane"); return true; }
       if (what === "right") { if (lane >= LANES - 1) return false; lane++; sfx("lane"); return true; }
-      if (what === "jump") { if (airborne) return false; slideT = 0; vy = JUMP_V; airborne = true; play("jump", 0.06, true); sfx("jump"); mood("jump", 0, 1); return true; }
+      if (what === "jump") {
+        if (airborne) return false;
+        slideT = 0; airborne = true;
+        const vault = street.binAhead(lane, z, 3.2);
+        vy = vault ? VAULT_V : JUMP_V; play(vault ? "vault" : "jump", 0.06, true); sfx("jump"); mood("jump", 0, 1); return true;
+      }
       if (what === "slide") { if (airborne || slideT > 0) return false; slideT = SLIDE_S; play("slide", 0.06, true); sfx("slide"); return true; }
       return false;
     },

@@ -339,7 +339,7 @@ export function createWorld(scene) {
     } else if (kind === "walker") {        
       spawnWalker(ch, lane, z);
     } else {                               
-      if (r() < 0.5) { const sc = 1.25; place(ch, "bin", x, y, z, Math.PI / 2, sc); ch.obstacles.push({ kind, lane, z, zHalf: 0.9 }); }
+      if (r() < 0.5) { const sc = 1.25; place(ch, "bin", x, y, z, Math.PI / 2, sc); ch.obstacles.push({ kind: "bin", lane, z, zHalf: 0.9 }); }
       else { car(ch, r, x, z, true); ch.obstacles.push({ kind, lane, z, zHalf: 1.0 }); }
     }
   }
@@ -494,6 +494,10 @@ export function createWorld(scene) {
         if (Math.abs(o.z - pz) < o.zHalf + 0.45) { o.done = true; return o; }
       }
       return null;
+    },
+    binAhead(lane, pz, reach) {
+      for (const ch of chunks.values()) for (const o of ch.obstacles) if (!o.done && o.kind === "bin" && o.lane === lane && o.z < pz && pz - o.z < reach) return true;
+      return false;
     },
     shoot(lane, pz, range, dmg, spread = 0) {
       let best = null;
