@@ -4,6 +4,7 @@ import { gate } from "/_rt/gate.js";
 
 export const SKINS = [
   { id: "arissa", name: "Arissa", tint: "#F5B942", price: 0 },
+  { id: "kaya", name: "Kaya", tint: "#FF3EB5", price: 20 },
   { id: "michelle", name: "Michelle", tint: "#39FF6A", price: 25 },
   { id: "eve", name: "Eve", tint: "#7C5CFF", price: 40 },
   { id: "sophie", name: "Sophie", tint: "#22D3EE", price: 60 },
