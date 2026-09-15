@@ -17,8 +17,8 @@ export const bestValue = (packs = PACKS) => packs.reduce((b, p) => (!b || p.star
 const H = { "content-type": "application/json" };
 
 /**
- * Start a purchase. Resolves "paid" (Mini App: Telegram's own callback) | "opened" (the link went to Telegram; claim
- * later) | "cancelled" | "failed" | "eSignIn" | "error".
+ * Start a purchase. Resolves "paid" (Mini App: Telegram's own callback) | "opened" (the link went to Telegram; the wallet
+ * sees the coins when it lands) | "cancelled" | "failed" | "eSignIn" | "error".
  */
 export async function buyCoins(sku) {
   if (gate || !packOf(sku)) return "error";
@@ -34,32 +34,4 @@ export async function buyCoins(sku) {
   if (w && w.initData && w.openInvoice) return await new Promise((ok) => { try { w.openInvoice(link, (s) => ok(s || "failed")); } catch { ok("error"); } });
   try { const win = window.open(link, "_blank", "noopener"); if (!win) location.href = link; } catch { location.href = link; }
   return "opened";
-}
-
-const sidNow = () => { try { return localStorage.getItem("ms:gh:sid") || ""; } catch { return ""; } };
-
-/** The coins paid for and not yet credited: {coins, purchases}; {coins: 0} offline, signed out, or under the gate. */
-export async function claimCoins() {
-  if (gate || !sidNow()) return { coins: 0, purchases: 0 };
-  try {
-    const r = await fetch(`${VPS_PROXY}/stars/claim`, { method: "POST", headers: H, body: "{}" });
-    if (!r.ok) return { coins: 0, purchases: 0 };
-    const j = await r.json().catch(() => ({}));
-    return { coins: Number(j.coins) || 0, purchases: Number(j.purchases) || 0 };
-  } catch { return { coins: 0, purchases: 0 }; }
-}
-
-/**
- * Keep a wallet in sync with the account: claim now, and again each time the page becomes visible or gains
- * focus (the payment finished in Telegram while this page was behind it). `credit(n)` adds to the wallet.
- * Returns the teardown.
- */
-export function watchPurchases(credit) {
-  if (gate || typeof document === "undefined") return () => {};
-  let busy = false;
-  const tick = async () => { if (busy) return; busy = true; try { const { coins } = await claimCoins(); if (coins > 0) credit(coins); } finally { busy = false; } };
-  const onVis = () => { if (document.visibilityState === "visible") tick(); };
-  setTimeout(tick, 0);
-  document.addEventListener("visibilitychange", onVis); addEventListener("focus", tick);
-  return () => { document.removeEventListener("visibilitychange", onVis); removeEventListener("focus", tick); };
 }

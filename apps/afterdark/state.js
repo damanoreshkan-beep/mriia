@@ -4,8 +4,12 @@ import { VPS_PROXY } from "/_rt/feed.js";
 import { session } from "/_rt/auth.js";
 import { gate } from "/_rt/gate.js";
 import { charOf } from "/_rt/genchar.js";
+import { makeWallet } from "/_rt/wallet.js";
 import { CHARACTERS, registerChars } from "./characters.js";
 import { DEFAULT_MOVES, MOVE_IDS, isMoveId } from "./dances.js";
+
+export const GEN_PRICE = 1000;
+export const wallet = makeWallet("afterdark", { gateBalance: 1250 });
 
 const JSON_H = { "content-type": "application/json" };
 export { charOf };
