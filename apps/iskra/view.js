@@ -1,87 +1,51 @@
 import { html } from "htm/preact";
-import { useState, useRef } from "preact/hooks";
+import { useState, useRef, useEffect } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
-import { usbSerialAvailable, makeUsbSerialPort } from "./serialusb.js";
+import { shell } from "/_rt/shell.js";
 import { buildApk, apkFilename, downloadBlob } from "/_rt/apk.js";
 import { report } from "/_rt/telemetry.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
 const FW_URL = VPS_PROXY + "/m5fw";   
-const ESPTOOL = "https://esm.sh/esptool-js@0.6.1";
-const CH_VENDOR = 0x1a86;   
 const FLASH_ADDR = 0x0;     
-const BAUD = 115200;
 
 const R = 54, C = 2 * Math.PI * R;   
-const inApk = () => usbSerialAvailable();
+const inApk = () => shell.has("flash.run");
 
 export function iskra({ S, toast }) {
   const t = useStore(S.t);
   const [phase, setPhase] = useState("idle");
   const [pct, setPct] = useState(0);
-  const [chip, setChip] = useState(null);
   const [msg, setMsg] = useState(null);   
   const busyRef = useRef(false);
   const [apkBusy, setApkBusy] = useState(false);   
 
+  useEffect(() => {
+    if (gate || !inApk()) return;
+    return shell.subscribe("flash.progress", {}, (f) => {
+      if (typeof f?.pct === "number") setPct(f.pct / 100);
+      if (f?.line) setMsg(String(f.line));
+    }, () => {  });
+  }, []);
+
   const flash = async () => {
     if (busyRef.current || !inApk()) return;
     busyRef.current = true;
-    setPhase("flashing"); setPct(0); setChip(null); setMsg(T(t, "connecting"));
-    report("flash.start", { via: "shellusb" }, "info");
-    let transport;
+    setPhase("flashing"); setPct(0); setMsg(T(t, "connecting"));
+    report("flash.start", { via: "native" }, "info");
     try {
-      const { ESPLoader, Transport } = await import(ESPTOOL);
-      const term = { clean() {}, writeLine: (d) => { setMsg(d); report("flash.esptool", { line: String(d).slice(0, 120) }, "info"); }, write() {} };
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      const mkReset = (dsl) => (tr) => ({
-        async reset() {
-          for (const cmd of dsl.split("|")) {
-            const k = cmd[0], v = cmd.slice(1);
-            if (k === "W") await sleep(Number(v));
-            else if (k === "D") await tr.setDTR(v === "1");
-            else if (k === "R") await tr.setRTS(v === "1");
-          }
-        },
-      });
-      const DSLS = [
-        "D0|R1|W100|D1|R0",            
-      ];
-      let esploader = null, name = null;
-      for (let i = 0; i < DSLS.length; i++) {
-        try { await transport?.disconnect(); } catch {  }
-        const port = await makeUsbSerialPort({ vid: CH_VENDOR });   
-        transport = new Transport(port, true);
-        report("reset.try", { i }, "info");
-        setMsg(T(t, "connecting"));
-        const el = new ESPLoader({ transport, baudrate: BAUD, terminal: term, resetConstructors: { classicReset: mkReset(DSLS[i]) } });
-        try { name = await el.main(); esploader = el; report("reset.hit", { i }, "info"); break; }
-        catch (e) { report("reset.miss", { i, msg: String(e?.message || e).slice(0, 40) }, "info"); }
-      }
-      if (!esploader) throw new Error("Failed to connect with the device");
-      report("flash.port", { via: "shellusb" }, "info");
-      report("flash.sync", { chip: name }, "info");
-      setChip(name); setMsg(null);
-      const bytes = new Uint8Array(await (await fetch(FW_URL)).arrayBuffer());   
-      report("flash.fw", { bytes: bytes.length }, "info");
-      await esploader.writeFlash({
-        fileArray: [{ data: bytes, address: FLASH_ADDR }],
-        flashSize: "keep", flashMode: "keep", flashFreq: "keep",
-        eraseAll: false, compress: true,
-        reportProgress: (_i, written, total) => setPct(total ? written / total : 0),
-      });
-      await esploader.after();   
-      report("flash.done", {}, "info");
-      setPct(1); setPhase("done"); toast?.(T(t, "toastDone"));
+      const r = await shell.call("flash.run", { url: FW_URL, address: FLASH_ADDR });
+      report("flash.done", { bytes: r?.bytes || 0 }, "info");
+      setPct(1); setMsg(null); setPhase("done"); toast?.(T(t, "toastDone"));
     } catch (e) {
-      if (e && (e.name === "NotFoundError" || e.name === "AbortError")) { setPhase("idle"); setMsg(null); report("flash.cancel", {}, "info"); }
-      else { setMsg(String(e?.message || e)); setPhase("error"); report("flash.error", { name: e?.name || "", msg: String(e?.message || e).slice(0, 160) }); }
+      setMsg(String(e?.detail || e?.message || e));
+      setPhase("error");
+      report("flash.error", { code: e?.code || "", msg: String(e?.detail || e?.message || e).slice(0, 160) });
     } finally {
-      try { await transport?.disconnect(); } catch {  }
       busyRef.current = false;
     }
   };
@@ -91,7 +55,7 @@ export function iskra({ S, toast }) {
     setApkBusy(true);
     try {
       const name = T(t, "title");
-      const blob = await buildApk({ url: location.href.split("#")[0].split("?")[0], name });
+      const blob = await buildApk({ url: location.href.split("#")[0].split("?")[0], name, power: "flash" });
       downloadBlob(blob, apkFilename(name));
     } catch (e) { toast?.(String(e?.message || e)); }
     finally { setApkBusy(false); }
@@ -119,7 +83,7 @@ export function iskra({ S, toast }) {
   const btnLabel = busy ? T(t, "flashing", { p: Math.round(pct * 100) })
     : done ? T(t, "flashAgain") : err ? T(t, "retry") : T(t, "flash");
   const btnIcon = done ? "lucide:check" : err ? "lucide:rotate-ccw" : "lucide:zap";
-  const phaseLine = busy ? (chip ? T(t, "chipLine", { chip }) : T(t, "connecting"))
+  const phaseLine = busy ? T(t, "flashingLine")
     : done ? T(t, "doneTitle") : err ? T(t, "errorTitle") : "";
   const hintLine = idleHint(t, phase);
 
