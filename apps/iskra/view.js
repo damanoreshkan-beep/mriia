@@ -5,6 +5,8 @@ import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { usbSerialAvailable, makeUsbSerialPort } from "./serialusb.js";
+import { buildApk, apkFilename, downloadBlob } from "/_rt/apk.js";
+import { report } from "/_rt/telemetry.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
@@ -24,23 +26,29 @@ export function iskra({ S, toast }) {
   const [chip, setChip] = useState(null);
   const [msg, setMsg] = useState(null);   
   const busyRef = useRef(false);
+  const [apkBusy, setApkBusy] = useState(false);   
 
   const flash = async () => {
     if (busyRef.current || !supported()) return;
     busyRef.current = true;
     setPhase("flashing"); setPct(0); setChip(null); setMsg(T(t, "connecting"));
+    const via = ("serial" in navigator) ? "webserial" : (usbSerialAvailable() ? "shellusb" : "none");
+    report("flash.start", { via, serial: "serial" in navigator, shellUsb: usbSerialAvailable() }, "info");
     let transport;
     try {
       const { ESPLoader, Transport } = await import(ESPTOOL);
       const port = ("serial" in navigator)
         ? await navigator.serial.requestPort({ filters: [{ usbVendorId: CH_VENDOR }] })
         : await makeUsbSerialPort({ vid: CH_VENDOR });
+      report("flash.port", { via }, "info");
       transport = new Transport(port, true);
-      const term = { clean() {}, writeLine: (d) => setMsg(d), write() {} };
+      const term = { clean() {}, writeLine: (d) => { setMsg(d); report("flash.esptool", { line: String(d).slice(0, 120) }, "info"); }, write() {} };
       const esploader = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
       const name = await esploader.main();
+      report("flash.sync", { chip: name }, "info");
       setChip(name); setMsg(null);
       const bytes = new Uint8Array(await (await fetch(FW_URL)).arrayBuffer());   
+      report("flash.fw", { bytes: bytes.length }, "info");
       await esploader.writeFlash({
         fileArray: [{ data: bytes, address: FLASH_ADDR }],
         flashSize: "keep", flashMode: "keep", flashFreq: "keep",
@@ -48,24 +56,39 @@ export function iskra({ S, toast }) {
         reportProgress: (_i, written, total) => setPct(total ? written / total : 0),
       });
       await esploader.after();   
+      report("flash.done", {}, "info");
       setPct(1); setPhase("done"); toast?.(T(t, "toastDone"));
     } catch (e) {
-      if (e && (e.name === "NotFoundError" || e.name === "AbortError")) { setPhase("idle"); setMsg(null); }
-      else { setMsg(String(e?.message || e)); setPhase("error"); }
+      if (e && (e.name === "NotFoundError" || e.name === "AbortError")) { setPhase("idle"); setMsg(null); report("flash.cancel", { via }, "info"); }
+      else { setMsg(String(e?.message || e)); setPhase("error"); report("flash.error", { via, name: e?.name || "", msg: String(e?.message || e).slice(0, 160) }); }
     } finally {
       try { await transport?.disconnect(); } catch {  }
       busyRef.current = false;
     }
   };
 
+  const getApk = async () => {
+    if (apkBusy) return;
+    setApkBusy(true);
+    try {
+      const name = T(t, "title");
+      const blob = await buildApk({ url: location.href.split("#")[0].split("?")[0], name });
+      downloadBlob(blob, apkFilename(name));
+    } catch (e) { toast?.(String(e?.message || e)); }
+    finally { setApkBusy(false); }
+  };
+
   if (!gate && !supported()) {
     return html`<div class="isk-stage">
       <div data-dev data-phase="unsupported" class="isk-dev">
-        <div class="isk-core">${Icon("lucide:monitor-x", "isk-glyph")}</div>
+        <div class="isk-core">${Icon("lucide:smartphone", "isk-glyph")}</div>
       </div>
       <div class="isk-card">
         <div class="isk-msg">${T(t, "unsupportedTitle")}</div>
         <div class="isk-hint">${T(t, "unsupportedHint")}</div>
+        <button id="apk-btn" disabled=${apkBusy} onClick=${getApk} class="btn btn-primary rounded-2xl isk-go">
+          ${Icon("lucide:download", "")}${apkBusy ? T(t, "apkBuilding") : T(t, "getApk")}
+        </button>
       </div>
     </div>`;
   }
