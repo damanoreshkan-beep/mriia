@@ -37,24 +37,32 @@ export function iskra({ S, toast }) {
     try {
       const { ESPLoader, Transport } = await import(ESPTOOL);
       const term = { clean() {}, writeLine: (d) => { setMsg(d); report("flash.esptool", { line: String(d).slice(0, 120) }, "info"); }, write() {} };
-      const SEQS = [
-        [[false, true, 100], [true, false, 0]],                  
-        [[true, false, 100], [false, true, 0]],                  
-        [[false, true, 100], [true, false, 50], [false, false, 0]], 
-        [[true, false, 100], [false, true, 50], [true, true, 0]],
-        [[true, true, 100], [false, false, 0]],
-        [[false, false, 100], [true, true, 0]],
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const mkReset = (dsl) => (tr) => ({
+        async reset() {
+          for (const cmd of dsl.split("|")) {
+            const k = cmd[0], v = cmd.slice(1);
+            if (k === "W") await sleep(Number(v));
+            else if (k === "D") await tr.setDTR(v === "1");
+            else if (k === "R") await tr.setRTS(v === "1");
+          }
+        },
+      });
+      const DSLS = [
+        "D0|R1|W100|D1|R0",            
+        "D0|R1|W100|D1|R0|W50|D0",     
+        "R0|D1|W100|R1|D0",            
+        "D1|R0|W100|D0|R1",            
       ];
       let esploader = null, name = null;
-      for (let i = 0; i < SEQS.length; i++) {
+      for (let i = 0; i < DSLS.length; i++) {
         try { await transport?.disconnect(); } catch {  }
         const port = await makeUsbSerialPort({ vid: CH_VENDOR });   
-        port.setBootSeq(SEQS[i]);
         transport = new Transport(port, true);
         report("reset.try", { i }, "info");
         setMsg(T(t, "connecting"));
-        const el = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
-        try { name = await el.main("no_reset"); esploader = el; report("reset.hit", { i }, "info"); break; }
+        const el = new ESPLoader({ transport, baudrate: BAUD, terminal: term, resetConstructors: { classicReset: mkReset(DSLS[i]) } });
+        try { name = await el.main(); esploader = el; report("reset.hit", { i }, "info"); break; }
         catch (e) { report("reset.miss", { i, msg: String(e?.message || e).slice(0, 40) }, "info"); }
       }
       if (!esploader) throw new Error("Failed to connect with the device");
