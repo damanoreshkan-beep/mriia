@@ -1,4 +1,5 @@
 import { shell } from "/_rt/shell.js";
+import { report } from "/_rt/telemetry.js";   
 
 const CH9102 = { vid: 0x1a86, pid: 0x55d4 };
 const DATA_IFACE = 1;   
@@ -12,6 +13,7 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
   await shell.call("usb.open", { vid, pid, iface: DATA_IFACE });   
   await shell.call("usb.serOpen", { baud: 115200 });               
   let sigDtr = false, sigRts = false, alive = false;
+  let rxTotal = 0, rxSeen = false;   
 
   const port = {
     getInfo: () => ({ usbVendorId: vid, usbProductId: pid }),
@@ -25,7 +27,11 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
           try {
             const r = await shell.call("usb.serRead", { length: 64, timeout: 200 });
             const bytes = r?.data ? fromHex(r.data) : new Uint8Array(0);
-            if (bytes.length) ctrl.enqueue(bytes);
+            if (bytes.length) {
+              rxTotal += bytes.length;
+              if (!rxSeen) { rxSeen = true; report("usb.rx", { first: bytes.length, hex: r.data.slice(0, 24) }, "info"); }
+              ctrl.enqueue(bytes);
+            }
           } catch {  }
         },
         cancel() { alive = false; },
@@ -41,11 +47,13 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
     async setSignals({ dataTerminalReady, requestToSend } = {}) {
       if (dataTerminalReady !== undefined) sigDtr = !!dataTerminalReady;
       if (requestToSend !== undefined) sigRts = !!requestToSend;
+      report("usb.sig", { dtr: sigDtr, rts: sigRts }, "info");   
       await shell.call("usb.serSignals", { dtr: sigDtr, rts: sigRts });
     },
 
     async close() {
       alive = false;
+      report("usb.totals", { rx: rxTotal, rxSeen }, "info");   
       try { await shell.call("usb.close", {}); } catch {  }
     },
   };
