@@ -13,6 +13,7 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
   const r = await shell.call("usb.open", { vid, pid, iface: DATA_IFACE });
   if (!r?.opened) throw new Error("usb.open failed");
   let alive = false;
+  let sigDtr = false, sigRts = false;
 
   async function setLineCoding(baud) {
     const d = new Uint8Array(7);                 
@@ -50,7 +51,9 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
     },
 
     async setSignals({ dataTerminalReady, requestToSend } = {}) {
-      await setControlLineState(!!dataTerminalReady, !!requestToSend);
+      if (dataTerminalReady !== undefined) sigDtr = !!dataTerminalReady;
+      if (requestToSend !== undefined) sigRts = !!requestToSend;
+      await setControlLineState(sigDtr, sigRts);
     },
 
     async close() {
