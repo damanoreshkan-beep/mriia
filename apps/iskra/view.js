@@ -17,7 +17,7 @@ const FLASH_ADDR = 0x0;
 const BAUD = 115200;
 
 const R = 54, C = 2 * Math.PI * R;   
-const supported = () => usbSerialAvailable() || (typeof navigator !== "undefined" && "serial" in navigator);
+const inApk = () => usbSerialAvailable();
 
 export function iskra({ S, toast }) {
   const t = useStore(S.t);
@@ -29,18 +29,15 @@ export function iskra({ S, toast }) {
   const [apkBusy, setApkBusy] = useState(false);   
 
   const flash = async () => {
-    if (busyRef.current || !supported()) return;
+    if (busyRef.current || !inApk()) return;
     busyRef.current = true;
     setPhase("flashing"); setPct(0); setChip(null); setMsg(T(t, "connecting"));
-    const via = ("serial" in navigator) ? "webserial" : (usbSerialAvailable() ? "shellusb" : "none");
-    report("flash.start", { via, serial: "serial" in navigator, shellUsb: usbSerialAvailable() }, "info");
+    report("flash.start", { via: "shellusb" }, "info");
     let transport;
     try {
       const { ESPLoader, Transport } = await import(ESPTOOL);
-      const port = ("serial" in navigator)
-        ? await navigator.serial.requestPort({ filters: [{ usbVendorId: CH_VENDOR }] })
-        : await makeUsbSerialPort({ vid: CH_VENDOR });
-      report("flash.port", { via }, "info");
+      const port = await makeUsbSerialPort({ vid: CH_VENDOR });
+      report("flash.port", { via: "shellusb" }, "info");
       transport = new Transport(port, true);
       const term = { clean() {}, writeLine: (d) => { setMsg(d); report("flash.esptool", { line: String(d).slice(0, 120) }, "info"); }, write() {} };
       const esploader = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
@@ -59,8 +56,8 @@ export function iskra({ S, toast }) {
       report("flash.done", {}, "info");
       setPct(1); setPhase("done"); toast?.(T(t, "toastDone"));
     } catch (e) {
-      if (e && (e.name === "NotFoundError" || e.name === "AbortError")) { setPhase("idle"); setMsg(null); report("flash.cancel", { via }, "info"); }
-      else { setMsg(String(e?.message || e)); setPhase("error"); report("flash.error", { via, name: e?.name || "", msg: String(e?.message || e).slice(0, 160) }); }
+      if (e && (e.name === "NotFoundError" || e.name === "AbortError")) { setPhase("idle"); setMsg(null); report("flash.cancel", {}, "info"); }
+      else { setMsg(String(e?.message || e)); setPhase("error"); report("flash.error", { name: e?.name || "", msg: String(e?.message || e).slice(0, 160) }); }
     } finally {
       try { await transport?.disconnect(); } catch {  }
       busyRef.current = false;
@@ -78,9 +75,9 @@ export function iskra({ S, toast }) {
     finally { setApkBusy(false); }
   };
 
-  if (!gate && !supported()) {
+  if (!gate && !inApk()) {
     return html`<div class="isk-stage">
-      <div data-dev data-phase="unsupported" class="isk-dev">
+      <div data-dev data-phase="browser" class="isk-dev">
         <div class="isk-core">${Icon("lucide:smartphone", "isk-glyph")}</div>
       </div>
       <div class="isk-card">
