@@ -50,9 +50,6 @@ export function iskra({ S, toast }) {
       });
       const DSLS = [
         "D0|R1|W100|D1|R0",            
-        "D0|R1|W100|D1|R0|W50|D0",     
-        "R0|D1|W100|R1|D0",            
-        "D1|R0|W100|D0|R1",            
       ];
       let esploader = null, name = null;
       for (let i = 0; i < DSLS.length; i++) {
