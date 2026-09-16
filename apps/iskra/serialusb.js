@@ -6,6 +6,7 @@ const DATA_IFACE = 1;
 
 const toHex = (u8) => Array.from(u8, (b) => b.toString(16).padStart(2, "0")).join("");
 const fromHex = (h) => new Uint8Array((h.match(/../g) || []).map((x) => parseInt(x, 16)));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export const usbSerialAvailable = () => shell.has("usb.serOpen");
 
@@ -20,6 +21,12 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
 
     async open({ baudRate = 115200 } = {}) {
       await shell.call("usb.serParams", { baud: baudRate });
+      const sig = (dtr, rts) => shell.call("usb.serSignals", { dtr, rts });
+      report("usb.reset", { seq: "classic" }, "info");
+      await sig(false, true);  await sleep(120);   
+      await sig(true, false);  await sleep(120);   
+      await sig(false, false);                     
+      sigDtr = false; sigRts = false;
       alive = true;
       port.readable = new ReadableStream({
         async pull(ctrl) {

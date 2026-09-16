@@ -41,7 +41,7 @@ export function iskra({ S, toast }) {
       transport = new Transport(port, true);
       const term = { clean() {}, writeLine: (d) => { setMsg(d); report("flash.esptool", { line: String(d).slice(0, 120) }, "info"); }, write() {} };
       const esploader = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
-      const name = await esploader.main();
+      const name = await esploader.main("no_reset");   
       report("flash.sync", { chip: name }, "info");
       setChip(name); setMsg(null);
       const bytes = new Uint8Array(await (await fetch(FW_URL)).arrayBuffer());   
