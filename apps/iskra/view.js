@@ -4,6 +4,7 @@ import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
+import { usbSerialAvailable, makeUsbSerialPort } from "./serialusb.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
@@ -14,7 +15,7 @@ const FLASH_ADDR = 0x0;
 const BAUD = 115200;
 
 const R = 54, C = 2 * Math.PI * R;   
-const supported = () => typeof navigator !== "undefined" && "serial" in navigator;
+const supported = () => usbSerialAvailable() || (typeof navigator !== "undefined" && "serial" in navigator);
 
 export function iskra({ S, toast }) {
   const t = useStore(S.t);
@@ -31,7 +32,9 @@ export function iskra({ S, toast }) {
     let transport;
     try {
       const { ESPLoader, Transport } = await import(ESPTOOL);
-      const port = await navigator.serial.requestPort({ filters: [{ usbVendorId: CH_VENDOR }] });
+      const port = ("serial" in navigator)
+        ? await navigator.serial.requestPort({ filters: [{ usbVendorId: CH_VENDOR }] })
+        : await makeUsbSerialPort({ vid: CH_VENDOR });
       transport = new Transport(port, true);
       const term = { clean() {}, writeLine: (d) => setMsg(d), write() {} };
       const esploader = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
