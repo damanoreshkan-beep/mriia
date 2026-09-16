@@ -22,11 +22,11 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
     async open({ baudRate = 115200 } = {}) {
       await shell.call("usb.serParams", { baud: baudRate });
       const sig = (dtr, rts) => shell.call("usb.serSignals", { dtr, rts });
-      report("usb.reset", { seq: "classic" }, "info");
-      await sig(false, true);  await sleep(120);   
-      await sig(true, false);  await sleep(120);   
-      await sig(false, false);                     
-      sigDtr = false; sigRts = false;
+      report("usb.reset", { seq: "inv-dtr" }, "info");
+      await sig(true, true);   await sleep(120);   
+      await sig(false, false); await sleep(120);   
+      await sig(true, false);                      
+      sigDtr = true; sigRts = false;
       alive = true;
       port.readable = new ReadableStream({
         async pull(ctrl) {
