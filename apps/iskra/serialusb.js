@@ -1,4 +1,5 @@
 import { shell } from "/_rt/shell.js";
+import { report } from "/_rt/telemetry.js";   
 
 const CH9102 = { vid: 0x1a86, pid: 0x55d4 };
 const DATA_IFACE = 1, CTRL_IFACE = 0;
@@ -14,6 +15,7 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
   if (!r?.opened) throw new Error("usb.open failed");
   let alive = false;
   let sigDtr = false, sigRts = false;
+  let rxTotal = 0, rxSeen = false, wrTotal = 0;   
 
   async function setLineCoding(baud) {
     const d = new Uint8Array(7);                 
@@ -37,7 +39,11 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
           try {
             const rr = await shell.call("usb.bulk", { ep: EP_IN, length: 64, timeout: 200 });
             const bytes = rr?.data ? fromHex(rr.data) : new Uint8Array(0);
-            if (bytes.length) ctrl.enqueue(bytes);
+            if (bytes.length) {
+              rxTotal += bytes.length;
+              if (!rxSeen) { rxSeen = true; report("usb.rx", { first: bytes.length, hex: rr.data.slice(0, 24) }, "info"); }
+              ctrl.enqueue(bytes);
+            }
           } catch {  }
         },
         cancel() { alive = false; },
@@ -45,6 +51,7 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
       port.writable = new WritableStream({
         async write(chunk) {
           const u8 = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+          wrTotal += u8.length;
           await shell.call("usb.bulk", { ep: EP_OUT, data: toHex(u8), timeout: 2000 });
         },
       });
@@ -53,11 +60,13 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
     async setSignals({ dataTerminalReady, requestToSend } = {}) {
       if (dataTerminalReady !== undefined) sigDtr = !!dataTerminalReady;
       if (requestToSend !== undefined) sigRts = !!requestToSend;
+      report("usb.sig", { dtr: sigDtr, rts: sigRts }, "info");   
       await setControlLineState(sigDtr, sigRts);
     },
 
     async close() {
       alive = false;
+      report("usb.totals", { rx: rxTotal, wr: wrTotal, rxSeen }, "info");   
       try { await shell.call("usb.close", {}); } catch {  }
     },
   };
