@@ -15,17 +15,19 @@ export async function makeUsbSerialPort({ vid = CH9102.vid, pid = CH9102.pid } =
   await shell.call("usb.serOpen", { baud: 115200 });               
   let sigDtr = false, sigRts = false, alive = false;
   let rxTotal = 0, rxSeen = false;   
+  let bootSeq = [[false, true, 100], [true, false, 0]];   
 
   const port = {
     getInfo: () => ({ usbVendorId: vid, usbProductId: pid }),
+    setBootSeq: (s) => { bootSeq = s; },
 
     async open({ baudRate = 115200 } = {}) {
       await shell.call("usb.serParams", { baud: baudRate });
       const sig = (dtr, rts) => shell.call("usb.serSignals", { dtr, rts });
-      report("usb.reset", { seq: "esptoolbox" }, "info");
-      await sig(false, true);   await sleep(100);   
-      await sig(true, false);                       
-      sigDtr = true; sigRts = false;
+      report("usb.reset", { steps: bootSeq.length }, "info");
+      for (const [d, r, ms] of bootSeq) { await sig(d, r); if (ms) await sleep(ms); }
+      const last = bootSeq[bootSeq.length - 1]; sigDtr = !!last[0]; sigRts = !!last[1];
+      rxTotal = 0; rxSeen = false;   
       alive = true;
       port.readable = new ReadableStream({
         async pull(ctrl) {

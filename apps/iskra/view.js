@@ -36,12 +36,29 @@ export function iskra({ S, toast }) {
     let transport;
     try {
       const { ESPLoader, Transport } = await import(ESPTOOL);
-      const port = await makeUsbSerialPort({ vid: CH_VENDOR });
-      report("flash.port", { via: "shellusb" }, "info");
-      transport = new Transport(port, true);
       const term = { clean() {}, writeLine: (d) => { setMsg(d); report("flash.esptool", { line: String(d).slice(0, 120) }, "info"); }, write() {} };
-      const esploader = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
-      const name = await esploader.main("no_reset");   
+      const SEQS = [
+        [[false, true, 100], [true, false, 0]],                  
+        [[true, false, 100], [false, true, 0]],                  
+        [[false, true, 100], [true, false, 50], [false, false, 0]], 
+        [[true, false, 100], [false, true, 50], [true, true, 0]],
+        [[true, true, 100], [false, false, 0]],
+        [[false, false, 100], [true, true, 0]],
+      ];
+      let esploader = null, name = null;
+      for (let i = 0; i < SEQS.length; i++) {
+        try { await transport?.disconnect(); } catch {  }
+        const port = await makeUsbSerialPort({ vid: CH_VENDOR });   
+        port.setBootSeq(SEQS[i]);
+        transport = new Transport(port, true);
+        report("reset.try", { i }, "info");
+        setMsg(T(t, "connecting"));
+        const el = new ESPLoader({ transport, baudrate: BAUD, terminal: term });
+        try { name = await el.main("no_reset"); esploader = el; report("reset.hit", { i }, "info"); break; }
+        catch (e) { report("reset.miss", { i, msg: String(e?.message || e).slice(0, 40) }, "info"); }
+      }
+      if (!esploader) throw new Error("Failed to connect with the device");
+      report("flash.port", { via: "shellusb" }, "info");
       report("flash.sync", { chip: name }, "info");
       setChip(name); setMsg(null);
       const bytes = new Uint8Array(await (await fetch(FW_URL)).arrayBuffer());   
