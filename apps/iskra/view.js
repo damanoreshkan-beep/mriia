@@ -32,6 +32,13 @@ export function iskra({ S, toast }) {
     }, () => {  });
   }, []);
 
+  useEffect(() => {
+    if (gate || !inApk()) return;
+    if (!/[?&]autoflash=1/.test(location.search)) return;
+    const id = setTimeout(() => flash(), 900);
+    return () => clearTimeout(id);
+  }, []);
+
   const flash = async () => {
     if (busyRef.current || !inApk()) return;
     busyRef.current = true;
