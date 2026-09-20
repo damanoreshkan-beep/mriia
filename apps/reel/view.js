@@ -47,30 +47,33 @@ const GREY_PX = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLb
 const GV = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/";
 const MOCK = [
   { video: GV + "BigBuckBunny.mp4", title: "Big Buck Bunny", poster: GV + "images/BigBuckBunny.jpg", page: "https://mixkit.co/watch/10241/",
-    channel: { name: "Mixkit Studio", url: "https://mixkit.co/profiles/mixkit-studio", avatar: null } },
+    
+    channel: { name: "Nine Lives Studio", url: "https://mixkit.co/profiles/user10241/", avatar: null } },
   { video: GV + "ElephantsDream.mp4", title: "Elephants Dream", poster: null, page: "https://mixkit.co/watch/10242/" },
   { video: GV + "Sintel.mp4", title: "Sintel", poster: null, page: "https://mixkit.co/watch/10243/" },
   { video: GV + "BigBuckBunny.mp4", title: "Big Buck Bunny dup", poster: null, page: "https://mixkit.co/watch/10241/" },
   { video: GV + "ForBiggerBlazes.mp4", title: "Broken clip", poster: BLACK_PX, page: "https://mixkit.co/watch/10244/" },
   { video: GV + "ForBiggerEscapes.mp4", title: "Flat placeholder", poster: GREY_PX, page: "https://mixkit.co/watch/10245/" },
 ];
+
 const MOCK_DEEP = [
-  { video: GV + "ForBiggerFun.mp4", title: "Deeper one", poster: null, page: "https://mixkit.co/watch/55012/" },
+  
+  { video: GV + "ForBiggerFun.mp4", title: "Deeper one", poster: null, page: "https://mixkit.co/watch/55012/",
+    channel: { name: "Deeper Studio", url: "https://mixkit.co/profiles/deeper-studio", avatar: null } },
   { video: GV + "ForBiggerJoyrides.mp4", title: "Deeper two", poster: null, page: "https://mixkit.co/watch/55013/" },
 ];
+
 
 const GATE_TITLES = {
   
   
-  
-  
   "https://mixkit.co/watch/10241/": "Big%20Buck%20Bunny in 4K &amp; Friends — Mixkit",
+  "https://mixkit.co/profiles/user10241/": "Nine%20Lives Studio &amp; Friends — Mixkit",
   "https://mixkit.co/watch/55013/": "Deeper two · Mixkit",
 };                                    
 
 const START_FRACTION = 1 / 8;
 const seekStart = (v) => {
-  
   try { if (isFinite(v.duration) && v.duration > 0) v.currentTime = v.duration * START_FRACTION; } catch {  }
 };
 
@@ -350,8 +353,31 @@ async function openFull(S, item) {
     settle({ url: await sealedFrameUrl(pick.url, page), type: pick.format === "hls" ? "hls" : "progressive", title: humanText(d.title) || title });
   } catch { settle({ err: true }); }
 }
+function useNoSystemFullscreen() {
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const isMedia = (el) => !!el && /^(VIDEO|AUDIO)$/.test(el.tagName || "");
+    const on = () => {
+      const el = document.fullscreenElement || document.webkitFullscreenElement;
+      if (!isMedia(el)) return;
+      try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); } catch {  }
+    };
+    const iosIn = (e) => { try { e.target?.webkitExitFullscreen?.(); } catch {  } };
+    document.addEventListener("fullscreenchange", on);
+    document.addEventListener("webkitfullscreenchange", on);
+    document.addEventListener("webkitbeginfullscreen", iosIn, true);
+    return () => {
+      document.removeEventListener("fullscreenchange", on);
+      document.removeEventListener("webkitfullscreenchange", on);
+      document.removeEventListener("webkitbeginfullscreen", iosIn, true);
+    };
+  }, []);
+}
+
+
 function FullClip({ S, t }) {
   const full = useStore($full), locale = useStore(S.locale);
+  useNoSystemFullscreen();
   if (!full) return null;
   const close = () => { S.screen.set(null); $full.set(null); };
   if (full.url) return html`<${Player} url=${full.url} type=${full.type} title=${full.title} locale=${locale} onClose=${close} />`;
@@ -372,7 +398,6 @@ function FullClip({ S, t }) {
   </div>`;
 }
 
-
 function Favicon({ url, size = "w-6 h-6" }) {
   const [failed, setFailed] = useState(false);
   const cls = `${size} rounded-lg object-contain shrink-0`;
@@ -380,6 +405,7 @@ function Favicon({ url, size = "w-6 h-6" }) {
     ? html`<img src=${letterTile(siteName(url), { w: 64, h: 64, light: 30 })} alt="" class=${`${cls} object-cover`} />`
     : html`<img src=${`https://${hostOf(url)}/favicon.ico`} alt="" loading="lazy" class=${`${cls} bg-base-content/10`} onError=${() => setFailed(true)} />`;
 }
+
 function usePosterSrc(poster, page) {
   const [src, setSrc] = useState(poster || null);
   useEffect(() => { setSrc(poster || null); }, [poster]);
@@ -419,11 +445,13 @@ function PosterFill({ poster, page }) {
 
 
 
+
 function VideoLayer({ item, playing, ephemeral }) {
   const ref = useRef(), bgRef = useRef();
   const [errored, setErrored] = useState(false);
   const [viaProxy, setViaProxy] = useState(!!ephemeral);
   const [poster, posterFail] = usePosterSrc(item.poster, item.page);                    
+  
   
   const [src, setSrc] = useState(ephemeral ? null : item.video);
   useEffect(() => {
@@ -433,6 +461,8 @@ function VideoLayer({ item, playing, ephemeral }) {
     return () => { dead = true; };
   }, [viaProxy, item.video, item.page]);
   const [ready, setReady] = useState(false);
+  
+  
   const wants = useRef(playing);
   wants.current = playing;
 
@@ -442,6 +472,8 @@ function VideoLayer({ item, playing, ephemeral }) {
     v.muted = true; v.loop = true;                                                        
     v.preload = "auto";                                                                   
     let handle, dead = false;
+    
+    
     createPlayer(v, src, {
       type: /\.m3u8(\?|#|$)/i.test(item.video) ? "hls" : "progressive",
       onReady: () => {
@@ -459,9 +491,6 @@ function VideoLayer({ item, playing, ephemeral }) {
     }).then((h) => { if (dead) h?.destroy?.(); else handle = h; });
     return () => { dead = true; handle?.destroy?.(); };
   }, [src]);
-
-  
-  
   useEffect(() => {
     const v = ref.current; if (!v || !ready) return;
     if (playing) v.play?.().catch(() => {}); else v.pause?.();
@@ -485,11 +514,10 @@ function VideoLayer({ item, playing, ephemeral }) {
         ? html`<img src=${poster} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60" onError=${posterFail} />`
         : html`<video ref=${bgRef} aria-hidden="true" muted loop playsinline class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50"></video>`}
     <div class="absolute inset-0 bg-black/25" aria-hidden="true"></div>
+    
     <video ref=${ref} data-main data-playing=${playing ? "" : null} poster=${poster} playsinline loop muted class=${`absolute inset-0 w-full h-full object-contain ${errored ? "opacity-0" : ""}`}></video>
   </${Fragment}>`;
 }
-
-
 
 function HeartBurst({ x, y, onDone }) {
   const ref = useRef();
@@ -505,7 +533,6 @@ function HeartBurst({ x, y, onDone }) {
   }, []);
   return html`<div ref=${ref} aria-hidden="true" class="absolute z-[5] pointer-events-none" style=${`left:${x}px;top:${y}px`}>${Icon("lucide:heart", "text-7xl text-rose-500 fill-rose-500 drop-shadow-[0_2px_16px_rgba(0,0,0,.45)]")}</div>`;
 }
-
 
 function Slide({ S, item, idx, active, near, ephemeral }) {
   const secRef = useRef();
@@ -534,6 +561,9 @@ function SourceSheet({ S, t }) {
   
   const sr = resolveSearch(norm());
   const search = (e) => { e?.preventDefault?.(); const url = norm(), term = q.trim(); if (url && term) goto(buildSearchUrl(url, term)); };
+  
+  
+  
   
   return html`<${Sheet} open onClose=${() => S.screen.set(null)} title=${T(t, "srcTitle")} icon="lucide:link">
     <form onSubmit=${load} class="flex flex-col gap-3">
@@ -579,10 +609,7 @@ function SessionSheet({ S, t, undo }) {
 
 
 
-
-
 const $busy = atom("");                                 
-
 
 
 const exportName = (item, ext) => `${(item?.title || "clip").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "clip"}.${ext}`;
@@ -594,6 +621,8 @@ async function exportClip({ item, format, mode, t, toast }) {
   try {
     const r = await fetch(await sealedClipUrl(url, item.page || null, format));
     if (!r.ok) {
+      
+      
       const why = await r.json().catch(() => null);
       toast?.(why?.error ? `${T(t, "expFail")}: ${why.error}` : T(t, "expFail"));
       return;
@@ -601,8 +630,6 @@ async function exportClip({ item, format, mode, t, toast }) {
     const blob = await r.blob();
     const name = exportName(item, format);
     if (mode === "share") {
-      
-      
       const how = await shareFile(blob, name);
       if (how === "saved") toast?.(T(t, "expSaved"));
     } else {
@@ -616,18 +643,16 @@ async function exportClip({ item, format, mode, t, toast }) {
   }
 }
 
-function MoreSheet({ S, t, item, src, title, subbed, watchHere, toast }) {
+
+function MoreSheet({ S, t, item, src, title, subbed, toast }) {
   const busy = useStore($busy), loc = useStore(S.locale), mono = useStore($mono);
   const close = () => S.screen.set(null);
   const row = "btn btn-ghost justify-start gap-3 rounded-2xl w-full font-normal";
-  
-  
   const pair = (format, icon, label) => html`<div class="flex items-center gap-3 px-4 py-1 rounded-2xl">
     ${Icon(icon, "text-lg opacity-70 shrink-0")}
     <span class="flex-1 min-w-0 truncate">${label}</span>
     ${[["save", "lucide:download"], ["share", "lucide:share-2"]].map(([mode, icon]) => {
       const key = `${format}-${mode}`;
-      
       return html`<button data-exp=${key} class=${`btn btn-sm btn-circle btn-ghost border border-base-content/15${busy === key ? " btn-active" : ""}`} disabled=${!!busy}
         aria-label=${`${T(t, mode === "save" ? "expSave" : "expShare")}: ${label}`}
         onClick=${() => exportClip({ item, format, mode, t, toast })}>${Icon(icon)}</button>`;
@@ -638,6 +663,7 @@ function MoreSheet({ S, t, item, src, title, subbed, watchHere, toast }) {
       ${item ? html`<${Fragment}>
         ${pair("gif", "lucide:image", T(t, "expGif"))}
         ${pair("mp4", "lucide:video", T(t, "expVideo"))}
+        
         ${busy ? html`<div data-exp-busy class="text-xs text-muted px-4">${T(t, "expBusy")} ${T(t, busy.startsWith("mp4") ? "expVideo" : "expGif")}</div>` : null}
         <div class="h-px bg-base-content/10 my-1"></div>
       </${Fragment}>` : null}
@@ -649,15 +675,12 @@ function MoreSheet({ S, t, item, src, title, subbed, watchHere, toast }) {
       </label>
       <button data-clean class=${row} onClick=${() => { close(); S.clean.set(true); }}>${Icon("lucide:maximize-2", "text-lg opacity-70")}${sys("clean", loc)}</button>
       ${!subbed ? html`<button data-subscribe class=${row} onClick=${() => { subscribe({ name: title, url: src }); close(); }}>${Icon("lucide:plus", "text-lg opacity-70")}${T(t, "sub")}</button>` : null}
-      ${watchHere ? html`<button data-watch-here class=${row} onClick=${() => { close(); watchHere(); }}>${Icon("lucide:play", "text-lg opacity-70")}${T(t, "watchHere")}</button>` : null}
     </div>
   <//>`;
 }
-
 function ChannelAvatar({ channel, onClick, label, current }) {
   const [broken, setBroken] = useState(false);
   if (!channel?.url) return null;
-  
   const here = String(channel.url).replace(/#.*$/, "") === String(current || "").replace(/#.*$/, "");
   const initial = (channel.name || "?").trim().charAt(0).toUpperCase();
   return html`<button type="button" data-channel class="btn btn-ghost btn-sm btn-circle shrink-0 p-0 overflow-hidden border border-white/20 bg-white/10"
@@ -667,8 +690,8 @@ function ChannelAvatar({ channel, onClick, label, current }) {
       : html`<span class="w-6 h-6 rounded-full grid place-items-center text-[0.7rem] font-semibold text-white bg-white/20">${initial}</span>`}
   </button>`;
 }
-function SourceIsland({ S, t, src, title, depth, dive, watch, channel }) {
-  
+
+function SourceIsland({ S, t, src, title, depth, watchHere, channel }) {
   const act = "btn btn-ghost btn-sm btn-circle shrink-0 border border-white/20 bg-white/10 text-white";
   return html`<${Island} pinned at="bottom" tone="dark" className="flex items-center gap-1 min-w-0 max-w-full rounded-full">
       ${depth ? html`<button data-feed-back class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "back")} onClick=${() => popFrame(S)}>${Icon("lucide:chevron-left", "text-xl")}</button>` : null}
@@ -677,15 +700,15 @@ function SourceIsland({ S, t, src, title, depth, dive, watch, channel }) {
       
       <${ChannelAvatar} channel=${channel} current=${src} label=${channel?.name || ""}
         onClick=${() => diveTo(S, channel.url, channel.name)} />
-      
       <span data-island-label class="text-sm text-white truncate min-w-0 pl-0.5 pr-1">${title}</span>
       
       <button data-more class=${act} aria-label=${T(t, "more")} onClick=${() => S.screen.set("more")}>${Icon("lucide:ellipsis", "text-base")}</button>
-      ${watch ? html`<button data-watch class="btn btn-ghost btn-sm btn-circle shrink-0 border-0 bg-primary text-primary-content" aria-label=${T(t, "openPage")} onClick=${watch}>${Icon("lucide:external-link", "text-base")}</button>` : null}
-      ${dive ? html`<button data-dive class=${act} aria-label=${`${T(t, "dive")}: ${dive.label}`} onClick=${dive.go}>${Icon("lucide:chevron-right", "text-lg")}</button>` : null}
+      
+      ${watchHere ? html`<button data-watch-here class="btn btn-ghost btn-sm btn-circle shrink-0 border-0 bg-primary text-primary-content" aria-label=${T(t, "watchHere")} onClick=${watchHere}>${Icon("lucide:play", "text-base")}</button>` : null}
     <//>
   `;
 }
+
 
 
 
@@ -702,7 +725,6 @@ function DragReveal({ underRef, diveRef, backRef, target, targetLabel, prev }) {
     </div>` : null}
   </div>`;
 }
-
 function FeedSurface({ S, t, toast }) {
   const items = useStore($items), loading = useStore($loading), err = useStore($err);
   const active = useStore($active), next = useStore($next), ephemeral = useStore($ephemeral);
@@ -715,11 +737,11 @@ function FeedSurface({ S, t, toast }) {
   const mono = useStore($mono);
   const underRef = useRef(), diveRef = useRef(), backRef = useRef();
   const target = diveTarget(items[active], src);
+  
+  
   const targetLabel = target ? sourceTitle(target, { hint: items[active]?.title }) : "";
   const prev = frames.length ? frames[frames.length - 1] : null;
 
-  
-  
   
   const { paneRef, pan } = usePanX({
     threshold: 64,                                                   
@@ -733,10 +755,12 @@ function FeedSurface({ S, t, toast }) {
       if (backRef.current) backRef.current.style.opacity = dx > 0 ? "1" : "0";
     },
   });
+
   useEffect(() => {
     bindNav(S);
     if (!booted) { booted = true; if (!gate) loadSource($src.get()); }
     else if ($active.get() > 0) $restoreTo.set($active.get());        
+    
     
     const root = document.documentElement;
     root.setAttribute("data-feed", "");
@@ -757,12 +781,15 @@ function FeedSurface({ S, t, toast }) {
     root.querySelectorAll("[data-idx]").forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [items]);                                                        
+  
+  
   useLayoutEffect(() => {
     if (restoreTo == null) return;
     const el = paneRef.current;
     if (el) el.scrollTop = restoreTo * (el.clientHeight || 0);
     $restoreTo.set(null);
   }, [restoreTo, items]);
+
   const body = loading
     ? html`<section class="h-[100dvh] w-full"><${Pixels} cls="w-full h-full" /></section>`
     : err
@@ -771,17 +798,17 @@ function FeedSurface({ S, t, toast }) {
         ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/60 px-8 text-center">${Icon("lucide:film", "text-5xl")}<div>${T(t, "empty")}</div><button class="btn btn-sm btn-outline text-white border-white/25 rounded-2xl" onClick=${() => S.tab.set("sources")}>${T(t, "changeSrc")}</button></section>`
         : items.map((it, i) => html`<${Slide} S=${S} item=${it} idx=${i} active=${i === active && !suspended} near=${Math.abs(i - active) <= PRELOAD} ephemeral=${it.eph != null ? it.eph : ephemeral} key=${(it.orig || it.video) + i} />`);
 
+  
   const cur = items[active];
+  
   const channel = cur?.channel || feedChannel;
-  const watch = cur ? (cur.page || cur.orig || cur.video) : null;
-  const dive = target ? { label: targetLabel, go: () => diveTo(S, target, cur?.title) } : null;
   return html`<${Fragment}>
     <${DragReveal} underRef=${underRef} diveRef=${diveRef} backRef=${backRef} target=${target} targetLabel=${targetLabel} prev=${prev} />
     <div ref=${paneRef} ...${pan} data-scroller tabindex="0" role="region" aria-label=${T(t, "tabReel")} class="fixed inset-0 z-[1] bg-black overflow-y-auto snap-y snap-mandatory overscroll-y-contain touch-pan-y will-change-transform">${body}</div>
     ${clean ? null : html`<${SourceIsland} S=${S} t=${t} src=${src} title=${title} subbed=${subs.some((s) => s.url === src)} depth=${frames.length}
-      dive=${dive} watch=${watch ? () => openExternal(watch) : null} channel=${channel} />`}
+      watchHere=${cur ? () => openFull(S, cur) : null} channel=${channel} />`}
     ${screen === "more" ? html`<${MoreSheet} S=${S} t=${t} toast=${toast} item=${cur} src=${src} title=${title}
-      subbed=${subs.some((s) => s.url === src)} watchHere=${watch ? () => openFull(S, cur) : null} />` : null}
+      subbed=${subs.some((s) => s.url === src)} />` : null}
     ${suspended ? html`<${FullClip} S=${S} t=${t} />` : null}
   </${Fragment}>`;
 }
@@ -808,6 +835,7 @@ function PageRow({ s, active, subbed, onPlay, onToggle, onOpen, onSession, hasSe
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState(sr.term || "");
   const submit = (e) => { e?.preventDefault?.(); const term = q.trim(); if (term) onPlay({ ...s, url: buildSearchUrl(s.url, term) }); };
+  
   
   
   
@@ -878,7 +906,6 @@ export function sources({ S, undo }) {
   return html`<${Fragment}>
     <div class="flex flex-col gap-4 @container">
       <button id="add-url" class="btn btn-primary rounded-2xl gap-2" onClick=${() => S.screen.set("source")}>${Icon("lucide:plus")} ${T(t, "addUrl")}</button>
-
       <div class="flex flex-col gap-2.5">
         <div class="text-sm font-semibold px-1 flex items-center gap-1.5">${Icon("lucide:bookmark", "text-primary")} ${T(t, "subs")}</div>
         ${mine.length
@@ -911,7 +938,6 @@ export function liked({ S, toast }) {
   };
   if (!sorted.length) return html`<div class="flex flex-col items-center justify-center gap-3 text-muted text-center" style="min-height:60vh">${Icon("lucide:heart", "text-6xl opacity-30")}<div class="text-sm max-w-[16rem]">${T(t, "likedEmpty")}</div></div>`;
   return html`<div data-liked class="grid grid-cols-3 gap-1.5">
-    
     ${sorted.map((l, i) => html`<div class="relative aspect-[9/16] rounded-xl overflow-hidden sf-inset" key=${l.id}>
       <button data-liked-tile class="absolute inset-0 w-full h-full active:scale-[.98] transition" aria-label=${l.title || l.host} onClick=${() => playAt(i)}>
         ${l.poster
