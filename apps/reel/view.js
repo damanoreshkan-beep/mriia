@@ -46,7 +46,8 @@ const GREY_PX = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLb
 
 const GV = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/";
 const MOCK = [
-  { video: GV + "BigBuckBunny.mp4", title: "Big Buck Bunny", poster: GV + "images/BigBuckBunny.jpg", page: "https://mixkit.co/watch/10241/" },
+  { video: GV + "BigBuckBunny.mp4", title: "Big Buck Bunny", poster: GV + "images/BigBuckBunny.jpg", page: "https://mixkit.co/watch/10241/",
+    channel: { name: "Mixkit Studio", url: "https://mixkit.co/profiles/mixkit-studio", avatar: null } },
   { video: GV + "ElephantsDream.mp4", title: "Elephants Dream", poster: null, page: "https://mixkit.co/watch/10242/" },
   { video: GV + "Sintel.mp4", title: "Sintel", poster: null, page: "https://mixkit.co/watch/10243/" },
   { video: GV + "BigBuckBunny.mp4", title: "Big Buck Bunny dup", poster: null, page: "https://mixkit.co/watch/10241/" },
@@ -57,7 +58,6 @@ const MOCK_DEEP = [
   { video: GV + "ForBiggerFun.mp4", title: "Deeper one", poster: null, page: "https://mixkit.co/watch/55012/" },
   { video: GV + "ForBiggerJoyrides.mp4", title: "Deeper two", poster: null, page: "https://mixkit.co/watch/55013/" },
 ];
-
 
 const GATE_TITLES = {
   
@@ -654,41 +654,42 @@ function MoreSheet({ S, t, item, src, title, subbed, watchHere, toast }) {
   <//>`;
 }
 
-function ChannelAvatar({ channel, onClick, label }) {
+function ChannelAvatar({ channel, onClick, label, current }) {
   const [broken, setBroken] = useState(false);
   if (!channel?.url) return null;
+  
+  const here = String(channel.url).replace(/#.*$/, "") === String(current || "").replace(/#.*$/, "");
   const initial = (channel.name || "?").trim().charAt(0).toUpperCase();
   return html`<button type="button" data-channel class="btn btn-ghost btn-sm btn-circle shrink-0 p-0 overflow-hidden border border-white/20 bg-white/10"
-      aria-label=${label} title=${channel.name || ""} onClick=${onClick}>
+      aria-label=${label} title=${channel.name || ""} disabled=${here} onClick=${here ? null : onClick}>
     ${channel.avatar && !broken
       ? html`<img src=${channel.avatar} alt="" class="w-6 h-6 rounded-full object-cover" loading="lazy" onError=${() => setBroken(true)} />`
       : html`<span class="w-6 h-6 rounded-full grid place-items-center text-[0.7rem] font-semibold text-white bg-white/20">${initial}</span>`}
   </button>`;
 }
-
 function SourceIsland({ S, t, src, title, depth, dive, watch, channel }) {
+  
   const act = "btn btn-ghost btn-sm btn-circle shrink-0 border border-white/20 bg-white/10 text-white";
   return html`<${Island} pinned at="bottom" tone="dark" className="flex items-center gap-1 min-w-0 max-w-full rounded-full">
       ${depth ? html`<button data-feed-back class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "back")} onClick=${() => popFrame(S)}>${Icon("lucide:chevron-left", "text-xl")}</button>` : null}
       <${Favicon} url=${src} size="w-6 h-6" />
       
-      <${ChannelAvatar} channel=${channel} label=${(channel?.name || "") + " — " + T(t, "more")}
-        onClick=${() => dive?.(channel.url, channel.name)} />
+      
+      <${ChannelAvatar} channel=${channel} current=${src} label=${channel?.name || ""}
+        onClick=${() => diveTo(S, channel.url, channel.name)} />
       
       <span data-island-label class="text-sm text-white truncate min-w-0 pl-0.5 pr-1">${title}</span>
       
       <button data-more class=${act} aria-label=${T(t, "more")} onClick=${() => S.screen.set("more")}>${Icon("lucide:ellipsis", "text-base")}</button>
-      
       ${watch ? html`<button data-watch class="btn btn-ghost btn-sm btn-circle shrink-0 border-0 bg-primary text-primary-content" aria-label=${T(t, "openPage")} onClick=${watch}>${Icon("lucide:external-link", "text-base")}</button>` : null}
-      
       ${dive ? html`<button data-dive class=${act} aria-label=${`${T(t, "dive")}: ${dive.label}`} onClick=${dive.go}>${Icon("lucide:chevron-right", "text-lg")}</button>` : null}
     <//>
   `;
 }
 
 
+
 function DragReveal({ underRef, diveRef, backRef, target, targetLabel, prev }) {
-  
   return html`<div ref=${underRef} aria-hidden="true" class="fixed inset-0 z-0 sf-inset opacity-0">
     ${prev ? html`<div ref=${backRef} class="absolute inset-y-0 left-0 w-40 flex flex-col items-center justify-center gap-2 px-3 text-center opacity-0">
       ${Icon("lucide:corner-up-left", "text-2xl text-primary")}
@@ -714,10 +715,10 @@ function FeedSurface({ S, t, toast }) {
   const mono = useStore($mono);
   const underRef = useRef(), diveRef = useRef(), backRef = useRef();
   const target = diveTarget(items[active], src);
-  
-  
   const targetLabel = target ? sourceTitle(target, { hint: items[active]?.title }) : "";
   const prev = frames.length ? frames[frames.length - 1] : null;
+
+  
   
   
   const { paneRef, pan } = usePanX({
@@ -737,13 +738,11 @@ function FeedSurface({ S, t, toast }) {
     if (!booted) { booted = true; if (!gate) loadSource($src.get()); }
     else if ($active.get() > 0) $restoreTo.set($active.get());        
     
-    
-    
     const root = document.documentElement;
     root.setAttribute("data-feed", "");
+    
     return () => { root.removeAttribute("data-feed"); S.clean.set(false); };
   }, [S]);
-  
   useEffect(() => {
     const root = document.documentElement;
     if (mono === "1") root.setAttribute("data-mono", "1"); else root.removeAttribute("data-mono");
@@ -771,6 +770,7 @@ function FeedSurface({ S, t, toast }) {
       : !items.length
         ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/60 px-8 text-center">${Icon("lucide:film", "text-5xl")}<div>${T(t, "empty")}</div><button class="btn btn-sm btn-outline text-white border-white/25 rounded-2xl" onClick=${() => S.tab.set("sources")}>${T(t, "changeSrc")}</button></section>`
         : items.map((it, i) => html`<${Slide} S=${S} item=${it} idx=${i} active=${i === active && !suspended} near=${Math.abs(i - active) <= PRELOAD} ephemeral=${it.eph != null ? it.eph : ephemeral} key=${(it.orig || it.video) + i} />`);
+
   const cur = items[active];
   const channel = cur?.channel || feedChannel;
   const watch = cur ? (cur.page || cur.orig || cur.video) : null;
@@ -782,10 +782,11 @@ function FeedSurface({ S, t, toast }) {
       dive=${dive} watch=${watch ? () => openExternal(watch) : null} channel=${channel} />`}
     ${screen === "more" ? html`<${MoreSheet} S=${S} t=${t} toast=${toast} item=${cur} src=${src} title=${title}
       subbed=${subs.some((s) => s.url === src)} watchHere=${watch ? () => openFull(S, cur) : null} />` : null}
-    
     ${suspended ? html`<${FullClip} S=${S} t=${t} />` : null}
   </${Fragment}>`;
 }
+
+
 export function reel({ S, toast }) {
   const t = useStore(S.t), screen = useStore(S.screen);
   return html`<${Fragment}>
@@ -807,6 +808,8 @@ function PageRow({ s, active, subbed, onPlay, onToggle, onOpen, onSession, hasSe
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState(sr.term || "");
   const submit = (e) => { e?.preventDefault?.(); const term = q.trim(); if (term) onPlay({ ...s, url: buildSearchUrl(s.url, term) }); };
+  
+  
   
   return html`<li class=${`flex flex-col ${active ? "sf-inset rounded-2xl" : ""}`}>
     <div class="flex items-center gap-0.5 pr-1">
@@ -862,6 +865,7 @@ function DomainCard({ g, curSrc, subbedUrls, onPlay, onOpen, onToggle, onSession
     </ul>
   </section>`;
 }
+
 export function sources({ S, undo }) {
   const t = useStore(S.t), screen = useStore(S.screen);
   const subs = useStore($subs), curSrc = useStore($src), watchedN = useStore($watched).size, sessions = useStore($sessions);
@@ -870,6 +874,7 @@ export function sources({ S, undo }) {
   const subbedUrls = new Set(subs.map((x) => x.url));
   const mine = groupByDomain(subs);
   const discover = groupByDomain(PRESETS.filter((p) => !subbedUrls.has(p.url)));
+
   return html`<${Fragment}>
     <div class="flex flex-col gap-4 @container">
       <button id="add-url" class="btn btn-primary rounded-2xl gap-2" onClick=${() => S.screen.set("source")}>${Icon("lucide:plus")} ${T(t, "addUrl")}</button>
@@ -894,8 +899,6 @@ export function sources({ S, undo }) {
 }
 
 
-
-
 export function liked({ S, toast }) {
   const t = useStore(S.t), likes = useStore($likes), owner = useStore($owner);
   const sorted = [...likes].sort((a, b) => (b.ts || 0) - (a.ts || 0));
@@ -908,6 +911,7 @@ export function liked({ S, toast }) {
   };
   if (!sorted.length) return html`<div class="flex flex-col items-center justify-center gap-3 text-muted text-center" style="min-height:60vh">${Icon("lucide:heart", "text-6xl opacity-30")}<div class="text-sm max-w-[16rem]">${T(t, "likedEmpty")}</div></div>`;
   return html`<div data-liked class="grid grid-cols-3 gap-1.5">
+    
     ${sorted.map((l, i) => html`<div class="relative aspect-[9/16] rounded-xl overflow-hidden sf-inset" key=${l.id}>
       <button data-liked-tile class="absolute inset-0 w-full h-full active:scale-[.98] transition" aria-label=${l.title || l.host} onClick=${() => playAt(i)}>
         ${l.poster

@@ -5,8 +5,30 @@ const has = async (h, re) => re.test(await h.bodyText());
 
 export default [
   {
+    name: "акаунт в острівці: тап по аватарці провалює у стрічку цього акаунта, Back повертає",
+    run: async (h) => {
+      await ready(h);
+      
+      const avatarUp = async () => { for (let i = 0; i < 25; i++) { if ((await h.count("[data-channel]")) === 1) return true; await h.wait(200); } return false; };
+      h.expect(await avatarUp(), "в острівці немає кружечка акаунта");
+      h.expect((await h.count("[data-feed-back]")) === 0, "на нульовому рівні не має бути кнопки «назад»");
+      const root = await h.text("[data-island-label]");
+      await h.tap("[data-channel]"); await h.wait(600);
+      h.expect((await h.count("[data-feed-back]")) === 1, "тап по аватарці не провалив рівень — кнопки повернення немає");
+      h.expect((await h.text("[data-island-label]")) !== root, `острівець лишився на «${root}» — стрічка акаунта не відкрилась`);
+
+      await h.tap("[data-feed-back]"); await h.wait(600);
+      h.expect((await h.text("[data-island-label]")) === root, "Back не повернув на рівень, з якого провалились");
+    },
+  },
+  {
     name: "стрічка рендериться; биті чорні/пласкі постери й дублікати відфільтровано", run: async (h) => {
       await ready(h);
+      
+      
+      
+      
+      
       h.expect(await settles(h, 3), "фільтри не звели стрічку до 3 чистих слайдів (дубль/чорний/плаский постер лишились)");
     },
   },
@@ -17,15 +39,14 @@ export default [
       const mains = await h.count("video[data-main]");
       h.expect(mains >= 2, `змонтовано ${mains} відео — сусідній слайд не преload-иться, свайп знову почне з нуля`);
       h.expect(mains <= 3, `змонтовано ${mains} відео — вікно ширше за PRELOAD, це вже витрата декодерів`);
-      
       const playing = await h.count("video[data-main][data-playing]");
       h.expect(playing === 1, `грає ${playing} відео замість одного — вікно преload має буферизувати, а не програвати`);
-      
       const neighbourPaused = await h.prop("video[data-main]:not([data-playing])", "paused");
       h.expect(neighbourPaused !== false, "сусідній слайд реально ГРАЄ — прогрів не повернув паузу, і у вікні тепер два відтворення");
     },
   },
   {
+    
     name: "тап по рілзу відкриває сторінку, а не оверлей; повний кліп (бета) — зі шторки, і Back його закриває", run: async (h) => {
       await ready(h);
       h.expect(await settles(h, 3), "стрічка не влаштувалась на 3 слайдах");
@@ -36,6 +57,7 @@ export default [
       h.expect((await h.count("[data-watch-here]")) === 1, "у шторці немає «Дивитись тут (бета)»");
       await h.tap("[data-watch-here]"); await h.wait(500);
       h.expect((await h.count('[role="dialog"]')) === 1, "«Дивитись тут (бета)» не відкрило повний кліп");
+      
       h.expect((await h.count("video[data-main][data-playing]")) === 0, "стрічка продовжує грати під відкритим кліпом");
       await h.back(); await h.wait(500);
       h.expect((await h.count('[role="dialog"]')) === 0, "системний Back не закрив повний кліп");
@@ -64,17 +86,18 @@ export default [
       }
       
       
+      
       for (const [sel, what] of [["[data-clean]", "чистий екран"], ["[data-subscribe]", "підписка"], ["[data-watch-here]", "повний кліп (бета)"], ["[data-exp]", "експорт"]]) {
         h.expect((await h.count(sel)) === 0, `контрол лишився в острівці замість шторки: ${what} (${sel})`);
       }
       h.expect((await h.count("[data-open-page]")) === 0, "«відкрити у браузері» лишилось як окрема кнопка — це має бути тап по слайду");
       const isl = await h.attr("[data-island]", "class");
       h.expect(!/\bopacity-0\b/.test(isl || ""), "острівець не має бути прихованим");
-
       await openMore(h);
       for (const [sel, what] of [["[data-clean]", "чистий екран"], ["[data-subscribe]", "підписка"], ["[data-watch-here]", "повний кліп (бета)"]]) {
         h.expect((await h.count(sel)) === 1, `функція зникла разом з переїздом у шторку: ${what} (${sel})`);
       }
+      
       for (const key of ["gif-save", "gif-share", "mp4-save", "mp4-share"]) {
         h.expect((await h.count(`[data-exp="${key}"]`)) === 1, `у шторці немає кнопки експорту: ${key}`);
       }
@@ -99,6 +122,7 @@ export default [
       
       await h.tap("[data-clean-exit]"); await h.wait(400);
       h.expect((await h.count("nav[data-dock]")) === 1 && (await h.count("[data-island]")) === 1, "двері не повернули хромованку");
+      
       await openMore(h); await h.tap("[data-clean]"); await h.wait(400);
       h.expect((await h.count("nav[data-dock]")) === 0, "повторний вхід у чистий екран не спрацював");
       await h.back(); await h.wait(400);
@@ -107,7 +131,6 @@ export default [
     },
   },
   {
-    
     name: "нуар: перемикач у шторці знебарвлює саме кадр, лишає хром кольоровим і переживає перезапуск", run: async (h) => {
       await ready(h);
       h.expect(await settles(h, 3), "стрічка не влаштувалась на 3 слайдах");
@@ -127,6 +150,7 @@ export default [
       h.expect((await h.prop("[data-noir]", "checked")) === true, "режим увімкнений, а перемикач у шторці цього не показує");
       await h.tap("[data-noir]"); await h.wait(400);
       h.expect((await h.css("[data-reel]", "filter")) === "none", "нуар не вимикається — кадр лишився чорно-білим");
+      
       await h.back(); await h.wait(400);
       h.expect((await h.count("[data-noir]")) === 0, "шторка лишилась відкритою — наступний системний Back дістанеться їй, а не рівню стрічки");
     },
@@ -144,7 +168,6 @@ export default [
       
       h.expect(await settles(h, 2), "провалювання не завантажило стрічку сторінки, на якій лежить рілз");
       h.expect((await h.text("[data-island-label]")) !== root, `острівець лишився на «${root}» — джерело не змінилось`);
-      
       
       
       
@@ -276,7 +299,6 @@ export default [
       await h.back(); await h.wait(500);
       h.expect((await h.count("[data-liked-tile]")) === 3, "системний Back не повернув сітку лайків");
       h.expect((await h.attr('[data-tab="liked"]', "aria-current")) === "page", "Back вискочив із таба лайків");
-      
       await h.tap("[data-liked-tile]"); await h.wait(600);
       await openMore(h); await h.tap("[data-clean]"); await h.wait(400);
       h.expect((await h.count("nav[data-dock]")) === 0, "чистий екран не увімкнувся в лайковій стрічці");
