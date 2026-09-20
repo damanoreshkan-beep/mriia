@@ -272,6 +272,24 @@ export default [
     },
   },
   {
+    
+    name: "поділитись: посилання серед тексту стає джерелом, а sh_* зникають з адреси", run: async (h) => {
+      await ready(h);
+      const root = await h.attr("[data-island-label]", "data-island-src");
+      
+      await h.goto("sh_text=" + encodeURIComponent("глянь це https://mixkit.co/free-stock-video/nature/ — вогонь"), 1600);
+      await ready(h);
+      
+      const src = await h.storage("reel:src");
+      h.expect(/mixkit\.co\/free-stock-video\/nature\//.test(src || ""), `джерелом стало «${src}» — посилання з тексту не підхопилось`);
+      const now = await h.attr("[data-island-label]", "data-island-src");
+      h.expect(now !== root, `острівець лишився на «${root}» — стрічка не перемкнулась на поділене джерело`);
+      const here = await h.prop("html", "baseURI");
+      h.expect(!/sh_/.test(here || ""), `в адресі лишилось «${here}» — перезавантаження додало б джерело вдруге`);
+      await h.goto("", 1200);                                          
+    },
+  },
+  {
     name: "додати-URL: поле пошуку з'являється лише коли в URL є квері-параметри", run: async (h) => {
       await ready(h);
       await h.tap('[data-tab="sources"]'); await h.wait(300);
