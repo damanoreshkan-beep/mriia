@@ -88,6 +88,7 @@ const openSite = (s) => openExternal(s.url);
 const subsDB = collection("reelSubs");
 
 
+const GATE_SEARCH = "https://mixkit.co/free-stock-video/?q=nature";
 const GATE_SUBS = [
   { id: "https://mixkit.co/watch/70001/", url: "https://mixkit.co/watch/70001/", name: "Fog over the Carpathians at first light, in one long slow take" },
   { id: "https://mixkit.co/watch/70002/", url: "https://mixkit.co/watch/70002/", name: "Night city" },
@@ -96,7 +97,12 @@ const $subs = atom(gate ? GATE_SUBS : []);
 if (idbSupported && !gate) subsDB.all().then((rows) => $subs.set(rows)).catch(() => {});
 async function subscribe(s) {
   if (!s?.url || $subs.get().some((x) => x.url === s.url)) return;
-  const rec = { name: s.name || sourceTitle(s.url), url: s.url };
+  
+  
+  
+  const feed = $feedChannel.get();
+  const avatar = s.avatar || avatarSeen.get(s.url) || (feed && feed.url === s.url ? feed.avatar : null) || null;
+  const rec = { name: s.name || sourceTitle(s.url), url: s.url, ...(avatar ? { avatar } : {}) };
   $subs.set([{ id: s.url, ...rec }, ...$subs.get()]);
   try { await subsDB.put(s.url, rec); } catch {  }
 }
@@ -104,7 +110,6 @@ async function unsubscribe(url) {
   $subs.set($subs.get().filter((x) => x.url !== url));
   try { await subsDB.remove(url); } catch {  }
 }
-
 
 function renameSub(url, title) {
   const cur = $subs.get().find((x) => x.url === url);
@@ -117,11 +122,9 @@ function renameSub(url, title) {
 
 
 
-
-
-
 const sessDB = collection("reelSessions");
 const $sessions = atom({});                                 
+
 
 
 const sessionsReady = idbSupported && !gate
@@ -139,6 +142,7 @@ async function setSession(url, cookie) {
 const $sessSite = atom("");                                 
 
 
+
 const watchedDB = collection("reelWatched");
 const $watched = atom(new Set());
 if (idbSupported && !gate) watchedDB.all().then((rows) => $watched.set(new Set(rows.map((r) => r.id)))).catch(() => {});
@@ -151,11 +155,10 @@ function clearWatched() { $watched.set(new Set()); watchedDB.clear().catch(() =>
 const unseen = (arr) => arr.filter((i) => !$watched.get().has(i.orig || i.video));         
 
 
-
-
 const likesDB = collection("reelLikes");
 const likeId = (i) => i.orig || i.video;
-const GATE_LIKES = MOCK.slice(0, 3).map((i, n) => ({ id: likeId(i), video: i.video, orig: null, poster: null, page: i.page, title: i.title, host: hostOf(i.page), eph: false, ts: 1000 - n }));
+
+const GATE_LIKES = MOCK.slice(0, 3).map((i, n) => ({ id: likeId(i), video: i.video, orig: null, poster: n === 0 ? GREY_PX : null, page: i.page, title: i.title, host: hostOf(i.page), eph: false, ts: 1000 - n }));
 const $likes = atom(gate ? GATE_LIKES : []);
 if (idbSupported && !gate) likesDB.all().then((rows) => $likes.set(rows)).catch(() => {});
 function addLike(i) {                                                                       
@@ -176,10 +179,9 @@ const $err = atom(false);
 const $active = atom(0);
 const $ephemeral = atom(false);   
 
+
 const $srcTitle = atom(sourceTitle(DEFAULT_SRC));
 const $srcHint = atom("");
-
-
 function setSrcTitle(url, opts) {
   const title = sourceTitle(url, opts);
   $srcTitle.set(title);
@@ -187,6 +189,7 @@ function setSrcTitle(url, opts) {
   return title;
 }
 let booted = false;               
+
 
 
 
@@ -204,19 +207,17 @@ function restoreTop() {
   $src.set(f.src); $srcTitle.set(f.title); $srcHint.set(f.hint); $items.set(f.items); $next.set(f.next); $ephemeral.set(f.eph);
   $owner.set(f.owner); $loading.set(false); $err.set(f.err);
   $active.set(f.active); $restoreTo.set(f.active);          
-  
   if (!f.items.length && !f.err && !gate) loadSource(f.src, false, f.hint);
 }
 let bound = false;
 function bindNav(S) {
   if (bound) return; bound = true;
-  
-  
   S.stack.listen((v) => { while ($frames.get().length > (v?.length || 0)) restoreTop(); });
 }
 function pushFrame(S, label) { $frames.set([...$frames.get(), snapshot(label)]); S.stack.set([...S.stack.get(), label]); }
 function popFrame(S) { const st = S.stack.get(); if (st.length) S.stack.set(st.slice(0, -1)); }
 function resetNav(S) { $frames.set([]); if (S.stack.get().length) S.stack.set([]); }        
+
 
 function diveTarget(item, src) {
   const u = item?.page;
@@ -225,14 +226,12 @@ function diveTarget(item, src) {
 }
 function openSource(url, hint) { $src.set(url); loadSource(url, false, hint); }
 
-
 function diveTo(S, url, hint) {
   if (!url) return;
   pushFrame(S, $srcTitle.get());                             
   navigator.vibrate?.(10);                                   
   openSource(url, hint);
 }
-
 
 
 
@@ -260,14 +259,17 @@ function sharedUrl(p) {
   for (const s of fields) { const m = s.match(BARE_RE); if (m) { const u = sharedHref("https://" + m[1]); if (u) return u; } }
   return "";
 }
-function openAsSource(S, url, hint) {
-  subscribe({ name: sourceTitle(url), url });
+
+
+function openAsSource(S, url, hint, keep = true) {
+  if (keep) subscribe({ name: sourceTitle(url), url });
   resetNav(S);
   $owner.set("reel");
   openSource(url, hint);
   S.tab.set("reel");
   S.screen.set(null);
 }
+
 let APP = null, TOAST = null, waiting = null;
 function shareIn(payload) { waiting = payload; flushShare(); }
 function flushShare() {
@@ -275,6 +277,7 @@ function flushShare() {
   const p = waiting; waiting = null;
   const url = sharedUrl(p);
   if (url) openAsSource(APP, url);
+  
   else TOAST?.(T(APP.t.get(), "shareNoLink"));
 }
 function useShareIntake(S, toast) {
@@ -291,8 +294,6 @@ if (typeof location !== "undefined") {
     try { window.history.replaceState(null, "", u.pathname + (q ? `?${q}` : "") + u.hash); } catch {  }
   }
 }
-
-
 if (shell.has("share.target")) {
   shell.call("share.target", { kinds: ["text"] }).catch(() => {  });
   shell.subscribe("share.incoming", {}, (f) => { if (f?.text) shareIn({ text: f.text }); });
@@ -325,7 +326,6 @@ function posterIsBlank(poster, page) {
       } catch { finish(false); } };                                                        
       img.onerror = () => {
         
-        
         if (isData || src !== poster) return finish(false);
         framed(poster, page).then(sample).catch(() => finish(false));
       };
@@ -336,20 +336,19 @@ function posterIsBlank(poster, page) {
 }
 async function checkBlankPosters() {
   const todo = [];
-  
   for (const it of $items.get()) { const p = it.poster; if (p && !checkedPosters.has(p)) { checkedPosters.add(p); todo.push([p, it.page || null]); } }
   if (!todo.length) return;
   const hits = new Set();
   await pool(todo, 4, async ([p, pg]) => { if (await posterIsBlank(p, pg)) hits.add(p); }); 
   if (hits.size) { hits.forEach((p) => blankPosters.add(p)); $items.set(reject($items.get(), (i) => i.poster && hits.has(i.poster))); }
 }
+
 function clean(arr, { requirePoster = false } = {}) {
   let out = reject(unseen(arr), (i) => i.poster && blankPosters.has(i.poster));
   out = out.map((i) => (i.title ? { ...i, title: humanText(i.title) } : i));
   if (requirePoster) out = out.filter(hasPoster);
   return dedupeVideos(out);
 }
-
 let loadingMore = false, gen = 0;
 async function loadSource(url, append = false, hint = "") {
   if (append) { if (loadingMore || !url) return; loadingMore = true; }
@@ -359,6 +358,9 @@ async function loadSource(url, append = false, hint = "") {
   }
   const g = append ? gen : ++gen;                            
   if (gate) {                                                
+    
+    
+    rememberSearch(url, GATE_SEARCH);
     if (!append) {
       $items.set(clean(url === DEFAULT_SRC ? MOCK : MOCK_DEEP)); $ephemeral.set(false); $loading.set(false);
       setSrcTitle(url, { pageTitle: GATE_TITLES[url] || "", hint });
@@ -378,17 +380,18 @@ async function loadSource(url, append = false, hint = "") {
     const d = await r.json();
     if (g !== gen) return;                                   
     
+    
     const eph = append ? $ephemeral.get() : !!d.ephemeral;
     const got = clean(Array.isArray(d.items) ? d.items : [], { requirePoster: eph });
     $items.set(append ? dedupeVideos([...$items.get(), ...got]) : got);                   
     $next.set(d.next || null);
     if (!append) $feedChannel.set(d.channel || null);        
+    rememberSearch(url, d.search);                           
     if (!append) setSrcTitle(url, { pageTitle: d.title || "", hint });                     
     if (!append) $ephemeral.set(eph);                  
   } catch { if (g === gen && !append) $err.set(true); }
   finally { if (g === gen) $loading.set(false); if (append) loadingMore = false; }
 }
-
 
 const $feedChannel = atom(null);                           
 
@@ -429,12 +432,10 @@ async function openFull(S, item) {
     const pick = list.find((s) => s.format === "hls") || list[0];
     if (!pick) return settle({ err: true });
     
-    
-    
-    
     settle({ url: await sealedFrameUrl(pick.url, page), type: pick.format === "hls" ? "hls" : "progressive", title: humanText(d.title) || title });
   } catch { settle({ err: true }); }
 }
+
 function useNoSystemFullscreen() {
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -444,7 +445,6 @@ function useNoSystemFullscreen() {
       if (!isMedia(el)) return;
       try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); } catch {  }
     };
-    
     const iosIn = (e) => { try { e.target?.webkitExitFullscreen?.(); } catch {  } };
     document.addEventListener("fullscreenchange", on);
     document.addEventListener("webkitfullscreenchange", on);
@@ -457,12 +457,11 @@ function useNoSystemFullscreen() {
   }, []);
 }
 
-
-
 function FullClip({ S, t }) {
   const full = useStore($full), locale = useStore(S.locale);
   useNoSystemFullscreen();
   if (!full) return null;
+  
   const close = () => { const b = $full.get()?.blob; S.screen.set(null); $full.set(null); if (b) { try { URL.revokeObjectURL(b); } catch {  } } };
   if (full.url) return html`<${Player} url=${full.url} type=${full.type} title=${full.title} locale=${locale} onClose=${close} />`;
   return html`<div data-full role="dialog" aria-modal="true" aria-label=${full.title || T(t, "watch")}
@@ -475,7 +474,6 @@ function FullClip({ S, t }) {
       ${full.err
         ? html`<div class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/70 p-6 text-center">
             ${Icon("lucide:tv-minimal-play", "text-5xl opacity-40")}<div>${T(t, "videoErr")}</div>
-            
             <div class="flex items-center gap-2 flex-wrap justify-center">
               <button data-full-retry class="btn btn-sm btn-primary gap-2" onClick=${() => openFull(S, { page: full.page, title: full.title })}>${Icon("lucide:rotate-cw")}${T(t, "retry")}</button>
               <a href=${full.page} target="_blank" rel="noopener" class="btn btn-sm btn-outline text-white border-white/30 gap-2">${Icon("lucide:external-link")}${T(t, "openSite")}</a>
@@ -495,6 +493,8 @@ function Favicon({ url, size = "w-6 h-6" }) {
     ? html`<img src=${letterTile(siteName(url), { w: 64, h: 64, light: 30 })} alt="" class=${`${cls} object-cover`} />`
     : html`<img src=${`https://${hostOf(url)}/favicon.ico`} alt="" loading="lazy" class=${`${cls} bg-base-content/10`} onError=${() => setFailed(true)} />`;
 }
+
+
 function usePosterSrc(poster, page) {
   const [src, setSrc] = useState(poster || null);
   useEffect(() => { setSrc(poster || null); }, [poster]);
@@ -528,13 +528,13 @@ function PosterFill({ poster, page }) {
 
 
 
+
+
 function VideoLayer({ item, playing, ephemeral }) {
   const ref = useRef(), bgRef = useRef();
   const [errored, setErrored] = useState(false);
   const [viaProxy, setViaProxy] = useState(!!ephemeral);
   const [poster, posterFail] = usePosterSrc(item.poster, item.page);                    
-  
-  
   
   const [src, setSrc] = useState(ephemeral ? null : item.video);
   useEffect(() => {
@@ -544,9 +544,10 @@ function VideoLayer({ item, playing, ephemeral }) {
     return () => { dead = true; };
   }, [viaProxy, item.video, item.page]);
   const [ready, setReady] = useState(false);
+  
+  
   const wants = useRef(playing);
   wants.current = playing;
-
   useEffect(() => {
     setErrored(false); setReady(false);
     const v = ref.current; if (!v || !src) return;                                        
@@ -569,16 +570,16 @@ function VideoLayer({ item, playing, ephemeral }) {
           seekStart(v);                                                                   
         }).catch(() => {});
       },
+      
       onError: () => { if (dead) return; if (viaProxy) setErrored(true); else setViaProxy(true); },
     }).then((h) => { if (dead) h?.destroy?.(); else handle = h; });
     return () => { dead = true; handle?.destroy?.(); };
   }, [src]);
-
-  
   useEffect(() => {
     const v = ref.current; if (!v || !ready) return;
     if (playing) v.play?.().catch(() => {}); else v.pause?.();
   }, [playing, ready]);
+  
   
   useEffect(() => {
     if (!playing || !ready || poster || errored) return;
@@ -589,6 +590,7 @@ function VideoLayer({ item, playing, ephemeral }) {
       .then((h) => { if (dead) h?.destroy?.(); else handle = h; });
     return () => { dead = true; handle?.destroy?.(); };
   }, [playing, ready, src, poster, errored]);
+
   return html`<${Fragment}>
     ${errored
       ? html`<${PosterFill} poster=${item.poster} page=${item.page} />`
@@ -613,19 +615,18 @@ function HeartBurst({ x, y, onDone }) {
   }, []);
   return html`<div ref=${ref} aria-hidden="true" class="absolute z-[5] pointer-events-none" style=${`left:${x}px;top:${y}px`}>${Icon("lucide:heart", "text-7xl text-rose-500 fill-rose-500 drop-shadow-[0_2px_16px_rgba(0,0,0,.45)]")}</div>`;
 }
-
-
-
-
 function Slide({ S, item, idx, active, near, ephemeral }) {
   const secRef = useRef();
   const [burst, setBurst] = useState(null);
+  
+  
   
   const onTap = useTap({
     onSingle: () => openFull(S, item),
     onDouble: (p) => { setBurst({ x: p.x, y: p.y, k: Date.now() }); addLike(item); navigator.vibrate?.(12); },
   });
   return html`<section ref=${secRef} data-reel data-idx=${idx} onClick=${onTap} class="snap-start snap-always relative h-[100dvh] w-full flex items-center justify-center bg-black overflow-hidden">
+    
     ${near
       ? html`<${VideoLayer} item=${item} playing=${active} ephemeral=${ephemeral} />`
       : item.poster
@@ -634,10 +635,10 @@ function Slide({ S, item, idx, active, near, ephemeral }) {
     ${burst ? html`<${HeartBurst} x=${burst.x} y=${burst.y} key=${burst.k} onDone=${() => setBurst(null)} />` : null}
   </section>`;
 }
-
 function SourceSheet({ S, t }) {
   const [val, setVal] = useState("");
   const [q, setQ] = useState("");
+  
   const norm = () => {
     const u = val.trim().replace(/\s+/g, "");
     if (!u) return "";
@@ -654,6 +655,7 @@ function SourceSheet({ S, t }) {
     <form onSubmit=${load} class="flex flex-col gap-3">
       <label class="input flex items-center gap-2 rounded-2xl">
         ${Icon("lucide:globe", "opacity-50 shrink-0")}
+        
         <input id="src-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" class="grow min-w-0" placeholder=${T(t, "srcPlaceholder")} aria-label=${T(t, "srcTitle")} value=${val} onInput=${(e) => setVal(e.target.value)} />
       </label>
       ${sr.searchable ? html`<div class="flex gap-2">
@@ -697,14 +699,12 @@ function SessionSheet({ S, t, undo }) {
 
 
 
-
-
-
 const $busy = atom("");                                 
 
 
 
 const exportName = (item, ext) => `${(item?.title || "clip").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "clip"}.${ext}`;
+
 async function exportClip({ item, format, mode, t, toast }) {
   const url = item?.orig || item?.video;
   if (!url || $busy.get()) return;                      
@@ -712,6 +712,8 @@ async function exportClip({ item, format, mode, t, toast }) {
   try {
     const r = await fetch(await sealedClipUrl(url, item.page || null, format));
     if (!r.ok) {
+      
+      
       const why = await r.json().catch(() => null);
       toast?.(why?.error ? `${T(t, "expFail")}: ${why.error}` : T(t, "expFail"));
       return;
@@ -719,8 +721,6 @@ async function exportClip({ item, format, mode, t, toast }) {
     const blob = await r.blob();
     const name = exportName(item, format);
     if (mode === "share") {
-      
-      
       const how = await shareFile(blob, name);
       if (how === "saved") toast?.(T(t, "expSaved"));
     } else {
@@ -742,12 +742,12 @@ function MoreSheet({ S, t, item, src, title, subbed, toast }) {
   const row = "btn btn-ghost justify-start gap-3 rounded-2xl w-full font-normal";
   
   
-  
   const pair = (format, icon, label) => html`<div class="flex items-center gap-3 px-4 py-1 rounded-2xl">
     ${Icon(icon, "text-lg opacity-70 shrink-0")}
     <span class="flex-1 min-w-0 truncate">${label}</span>
     ${[["save", "lucide:download"], ["share", "lucide:share-2"]].map(([mode, icon]) => {
       const key = `${format}-${mode}`;
+      
       return html`<button data-exp=${key} class=${`btn btn-sm btn-circle btn-ghost border border-base-content/15${busy === key ? " btn-active" : ""}`} disabled=${!!busy}
         aria-label=${`${T(t, mode === "save" ? "expSave" : "expShare")}: ${label}`}
         onClick=${() => exportClip({ item, format, mode, t, toast })}>${Icon(icon)}</button>`;
@@ -761,6 +761,7 @@ function MoreSheet({ S, t, item, src, title, subbed, toast }) {
         ${busy ? html`<div data-exp-busy class="text-xs text-muted px-4">${T(t, "expBusy")} ${T(t, busy.startsWith("mp4") ? "expVideo" : "expGif")}</div>` : null}
         <div class="h-px bg-base-content/10 my-1"></div>
       </${Fragment}>` : null}
+      
       <label class="flex items-center gap-3 px-4 py-3 rounded-2xl">
         ${Icon("lucide:contrast", "text-lg opacity-70 shrink-0")}
         <span class="flex-1 min-w-0 truncate">${T(t, "noir")}</span>
@@ -775,6 +776,8 @@ function MoreSheet({ S, t, item, src, title, subbed, toast }) {
     </div>
   <//>`;
 }
+
+
 const avatarSeen = new Map();                              
 const avatarWait = new Map();                              
 function accountAvatar(url) {
@@ -817,28 +820,136 @@ function ChannelAvatar({ channel, onClick, label, current }) {
   </button>`;
 }
 
-function SourceIsland({ S, t, src, title, clip, depth, channel }) {
-  const act = "btn btn-ghost btn-sm btn-circle shrink-0 border border-white/20 bg-white/10 text-white";
-  return html`<${Island} pinned at="bottom" tone="dark" className="flex items-center gap-1 min-w-0 max-w-full rounded-full">
-      ${depth ? html`<button data-feed-back class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "back")} onClick=${() => popFrame(S)}>${Icon("lucide:chevron-left", "text-xl")}</button>` : null}
-      <${Favicon} url=${src} size="w-6 h-6" />
-      <${ChannelAvatar} channel=${channel} current=${src} label=${channel?.name || ""}
-        onClick=${() => diveTo(S, channel.url, channel.name)} />
-      
-      
-      <span data-island-label data-island-src=${title} class="text-sm text-white truncate min-w-0 pl-0.5 pr-1">${clip || title}</span>
-      
-      <button data-more class=${act} aria-label=${T(t, "more")} onClick=${() => S.screen.set("more")}>${Icon("lucide:ellipsis", "text-base")}</button>
-    <//>
-  `;
+const $drawer = atom("");                                            
+
+
+const $searchBases = persistentAtom("reel:searchbase", {}, { encode: JSON.stringify, decode: JSON.parse });
+
+if (gate) $searchBases.set({ ...$searchBases.get(), [hostOf(DEFAULT_SRC)]: GATE_SEARCH });
+function rememberSearch(url, example) {
+  if (!example) return;
+  const host = hostOf(url); if (!host) return;
+  const cur = $searchBases.get();
+  if (cur[host] === example) return;
+  $searchBases.set({ ...cur, [host]: example });
+}
+const searchBaseFor = (url, bases) => {
+  if (!url) return "";
+  if (resolveSearch(url).searchable) return url;                     
+  return (bases || $searchBases.get())[hostOf(url)] || "";
+};
+const GATE_CAST = [
+  { name: "Nine Lives Studio", url: "https://mixkit.co/profiles/user10241/", avatar: null },
+  { name: "Proog", url: "https://mixkit.co/profiles/proog/", avatar: null },
+];
+const $cast = atom({ page: "", loading: false, people: [], err: false });
+async function pullCast(page) {
+  if (!page) return;
+  const cur = $cast.get();
+  if (cur.page === page && !cur.err) return;                         
+  $cast.set({ page, loading: true, people: [], err: false });
+  if (gate) { $cast.set({ page, loading: false, people: GATE_CAST, err: false }); return; }
+  try {
+    const r = await fetch(`${VPS_PROXY}/cast?url=${encodeURIComponent(page)}`, { headers: { "x-ms-egress": "reel" } });
+    const d = await r.json();
+    if ($cast.get().page !== page) return;
+    $cast.set({ page, loading: false, people: Array.isArray(d.people) ? d.people : [], err: !!d.error });
+  } catch {
+    if ($cast.get().page === page) $cast.set({ page, loading: false, people: [], err: true });
+  }
 }
 
 
 
+function CastFace({ person, onGo }) {
+  const initial = (person.name || "?").trim().charAt(0).toUpperCase();
+  const [pic, setPic] = useState(person.avatar || null);
+  return html`<button type="button" data-cast-person class="btn btn-ghost btn-sm h-auto py-1 pl-1 pr-2 rounded-full gap-1.5 shrink-0 border border-white/20 bg-white/10 text-white font-normal"
+      onClick=${() => onGo(person)} title=${person.name}>
+    ${pic
+      ? html`<img src=${pic} alt="" loading="lazy" class="w-6 h-6 rounded-full object-cover" onError=${() => setPic(null)} />`
+      : html`<span class="w-6 h-6 rounded-full grid place-items-center text-[0.7rem] font-semibold bg-white/20">${initial}</span>`}
+    <span class="text-xs max-w-[7rem] truncate">${person.name}</span>
+  </button>`;
+}
+
+function CastDrawer({ t, onGo }) {
+  const { loading, people, err } = useStore($cast);
+  if (loading) return html`<div data-cast-row class="flex items-center gap-1.5 px-1 py-0.5 overflow-hidden">
+    ${[0, 1, 2].map((i) => html`<span key=${i} class="h-8 w-24 rounded-full bg-white/10 animate-pulse shrink-0"></span>`)}
+  </div>`;
+  if (err || !people.length) return html`<div data-cast-row class="px-2.5 py-1.5 text-xs text-white/60">${T(t, err ? "loadErr" : "castNone")}</div>`;
+  
+  return html`<div data-cast-row data-scroller class="flex items-center gap-1.5 px-0.5 overflow-x-auto max-w-full"
+      style="-webkit-mask-image:linear-gradient(to right,transparent,#000 12px,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(to right,transparent,#000 12px,#000 calc(100% - 12px),transparent)">
+    ${people.map((p) => html`<${CastFace} key=${p.url} person=${p} onGo=${onGo} />`)}
+  </div>`;
+}
+
+function SearchDrawer({ t, base, onFind, onClose }) {
+  const [q, setQ] = useState(resolveSearch(base).term || "");
+  const ref = useRef();
+  useEffect(() => { ref.current?.focus?.(); }, []);
+  const go = (e) => { e?.preventDefault?.(); const term = q.trim(); if (term) onFind(term); };
+  return html`<form class="flex items-center gap-1 min-w-0 w-full" onSubmit=${go}>
+    <button type="button" class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "close")} onClick=${onClose}>
+      ${Icon("lucide:x", "text-lg")}
+    </button>
+    
+    <input id="island-q" ref=${ref} type="text" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+      class="grow min-w-0 bg-transparent text-sm text-white placeholder:text-white/40 outline-none px-1"
+      placeholder=${T(t, "searchPh")} aria-label=${T(t, "search")} value=${q} onInput=${(e) => setQ(e.target.value)} />
+    <button id="island-find" type="submit" class="btn btn-sm rounded-full gap-1 shrink-0 border border-white/20 bg-white/15 text-white hover:bg-white/25">
+      ${Icon("lucide:search", "text-sm")}<span class="text-xs">${T(t, "find")}</span>
+    </button>
+  </form>`;
+}
+
+function SourceIsland({ S, t, src, title, clip, depth, channel, page }) {
+  const act = "btn btn-ghost btn-sm btn-circle shrink-0 border border-white/20 bg-white/10 text-white";
+  const drawer = useStore($drawer), bases = useStore($searchBases);
+  const base = searchBaseFor(src, bases);
+  
+  useEffect(() => { if ($drawer.get() === "cast") $drawer.set(""); }, [page]);
+  
+  useEffect(() => { $drawer.set(""); }, [src]);
+  const toggle = (which) => { const next = drawer === which ? "" : which; $drawer.set(next); if (next === "cast") pullCast(page); };
+  const row = html`<div class="flex items-center gap-1 min-w-0 max-w-full">
+      ${depth ? html`<button data-feed-back class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "back")} onClick=${() => popFrame(S)}>${Icon("lucide:chevron-left", "text-xl")}</button>` : null}
+      <${Favicon} url=${src} size="w-6 h-6" />
+      <${ChannelAvatar} channel=${channel} current=${src} label=${channel?.name || ""}
+        onClick=${() => diveTo(S, channel.url, channel.name)} />
+      <span data-island-label data-island-src=${title} class="text-sm text-white truncate min-w-0 pl-0.5 pr-1">${clip || title}</span>
+      
+      ${base ? html`<button data-island-search class=${`${act} ${drawer === "search" ? "bg-white/25" : ""}`} aria-pressed=${drawer === "search"}
+        aria-label=${T(t, "search")} onClick=${() => toggle("search")}>${Icon("lucide:search", "text-base")}</button>` : null}
+      ${page ? html`<button data-island-cast class=${`${act} ${drawer === "cast" ? "bg-white/25" : ""}`} aria-pressed=${drawer === "cast"}
+        aria-label=${T(t, "cast")} onClick=${() => toggle("cast")}>${Icon("lucide:users", "text-base")}</button>` : null}
+      
+      <button data-more class=${act} aria-label=${T(t, "more")} onClick=${() => S.screen.set("more")}>${Icon("lucide:ellipsis", "text-base")}</button>
+    </div>`;
+  return html`<${Island} pinned at="bottom" tone="dark"
+      className=${`flex flex-col gap-1 min-w-0 max-w-full ${drawer ? "rounded-[1.6rem] w-[min(30rem,100%)]" : "rounded-full"}`}>
+    ${drawer === "cast" ? html`<${CastDrawer} t=${t} onGo=${(p) => { $drawer.set(""); diveTo(S, p.url, p.name); }} />` : null}
+    ${drawer === "search"
+      ? html`<${SearchDrawer} t=${t} base=${base} onClose=${() => $drawer.set("")}
+          onFind=${(term) => { $drawer.set(""); openAsSource(S, buildSearchUrl(base, term), term, false); }} />`
+      : row}
+  <//>`;
+}
+
+
+function useMonoFlag() {
+  const mono = useStore($mono);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (mono === "1") root.setAttribute("data-mono", "1"); else root.removeAttribute("data-mono");
+  }, [mono]);
+}
+
+
 
 function DragReveal({ underRef, diveRef, backRef, target, targetLabel, prev }) {
-  
-  
   return html`<div ref=${underRef} aria-hidden="true" class="fixed inset-0 z-0 sf-inset opacity-0">
     ${prev ? html`<div ref=${backRef} class="absolute inset-y-0 left-0 w-40 flex flex-col items-center justify-center gap-2 px-3 text-center opacity-0">
       ${Icon("lucide:corner-up-left", "text-2xl text-primary")}
@@ -863,11 +974,8 @@ function FeedSurface({ S, t, toast }) {
   const mono = useStore($mono);
   const underRef = useRef(), diveRef = useRef(), backRef = useRef();
   const target = diveTarget(items[active], src);
-  
   const targetLabel = target ? sourceTitle(target, { hint: items[active]?.title }) : "";
   const prev = frames.length ? frames[frames.length - 1] : null;
-
-  
   
   
   const { paneRef, pan } = usePanX({
@@ -891,14 +999,10 @@ function FeedSurface({ S, t, toast }) {
     
     const root = document.documentElement;
     root.setAttribute("data-feed", "");
+    
     return () => { root.removeAttribute("data-feed"); S.clean.set(false); };
   }, [S]);
-  
-  useEffect(() => {
-    const root = document.documentElement;
-    if (mono === "1") root.setAttribute("data-mono", "1"); else root.removeAttribute("data-mono");
-    return () => root.removeAttribute("data-mono");
-  }, [mono]);
+  useMonoFlag();
   useEffect(() => { void checkBlankPosters(); }, [items]);            
   useEffect(() => { if (next && active >= items.length - 3) loadSource(next, true); }, [active, items.length, next]);
   useEffect(() => { const it = items[active]; if (!it || gate) return; const id = setTimeout(() => markWatched(it.orig || it.video), 2500); return () => clearTimeout(id); }, [active, items]);   
@@ -908,6 +1012,8 @@ function FeedSurface({ S, t, toast }) {
     root.querySelectorAll("[data-idx]").forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [items]);                                                        
+  
+  
   useLayoutEffect(() => {
     if (restoreTo == null) return;
     const el = paneRef.current;
@@ -922,19 +1028,20 @@ function FeedSurface({ S, t, toast }) {
       : !items.length
         ? html`<section class="h-[100dvh] w-full flex flex-col items-center justify-center gap-3 text-white/60 px-8 text-center">${Icon("lucide:film", "text-5xl")}<div>${T(t, "empty")}</div><button class="btn btn-sm btn-outline text-white border-white/25 rounded-2xl" onClick=${() => S.tab.set("sources")}>${T(t, "changeSrc")}</button></section>`
         : items.map((it, i) => html`<${Slide} S=${S} item=${it} idx=${i} active=${i === active && !suspended} near=${Math.abs(i - active) <= PRELOAD} ephemeral=${it.eph != null ? it.eph : ephemeral} key=${(it.orig || it.video) + i} />`);
+
+  
+  
   
   const cur = items[active];
   
   const channel = cur?.channel || feedChannel;
-
   return html`<${Fragment}>
     <${DragReveal} underRef=${underRef} diveRef=${diveRef} backRef=${backRef} target=${target} targetLabel=${targetLabel} prev=${prev} />
     
     <div ref=${paneRef} ...${pan} data-scroller tabindex="0" role="region" aria-label=${T(t, "tabReel")} class="fixed inset-0 z-[1] bg-black overflow-y-auto snap-y snap-mandatory overscroll-y-contain touch-pan-y will-change-transform">${body}</div>
     
     ${clean ? null : html`<${SourceIsland} S=${S} t=${t} src=${src} title=${title} clip=${cur?.title || ""} subbed=${subs.some((s) => s.url === src)} depth=${frames.length}
-      channel=${channel} />`}
-    
+      channel=${channel} page=${cur?.page || ""} />`}
     ${screen === "more" ? html`<${MoreSheet} S=${S} t=${t} toast=${toast} item=${cur} src=${src} title=${title}
       subbed=${subs.some((s) => s.url === src)} />` : null}
     
@@ -955,80 +1062,112 @@ export function reel({ S, toast }) {
 
 
 
+
+
+
+
+
+
+
+
 const ROW_MAX = 120;
-function PageRow({ s, active, subbed, onPlay, onToggle, onOpen, onSession, hasSession, lead, sub, t }) {
-  const sr = resolveSearch(s.url);
-  const [searching, setSearching] = useState(false);
-  const [q, setQ] = useState(sr.term || "");
-  const submit = (e) => { e?.preventDefault?.(); const term = q.trim(); if (term) onPlay({ ...s, url: buildSearchUrl(s.url, term) }); };
+
+
+function SourceFace({ s, size = "w-10 h-10" }) {
+  const pic = s.avatar || avatarSeen.get(s.url) || null;
+  const [src, setSrc] = useState(pic);
+  if (!src) return html`<${Favicon} url=${s.url} size=${size} />`;
+  return html`<img src=${src} alt="" loading="lazy" class=${`${size} rounded-full object-cover shrink-0 bg-base-300`} onError=${() => setSrc(null)} />`;
+}
+
+function PageRow({ s, active, subbed, onPlay, onToggle, lead, sub, t }) {
   
-  return html`<li class=${`flex flex-col ${active ? "sf-inset rounded-2xl" : ""}`}>
-    <div class="flex items-center gap-0.5 pr-1">
-      <button data-src-row class="flex items-center gap-2.5 flex-1 min-w-0 text-left px-2.5 py-2.5 rounded-xl sf-press" onClick=${() => onPlay(s)}>
-        ${lead}
-        <span class="min-w-0 flex-1">
-          <span data-src-title class=${`block break-words leading-snug ${active ? "font-semibold" : ""}`}>${sourceTitle(s.url, { pageTitle: s.name, max: ROW_MAX })}</span>
-          ${sub ? html`<span class="block text-[0.7rem] font-mono text-base-content/70 truncate">${sub}</span>` : null}
-        </span>
-      </button>
-      ${sr.searchable ? html`<button data-search-toggle class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${searching ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "search")} aria-pressed=${searching} onClick=${() => setSearching((v) => !v)}>${Icon("lucide:search", "text-lg")}</button>` : null}
-      ${onOpen ? html`<button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-70" aria-label=${T(t, "openSite")} onClick=${() => onOpen(s)}>${Icon("lucide:external-link", "text-lg")}</button>` : null}
-      ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(s)}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
-      <button class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${subbed ? "text-primary" : "opacity-50"}`} aria-label=${T(t, subbed ? "unsub" : "sub")} data-haptic=${subbed ? "bump" : "off"} onClick=${onToggle}>${Icon(subbed ? "lucide:check" : "lucide:plus", "text-lg")}</button>
-    </div>
-    ${searching ? html`<form onSubmit=${submit} class="flex items-center gap-2 px-2.5 pb-2.5">
-      <label class="input input-sm flex items-center gap-2 rounded-xl flex-1">
-        ${Icon("lucide:search", "opacity-50 shrink-0 text-sm")}
-        <input data-search-input type="search" inputmode="search" autocomplete="off" class="grow min-w-0" placeholder=${T(t, "searchPh")} aria-label=${T(t, "search")} value=${q} onInput=${(e) => setQ(e.target.value)} />
-      </label>
-      <button type="submit" class="btn btn-primary btn-sm btn-circle" aria-label=${T(t, "search")}>${Icon("lucide:play")}</button>
-    </form>` : null}
+  
+  
+  return html`<li class=${`flex items-center gap-0.5 pr-1 ${active ? "sf-inset rounded-2xl" : ""}`}>
+    <button data-src-row class="flex items-center gap-2.5 flex-1 min-w-0 text-left px-2.5 py-2.5 rounded-xl sf-press" onClick=${() => onPlay(s)}>
+      ${lead}
+      <span class="min-w-0 flex-1">
+        <span data-src-title class=${`block break-words leading-snug ${active ? "font-semibold" : ""}`}>${sourceTitle(s.url, { pageTitle: s.name, max: ROW_MAX })}</span>
+        ${sub ? html`<span class="block text-[0.7rem] font-mono text-base-content/70 truncate">${sub}</span>` : null}
+      </span>
+    </button>
+    <button data-src-keep class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${subbed ? "text-primary" : "opacity-50"}`} aria-label=${T(t, subbed ? "unsub" : "sub")} data-haptic=${subbed ? "bump" : "off"} onClick=${onToggle}>${Icon(subbed ? "lucide:check" : "lucide:plus", "text-lg")}</button>
   </li>`;
 }
+
+
+
+
+
 
 function DomainCard({ g, curSrc, subbedUrls, onPlay, onOpen, onToggle, onSession, sessions, t }) {
   const hot = g.items.some((s) => s.url === curSrc);
   const hasSession = !!(sessions && sessions[g.domain]);
   const shell = `rounded-2xl ${hot ? "bg-primary/10 sf-e3" : "sf-raised sf-e2"}`;
-  if (g.items.length === 1) {
-    const s = g.items[0];
-    return html`<ul class=${shell}><${PageRow} s=${s} active=${s.url === curSrc} subbed=${subbedUrls.has(s.url)} onPlay=${onPlay} onOpen=${onOpen} onToggle=${() => onToggle(s)} onSession=${onSession} hasSession=${hasSession} lead=${html`<${Favicon} url=${s.url} size="w-10 h-10" />`} sub=${g.domain} t=${t} /></ul>`;
+  const one = g.items.length === 1 ? g.items[0] : null;
+  const oneName = one ? sourceTitle(one.url, { pageTitle: one.name, max: ROW_MAX }) : "";
+  const solo = one && oneName.toLowerCase() === String(g.name || "").toLowerCase();   
+  const head = html`<div class="flex items-center gap-2.5 min-w-0 flex-1 text-left px-2.5 py-2.5 rounded-xl">
+    <${SourceFace} s=${one || g.items[0]} />
+    <span class="min-w-0 flex-1">
+      
+      <span data-src-title=${solo ? "" : null} class="block font-semibold truncate leading-tight">${solo ? oneName : g.name}</span>
+      <span class="block text-[0.7rem] font-mono text-base-content/70 truncate">${g.domain}${g.items.length > 1 ? ` · ${g.items.length}` : ""}</span>
+    </span>
+  </div>`;
+  const siteActs = html`<${Fragment}>
+    <button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-70" aria-label=${T(t, "openSite")} onClick=${() => onOpen(g.items[0])}>${Icon("lucide:external-link", "text-lg")}</button>
+    ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(g.items[0])}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
+  <//>`;
+  if (solo) {
+    return html`<section class=${`${shell} flex items-center gap-0.5 pr-1 ${one.url === curSrc ? "sf-inset" : ""}`}>
+      <button data-src-row class="flex min-w-0 flex-1 sf-press rounded-2xl text-left" onClick=${() => onPlay(one)}>
+        ${head}
+      </button>
+      ${siteActs}
+      <button data-src-keep class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${subbedUrls.has(one.url) ? "text-primary" : "opacity-50"}`} aria-label=${T(t, subbedUrls.has(one.url) ? "unsub" : "sub")} data-haptic=${subbedUrls.has(one.url) ? "bump" : "off"} onClick=${() => onToggle(one)}>${Icon(subbedUrls.has(one.url) ? "lucide:check" : "lucide:plus", "text-lg")}</button>
+    </section>`;
   }
   return html`<section class=${`${shell} overflow-hidden`}>
-    <header class="flex items-center gap-2.5 px-2.5 py-2.5 border-b border-base-300">
-      <${Favicon} url=${g.items[0].url} size="w-10 h-10" />
-      <div class="min-w-0 flex-1">
-        <div class="font-semibold truncate leading-tight">${g.name}</div>
-        <div class="text-[0.7rem] font-mono text-base-content/70 truncate">${g.domain}</div>
-      </div>
-      <span class="text-xs font-mono text-base-content/70 tabular-nums px-1">${g.items.length}</span>
-      <button data-open-site class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-70" aria-label=${T(t, "openSite")} onClick=${() => onOpen(g.items[0])}>${Icon("lucide:external-link", "text-lg")}</button>
-      ${onSession ? html`<button data-session class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${hasSession ? "text-primary" : "opacity-70"}`} aria-label=${T(t, "sessTitle")} aria-pressed=${hasSession} onClick=${() => onSession(g.items[0])}>${Icon("lucide:key-round", "text-lg")}</button>` : null}
-    </header>
+    <header class="flex items-center gap-0.5 pr-1 border-b border-base-300">${head}${siteActs}</header>
     <ul class="divide-y divide-base-300/60">
       ${g.items.map((s) => html`<${PageRow} s=${s} active=${s.url === curSrc} subbed=${subbedUrls.has(s.url)} onPlay=${onPlay} onToggle=${() => onToggle(s)} lead=${html`<span class=${`shrink-0 rounded-full ${s.url === curSrc ? "w-1.5 h-5 bg-primary" : "w-1.5 h-1.5 bg-base-content/30"}`}></span>`} t=${t} key=${s.url} />`)}
     </ul>
   </section>`;
 }
 
+
+const FILTER_FROM = 6;
 export function sources({ S, undo, toast }) {
   const t = useStore(S.t), screen = useStore(S.screen);
   useShareIntake(S, toast);
   const subs = useStore($subs), curSrc = useStore($src), watchedN = useStore($watched).size, sessions = useStore($sessions);
+  const [q, setQ] = useState("");
   const editSession = (s) => { $sessSite.set(s.url); S.screen.set("session"); };
   const play = (s) => { resetNav(S); $owner.set("reel"); openSource(s.url, s.name); S.tab.set("reel"); };   
   const subbedUrls = new Set(subs.map((x) => x.url));
-  const mine = groupByDomain(subs);
-  const discover = groupByDomain(PRESETS.filter((p) => !subbedUrls.has(p.url)));
+  
+  const needle = q.trim().toLowerCase();
+  const hit = (s) => !needle || `${sourceTitle(s.url, { pageTitle: s.name })} ${hostOf(s.url)}`.toLowerCase().includes(needle);
+  const mine = groupByDomain(subs.filter(hit));
+  const discover = groupByDomain(PRESETS.filter((p) => !subbedUrls.has(p.url) && hit(p)));
   return html`<${Fragment}>
     <div class="flex flex-col gap-4 @container">
-      <button id="add-url" class="btn btn-primary rounded-2xl gap-2" onClick=${() => S.screen.set("source")}>${Icon("lucide:plus")} ${T(t, "addUrl")}</button>
+      
+      <div class="flex items-center gap-2">
+        ${subs.length >= FILTER_FROM ? html`<label class="input input-sm flex items-center gap-2 rounded-2xl flex-1 min-w-0">
+          ${Icon("lucide:filter", "opacity-50 shrink-0 text-sm")}
+          <input id="src-filter" type="search" inputmode="search" autocomplete="off" class="grow min-w-0" placeholder=${T(t, "filterPh")} aria-label=${T(t, "filterPh")} value=${q} onInput=${(e) => setQ(e.target.value)} />
+        </label>` : null}
+        <button id="add-url" class=${`btn btn-primary rounded-2xl gap-2 ${subs.length >= FILTER_FROM ? "btn-sm shrink-0" : "flex-1"}`} onClick=${() => S.screen.set("source")}>${Icon("lucide:plus")} ${T(t, "addUrl")}</button>
+      </div>
 
       <div class="flex flex-col gap-2.5">
         <div class="text-sm font-semibold px-1 flex items-center gap-1.5">${Icon("lucide:bookmark", "text-primary")} ${T(t, "subs")}</div>
         ${mine.length
           ? mine.map((g) => html`<${DomainCard} g=${g} curSrc=${curSrc} subbedUrls=${subbedUrls} onPlay=${play} onOpen=${openSite} onToggle=${(s) => unsubscribe(s.url)} onSession=${editSession} sessions=${sessions} t=${t} key=${g.domain} />`)
-          : html`<div class="text-sm text-base-content/70 px-1 py-3">${T(t, "noSubs")}</div>`}
+          : html`<div class="text-sm text-base-content/70 px-1 py-3">${T(t, needle ? "noHits" : "noSubs")}</div>`}
       </div>
 
       ${discover.length ? html`<div class="flex flex-col gap-2.5">
@@ -1043,9 +1182,12 @@ export function sources({ S, undo, toast }) {
   </${Fragment}>`;
 }
 
+
+
 export function liked({ S, toast }) {
   const t = useStore(S.t), likes = useStore($likes), owner = useStore($owner);
   useShareIntake(S, toast);   
+  useMonoFlag();              
   const sorted = [...likes].sort((a, b) => (b.ts || 0) - (a.ts || 0));
   if (owner === "liked") return html`<${FeedSurface} S=${S} t=${t} toast=${toast} />`;
   const playAt = (i) => {
@@ -1056,6 +1198,7 @@ export function liked({ S, toast }) {
   };
   if (!sorted.length) return html`<div class="flex flex-col items-center justify-center gap-3 text-muted text-center" style="min-height:60vh">${Icon("lucide:heart", "text-6xl opacity-30")}<div class="text-sm max-w-[16rem]">${T(t, "likedEmpty")}</div></div>`;
   return html`<div data-liked class="grid grid-cols-3 gap-1.5">
+    
     ${sorted.map((l, i) => html`<div class="relative aspect-[9/16] rounded-xl overflow-hidden sf-inset" key=${l.id}>
       <button data-liked-tile class="absolute inset-0 w-full h-full active:scale-[.98] transition" aria-label=${l.title || l.host} onClick=${() => playAt(i)}>
         ${l.poster
