@@ -22,13 +22,16 @@ export default [
     },
   },
   {
-    name: "дзвінок: сповіщення про Kp у профілі", run: async (h) => {
-      await h.click('[data-tab="me"]'); await h.wait(400);
+    name: "дзвінок: з панелі, одним тапом від числа", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("#watch-btn")) === 1, "немає дзвінка в панелі");
+      await h.click("#watch-btn"); await h.wait(400);
       h.expect((await h.count('[data-watch="kp"]')) === 1, "немає картки сповіщень");
       h.expect((await h.count("[data-watch-add]")) === 1, "немає кнопки додати");
       h.expect((await h.count('[data-watch-op="above"]')) === 1, "немає порогу вище");
       h.expect((await h.count("[data-watch-rules] li")) >= 1, "немає списку правил");
-      await h.click('[data-tab="now"]'); await h.wait(120);
+      await h.back(); await h.wait(250);
+      h.expect((await h.count('[data-watch="kp"]')) === 0, "Back не закрив екран");
     },
   },
   {
