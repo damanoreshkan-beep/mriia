@@ -1,6 +1,6 @@
 self.MS = {
   app: "ruler",
-  version: "96f349e9a8",
+  version: "2196bc7cf0",
   precache: [
     "./",
     "./i18n/en.json",
@@ -57,6 +57,7 @@ self.MS = {
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
+    "/_rt/watch.js",
     "/_rt/weather.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",

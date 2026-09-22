@@ -1,6 +1,6 @@
 self.MS = {
   app: "zir",
-  version: "94e1de41c3",
+  version: "e28e0a26c1",
   precache: [
     "./",
     "./i18n/en.json",
@@ -65,6 +65,7 @@ self.MS = {
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
+    "/_rt/watch.js",
     "/_rt/weather.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",

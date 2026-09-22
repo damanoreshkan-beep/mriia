@@ -1,6 +1,6 @@
 self.MS = {
   app: "afterdark",
-  version: "f016cdc208",
+  version: "a5cf7468fb",
   precache: [
     "./",
     "./afterdark.frag",
@@ -70,6 +70,7 @@ self.MS = {
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
+    "/_rt/watch.js",
     "/_rt/weather.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",

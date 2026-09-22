@@ -1,6 +1,6 @@
 self.MS = {
   app: "earshot",
-  version: "70ca2d57d1",
+  version: "3c81a12c55",
   precache: [
     "./",
     "./i18n/en.json",
@@ -56,6 +56,7 @@ self.MS = {
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
+    "/_rt/watch.js",
     "/_rt/weather.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "portal",
-  version: "e79c223446",
+  version: "6d92964120",
   precache: [
     "./",
     "./graph.js",
@@ -61,6 +61,7 @@ self.MS = {
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
+    "/_rt/watch.js",
     "/_rt/weather.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",

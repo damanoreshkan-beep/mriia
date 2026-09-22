@@ -1,6 +1,6 @@
 self.MS = {
   app: "drift",
-  version: "bf2ab50946",
+  version: "f03f39c298",
   precache: [
     "./",
     "./i18n/en.json",
@@ -62,6 +62,7 @@ self.MS = {
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",
+    "/_rt/watch.js",
     "/_rt/weather.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",
