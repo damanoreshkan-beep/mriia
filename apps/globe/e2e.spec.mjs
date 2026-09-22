@@ -63,6 +63,8 @@ export default [
       h.expect((await h.count("canvas")) >= 1, "немає глобуса у вкладці МКС");
       const txt = await h.bodyText();
       h.expect(/км|km|\d/.test(txt), "немає читання позиції/висоти МКС");
+      h.expect((await h.count("[data-me]")) === 1, "не видно, де я");
+      h.expect((await h.count("[data-me-ask]")) === 0, "під воротами місце вже відоме, а кнопка запиту є");
     },
   },
   {

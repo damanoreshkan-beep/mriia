@@ -22,13 +22,14 @@ export default [
     },
   },
   {
-    name: "дзвінок: з панелі, одним тапом від числа", run: async (h) => {
+    name: "дзвінок: з панелі, одним тапом від слова", run: async (h) => {
       await ready(h);
       h.expect((await h.count("#watch-btn")) === 1, "немає дзвінка в панелі");
       await h.click("#watch-btn"); await h.wait(400);
       h.expect((await h.count('[data-watch="kp"]')) === 1, "немає картки сповіщень");
       h.expect((await h.count("[data-watch-add]")) === 1, "немає кнопки додати");
-      h.expect((await h.count('[data-watch-op="above"]')) === 1, "немає порогу вище");
+      h.expect((await h.count("[data-watch-bands] [data-watch-band]")) >= 2, "немає слів замість порогу");
+      h.expect((await h.count("[data-watch-value]")) === 0, "поле числа лишилось там, де читають слово");
       h.expect((await h.count("[data-watch-rules] li")) >= 1, "немає списку правил");
       await h.back(); await h.wait(250);
       h.expect((await h.count('[data-watch="kp"]')) === 0, "Back не закрив екран");
