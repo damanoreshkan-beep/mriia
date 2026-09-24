@@ -6,7 +6,6 @@ import { Sheet } from "/_rt/ui.js";
 import { collection } from "/_rt/db.js";
 import apps from "./apps.json" with { type: "json" };
 import spec from "./spec.json" with { type: "json" };
-import { Sky } from "./sky.js";
 
 const Icon = (icon, cls, style) => html`<iconify-icon icon=${icon} class=${cls || ""} style=${style || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -252,11 +251,19 @@ export function store({ S, openScreen, closeScreen }) {
   
   
   
-  
-  return html`<div class="flex flex-col gap-4" data-store-mode="sky" data-store-search=${searchOpen ? "open" : "folded"} data-store-count=${apps.length} data-store-newborn=${NEWBORN.length} data-store-page=${sel ? sel.id : null}>
+  return html`<div class="flex flex-col gap-7" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-featured=${FEATURED.length} data-store-newborn=${NEWBORN.length} data-store-page=${sel ? sel.id : null}>
     ${headRow}
-    <${Sky} apps=${apps} cats=${CATS} catLabel=${(c) => T(t, catKey(c))} nameOf=${nameOf} isNewborn=${isNewborn} isFeatured=${isFeatured} iconUrl=${(a) => `../${a.id}/icon.svg`} onOpen=${tap} />
-    <ul class="sr-only">${[...apps].sort(byName).map((a) => html`<li key=${a.id}><button data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)}>${nameOf(a)}${badgeOf(a) ? " · " + T(t, badgeOf(a) === "new" ? "newBadge" : "updBadge") : ""}</button></li>`)}</ul>
+    ${FEATURED.length ? html`<div class="ms-stagger grid grid-cols-2 md:grid-cols-3 gap-3">${FEATURED.map((a, i) => html`<div style=${`--i:${i}`} key=${a.id} class=${i === 0 ? "col-span-2 md:col-span-3" : "min-h-0"}>${i === 0 ? Featured(a) : FeaturedTall(a)}</div>`)}</div>` : null}
+    ${freshSection}
+    ${CATS.map((c) => {
+      const items = apps.filter((a) => a.category === c).sort(byName);
+      if (!items.length) return null;
+      return html`<div class="flex flex-col gap-2" key=${c}>
+        ${sectionHead(T(t, catKey(c)), items.length)}
+        ${items.every(needsUsb) ? html`<div class="flex items-center gap-1.5 text-sm text-muted px-0.5">${Icon("lucide:usb", "shrink-0", "color:var(--app-accent)")}<span>${T(t, "needsDevice")}</span></div>` : null}
+        ${rows(items)}
+      </div>`;
+    })}
     ${page}
   </div>`;
 }
