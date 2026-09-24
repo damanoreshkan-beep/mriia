@@ -2,36 +2,29 @@ const ready = async (h) => { for (let i = 0; i < 12; i++) { if ((await h.count("
 
 export default [
   {
-    name: "стор: сітка + пошук; перший візит не позначає нічого як нове", run: async (h) => {
+    name: "стор: небо з усіма апками; перший візит не позначає нічого як нове", run: async (h) => {
       await ready(h); await h.wait(200);
-      h.expect((await h.count("[data-app]")) >= 10, "замало плиток застосунків");
-      h.expect((await h.count(".input")) === 1, "немає поля пошуку");
+      h.expect((await h.count(".ms-sky canvas")) === 1, "немає полотна неба");
+      h.expect((await h.count("[data-store-mode='sky']")) === 1, "браузерний режим не «небо»");
+      h.expect((await h.count("[data-app]")) >= 70, "небо не покриває всю ферму");
       const badges = await h.count(".badge-primary");
       h.expect(badges === 0, `перший візит позначив ${badges} застосунків як нові — базова лінія не записалась`);
-      h.expect(!/НОВЕ|NEW/.test(await h.text('[data-app="rave"]')), "бейдж НОВЕ на першому візиті");
     },
   },
   {
-    name: "пошук фільтрує сітку", run: async (h) => {
+    name: "пошук згортає небо у рядки; фільтрує; × повертає", run: async (h) => {
       await ready(h);
       const base = await h.count("[data-app]");
       h.expect((await h.count("#search-btn")) === 1, "немає іконки пошуку в рядку «Сьогодні»");
       h.expect((await h.count("[data-search-open]")) === 0, "поле пошуку розгорнуте до дотику");
       await h.type("#store-filter", "рейв"); await h.wait(250);
+      h.expect((await h.count("[data-store-mode='search']")) === 1, "пошук не перемкнув режим у список");
       const now = await h.count("[data-app]");
-      h.expect(now >= 1 && now < base, "пошук не звузив сітку");
+      h.expect(now >= 1 && now < base, "пошук не звузив список");
       h.expect((await h.count("[data-search-open]")) === 1, "запит є, а поле згорнуте — нема як його стерти");
       await h.type("#store-filter", ""); await h.wait(250);
-      h.expect((await h.count("[data-app]")) === base, "не відновилось після очищення");
       await h.click("#search-close"); await h.wait(250);
-      h.expect((await h.count("[data-search-open]")) === 0, "× не згорнув поле");
-    },
-  },
-  {
-    name: "одна сторінка: кожна категорія показує всі свої застосунки", run: async (h) => {
-      await ready(h);
-      h.expect((await h.count("[data-app]")) >= 70, "головна не показує всю ферму");
-      h.expect((await h.count("[data-cat]")) === 0, "перемикач категорій повернувся — Back із нього не працює");
+      h.expect((await h.count("[data-store-mode='sky']")) === 1, "× не повернув небо");
     },
   },
   {
@@ -47,6 +40,19 @@ export default [
     },
   },
   {
+    name: "сторінка апки: Install + скрін + версія (через пошук)", run: async (h) => {
+      await ready(h);
+      await h.type("#store-filter", "tide"); await h.wait(250);
+      await h.click('[data-app="tide"]'); await h.wait(300);
+      h.expect((await h.prop("#appsheet", "open")) === true, "рядок не відкрив сторінку апки");
+      h.expect((await h.count("#install-app")) === 1, "немає кнопки Встановити на сторінці апки");
+      h.expect((await h.count("#appsheet img[src*='shot-tide']")) === 1, "немає скріншота на сторінці апки");
+      h.expect(/v\d/.test(await h.text("#appsheet")), "немає версії на сторінці апки");
+      await h.back(); await h.wait(250);
+      h.expect((await h.prop("#appsheet", "open")) !== true, "Back не закрив сторінку апки");
+    },
+  },
+  {
     name: "i18n EN/UA міняє chrome", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('[data-loc="en"]'); await h.wait(250);
@@ -54,37 +60,6 @@ export default [
       await h.click('[data-loc="uk"]'); await h.wait(250);
       h.expect(/Застосунки|Мова|Я/.test(await h.bodyText()), "не UA");
       await h.click('[data-tab="apps"]'); await h.wait(120);
-    },
-  },
-  {
-    name: "стор: добірка карток, сторінка апки з Install і скріном, категорія → рядки", run: async (h) => {
-      await ready(h);
-      h.expect((await h.count("[data-featured]")) >= 2, "немає карток добірки");
-      h.expect((await h.count('[data-featured][data-app="spirit"]')) === 1, "Дух карти не в добірці");
-      const newborn = await h.count("[data-featured][data-newborn]");
-      if (newborn) {
-        h.expect((await h.attr("[data-featured]", "data-newborn")) === "1", "новонароджений не веде стек «Сьогодні»");
-        h.expect(/сьогодні|учора|today|yesterday/i.test(await h.text(".st-hero")), "брова героя-новинки не каже «коли»");
-      } else h.expect((await h.text("[data-slogan]")).trim().length > 5, "герой без гасла");
-      await h.click('[data-featured][data-app="tide"]'); await h.wait(300);
-      h.expect((await h.prop("#appsheet", "open")) === true, "картка добірки не відкрила сторінку апки");
-      h.expect((await h.count("#install-app")) === 1, "немає кнопки Встановити на сторінці апки");
-      h.expect((await h.count("#appsheet img[src*='shot-tide']")) === 1, "немає скріншота на сторінці апки");
-      h.expect(/v\d/.test(await h.text("#appsheet")), "немає версії на сторінці апки");
-      await h.back(); await h.wait(250);
-      h.expect((await h.prop("#appsheet", "open")) !== true, "Back не закрив сторінку апки");
-      h.expect((await h.count("[data-app] .btn")) >= 10, "рядки без кнопки Відкрити");
-    },
-  },
-  {
-    name: "свіжі новинки: слайди по 3 дрібні картки з описом, лічильник сторінок", run: async (h) => {
-      await ready(h);
-      const slides = await h.count("[data-fresh-slide]");
-      if (!slides) return;
-      const cards = await h.count("[data-fresh-card]");
-      h.expect(cards <= slides * 3 && cards > (slides - 1) * 3, `${cards} карток на ${slides} слайдах — не по 3`);
-      h.expect((await h.text("[data-fresh-card]")).trim().length >= 30, "картка новинки без опису");
-      if (slides > 1) h.expect(new RegExp(`1\\s*/\\s*${slides}`).test(await h.text("[data-fresh-page]")), "немає лічильника сторінок");
     },
   },
   {
