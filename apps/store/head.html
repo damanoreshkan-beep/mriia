@@ -17,4 +17,14 @@
     .st-slide{width:calc(100% - 2rem)}
     .st-slide:only-child{width:100%}
     
-    .st-fresh-life{position:absolute;left:0;top:50%;width:2px;height:calc(var(--life,1) * 72%);transform:translateY(-50%);border-radius:1px;background:var(--app-accent);box-shadow:0 0 6px var(--app-accent)}</style>
+    .st-fresh-life{position:absolute;left:0;top:50%;width:2px;height:calc(var(--life,1) * 72%);transform:translateY(-50%);border-radius:1px;background:var(--app-accent);box-shadow:0 0 6px var(--app-accent)}
+    @keyframes st-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+    @keyframes st-rim{0%,100%{box-shadow:0 0 0 0 rgba(242,184,75,0)}50%{box-shadow:0 0 14px 2px color-mix(in oklab, var(--app-accent) 55%, transparent)}}
+    .st-hero .st-hero-shot{animation:st-float 6s ease-in-out infinite}
+    .st-hero .st-hero-shot2{animation-delay:-3s}
+    .st-hero-text > .flex > .rounded-\[22\%\]{animation:st-rim 4s ease-in-out infinite}
+    .st-cat-glyph{color:var(--app-accent);font-size:1.05em;line-height:1;filter:drop-shadow(0 0 5px color-mix(in oklab, var(--app-accent) 60%, transparent))}
+    [data-app] .btn, [data-featured] ~ * .btn, .st-fresh{transition:transform .18s cubic-bezier(.2,.9,.2,1), box-shadow .18s ease}
+    [data-app] .btn:active, .st-fresh:active{transform:scale(.96);box-shadow:0 0 12px 1px color-mix(in oklab, var(--app-accent) 45%, transparent)}
+    [data-app]:has(> button:active) .rounded-\[22\%\]{box-shadow:0 0 12px 1px color-mix(in oklab, var(--app-accent) 45%, transparent)}
+    @media (prefers-reduced-motion: reduce){.st-hero .st-hero-shot, .st-hero-text > .flex > .rounded-\[22\%\]{animation:none}}</style>
