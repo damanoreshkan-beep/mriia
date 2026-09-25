@@ -1,91 +1,133 @@
 import { html } from "htm/preact";
-import { useState, useMemo, useEffect } from "preact/hooks";
+import { useState, useMemo, useEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
+import { animate, stagger } from "motion";
 import { T } from "/_rt/i18n.js";
 import { Globe } from "/_rt/globe.js";
-import { Panel, Island, Segmented } from "/_rt/ui.js";
+import { Panel, Island, Segmented, Sheet } from "/_rt/ui.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { session, restore } from "/_rt/auth.js";
+import { gate } from "/_rt/gate.js";
+import { CATEGORIES, KIND_OF, presetQuery } from "./categories.js";
 import fixture from "./fixture.json" with { type: "json" };
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const ACCENT = "#F5B94D";
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
-const Chip = (t) => html`<span class="badge badge-ghost gap-1 font-mono text-xs uppercase tracking-wider" data-sample>${Icon("lucide:flask-conical")} ${T(t, "sample")}</span>`;
-const REASON = { no_query_credits: "creditsWarn", no_key: "noKey" };
+const CAT_ICON = { camera: "lucide:cctv", database: "lucide:database", access: "lucide:monitor", files: "lucide:folder-open", device: "lucide:printer", vuln: "lucide:shield-alert" };
+const VENDOR = { cam_dahua: "Dahua", cam_hik: "Hikvision", cam_axis: "Axis", db_mongo: "Mongo", db_redis: "Redis", db_mysql: "MySQL", db_postgres: "PostgreSQL", elastic: "Elastic", acc_rdp: "RDP", ssh: "SSH", vnc: "VNC" };
 
 export function map({ S }) {
   const t = useStore(S.t);
-  const [q, setQ] = useState("");
+  const me = useStore(session);
+  useEffect(() => { if (!me) restore().catch(() => {}); }, []);   
+  const [cat, setCat] = useState(null);        
+  const [preset, setPreset] = useState(null);  
   const [country, setCountry] = useState("all");
   const [sel, setSel] = useState(null);
   const [hosts, setHosts] = useState(fixture.matches);
   const [live, setLive] = useState(false);
   const [reason, setReason] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [adv, setAdv] = useState("");
+  const [advOpen, setAdvOpen] = useState(false);
+
+  const activeCat = CATEGORIES.find((c) => c.id === cat) || null;
+  const catKind = activeCat ? KIND_OF[activeCat.presets[0]] : null;
 
   const countries = useMemo(() => {
     const seen = new Map();
     for (const h of hosts) if (h.cc && !seen.has(h.cc)) seen.set(h.cc, h.country || h.cc);
-    return [{ id: "all", label: T(t, "filterAll") }, ...[...seen].sort((a, b) => a[1].localeCompare(b[1])).map(([id, label]) => ({ id, label }))];
+    return [{ id: "all", label: T(t, "everywhere") }, ...[...seen].sort((a, b) => a[1].localeCompare(b[1])).map(([id, label]) => ({ id, label }))];
   }, [t, hosts]);
 
   const shown = useMemo(() => {
-    const ql = q.trim().toLowerCase();
-    return hosts.filter((h) => (country === "all" || h.cc === country) &&
-      (!ql || h.ip.includes(ql) || (h.org || "").toLowerCase().includes(ql) || (h.city || "").toLowerCase().includes(ql) || String(h.port).includes(ql)));
-  }, [q, country, hosts]);
+    const vend = preset && VENDOR[preset] ? VENDOR[preset].toLowerCase() : null;
+    return hosts.filter((h) =>
+      (!catKind || h.kind === catKind) &&
+      (!vend || (h.product || "").toLowerCase().includes(vend)) &&
+      (country === "all" || h.cc === country));
+  }, [hosts, catKind, preset, country]);
 
-  const search = async () => {
-    const query = q.trim(); if (!query || busy) return;
-    setBusy(true); setReason("");
+  const runLive = async (query) => {
+    if (!query || gate || !session.get()) return;   
+    setReason("");
     try {
       const r = await fetch(VPS_PROXY + "/shodan/search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, country: country === "all" ? "" : country }) });
       const j = await r.json().catch(() => null);
-      if (r.ok && j && Array.isArray(j.matches)) { setHosts(j.matches); setLive(true); setSel(null); setQ(""); }
-      else setReason((j && REASON[j.error]) || (r.status === 401 ? "" : "creditsWarn"));
+      if (r.ok && j && Array.isArray(j.matches) && j.matches.length) { setHosts(j.matches.map((m) => ({ ...m, kind: catKind || m.kind }))); setLive(true); setSel(null); }
+      else setReason(j && j.error === "no_key" ? "noKey" : "creditsWarn");
     } catch { setReason("creditsWarn"); }
-    finally { setBusy(false); }
   };
 
-  const points = shown.map((h) => ({ lat: h.lat, lon: h.lon, r: 5, color: ACCENT, pulse: !!sel && sel.ip === h.ip && sel.port === h.port, host: h }));
+  const pickCat = (id) => {
+    const next = id === cat ? null : id;
+    setCat(next); setPreset(null); setSel(null);
+    if (next) runLive(presetQuery(CATEGORIES.find((c) => c.id === next).presets[0], country));
+  };
+  const pickPreset = (p) => { setPreset(p); setSel(null); runLive(presetQuery(p, country)); };
+
+  const color = (h) => h.vulns > 0 ? "#F2777A" : ACCENT;
+  const points = shown.map((h) => ({ lat: h.lat, lon: h.lon, r: 5, color: color(h), pulse: !!sel && sel.ip === h.ip, host: h }));
   const focus = sel ? { lat: sel.lat, lon: sel.lon } : null;
   const pick = ({ point }) => { if (point && point.host) setSel(point.host); };
 
-  return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-shown=${shown.length} data-live=${live ? "1" : null}>
+  const kindWord = (h) => T(t, "kind." + (h.kind || "access"));
+  const summary = (h) => [h.city ? T(t, "sumPlace", { city: h.city }) : "", T(t, "sumPorts", { n: h.ports || 1 }), h.vulns > 0 ? T(t, "sumVulns", { n: h.vulns }) : T(t, "sumSafe")].filter(Boolean).join(". ") + ".";
+
+  return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-shown=${shown.length} data-cat=${cat || ""} data-live=${live ? "1" : null}>
     <${Globe} points=${points} focus=${focus} spin=${!sel} onPick=${pick} />
 
     ${sel ? html`<${Panel} data-host=${sel.ip}>
-      <div class="flex items-center justify-between gap-2">
-        <span class="font-mono font-semibold tracking-wide">${sel.ip}</span>
-        <button class="btn btn-ghost btn-xs btn-circle" onClick=${() => setSel(null)} aria-label=${T(t, "close")}>${Icon("lucide:x", "text-base")}</button>
-      </div>
-      <div class="divide-y divide-base-300/40">
-        ${[["lucide:door-open", "hostPort", String(sel.port)], ["lucide:building-2", "hostOrg", sel.org], ["lucide:server", "hostProduct", sel.product], ["lucide:map-pin", "hostPlace", [sel.city, sel.country].filter(Boolean).join(", ")]]
-          .filter(([, , v]) => v).map(([icon, key, v]) => html`<div class="flex items-center gap-2.5 py-2">
-            <span class="text-base-content/70 shrink-0 w-5 text-center">${Icon(icon)}</span>
-            <span class="grow text-sm">${T(t, key)}</span>
-            <span class="font-mono text-sm text-right break-all">${v}</span>
-          </div>`)}
+      <div class="flex items-start gap-3">
+        <span class="w-10 h-10 shrink-0 rounded-[var(--ms-r-in)] grid place-items-center" style=${{ background: color(sel) + "22", color: color(sel) }}>${Icon(CAT_ICON[sel.kind] || "lucide:radio-tower", "text-xl")}</span>
+        <div class="min-w-0 grow">
+          <div class="font-semibold leading-tight">${kindWord(sel)}${sel.product ? html` · <span class="font-normal text-base-content/80">${sel.product}</span>` : null}</div>
+          <div class="text-sm text-base-content/80 leading-snug mt-0.5">${summary(sel)}</div>
+          <div class="font-mono text-xs text-muted mt-1">${sel.ip}${sel.org ? " · " + sel.org : ""}</div>
+        </div>
+        <button class="btn btn-ghost btn-xs btn-circle shrink-0" onClick=${() => setSel(null)} aria-label=${T(t, "close")}>${Icon("lucide:x", "text-base")}</button>
       </div>
     <//>` : null}
 
     <${Island}>
-      <div class="flex items-center gap-2">
-        <label class="input flex items-center gap-2 grow h-[var(--ms-ctl)] rounded-[var(--ms-r-in)]">
-          ${Icon("lucide:search", "text-lg text-base-content/70")}
-          <input id="host-search" type="search" autocomplete="off" class="grow bg-transparent outline-none" value=${q}
-            onInput=${(e) => setQ(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") search(); }} placeholder=${T(t, "searchPlaceholder")} />
-        </label>
-        <button class="btn btn-primary btn-circle h-[var(--ms-ctl)] w-[var(--ms-ctl)]" onClick=${search} disabled=${busy || !q.trim()} data-search aria-label=${T(t, "searchPlaceholder")}>${Icon("lucide:arrow-right", "text-lg")}</button>
+      <div class=${LABEL + " mb-2"}>${T(t, "pick")}</div>
+      <div class="grid grid-cols-3 gap-1.5">
+        ${CATEGORIES.map((c) => {
+          const on = c.id === cat;
+          return html`<button key=${c.id} data-cat-btn=${c.id} aria-pressed=${on}
+            class=${"flex flex-col items-center justify-center gap-1 py-2 rounded-[var(--ms-r-in)] " + (on ? "sf-pressed" : "sf-raised")}
+            onClick=${() => pickCat(c.id)}>
+            <span style=${on ? { color: ACCENT } : null}>${Icon(c.icon, "text-xl")}</span>
+            <span class="text-[length:var(--ms-label)]">${T(t, "cat." + c.id)}</span>
+          </button>`;
+        })}
       </div>
-      <div class="mt-2">
-        <${Segmented} items=${countries} value=${country} onChange=${setCountry} variant="outline" size="sm" scroll attr="data-country" />
+
+      ${activeCat ? html`<div class="mt-2">
+        <${Segmented} items=${activeCat.presets.map((p) => ({ id: p, label: T(t, "cat." + activeCat.id + "." + p) }))}
+          value=${preset || activeCat.presets[0]} onChange=${pickPreset} variant="outline" size="sm" scroll attr="data-preset" />
+      </div>` : null}
+
+      <div class="mt-2 flex items-center gap-2">
+        <div class="grow min-w-0">
+          <${Segmented} items=${countries} value=${country} onChange=${setCountry} variant="outline" size="sm" scroll attr="data-country" />
+        </div>
+        <button class="btn btn-ghost btn-sm btn-circle shrink-0" onClick=${() => setAdvOpen(true)} data-adv aria-label=${T(t, "advanced")}>${Icon("lucide:sliders-horizontal", "text-lg")}</button>
       </div>
+
       <div class="mt-2 flex items-center justify-between gap-2 min-h-6" data-status=${reason || (shown.length ? "ok" : "empty")}>
-        <span class=${LABEL}>${shown.length ? html`${T(t, "hosts")} · ${shown.length}` : T(t, "noHosts")}</span>
-        ${reason ? html`<span class="text-xs text-warning text-right">${T(t, reason)}</span>` : live ? null : Chip(t)}
+        <span class=${LABEL}>${shown.length ? html`${T(t, "found")} · ${shown.length}` : T(t, "noHosts")}</span>
+        ${reason ? html`<span class="text-xs text-warning text-right">${T(t, reason)}</span>` : live ? null : html`<span data-sample class="badge badge-ghost gap-1 font-mono text-xs uppercase tracking-wider">${Icon("lucide:flask-conical")} ${T(t, "sample")}</span>`}
       </div>
+    <//>
+
+    <${Sheet} id="adv" open=${advOpen} onClose=${() => setAdvOpen(false)} title=${T(t, "advanced")} locale=${useStore(S.locale)}>
+      <label class="input flex items-center gap-2 h-[var(--ms-ctl)] rounded-[var(--ms-r-in)]">
+        ${Icon("lucide:terminal", "text-lg text-base-content/70")}
+        <input id="adv-q" class="grow bg-transparent outline-none font-mono text-sm" value=${adv}
+          onInput=${(e) => setAdv(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") { runLive(adv.trim()); setAdvOpen(false); } }} placeholder=${T(t, "searchPlaceholder")} />
+      </label>
+      <button class="btn btn-primary w-full mt-3" onClick=${() => { runLive(adv.trim()); setAdvOpen(false); }} disabled=${!adv.trim()}>${T(t, "traceBtn")}</button>
     <//>
   </div>`;
 }
@@ -98,6 +140,7 @@ export function state({ S }) {
   useEffect(() => {
     let alive = true;
     (async () => {
+      if (gate) return;   
       const s = me || await restore().catch(() => null);
       if (!s || !alive) return;
       try {
@@ -129,7 +172,7 @@ export function state({ S }) {
         ${row("lucide:lock", T(t, "sHttps"), acc.https ? T(t, "yes") : T(t, "no"))}
         ${row("lucide:unlock", T(t, "sUnlocked"), acc.unlocked ? T(t, "yes") : T(t, "no"))}
       </div>
-      ${live ? null : html`<div class="flex justify-end">${Chip(t)}</div>`}
+      ${live ? null : html`<div class="flex justify-end"><span data-sample class="badge badge-ghost gap-1 font-mono text-xs uppercase tracking-wider">${Icon("lucide:flask-conical")} ${T(t, "sample")}</span></div>`}
     <//>
     <${Panel} title=${T(t, "sLimits")}>
       <div class="divide-y divide-base-300/40">
@@ -150,6 +193,8 @@ export function trace({ S }) {
   const [live, setLive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const treeRef = useRef(null);
+  const hopsRef = useRef(null);
 
   const run = async () => {
     const to = mode === "me" ? "me" : target.trim();
@@ -166,11 +211,32 @@ export function trace({ S }) {
     } finally { setBusy(false); }
   };
 
-  const maxRtt = Math.max(1, ...hops.map((h) => h.rtt || 0));
-  const chips = (label, arr) => arr && arr.length ? html`<div class="flex flex-wrap items-center gap-1.5">
-    <span class=${LABEL + " mr-1 w-10"}>${label}</span>
-    ${arr.map((v) => html`<span class="badge badge-ghost font-mono text-xs" style=${{ textTransform: "none" }}>${v}</span>`)}
+  useEffect(() => {
+    if (treeRef.current) {
+      const leaves = treeRef.current.querySelectorAll("[data-leaf]");
+      if (leaves.length) animate(leaves, { opacity: [0, 1], transform: ["translateX(-8px)", "translateX(0px)"] }, { duration: 0.4, delay: stagger(0.05), ease: "easeOut" });
+    }
+  }, [dns]);
+  useEffect(() => {
+    if (hopsRef.current) {
+      const bars = hopsRef.current.querySelectorAll("[data-bar]");
+      if (bars.length) animate(bars, { transform: ["scaleX(0)", "scaleX(1)"] }, { duration: 0.5, delay: stagger(0.04), ease: "easeOut" });
+    }
+  }, [hops]);
+
+  const branch = (label, arr) => arr && arr.length ? html`<div class="flex items-stretch gap-2">
+    <div class="relative w-5 shrink-0">
+      <span class="absolute left-2 top-0 bottom-0 w-px" style=${{ background: ACCENT + "44" }}></span>
+    </div>
+    <div class="min-w-0 grow py-1">
+      <div class=${LABEL + " mb-1"}>${label}</div>
+      <div class="flex flex-wrap gap-1.5">
+        ${arr.map((v) => html`<span data-leaf class="badge badge-ghost font-mono text-xs" style=${{ textTransform: "none" }}>${v}</span>`)}
+      </div>
+    </div>
   </div>` : null;
+
+  const maxRtt = Math.max(1, ...hops.map((h) => h.rtt || 0));
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-hops=${hops.length} data-live=${live ? "1" : null} data-busy=${busy ? "1" : null}>
     <${Island}>
@@ -189,28 +255,27 @@ export function trace({ S }) {
       ${failed ? html`<div class="mt-2 text-xs text-warning" data-fail>${T(t, "traceFail")}</div>` : null}
     <//>
 
-    <${Panel} title=${T(t, "dnsRecords")} data-dns=${dns.ip || ""}>
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm">${T(t, "myIp")}</span>
-          <span class="font-mono font-semibold">${dns.ip || "—"}</span>
+    <${Panel} title=${T(t, "dnsTree")} data-dns=${dns.ip || ""}>
+      <div class="flex items-center gap-2.5 pb-2 mb-1 border-b border-base-300/40">
+        <span class="w-9 h-9 shrink-0 rounded-[var(--ms-r-in)] grid place-items-center" style=${{ background: ACCENT + "22", color: ACCENT }}>${Icon("lucide:git-branch", "text-lg")}</span>
+        <div class="min-w-0">
+          <div class="font-mono font-semibold truncate">${mode === "me" ? T(t, "myIp") : target}</div>
+          ${dns.ptr ? html`<div class="font-mono text-xs text-muted truncate">${dns.ptr}</div>` : dns.ip ? html`<div class="font-mono text-xs text-muted truncate">${dns.ip}</div>` : null}
         </div>
-        ${dns.ptr ? html`<div class="flex items-center justify-between gap-2">
-          <span class="text-sm">${T(t, "myDns")}</span>
-          <span class="font-mono text-sm text-right break-all">${dns.ptr}</span>
-        </div>` : null}
-        ${chips("A", dns.records && dns.records.A)}
-        ${chips("AAAA", dns.records && dns.records.AAAA)}
-        ${chips("NS", dns.records && dns.records.NS)}
+      </div>
+      <div ref=${treeRef} class="flex flex-col">
+        ${branch("A", dns.records && dns.records.A)}
+        ${branch("AAAA", dns.records && dns.records.AAAA)}
+        ${branch("NS", dns.records && dns.records.NS)}
       </div>
     <//>
 
     <${Panel}>
       <div class="flex items-center justify-between gap-2">
         <span class=${LABEL}>${T(t, "hops")} · ${hops.length}${live ? " · " + T(t, "fromNode") : ""}</span>
-        ${live ? null : Chip(t)}
+        ${live ? null : html`<span data-sample class="badge badge-ghost gap-1 font-mono text-xs uppercase tracking-wider">${Icon("lucide:flask-conical")} ${T(t, "sample")}</span>`}
       </div>
-      <ol class="flex flex-col">
+      <ol ref=${hopsRef} class="flex flex-col">
         ${hops.map((h, i) => html`<li class="flex items-stretch gap-3 py-1" data-hop=${h.n}>
           <div class="flex flex-col items-center">
             <span class="w-6 h-6 shrink-0 rounded-full grid place-items-center font-mono text-xs font-semibold tabular-nums text-base-content" style=${{ background: ACCENT + "33" }}>${h.n}</span>
@@ -220,7 +285,7 @@ export function trace({ S }) {
             <div class="font-mono text-sm truncate">${h.host || h.ip || "*"}</div>
             ${h.host && h.ip ? html`<div class="font-mono text-xs text-base-content/70 truncate">${h.ip}</div>` : null}
             <div class="mt-1 h-1 rounded-full bg-base-300/40 overflow-hidden">
-              <span class="block h-full rounded-full" style=${{ width: (h.rtt != null ? Math.max(2, Math.round(h.rtt / maxRtt * 100)) : 0) + "%", background: ACCENT }}></span>
+              <span data-bar class="block h-full rounded-full origin-left" style=${{ width: (h.rtt != null ? Math.max(2, Math.round(h.rtt / maxRtt * 100)) : 0) + "%", background: ACCENT }}></span>
             </div>
           </div>
           <div class="shrink-0 self-center font-mono text-xs tabular-nums text-base-content/70 w-16 text-right">${h.rtt != null ? h.rtt.toFixed(1) + " ms" : "—"}</div>
