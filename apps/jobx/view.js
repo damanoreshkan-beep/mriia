@@ -4,18 +4,21 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { atom } from "nanostores";
 import { map as nmap } from "nanostores";
-import { Island } from "/_rt/ui.js";
-import { T } from "/_rt/i18n.js";
+import { Island, Segmented } from "/_rt/ui.js";
+import { T, ago } from "/_rt/i18n.js";
 import { gate, isGate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { session } from "/_rt/auth.js";
+
+try { if (typeof localStorage !== "undefined" && localStorage.getItem("jobx:theme") === "ink") localStorage.setItem("jobx:theme", "signal"); } catch {  }
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const EMPLOYMENT = ["full", "part", "remote", "contract", "internship"];
 const empKey = { full: "empFull", part: "empPart", remote: "empRemote", contract: "empContract", internship: "empInternship" };
 
 const GEO = "https://dreamstudio.mooo.com/geo";      
-const DECK_URL = "https://esm.sh/deck.gl@9.4.0";      
+const LUMA = "9.4.2";
+const DECK_URL = `https://esm.sh/deck.gl@9.4.0?deps=${["core", "engine", "shadertools", "webgl", "gpgpu", "gltf"].map((p) => `@luma.gl/${p}@${LUMA}`).join(",")}`;
 
 const CITIES = {
   kyiv:    { uk: "Київ",   en: "Kyiv",    lat: 50.4501, lon: 30.5234, s: 50.213, w: 30.236, n: 50.591, e: 30.827 },
@@ -83,18 +86,18 @@ const LM_ZOOM = 12.5;
 const LM_Z = 120;       
 
 const DEV_HOST = typeof location !== "undefined" && /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1)/.test(location.hostname);
-const NOW = Date.now();
+const NOW = Date.now(), H = 3600_000;
 const MOCK_JOBS = [
-  { id: "1", title: "Frontend-розробник", company: "Dreamware", lat: 50.4470, lon: 30.5060, address: "Київ, вулиця Богдана Хмельницького, 32", salary: "60 000–90 000 ₴", employment: "remote", description: "Preact, невеликі PWA, чистий код.\n\nГнучкий графік, дружня команда, віддалена робота.", contact: "@dreamware_jobs", poster: "Octocat", ms: NOW },
-  { id: "2", title: "Бариста", company: "Кава Гармонія", lat: 50.4655, lon: 30.5175, address: "Київ, Контрактова площа, 4", salary: "22 000 ₴", employment: "part", description: "Ранкові зміни, навчаємо з нуля, чай і кава безкоштовно.", contact: "hr@harmony.ua", poster: "Ірина", ms: NOW },
-  { id: "3", title: "Менеджер із продажу", company: "Кратос", lat: 50.4302, lon: 30.5350, address: "Київ, вулиця Лесі Українки, 26", salary: "37 500–90 000 ₴", employment: "full", description: "Повна зайнятість, вища освіта, CRM. Провідний постачальник комплектуючих.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: NOW },
-  { id: "4", title: "Кухар", company: "KFC", lat: 50.5085, lon: 30.4990, address: "Київ, проспект Оболонський, 21б", salary: "27 000 ₴", employment: "full", description: "Готові взяти студента, людину з інвалідністю, пенсіонера. Навчання коштом компанії.", contact: "@kfc_jobs", poster: "KFC", ms: NOW },
-  { id: "5", title: "Інженер-електронік", company: "Sempal", lat: 50.4537, lon: 30.5610, address: "Київ, вулиця Митрополита Андрея Шептицького, 4", salary: "60 000–100 000 ₴", employment: "full", description: "Досвід від 2 років, C++, Assembler. Провідний український виробник.", contact: "hr@sempal.com", poster: "Sempal", ms: NOW },
-  { id: "6", title: "Майстер встановлення автомагнітол на ОС Android, автоелектрик", company: "Automod", lat: 50.4085, lon: 30.5230, address: "Київ, проспект Науки, 7", salary: "60 000 – 100 000 грн · % від виконаних робіт", employment: "", description: "Новий інсталяційний центр, запис на два тижні вперед. Досвід монтажу додаткового обладнання, знання автоелектрики.", contact: "https://www.work.ua/jobs/7980039/", poster: "work.ua", ms: NOW },
-  { id: "7", title: "Бухгалтер у юридичну компанію", company: "Grain Law Firm", lat: 50.4830, lon: 30.4755, address: "Київ, вулиця Кирилівська, 104", salary: "За результатами співбесіди", employment: "", description: "Ведення бухгалтерського та податкового обліку, звітність, контроль руху коштів. Досвід від 3 років.", contact: "https://www.work.ua/jobs/8047563/", poster: "work.ua", ms: NOW },
-  { id: "8", title: "Помічник категорійного менеджера", company: "Гривня Цент", lat: 50.4700, lon: 30.4620, address: "Київ, вулиця Юрія Іллєнка, 81а", salary: "", employment: "", description: "Замовлення постачальникам, контроль поставок, звірки з контрагентами, моніторинг цін.", contact: "https://www.work.ua/jobs/8507581/", poster: "work.ua", ms: NOW },
-  { id: "9", title: "Менеджер по роботі з клієнтами", company: "Nova", lat: 50.4430, lon: 30.4760, address: "Київ, вулиця Індустріальна, 27", salary: "45 000 грн", employment: "remote", description: "Вхідні звернення, CRM, супровід угод. Віддалено, гнучкий графік.", contact: "hr@nova.ua", poster: "Nova", ms: NOW },
-  { id: "10", title: "Юрист", company: "Кратос", lat: 50.4302, lon: 30.5350, address: "Київ, вулиця Лесі Українки, 26", salary: "50 000 ₴", employment: "full", description: "Договірна робота, супровід закупівель.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: NOW },
+  { id: "1", title: "Frontend-розробник", company: "Dreamware", lat: 50.4470, lon: 30.5060, address: "Київ, вулиця Богдана Хмельницького, 32", salary: "60 000–90 000 ₴", employment: "remote", description: "Preact, невеликі PWA, чистий код.\n\nГнучкий графік, дружня команда, віддалена робота.", contact: "@dreamware_jobs", poster: "Octocat", ms: NOW - 2 * H },
+  { id: "2", title: "Бариста", company: "Кава Гармонія", lat: 50.4655, lon: 30.5175, address: "Київ, Контрактова площа, 4", salary: "22 000 ₴", employment: "part", description: "Ранкові зміни, навчаємо з нуля, чай і кава безкоштовно.", contact: "hr@harmony.ua", poster: "Ірина", ms: NOW - 5 * H },
+  { id: "3", title: "Менеджер із продажу", company: "Кратос", lat: 50.4302, lon: 30.5350, address: "Київ, вулиця Лесі Українки, 26", salary: "37 500–90 000 ₴", employment: "full", description: "Повна зайнятість, вища освіта, CRM. Провідний постачальник комплектуючих.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: NOW - 30 * H },
+  { id: "4", title: "Кухар-універсал (ст. м. Оболонь)", company: "KFC", lat: 50.5085, lon: 30.4990, address: "Київ, проспект Оболонський, 21б", salary: "27 000 ₴", employment: "full", description: "Готові взяти студента, людину з інвалідністю, пенсіонера. Навчання коштом компанії.", contact: "@kfc_jobs", poster: "KFC", ms: NOW - 3 * 24 * H },
+  { id: "5", title: "Інженер-електронік", company: "Sempal", lat: 50.4537, lon: 30.5610, address: "Київ, вулиця Митрополита Андрея Шептицького, 4", salary: "60 000–100 000 ₴", employment: "full", description: "Досвід від 2 років, C++, Assembler. Провідний український виробник.", contact: "hr@sempal.com", poster: "Sempal", ms: NOW - 20 * H },
+  { id: "6", title: "Майстер встановлення автомагнітол на ОС Android, автоелектрик", company: "Automod", lat: 50.4085, lon: 30.5230, address: "Київ, проспект Науки, 7", salary: "60 000 – 100 000 грн · % від виконаних робіт", employment: "", description: "Новий інсталяційний центр, запис на два тижні вперед. Досвід монтажу додаткового обладнання, знання автоелектрики.", contact: "https://www.work.ua/jobs/7980039/", poster: "work.ua", ms: NOW - 6 * 24 * H },
+  { id: "7", title: "Бухгалтер у юридичну компанію", company: "Grain Law Firm", lat: 50.4830, lon: 30.4755, address: "Київ, вулиця Кирилівська, 104", salary: "За результатами співбесіди", employment: "", description: "Ведення бухгалтерського та податкового обліку, звітність, контроль руху коштів. Досвід від 3 років.", contact: "https://www.work.ua/jobs/8047563/", poster: "work.ua", ms: NOW - 12 * 24 * H },
+  { id: "8", title: "Помічник категорійного менеджера", company: "Гривня Цент", lat: 50.4700, lon: 30.4620, address: "Київ, вулиця Юрія Іллєнка, 81а", salary: "", employment: "", description: "Замовлення постачальникам, контроль поставок, звірки з контрагентами, моніторинг цін.", contact: "https://www.work.ua/jobs/8507581/", poster: "work.ua", ms: NOW - 9 * H },
+  { id: "9", title: "Менеджер по роботі з клієнтами", company: "Nova", lat: 50.4430, lon: 30.4760, address: "Київ, вулиця Індустріальна, 27", salary: "45 000 грн", employment: "remote", description: "Вхідні звернення, CRM, супровід угод. Віддалено, гнучкий графік.", contact: "hr@nova.ua", poster: "Nova", ms: NOW - 2 * 24 * H },
+  { id: "10", title: "Юрист", company: "Кратос", lat: 50.4302, lon: 30.5350, address: "Київ, вулиця Лесі Українки, 26", salary: "50 000 – 60 000 грн ·Після всіх відрахувань", employment: "full", description: "Договірна робота, супровід закупівель.", contact: "https://t.me/kratos_hr", poster: "Кратос", ms: NOW - 40 * 24 * H },
 ];
 
 const $jobs = atom(gate ? MOCK_JOBS : []);
@@ -368,16 +371,31 @@ const kmFromCentre = (lat, lon) => { if (!Number.isFinite(lat) || !Number.isFini
 const applyLink = (c) => /^https?:\/\//i.test(c) ? c : /^@/.test(c) ? `https://t.me/${c.slice(1)}` : /@/.test(c) ? `mailto:${c}` : null;
 const CITY_NAMES = CITY_IDS.flatMap((id) => [CITIES[id].uk, CITIES[id].en]);
 const streetOf = (a) => { let s = String(a || ""); for (const nm of CITY_NAMES) s = s.replace(new RegExp(`^\\s*${nm}\\s*,\\s*`, "i"), ""); return s; };
-const salaryHasWords = (s) => /[A-Za-zА-Яа-яІіЇїЄєҐґ]{4,}/.test(String(s || ""));
+const salaryNote = (s) => { const i = String(s || "").indexOf("·"); return i < 0 ? "" : String(s).slice(i + 1).trim(); };
+const PLACE_RE = /(?:^|[^\p{L}])(?:м\.|ст\.|ТРЦ|ТЦ|вул|р-н|метро|просп|бул|пл\.)/iu;
+const rowTitle = (s) => {
+  const m = /^(.*\S)\s*\(([^()]*)\)\s*$/.exec(String(s || ""));
+  if (!m) return s;
+  const inner = m[2].toLowerCase();
+  return PLACE_RE.test(m[2]) || CITY_NAMES.some((n) => inner.includes(n.toLowerCase())) ? m[1] : s;
+};
+const DAY = 86400_000;
+const isNew = (j) => Number.isFinite(j.ms) && Date.now() - j.ms < DAY;
 
-function JobRow({ t, j, onOpen }) {
+function JobRow({ t, j, loc, onOpen }) {
   const km = kmFromCentre(j.lat, j.lon), pay = shortSalary(j.salary), street = streetOf(j.address);
+  const age = Number.isFinite(j.ms) ? ago(t, j.ms, loc) : "";
   return html`<button data-job-row class="w-full text-left card sf-raised sf-e2 rounded-[var(--ms-r)] active:scale-[.99] transition" onClick=${onOpen}>
     <div class="card-body p-[var(--ms-pad)] gap-1.5">
       <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0 flex-1"><div data-job-title class="font-semibold leading-tight line-clamp-2">${j.title}</div>
+        <div class="min-w-0 flex-1"><div data-job-title class="font-semibold leading-tight line-clamp-2">${rowTitle(j.title)}</div>
           <div class="text-[0.88rem] text-muted truncate">${j.company}</div></div>
-        ${pay ? html`<div class="shrink-0 font-mono text-[0.8rem] font-semibold whitespace-nowrap tabular-nums pt-0.5">${pay}</div>` : null}
+        <div class="shrink-0 max-w-[min(22ch,45%)] flex flex-col items-end gap-0.5 pt-0.5">
+          ${pay
+            ? html`<div class="font-mono text-[0.8rem] font-semibold whitespace-nowrap tabular-nums">${pay}</div>`
+            : j.salary ? html`<div data-job-pay-text class="text-[0.78rem] text-muted truncate max-w-full">${j.salary}</div>` : null}
+          ${age ? html`<div data-job-age class="flex items-center gap-1 font-mono text-[0.68rem] uppercase tracking-wide text-muted whitespace-nowrap">${isNew(j) ? html`<span data-job-new aria-hidden="true" class="w-1.5 h-1.5 rounded-full bg-[var(--app-accent)]"></span>` : null}${age}</div>` : null}
+        </div>
       </div>
       <div class="flex items-center gap-2 text-[0.76rem] text-muted min-w-0">
         ${j.employment && empKey[j.employment] ? html`<span class="badge badge-sm badge-ghost shrink-0">${T(t, empKey[j.employment])}</span>` : null}
@@ -401,28 +419,29 @@ function Page({ t, title, onBack, children }) {
 function JobPage({ t, id, onBack }) {
   const j = jobById(id);
   if (!j) return html`<${Page} t=${t} title=${T(t, "job")} onBack=${onBack}><div class="text-muted py-10 text-center">—</div><//>`;
-  const km = kmFromCentre(j.lat, j.lon), link = applyLink(j.contact), pay = shortSalary(j.salary);
+  const km = kmFromCentre(j.lat, j.lon), link = applyLink(j.contact), pay = shortSalary(j.salary), note = salaryNote(j.salary);
   return html`<${Page} t=${t} title=${T(t, "job")} onBack=${onBack}>
-    <div class="flex flex-col gap-[var(--ms-gap)]">
+    <div class="flex flex-col gap-[var(--ms-gap)] pb-[calc(var(--ms-ctl)+2rem)]">
       <div>
         <h1 class="text-2xl font-bold leading-tight break-words">${j.title}</h1>
         <div class="text-base-content/80 mt-0.5">${j.company}</div>
       </div>
       ${pay
-        ? html`<div><div class="text-xl font-mono font-semibold tabular-nums">${pay}</div>${salaryHasWords(j.salary) ? html`<div class="text-[0.85rem] text-muted">${j.salary}</div>` : null}</div>`
+        ? html`<div><div class="text-xl font-mono font-semibold tabular-nums">${pay}</div>${note ? html`<div data-pay-note class="text-[0.85rem] text-muted">${note}</div>` : null}</div>`
         : j.salary ? html`<div class="text-base-content/80">${j.salary}</div>` : null}
-      <div class="flex flex-wrap gap-1.5">
-        ${j.employment && empKey[j.employment] ? html`<span class="badge badge-neutral">${T(t, empKey[j.employment])}</span>` : null}
-        ${j.address ? html`<span class="badge badge-ghost gap-1">${Icon("lucide:map-pin")}${j.address}</span>` : null}
-        ${km != null ? html`<span class="badge badge-ghost">${km} ${T(t, "kmFromCentre")}</span>` : null}
-      </div>
+      ${j.employment && empKey[j.employment] ? html`<div><span class="badge badge-neutral">${T(t, empKey[j.employment])}</span></div>` : null}
+      ${j.address || km != null
+        ? html`<div data-job-where class="flex items-start gap-1.5 text-[0.9rem] text-muted">${Icon("lucide:map-pin", "shrink-0 mt-[0.2em]")}<span>${j.address || ""}${j.address && km != null ? " · " : ""}${km != null ? `${km} ${T(t, "kmFromCentre")}` : ""}</span></div>`
+        : null}
       ${j.description ? html`<p class="text-[0.98rem] leading-relaxed whitespace-pre-line text-base-content/90">${j.description}</p>` : null}
       ${j.poster ? html`<div class="text-[0.82rem] text-muted">${T(t, "postedBy")}: ${j.poster}</div>` : null}
-      <div class="pt-2">
+    </div>
+    <div class="fixed inset-x-0 z-20 flex justify-center px-3 pointer-events-none" style="bottom:calc(env(safe-area-inset-bottom) + 0.75rem)">
+      <${Island} tone="glass" className=${`pointer-events-auto ${link ? "!p-1 rounded-full w-full max-w-md" : "!p-2 rounded-[var(--ms-r)] w-full max-w-md"}`}>
         ${link
           ? html`<a data-apply href=${link} target="_blank" rel="noopener noreferrer" class="btn btn-primary rounded-full gap-2 w-full">${Icon("lucide:send")}<span>${T(t, "applyBtn")}</span></a>`
-          : html`<div data-apply class="font-mono text-center select-all p-3 rounded-[var(--ms-r-in)] sf-inset">${j.contact}</div>`}
-      </div>
+          : html`<div data-apply class="font-mono text-center select-all px-3 py-2 truncate">${j.contact}</div>`}
+      <//>
     </div>
   <//>`;
 }
@@ -437,6 +456,7 @@ function PostPage({ t, loc, onBack }) {
   const submit = async () => {
     if ($posting.get()) return;
     if (!f.title.trim() || !f.company.trim() || !f.description.trim() || !f.contact.trim()) { $err.set("errFields"); return; }
+    
     let lat, lon, address;
     if (city === "kyiv") { const d = DISTRICTS[f.district] || DISTRICTS.shevchenkivskyi; lat = d.lat; lon = d.lon; address = (loc === "en" ? d.en : d.uk); }
     else { const c = CITIES[city]; lat = c.lat; lon = c.lon; address = cityName(city, loc); }
@@ -481,6 +501,7 @@ function PostPage({ t, loc, onBack }) {
   <//>`;
 }
 
+
 function CityPage({ t, loc, onBack }) {
   const city = useStore($city);
   const jobs = useStore($jobs);
@@ -500,12 +521,15 @@ function CityPage({ t, loc, onBack }) {
   <//>`;
 }
 
+
 function Screens({ t, loc, screen, close }) {
+  if (screen === "search") return null;
   if (screen === "post") return html`<${PostPage} t=${t} loc=${loc} onBack=${close} />`;
   if (screen === "city") return html`<${CityPage} t=${t} loc=${loc} onBack=${close} />`;
   if (screen && screen.startsWith("job:")) return html`<${JobPage} t=${t} id=${screen.slice(4)} onBack=${close} />`;
   return null;
 }
+
 
 const $preview = atom(null);   
 export function mapView({ t, S, screen, openScreen, closeScreen }) {
@@ -537,6 +561,7 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
   };
   const openJob = (j) => { $preview.set(null); openScreen(`job:${j.id}`); };
 
+  
   return html`<${Fragment}>
     <div data-stage class="fixed inset-0 z-0 overflow-hidden bg-base-200">
       ${showMap ? html`<${MapStage} isDark=${isDark} city=${city} jobs=${cityJobs} loc=${loc} me=${me} selected=${preview && preview.coordinates} ctlRef=${ctlRef} onPick=${onPick} />` : null}
@@ -582,29 +607,61 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
   <//>`;
 }
 
+
+const PAGE = 40;
+const EMP_FILTERS = ["all", "remote", "full", "part"];
 export function listView({ t, S, screen, openScreen, closeScreen }) {
   const jobs = useStore($jobs);
   const city = useStore($city);
   const loading = useStore($loading);
   const loc = useStore(S.locale);
   const [q, setQ] = useState("");
+  const [emp, setEmp] = useState("all");
+  const [shown, setShown] = useState(PAGE);
+  const [sentinel, setSentinel] = useState(null);
+  const inputRef = useRef(null), scrollRef = useRef(null);
+  const searching = screen === "search";
   useEffect(() => { loadJobs(); }, []);
+  useEffect(() => { if (!searching && !String(screen || "").startsWith("job:")) setQ(""); }, [screen]);
+  useEffect(() => { if (searching && inputRef.current) inputRef.current.focus(); }, [searching]);
   const cityJobs = jobs.filter((j) => inCity(j, city));   
   const ql = q.trim().toLowerCase();
-  const shown = ql ? cityJobs.filter((j) => `${j.title} ${j.company} ${j.address || ""}`.toLowerCase().includes(ql)) : cityJobs;
+  const list = cityJobs
+    .filter((j) => emp === "all" || j.employment === emp)
+    .filter((j) => !ql || `${j.title} ${j.company} ${j.address || ""}`.toLowerCase().includes(ql))
+    .sort((a, b) => (Number(b.ms) || 0) - (Number(a.ms) || 0));
+  useEffect(() => { setShown(PAGE); }, [city, emp, ql]);
+  useEffect(() => {
+    if (!sentinel || shown >= list.length || typeof IntersectionObserver === "undefined") return;
+    
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((n) => Math.min(n + PAGE, list.length)); }, { rootMargin: "600px" });
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [sentinel, shown, list.length]);
+  const empItems = EMP_FILTERS.map((id) => ({ id, label: T(t, id === "all" ? "empAll" : empKey[id]) }));
 
   return html`<div class="h-full min-h-0 flex flex-col">
     <div class="px-[var(--ms-pad)] pt-2 pb-1 flex items-center gap-2">
       <button data-city class="btn btn-ghost btn-sm gap-1.5 rounded-full shrink-0 px-3" onClick=${() => openScreen("city")}>
         ${Icon("lucide:map-pin", "text-[1.05em] text-primary")}<span class="font-semibold">${cityName(city, loc)}</span>${Icon("lucide:chevron-down", "text-[0.85em] opacity-60")}
       </button>
-      <input data-search type="search" value=${q} placeholder=${T(t, "searchPh")} onInput=${(e) => setQ(e.currentTarget.value)} class="input input-bordered flex-1 min-w-0 bg-base-100" />
+      ${searching
+        ? html`<input ref=${inputRef} data-search type="search" value=${q} placeholder=${T(t, "searchPh")} onInput=${(e) => setQ(e.currentTarget.value)} class="input input-bordered input-sm rounded-full flex-1 min-w-0 bg-base-100" />
+          <button data-search-close class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "close")} onClick=${closeScreen}>${Icon("lucide:x", "text-xl")}</button>`
+        : html`<span class="flex-1"></span>
+          <button data-search-btn class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "search")} onClick=${() => openScreen("search")}>${Icon("lucide:search", "text-xl")}</button>`}
     </div>
-    <div class="flex-1 min-h-0 overflow-y-auto px-[var(--ms-pad)] pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)]">
+    <div class="px-[var(--ms-pad)] pb-1">
+      <${Segmented} items=${empItems} value=${emp} onChange=${setEmp} scroll size="sm" attr="data-emp-filter" label=${T(t, "fldEmployment")} />
+    </div>
+    <div ref=${scrollRef} data-list class="flex-1 min-h-0 overflow-y-auto px-[var(--ms-pad)] pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)]">
       ${loading && !cityJobs.length
         ? html`<div class="py-10 text-center text-muted">${T(t, "loadingJobs")}</div>`
-        : shown.length
-          ? html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">${shown.map((j) => html`<${JobRow} t=${t} j=${j} key=${j.id} onOpen=${() => openScreen(`job:${j.id}`)} />`)}</div>`
+        : list.length
+          ? html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
+              ${list.slice(0, shown).map((j) => html`<${JobRow} t=${t} j=${j} loc=${loc} key=${j.id} onOpen=${() => openScreen(`job:${j.id}`)} />`)}
+              ${shown < list.length ? html`<div ref=${setSentinel} data-more aria-hidden="true" class="h-px"></div>` : null}
+            </div>`
           : html`<div class="py-10 text-center text-muted">${ql ? T(t, "noMatch") : T(t, "emptyJobs")}</div>`}
     </div>
     <${Screens} t=${t} loc=${loc} screen=${screen} close=${closeScreen} />

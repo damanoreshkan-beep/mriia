@@ -20,24 +20,63 @@ export default [
     },
   },
   {
-    name: "List tab shows the jobs as rows, with search",
+    name: "List tab: rows newest first with an age label, the search folded behind its icon",
     async run(h) {
       await h.tap("[data-tab=list]");
       await h.wait(250);
-      h.expect((await h.count("[data-search]")) === 1, "немає пошуку у списку");
       h.expect((await h.count("[data-job-row]")) >= 5, "список порожній");
-      h.expect(/Frontend/.test(await h.text("[data-job-title]")), "не показано засіяну вакансію");
+      h.expect((await h.count("[data-search-btn]")) === 1, "немає іконки пошуку");
+      h.expect((await h.count("[data-search]")) === 0, "поле пошуку розгорнуте без тапу");
+      h.expect(/Frontend/.test(await h.text("[data-job-title]")), "найновіша вакансія не перша");
+      h.expect((await h.count("[data-job-age]")) >= 5, "рядки без віку");
+      h.expect((await h.count("[data-job-new]")) >= 1, "жодної позначки «нове»");
+      h.expect((await h.count("[data-job-pay-text]")) >= 1, "текстова зарплата не показана у рядку");
+      await h.waitFor(/Кухар-універсал/);
+      h.expect(!/Оболонь\)/.test(await h.text("[data-list]")), "адреса у дужках лишилась у заголовку рядка");
     },
   },
   {
-    name: "a job opens its own detail page with an apply action",
+    name: "the search unfolds in place, filters, and system Back folds it",
+    async run(h) {
+      await h.tap("[data-tab=list]");
+      await h.wait(200);
+      await h.tap("[data-search-btn]");
+      await h.wait(250);
+      h.expect((await h.count("[data-search]")) === 1, "поле пошуку не розгорнулось");
+      await h.type("[data-search]", "Бариста");
+      await h.wait(250);
+      h.expect((await h.count("[data-job-row]")) === 1, "пошук не відфільтрував");
+      await h.back();
+      await h.wait(300);
+      h.expect((await h.count("[data-search]")) === 0, "Back не згорнув пошук");
+      h.expect((await h.count("[data-job-row]")) >= 5, "запит не очистився після згортання");
+    },
+  },
+  {
+    name: "the employment strip filters the rows",
+    async run(h) {
+      await h.tap("[data-tab=list]");
+      await h.wait(200);
+      h.expect((await h.count("[data-emp-filter]")) === 4, "смужка зайнятості не з чотирьох");
+      await h.tap("[data-emp-filter=remote]");
+      await h.wait(250);
+      h.expect((await h.attr("[data-emp-filter=remote]", "aria-pressed")) === "true", "фільтр не активний");
+      h.expect((await h.count("[data-job-row]")) === 2, "фільтр «віддалено» не застосовано");
+      await h.tap("[data-emp-filter=all]");
+      await h.wait(250);
+      h.expect((await h.count("[data-job-row]")) >= 5, "«усі» не повернув рядки");
+    },
+  },
+  {
+    name: "a job opens its own detail page with the apply action pinned in an island",
     async run(h) {
       await h.tap("[data-tab=list]");
       await h.wait(200);
       await h.tap("[data-job-row]");
       await h.wait(250);
       h.expect((await h.count("[data-page]")) === 1, "деталь не відкрилась сторінкою");
-      h.expect((await h.count("[data-apply]")) >= 1, "немає кнопки відгуку");
+      h.expect((await h.count("[data-island] [data-apply]")) >= 1, "кнопка відгуку не в острівці");
+      h.expect((await h.count("[data-job-where]")) === 1, "немає рядка адреси");
       await h.tap("[data-back]");
       await h.wait(200);
     },
