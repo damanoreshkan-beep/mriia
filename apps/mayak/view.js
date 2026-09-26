@@ -4,7 +4,7 @@ import { useStore } from "@nanostores/preact";
 import { animate, stagger } from "motion";
 import { T } from "/_rt/i18n.js";
 import { Globe } from "/_rt/globe.js";
-import { Panel, Island, Segmented, Sheet } from "/_rt/ui.js";
+import { Panel, Island, Segmented } from "/_rt/ui.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { session, restore } from "/_rt/auth.js";
 import { gate } from "/_rt/gate.js";
@@ -13,9 +13,10 @@ import fixture from "./fixture.json" with { type: "json" };
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const ACCENT = "#F5B94D";
+const RED = "#F2777A";
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const CAT_ICON = { camera: "lucide:cctv", database: "lucide:database", access: "lucide:monitor", files: "lucide:folder-open", device: "lucide:printer", vuln: "lucide:shield-alert" };
-const VENDOR = { cam_dahua: "Dahua", cam_hik: "Hikvision", cam_axis: "Axis", db_mongo: "Mongo", db_redis: "Redis", db_mysql: "MySQL", db_postgres: "PostgreSQL", elastic: "Elastic", acc_rdp: "RDP", ssh: "SSH", vnc: "VNC" };
+const PAGE = 20;
 const NS_ORG = { ultradns: "UltraDNS", awsdns: "AWS", cloudflare: "Cloudflare", googledomains: "Google", google: "Google", azure: "Azure", dnsimple: "DNSimple", nsone: "NS1", akamai: "Akamai", domaincontrol: "GoDaddy", dnsmadeeasy: "DNS Made Easy" };
 const nsOrg = (host) => {
   const parts = String(host || "").toLowerCase().split(".");
@@ -23,28 +24,24 @@ const nsOrg = (host) => {
   return parts.length >= 2 ? parts[parts.length - 2].replace(/[-_]\d.*$/, "").replace(/^./, (c) => c.toUpperCase()) : String(host || "");
 };
 
-export function map({ S }) {
+const color = (h) => h.vulns > 0 ? RED : ACCENT;
+
+export function map({ S, openScreen, closeScreen }) {
   const t = useStore(S.t);
   const me = useStore(session);
-  const [cat, setCat] = useState(gate ? null : "cameras");   
-  const [preset, setPreset] = useState(null);  
-  const [country, setCountry] = useState("all");
-  const [sel, setSel] = useState(null);
+  const screen = useStore(S.screen);
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState(gate ? null : "cameras");
   const [hosts, setHosts] = useState(gate ? fixture.matches : []);
-  const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(!gate);
-  const [onlyVuln, setOnlyVuln] = useState(false);
   const [reason, setReason] = useState("");
-  const [free, setFree] = useState(null);      
-  const [adv, setAdv] = useState("");
-  const [advOpen, setAdvOpen] = useState(false);
-
-  const activeCat = CATEGORIES.find((c) => c.id === cat) || null;
-  const catKind = activeCat ? KIND_OF[activeCat.presets[0]] : null;
-  const kindOfSel = free ? null : catKind;
-
+  const [sel, setSel] = useState(null);
+  const [shownN, setShownN] = useState(PAGE);
   const seq = useRef(0);
+  const moreRef = useRef(null);
+
   const runLive = async (query, kind) => {
+    setShownN(PAGE);
     if (!query || gate) return;
     const my = ++seq.current;
     setReason(""); setLoading(true);
@@ -53,9 +50,9 @@ export function map({ S }) {
       const j = await r.json().catch(() => null);
       if (my !== seq.current) return;
       if (r.ok && j && Array.isArray(j.matches)) {
-        setHosts(j.matches.map((m) => ({ ...m, kind: kind || m.kind || "access" }))); setLive(true); setSel(null); setCountry("all");
+        setHosts(j.matches.map((m) => ({ ...m, kind: kind || m.kind || "access" })));
         if (!j.matches.length) setReason("noHosts");
-      } else { setHosts([]); setLive(false); setReason(j && j.error === "no_key" ? "noKey" : j && j.error === "no_query_credits" ? "creditsWarn" : "updFail"); }
+      } else { setHosts([]); setReason(j && j.error === "no_key" ? "noKey" : j && j.error === "no_query_credits" ? "creditsWarn" : "updFail"); }
     } catch { if (my === seq.current) setReason("updFail"); }
     finally { if (my === seq.current) setLoading(false); }
   };
@@ -67,146 +64,104 @@ export function map({ S }) {
     (async () => {
       if (!me) await restore().catch(() => null);
       if (!alive) return;
-      const p = cat ? activeCat.presets[0] : null;
-      if (free) runLive(parseQuery(free, "").query, null);
-      else if (p) runLive(liveOf(p), KIND_OF[p]);
+      const p = CATEGORIES.find((c) => c.id === (cat || "cameras")).presets[0];
+      runLive(liveOf(p), KIND_OF[p]);
     })();
     return () => { alive = false; };
   }, [me]);   // eslint-disable-line
 
-  const pickCat = (id) => {
-    const next = id === cat ? null : id;
-    setCat(next); setPreset(null); setSel(null); setFree(null); setOnlyVuln(false);
-    if (next) { const p = CATEGORIES.find((c) => c.id === next).presets[0]; runLive(liveOf(p), KIND_OF[p]); }
-  };
-  const pickPreset = (p) => { setPreset(p); setSel(null); setFree(null); runLive(liveOf(p), KIND_OF[p]); };
-  const pickCountry = (cc) => { setCountry(cc); setSel(null); };
-  const runFree = () => {
-    const parsed = parseQuery(adv.trim(), "");
-    if (!parsed.query) return;
-    setCat(null); setPreset(null); setFree(adv.trim()); setSel(null); setOnlyVuln(false); setAdvOpen(false);
-    runLive(parsed.query, null);
-  };
+  const pickCat = (id) => { setCat(id); setQ(""); const p = CATEGORIES.find((c) => c.id === id).presets[0]; runLive(liveOf(p), KIND_OF[p]); };
+  const search = () => { const query = q.trim(); if (!query) return; setCat(null); runLive(parseQuery(query, "").query, null); };
 
-  const base = useMemo(() => {
-    if (!gate) return hosts;
-    const vend = preset && VENDOR[preset] ? VENDOR[preset].toLowerCase() : null;
-    return hosts.filter((h) => (!catKind || h.kind === catKind) && (!vend || (h.product || "").toLowerCase().includes(vend)));
-  }, [hosts, catKind, preset]);
+  const all = useMemo(() => {
+    if (!gate || !cat) return hosts;
+    const kind = KIND_OF[CATEGORIES.find((c) => c.id === cat).presets[0]];
+    return hosts.filter((h) => h.kind === kind);
+  }, [hosts, cat]);
 
-  const shown = useMemo(() =>
-    base.filter((h) => (country === "all" || h.cc === country) && (!onlyVuln || h.vulns > 0)),
-    [base, country, onlyVuln]);
+  const shown = all.slice(0, shownN);
+  const hasMore = shownN < all.length;
 
-  const facets = useMemo(() => {
-    const m = new Map(), name = new Map();
-    for (const h of base) if (h.cc) { m.set(h.cc, (m.get(h.cc) || 0) + 1); if (!name.has(h.cc)) name.set(h.cc, h.country || h.cc); }
-    return [...m].map(([cc, n]) => ({ cc, n, label: name.get(cc) })).sort((a, b) => b.n - a.n).slice(0, 6);
-  }, [base]);
-  const vulnTotal = useMemo(() => base.filter((h) => h.vulns > 0).length, [base]);
+  useEffect(() => {
+    const el = moreRef.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShownN((n) => n + PAGE); }, { rootMargin: "0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, all.length]);
 
-  const color = (h) => h.vulns > 0 ? "#F2777A" : ACCENT;
-  const points = shown.map((h) => ({ lat: h.lat, lon: h.lon, r: 5, color: color(h), pulse: !!sel && sel.ip === h.ip, host: h }));
-  const focus = sel ? { lat: sel.lat, lon: sel.lon } : null;
-  const pick = ({ point }) => { if (point && point.host) setSel(point.host); };
-
+  const openHost = (h) => { setSel(h); openScreen && openScreen("host"); };
   const kindWord = (h) => T(t, "kind." + (h.kind || "access"));
-  const summary = (h) => [h.city ? T(t, "sumPlace", { city: h.city }) : "", T(t, "sumPorts", { n: h.ports || 1 }), h.vulns > 0 ? T(t, "sumVulns", { n: h.vulns }) : T(t, "sumSafe")].filter(Boolean).join(". ") + ".";
-  const skeleton = loading && !shown.length;
+  const place = (h) => h.city || h.country || "";
+  const summary = (h) => [place(h) ? T(t, "sumPlace", { city: place(h) }) : "", T(t, "sumPorts", { n: h.ports || 1 }), h.vulns > 0 ? T(t, "sumVulns", { n: h.vulns }) : T(t, "sumSafe")].filter(Boolean).join(". ") + ".";
 
-  const row = (h) => html`<button key=${h.ip} data-result=${h.ip} aria-pressed=${!!sel && sel.ip === h.ip}
-    class=${"flex items-start gap-3 w-full text-left px-2 py-2 rounded-[var(--ms-r-in)] transition-colors " + (sel && sel.ip === h.ip ? "sf-pressed" : "hover:bg-base-content/5")}
-    onClick=${() => setSel(h)}>
-    <span class="w-9 h-9 shrink-0 rounded-[var(--ms-r-in)] grid place-items-center" style=${{ background: color(h) + "22", color: color(h) }}>${Icon(CAT_ICON[h.kind] || "lucide:radio-tower", "text-lg")}</span>
-    <span class="min-w-0 grow">
-      <span class="flex items-center gap-2">
-        <span class="font-semibold leading-tight truncate">${kindWord(h)}${h.product ? html` · <span class="font-normal text-base-content/80">${h.product}</span>` : null}</span>
-      </span>
-      <span class="block text-sm text-base-content/80 leading-snug">${summary(h)}</span>
-      <span class="block font-mono text-xs text-muted truncate">${h.ip}${h.org ? " · " + h.org : ""}</span>
-    </span>
+  if (screen === "host" && sel) {
+    return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-host=${sel.ip}>
+      <button class="btn btn-ghost btn-sm self-start gap-1.5 -ml-1" onClick=${() => closeScreen && closeScreen()} data-back>
+        ${Icon("lucide:arrow-left", "text-lg")} ${T(t, "back")}
+      </button>
+      <${Globe} points=${[{ lat: sel.lat, lon: sel.lon, r: 6, color: color(sel), pulse: true }]} focus=${{ lat: sel.lat, lon: sel.lon }} spin=${false} />
+      <${Panel}>
+        <div class="flex items-start gap-3">
+          <span class="w-10 h-10 shrink-0 rounded-[var(--ms-r-in)] grid place-items-center" style=${{ background: color(sel) + "22", color: color(sel) }}>${Icon(CAT_ICON[sel.kind] || "lucide:radio-tower", "text-xl")}</span>
+          <div class="min-w-0 grow">
+            <div class="font-semibold leading-tight">${kindWord(sel)}${sel.product ? html` · <span class="font-normal text-base-content/80">${sel.product}</span>` : null}</div>
+            <div class="text-sm text-base-content/80 leading-snug mt-0.5">${summary(sel)}</div>
+            <div class="font-mono text-xs text-muted mt-1 break-all">${sel.ip}${sel.port ? ":" + sel.port : ""}${sel.org ? " · " + sel.org : ""}</div>
+          </div>
+        </div>
+      <//>
+    </div>`;
+  }
+
+  const skeleton = loading && !shown.length;
+  const rowLine = (h) => html`<button key=${h.ip + ":" + h.port} data-result=${h.ip} onClick=${() => openHost(h)}
+    class="flex items-center gap-2.5 w-full text-left py-1.5 px-1 rounded-[var(--ms-r-in)] hover:bg-base-content/5">
+    <span class="shrink-0 w-5 text-center" style=${{ color: color(h) }}>${Icon(CAT_ICON[h.kind] || "lucide:radio-tower", "text-base")}</span>
+    <span class="font-mono text-sm shrink-0">${h.ip}</span>
+    <span class="text-sm text-muted truncate grow">${h.product || kindWord(h)}${place(h) ? " · " + place(h) : ""}</span>
+    ${h.vulns > 0 ? html`<span class="shrink-0" style=${{ color: RED }}>${Icon("lucide:shield-alert", "text-sm")}</span>` : null}
+    ${Icon("lucide:chevron-right", "text-base text-base-content/40 shrink-0")}
   </button>`;
 
-  return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-shown=${shown.length} data-cat=${cat || ""} data-live=${live ? "1" : null}>
-    <${Globe} points=${points} focus=${focus} spin=${!sel} onPick=${pick} />
-
-    ${sel ? html`<${Panel} data-host=${sel.ip}>
-      <div class="flex items-start gap-3">
-        <span class="w-10 h-10 shrink-0 rounded-[var(--ms-r-in)] grid place-items-center" style=${{ background: color(sel) + "22", color: color(sel) }}>${Icon(CAT_ICON[sel.kind] || "lucide:radio-tower", "text-xl")}</span>
-        <div class="min-w-0 grow">
-          <div class="font-semibold leading-tight">${kindWord(sel)}${sel.product ? html` · <span class="font-normal text-base-content/80">${sel.product}</span>` : null}</div>
-          <div class="text-sm text-base-content/80 leading-snug mt-0.5">${summary(sel)}</div>
-          <div class="font-mono text-xs text-muted mt-1">${sel.ip}${sel.org ? " · " + sel.org : ""}</div>
-        </div>
-        <button class="btn btn-ghost btn-xs btn-circle shrink-0" onClick=${() => setSel(null)} aria-label=${T(t, "close")}>${Icon("lucide:x", "text-base")}</button>
-      </div>
-    <//>` : null}
-
+  return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-shown=${shown.length} data-cat=${cat || ""} data-total=${all.length}>
     <${Island}>
-      <div class=${LABEL + " mb-2"}>${T(t, "pick")}</div>
-      <div class="grid grid-cols-3 gap-1.5">
+      <label class="input flex items-center gap-2 h-[var(--ms-ctl)] rounded-[var(--ms-r-in)]">
+        ${Icon("lucide:search", "text-lg text-base-content/70")}
+        <input id="host-search" type="search" autocomplete="off" class="grow bg-transparent outline-none" value=${q}
+          onInput=${(e) => setQ(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") search(); }} placeholder=${T(t, "searchPlaceholder")} />
+        ${q.trim() ? html`<button class="btn btn-ghost btn-xs btn-circle shrink-0" onClick=${search} aria-label=${T(t, "searchBtn")}>${Icon("lucide:arrow-right", "text-base")}</button>` : null}
+      </label>
+      <div class="mt-2 flex gap-1.5 overflow-x-auto -mx-1 px-1">
         ${CATEGORIES.map((c) => {
           const on = c.id === cat;
           return html`<button key=${c.id} data-cat-btn=${c.id} aria-pressed=${on}
-            class=${"flex flex-col items-center justify-center gap-1 py-2 rounded-[var(--ms-r-in)] " + (on ? "sf-pressed" : "sf-raised")}
+            class=${"flex items-center gap-1.5 shrink-0 rounded-full px-3 h-8 text-sm " + (on ? "sf-pressed" : "sf-raised")}
             onClick=${() => pickCat(c.id)}>
-            <span style=${on ? { color: ACCENT } : null}>${Icon(c.icon, "text-xl")}</span>
-            <span class="text-[length:var(--ms-label)]">${T(t, "cat." + c.id)}</span>
+            <span style=${on ? { color: ACCENT } : null}>${Icon(c.icon, "text-base")}</span>${T(t, "cat." + c.id)}
           </button>`;
         })}
       </div>
-
-      ${activeCat ? html`<div class="mt-2">
-        <${Segmented} items=${activeCat.presets.map((p) => ({ id: p, label: T(t, "cat." + activeCat.id + "." + p) }))}
-          value=${preset || activeCat.presets[0]} onChange=${pickPreset} variant="outline" size="sm" scroll attr="data-preset" />
-      </div>` : null}
-
-      ${free ? html`<div class="mt-2 flex items-center gap-2 text-sm">
-        <span class="text-base-content/70 shrink-0">${Icon("lucide:search", "text-base")}</span>
-        <span class="font-mono truncate grow">${free}</span>
-        <button class="btn btn-ghost btn-xs btn-circle shrink-0" onClick=${() => pickCat("cameras")} aria-label=${T(t, "close")}>${Icon("lucide:x", "text-base")}</button>
-      </div>` : null}
-
-      <div class="mt-2 flex items-center justify-between gap-2 min-h-6" data-status=${reason || (loading ? "loading" : shown.length ? "ok" : "empty")}>
-        <span class=${LABEL}>${loading ? T(t, "scanning") : shown.length ? html`${T(t, "found")} · ${shown.length}` : T(t, "noHosts")}</span>
+      <div class="mt-2 flex items-center justify-between gap-2 min-h-5" data-status=${reason || (loading ? "loading" : all.length ? "ok" : "empty")}>
+        <span class=${LABEL}>${loading ? T(t, "scanning") : all.length ? html`${T(t, "found")} · ${all.length}` : T(t, "noHosts")}</span>
         ${reason ? html`<span class="text-xs text-warning text-right">${T(t, reason)}</span>`
           : gate ? html`<span data-sample class="badge badge-ghost gap-1 font-mono text-xs uppercase tracking-wider">${Icon("lucide:flask-conical")} ${T(t, "sample")}</span>` : null}
       </div>
     <//>
 
-    ${(facets.length > 1 || vulnTotal > 0) ? html`<${Island}>
-      <div class=${LABEL + " mb-2"}>${T(t, "atAGlance")}</div>
-      <div class="flex flex-wrap gap-1.5">
-        <button data-facet="all" aria-pressed=${country === "all"} onClick=${() => pickCountry("all")}
-          class=${"badge gap-1 " + (country === "all" ? "badge-primary" : "badge-ghost")}>${T(t, "everywhere")}</button>
-        ${facets.map((f) => html`<button key=${f.cc} data-facet=${f.cc} aria-pressed=${country === f.cc} onClick=${() => pickCountry(f.cc)}
-          class=${"badge gap-1.5 " + (country === f.cc ? "badge-primary" : "badge-ghost")}>${f.label} <span class="font-mono tabular-nums opacity-70">${f.n}</span></button>`)}
-        ${vulnTotal > 0 ? html`<button data-facet="vuln" aria-pressed=${onlyVuln} onClick=${() => setOnlyVuln((v) => !v)}
-          class=${"badge gap-1.5 " + (onlyVuln ? "badge-error" : "badge-ghost")} style=${onlyVuln ? null : { color: "#F2777A" }}>${Icon("lucide:shield-alert", "text-sm")} ${T(t, "onlyVulns")} <span class="font-mono tabular-nums opacity-70">${vulnTotal}</span></button>` : null}
-      </div>
-    <//>` : null}
-
-    <${Panel} title=${T(t, "results")} data-list=${shown.length}>
-      <button class="btn btn-ghost btn-sm w-full justify-start gap-2" onClick=${() => setAdvOpen(true)} data-adv>
-        ${Icon("lucide:search", "text-lg text-base-content/70")}<span class="text-base-content/70 font-normal">${T(t, "searchPlaceholder")}</span>
-      </button>
+    <${Panel} data-list=${all.length}>
       ${skeleton
-        ? html`<div class="flex flex-col gap-1">${[0, 1, 2, 3, 4].map((i) => html`<div key=${i} class="flex items-start gap-3 px-2 py-2">
-            <span class="w-9 h-9 shrink-0 rounded-[var(--ms-r-in)] bg-base-content/10 animate-pulse"></span>
-            <span class="grow flex flex-col gap-1.5 pt-0.5"><span class="h-3 w-1/2 rounded bg-base-content/10 animate-pulse"></span><span class="h-3 w-3/4 rounded bg-base-content/10 animate-pulse"></span></span>
+        ? html`<div class="flex flex-col gap-1">${Array.from({ length: 8 }).map((_, i) => html`<div key=${i} class="flex items-center gap-2.5 py-1.5 px-1">
+            <span class="w-5 h-5 shrink-0 rounded bg-base-content/10 animate-pulse"></span>
+            <span class="h-3 w-24 rounded bg-base-content/10 animate-pulse"></span>
+            <span class="h-3 grow rounded bg-base-content/10 animate-pulse"></span>
           </div>`)}</div>`
         : shown.length
-          ? html`<div class="flex flex-col divide-y divide-base-300/40">${shown.map(row)}</div>`
+          ? html`<div class="flex flex-col divide-y divide-base-300/40">${shown.map(rowLine)}</div>`
           : html`<div class="text-sm text-muted py-6 text-center">${T(t, "noHosts")}</div>`}
-    <//>
-
-    <${Sheet} id="adv" open=${advOpen} onClose=${() => setAdvOpen(false)} title=${T(t, "advanced")} subtitle=${T(t, "searchHint")} locale=${useStore(S.locale)}>
-      <label class="input flex items-center gap-2 h-[var(--ms-ctl)] rounded-[var(--ms-r-in)]">
-        ${Icon("lucide:terminal", "text-lg text-base-content/70")}
-        <input id="adv-q" class="grow bg-transparent outline-none font-mono text-sm" value=${adv}
-          onInput=${(e) => setAdv(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") runFree(); }} placeholder=${T(t, "searchPlaceholder")} />
-      </label>
-      <button class="btn btn-primary w-full mt-3" onClick=${runFree} disabled=${!adv.trim()}>${T(t, "searchBtn")}</button>
+      ${hasMore ? html`<div ref=${moreRef} class="pt-2">
+        <button class="btn btn-ghost btn-sm w-full" onClick=${() => setShownN((n) => n + PAGE)} data-more>${T(t, "more")}</button>
+      </div>` : null}
     <//>
   </div>`;
 }
@@ -315,7 +270,6 @@ export function trace({ S }) {
   </div>` : null;
 
   const maxRtt = Math.max(1, ...hops.map((h) => h.rtt || 0));
-  const answered = hops.filter((h) => h.rtt != null).length;
   const hidden = hops.filter((h) => !h.ip).length;
   const reachMs = Math.round(Math.max(0, ...hops.map((h) => h.rtt || 0)));
   const addr = (dns.records && dns.records.A && dns.records.A[0]) || dns.ip || "";
@@ -342,7 +296,7 @@ export function trace({ S }) {
       <div class="flex items-start gap-2.5 text-sm leading-snug">
         <span class="shrink-0 mt-0.5" style=${{ color: ACCENT }}>${Icon("lucide:sparkles", "text-lg")}</span>
         <div class="flex flex-col gap-1.5">
-          <p>${T(t, "routeLede", { n: answered, ms: reachMs })}${hidden ? " " + T(t, "routeHidden", { n: hidden }) : ""}</p>
+          <p>${T(t, "routeLede", { ms: reachMs })}${hidden ? " " + T(t, "routeHidden", { n: hidden }) : ""}</p>
           ${addr ? html`<p>${T(t, "dnsAddr", { ip: addr })}${nsLeaves.length ? " " + T(t, "dnsNames", { orgs: nsLeaves.join(", ") }) : ""}</p>` : null}
         </div>
       </div>
