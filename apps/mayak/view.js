@@ -8,7 +8,7 @@ import { Panel, Island, Segmented, Sheet } from "/_rt/ui.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { session, restore } from "/_rt/auth.js";
 import { gate } from "/_rt/gate.js";
-import { CATEGORIES, KIND_OF, presetQuery, parseQuery } from "./categories.js";
+import { CATEGORIES, KIND_OF, presetQuery, parseQuery, freeTerm } from "./categories.js";
 import fixture from "./fixture.json" with { type: "json" };
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -49,16 +49,17 @@ export function map({ S }) {
     const my = ++seq.current;
     setReason(""); setLoading(true);
     try {
-      const r = await fetch(VPS_PROXY + "/shodan/search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, country: country === "all" ? "" : country }) });
+      const r = await fetch(VPS_PROXY + "/shodan/search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, country: "" }) });
       const j = await r.json().catch(() => null);
       if (my !== seq.current) return;
       if (r.ok && j && Array.isArray(j.matches)) {
-        setHosts(j.matches.map((m) => ({ ...m, kind: kind || m.kind || "access" }))); setLive(true); setSel(null);
+        setHosts(j.matches.map((m) => ({ ...m, kind: kind || m.kind || "access" }))); setLive(true); setSel(null); setCountry("all");
         if (!j.matches.length) setReason("noHosts");
-      } else setReason(j && j.error === "no_key" ? "noKey" : j && j.error === "no_query_credits" ? "creditsWarn" : "updFail");
+      } else { setHosts([]); setLive(false); setReason(j && j.error === "no_key" ? "noKey" : j && j.error === "no_query_credits" ? "creditsWarn" : "updFail"); }
     } catch { if (my === seq.current) setReason("updFail"); }
     finally { if (my === seq.current) setLoading(false); }
   };
+  const liveOf = (p) => freeTerm(p) || presetQuery(p, "");
 
   useEffect(() => {
     if (gate) return;
@@ -66,8 +67,9 @@ export function map({ S }) {
     (async () => {
       if (!me) await restore().catch(() => null);
       if (!alive) return;
-      const q = free ? parseQuery(free, country).query : cat ? presetQuery(activeCat.presets[0], country) : "";
-      if (q) runLive(q, kindOfSel);
+      const p = cat ? activeCat.presets[0] : null;
+      if (free) runLive(parseQuery(free, "").query, null);
+      else if (p) runLive(liveOf(p), KIND_OF[p]);
     })();
     return () => { alive = false; };
   }, [me]);   // eslint-disable-line
@@ -75,16 +77,12 @@ export function map({ S }) {
   const pickCat = (id) => {
     const next = id === cat ? null : id;
     setCat(next); setPreset(null); setSel(null); setFree(null); setOnlyVuln(false);
-    if (next) { const p = CATEGORIES.find((c) => c.id === next).presets[0]; runLive(presetQuery(p, country), KIND_OF[p]); }
+    if (next) { const p = CATEGORIES.find((c) => c.id === next).presets[0]; runLive(liveOf(p), KIND_OF[p]); }
   };
-  const pickPreset = (p) => { setPreset(p); setSel(null); setFree(null); runLive(presetQuery(p, country), KIND_OF[p]); };
-  const pickCountry = (cc) => {
-    setCountry(cc); setSel(null);
-    const q = free ? parseQuery(free, cc).query : preset ? presetQuery(preset, cc) : cat ? presetQuery(activeCat.presets[0], cc) : "";
-    if (q) runLive(q, kindOfSel);
-  };
+  const pickPreset = (p) => { setPreset(p); setSel(null); setFree(null); runLive(liveOf(p), KIND_OF[p]); };
+  const pickCountry = (cc) => { setCountry(cc); setSel(null); };
   const runFree = () => {
-    const parsed = parseQuery(adv.trim(), country);
+    const parsed = parseQuery(adv.trim(), "");
     if (!parsed.query) return;
     setCat(null); setPreset(null); setFree(adv.trim()); setSel(null); setOnlyVuln(false); setAdvOpen(false);
     runLive(parsed.query, null);

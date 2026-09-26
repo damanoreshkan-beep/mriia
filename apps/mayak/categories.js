@@ -47,6 +47,17 @@ export function presetQuery(preset, cc) {
   return cc && cc !== "all" ? `${base} country:${cc}` : base;
 }
 
+export const FREE = {
+  camera: "webcam", cam_dahua: "dahua", cam_hik: "hikvision", cam_axis: "axis", cam_onvif: "onvif", cam_screenshot: "webcam",
+  databases: "mongodb", db_mongo: "mongodb", mongo_open: "mongodb", db_redis: "redis", db_mysql: "mysql", db_postgres: "postgresql", elastic: "elastic",
+  acc_rdp: "rdp", ssh: "openssh", vnc: "vnc", acc_telnet: "telnet", acc_winbox: "mikrotik",
+  indexof: "index of", ftp: "ftp", files_smb: "samba", files_rsync: "rsync",
+  printers: "printer", scada: "modbus", dev_s7: "siemens", dev_upnp: "upnp",
+};
+
+/** The plain-text term a preset searches by on the free tier, or "" when it has none (needs credits). Pure. */
+export function freeTerm(preset) { return FREE[preset] || ""; }
+
 const FILTER_TOKENS = ["port:", "product:", "http.title:", "http.html:", "hostname:", "net:", "org:", "asn:", "country:", "city:", "ssl:", "vuln:", "os:", "tag:", "has_screenshot:", "screenshot.label:"];
 const isIPv4 = (s) => { const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(s); return !!m && m.slice(1).every((o) => Number(o) >= 0 && Number(o) <= 255 && String(Number(o)) === o.replace(/^0+(?=\d)/, "")); };
 const isIPv6 = (s) => s.indexOf(":") !== -1 && /^[0-9a-fA-F:]+$/.test(s) && (s.split(":").length >= 3 || s.includes("::"));
