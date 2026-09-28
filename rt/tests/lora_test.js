@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { refDownchirp, makeUpSymbol, dechirpArgmax, detectPreamble, LORA_PRESETS, WHITENING, loraEncode, loraDecode, decodeLoraSignal } from "../lora.js";
-
 
 Deno.test("LoRa dechirp round-trip: makeUpSymbol(s) → dechirpArgmax recovers s exactly", () => {
   for (const sf of [7, 9]) {
@@ -40,10 +38,10 @@ Deno.test("LoRa whitening table: 255 bytes, seed 0xFF", () => {
 
 Deno.test("LoRa PHY codec: encode → decode round-trip recovers exact payload (SF×CR×CRC×header)", () => {
   const payloads = [
-    [0x48, 0x65, 0x6c, 0x6c, 0x6f],                     
-    [0x00, 0xff, 0x01, 0xfe, 0x80, 0x7f, 0x2a],         
-    [0x11, 0x22, 0x33],                                  
-    Array.from({ length: 16 }, (_, i) => (i * 37 + 5) & 0xff), 
+    [0x48, 0x65, 0x6c, 0x6c, 0x6f],
+    [0x00, 0xff, 0x01, 0xfe, 0x80, 0x7f, 0x2a],
+    [0x11, 0x22, 0x33],
+    Array.from({ length: 16 }, (_, i) => (i * 37 + 5) & 0xff),
   ];
   for (const sf of [7, 9]) {
     for (const cr of [1, 2, 3, 4]) {
@@ -84,14 +82,14 @@ const SYNTH_SYNC = [8, 16];
 function synthLoraSignal(payload, { sf, cr = 1, crc = false, hasHeader = true, cfoBins = 0, stoSamples = 0, noise = 0 } = {}) {
   const N = 1 << sf;
   const parts = [];
-  for (let i = 0; i < 8; i++) parts.push(makeUpSymbol(N, 0));            
-  parts.push(makeUpSymbol(N, SYNTH_SYNC[0] % N));                       
-  parts.push(makeUpSymbol(N, SYNTH_SYNC[1] % N));                       
-  parts.push(refDownchirp(N)); parts.push(refDownchirp(N));             
+  for (let i = 0; i < 8; i++) parts.push(makeUpSymbol(N, 0));
+  parts.push(makeUpSymbol(N, SYNTH_SYNC[0] % N));
+  parts.push(makeUpSymbol(N, SYNTH_SYNC[1] % N));
+  parts.push(refDownchirp(N)); parts.push(refDownchirp(N));
   const dq = refDownchirp(N);
-  parts.push({ re: dq.re.subarray(0, N >> 2), im: dq.im.subarray(0, N >> 2) }); 
+  parts.push({ re: dq.re.subarray(0, N >> 2), im: dq.im.subarray(0, N >> 2) });
   const symbols = loraEncode(payload, { sf, cr, crc, hasHeader });
-  for (const s of symbols) parts.push(makeUpSymbol(N, s % N));          
+  for (const s of symbols) parts.push(makeUpSymbol(N, s % N));
   let L = 0; for (const q of parts) L += q.re.length;
   const bre = new Float32Array(L), bim = new Float32Array(L);
   let off = 0; for (const q of parts) { bre.set(q.re, off); bim.set(q.im, off); off += q.re.length; }
@@ -117,8 +115,8 @@ function synthLoraSignal(payload, { sf, cr = 1, crc = false, hasHeader = true, c
 
 Deno.test("LoRa frame sync: synthetic full-packet round-trip recovers payload+CRC under CFO/STO", () => {
   const payloads = [
-    [0x48, 0x65, 0x6c, 0x6c, 0x6f],                             
-    Array.from({ length: 11 }, (_, i) => (i * 29 + 7) & 0xff),  
+    [0x48, 0x65, 0x6c, 0x6c, 0x6f],
+    Array.from({ length: 11 }, (_, i) => (i * 29 + 7) & 0xff),
   ];
   for (const sf of [7, 9]) {
     for (const cr of [1, 4]) {
@@ -141,7 +139,7 @@ Deno.test("LoRa frame sync: synthetic full-packet round-trip recovers payload+CR
 });
 
 Deno.test("LoRa frame sync: recovers payload under CFO+STO+noise", () => {
-  const payload = [0x4d, 0x65, 0x73, 0x68]; 
+  const payload = [0x4d, 0x65, 0x73, 0x68];
   const sig = synthLoraSignal(payload, { sf: 7, cr: 1, crc: true, hasHeader: true, cfoBins: 3, stoSamples: 4, noise: 0.05 });
   const out = decodeLoraSignal(sig.re, sig.im, { sf: 7 });
   assert(out.found, "preamble not found under noise");

@@ -17,7 +17,7 @@ const META = "font-mono text-[length:var(--ms-label)] tabular-nums text-muted";
 const pKey = (k) => "p" + k[0].toUpperCase() + k.slice(1);
 const dKey = (k) => "dom" + k[0].toUpperCase() + k.slice(1);
 const grim = collection("sigil");
-const DEFAULT_INTENT = "I am calm and focused";     
+const DEFAULT_INTENT = "I am calm and focused";
 
 const Attribution = ({ t, sig, onOpen }) => html`<button data-about aria-label=${T(t, "aboutAria")} onClick=${onOpen} class="inline-flex max-w-full items-center gap-2 rounded-full sf-raised sf-e2 px-3 py-1.5 active:scale-[0.98] transition-transform">
   <span class="shrink-0"><${Planet} body=${sig.planet} /></span>
@@ -35,6 +35,7 @@ function AboutSheet({ t, open, sig, onClose }) {
         <span class="shrink-0"><${Planet} body=${sig.planet} /></span>
         <p class="text-base-content/70">${T(t, dKey(sig.planet))}</p>
       </div>
+      ${""}
       <div class="h-px bg-base-content/10"></div>
       <p class="text-sm text-base-content/80 leading-relaxed">${kamea}</p>
       <p class="text-sm text-base-content/80 leading-relaxed">${T(t, "traceDesc")}</p>
@@ -53,12 +54,11 @@ async function shareSigil(sig, t, toast) {
       const blob = await (await fetch(url)).blob();
       const file = new File([blob], "sigil.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: T(t, "title") }); return; }
-    } catch {  }
-    try { await downloadUrl(url, "sigil.png"); return; } catch {  }
+    } catch { }
+    try { await downloadUrl(url, "sigil.png"); return; } catch { }
   }
   toast && toast(T(t, "shareFail"));
 }
-
 
 export function forge({ S, toast }) {
   const t = useStore(S.t);
@@ -67,7 +67,6 @@ export function forge({ S, toast }) {
   const [sig, setSig] = useState(gate ? sigilPath(DEFAULT_INTENT) : null);
   const [tilted, setTilted] = useState(false);
 
-  
   useEffect(() => {
     if (!immersionAvailable) return;
     let alive = true;
@@ -76,7 +75,7 @@ export function forge({ S, toast }) {
   }, []);
 
   const doForge = () => { const s = sigilPath(intent); if (s) setSig(s); };
-  const keep = async () => { if (!sig) return; try { await grim.put(String(sig.seed), { intent: sig.intent, seed: sig.seed, planet: sig.planet }); } catch {  } toast && toast("saved"); };
+  const keep = async () => { if (!sig) return; try { await grim.put(String(sig.seed), { intent: sig.intent, seed: sig.seed, planet: sig.planet }); } catch { } toast && toast("saved"); };
   const toggleTilt = async () => {
     if (tilted) { disableImmersion(); setTilted(false); return; }
     const ok = await enableImmersion(); setTilted(ok);
@@ -87,7 +86,7 @@ export function forge({ S, toast }) {
     <div class="relative z-10 flex flex-col min-h-[70svh] px-[var(--ms-pad)] pt-[var(--ms-gap)] pb-[var(--ms-pad)] gap-[var(--ms-gap)] pointer-events-none" data-forged=${sig ? "yes" : "no"} data-tilt=${tilted ? "on" : "off"}>
       <div class="flex justify-center">${sig ? html`<div class="pointer-events-auto"><${Attribution} t=${t} sig=${sig} onOpen=${() => S.screen.set("about")} /></div>` : null}</div>
       <div class="flex-1"></div>
-      
+      ${""}
       <${Island} className="pointer-events-auto flex flex-col gap-[var(--ms-gap)]">
         <input data-intent aria-label=${T(t, "intentLabel")} value=${intent} placeholder=${T(t, "intentPlaceholder")}
           onInput=${(e) => setIntent(e.currentTarget.value)}
@@ -99,7 +98,7 @@ export function forge({ S, toast }) {
           </button>
           ${sig ? html`<button data-keep aria-label=${T(t, "keepBtn")} onClick=${keep} class="btn btn-ghost btn-circle shrink-0">${Icon("lucide:bookmark-plus", "text-lg")}</button>` : null}
           ${sig ? html`<button data-share aria-label=${T(t, "shareBtn")} onClick=${() => shareSigil(sig, t, toast)} class="btn btn-ghost btn-circle shrink-0">${Icon("lucide:share-2", "text-lg")}</button>` : null}
-          
+          ${""}
           ${sig && immersionAvailable ? html`<button data-tilt aria-label=${T(t, "immerseAria")} aria-pressed=${tilted} onClick=${toggleTilt} class=${`btn btn-circle shrink-0 ${tilted ? "btn-primary" : "btn-ghost"}`}>${Icon("lucide:orbit", "text-lg")}</button>` : null}
         </div>
       </${Island}>
@@ -107,7 +106,6 @@ export function forge({ S, toast }) {
     <${AboutSheet} t=${t} open=${scr === "about" && !!sig} sig=${sig} onClose=${() => S.screen.set(null)} />
   </div>`;
 }
-
 
 function SigilCanvas({ sig, size = 132, cls }) {
   const ref = useRef();
@@ -123,33 +121,29 @@ function SigilCanvas({ sig, size = 132, cls }) {
   return html`<canvas ref=${ref} data-sigil style=${`width:${size}px;height:${size}px`} class=${cls || ""}></canvas>`;
 }
 
-
 export function grimoire({ S, toast, undo }) {
   const t = useStore(S.t);
   const scr = useStore(S.screen);
-  const [items, setItems] = useState(null);                       
+  const [items, setItems] = useState(null);
   const [openId, setOpenId] = useState(null);
 
   const refresh = async () => { try { setItems(await grim.all()); } catch { setItems([]); } };
   useEffect(() => { refresh(); }, []);
   const shown = useReveal(items !== null);
 
-  
   const withSig = (items || []).map((it) => ({ ...it, sig: sigilPath(it.intent) })).filter((x) => x.sig);
 
   const open = (it) => { setOpenId(it.id); S.screen.set("detail"); };
   const remove = async (it) => {
     setItems((xs) => xs.filter((x) => x.id !== it.id));
     if (scr === "detail") S.screen.set(null);
-    try { await grim.remove(it.id); } catch {  }
-    undo && undo(async () => { try { await grim.put(it.id, { intent: it.intent, seed: it.seed, planet: it.planet }); } catch {  } refresh(); }, T(t, "removed"));
+    try { await grim.remove(it.id); } catch { }
+    undo && undo(async () => { try { await grim.put(it.id, { intent: it.intent, seed: it.seed, planet: it.planet }); } catch { } refresh(); }, T(t, "removed"));
   };
 
   const openItem = withSig.find((x) => x.id === openId);
 
-  
   const tile = "rounded-[var(--ms-r)] sf-raised sf-e2 p-3 flex flex-col items-center gap-2";
-  
   if (!shown) {
     return html`<div class="p-[var(--ms-pad)]"><div class="grid grid-cols-2 gap-[var(--ms-gap)]">
       ${[0, 1].map((i) => html`<div data-skel key=${i} class=${tile}>
@@ -183,7 +177,6 @@ export function grimoire({ S, toast, undo }) {
       onShare=${() => openItem && shareSigil(openItem.sig, t, toast)} onRemove=${() => openItem && remove(openItem)} />
   </div>`;
 }
-
 
 function DetailSheet({ t, open, it, onClose, onShare, onRemove }) {
   return html`<${Sheet} id="detailsheet" open=${open} onClose=${onClose} title=${it ? it.intent : ""}>

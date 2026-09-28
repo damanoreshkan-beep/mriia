@@ -75,7 +75,7 @@ export default [
       await h.click("[data-voice-pick]"); await h.wait(250);
       h.expect((await h.count('[data-voice="mine"]')) === 0, "Мій лишився без запису");
       await h.back(); await h.wait(250);
-      await h.tap("[data-record]"); await h.wait(300);   
+      await h.tap("[data-record]"); await h.wait(300);
       h.expect((await h.count("[data-take][data-live]")) === 1, "новий запис не зʼявився");
     },
   },

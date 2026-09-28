@@ -117,6 +117,7 @@ export function zir({ S, toast }) {
     <style>${CSS}</style>
     <${GlStage} shader=${new URL("zir.frag", import.meta.url)} seed=${0.37} tex=${shown} vary=${vary} texReady=${(r) => { chan.ready = r; }} zClass="z-0" />
 
+    ${""}
     ${screen === "view" && shown ? html`<div data-lightbox class="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick=${() => S.screen.set(null)}>
       <img src=${shown} alt="" class="max-w-full max-h-full object-contain" />
       <button data-lightbox-close aria-label=${T(t, "view")} class="absolute top-3 right-3 btn btn-circle btn-sm bg-black/50 text-white border-0" onClick=${() => S.screen.set(null)}>${Icon("lucide:x", "text-base")}</button>
@@ -124,6 +125,7 @@ export function zir({ S, toast }) {
 
     <${Sheet} id="opts" open=${screen === "opts"} onClose=${() => S.screen.set(null)} title=${T(t, "options")} icon="lucide:sliders-horizontal" locale=${loc}>
       <div class="flex flex-col gap-[var(--ms-gap)]">
+        ${""}
         <div class="flex items-center justify-between gap-2">
           <div class=${label}>${T(t, "model")}</div>
           <button data-models-check aria-label=${T(t, "modelCheck")} class="btn btn-ghost btn-xs btn-circle text-base-content/70" disabled=${models.loading} onClick=${() => M.loadModels(true)}>${Icon("lucide:refresh-cw", `text-base ${models.loading ? "animate-spin" : ""}`)}</button>
@@ -143,7 +145,7 @@ export function zir({ S, toast }) {
             items=${[{ id: "hd", label: T(t, "qHd"), icon: "lucide:gem" }, { id: "fast", label: T(t, "qFast"), icon: "lucide:zap" }]} />
           <button data-opts aria-label=${T(t, "options")} class=${`${tool} ${modelSel !== "auto" ? "ring-1 ring-[var(--app-accent)]" : ""}`} onClick=${() => { M.loadModels(); S.screen.set("opts"); }}>${Icon("lucide:sliders-horizontal", "text-lg")}</button>
         </div>
-        
+        ${""}
         <div class="@container flex items-center gap-1.5 min-w-0">
           ${st.src ? html`<button data-new aria-label=${T(t, "newPhoto")} class=${tool} disabled=${working} onClick=${M.clearSource}>${Icon("lucide:image-plus", "text-lg")}</button>` : null}
           ${hasResult ? html`<${Fragment}>

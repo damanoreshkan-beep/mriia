@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { useRef, useEffect } from "preact/hooks";
 import { isGate } from "/_rt/gate.js";
@@ -104,7 +103,7 @@ export function SigilStage({ sigil }) {
   const store = useRef({ THREE: null, renderer: null, scene: null, cam: null, stars: [], nebula: [], m: null, raf: null, ro: null, mo: null, t0: 0, err: null, col: null }).current;
   useEffect(() => {
     const canvas = ref.current; if (!canvas) return; let dead = false;
-    const mark = () => { try { canvas.dataset.haswebgl = hasWebGL() ? "yes" : "no"; canvas.dataset.render = store.scene ? "webgl" : "2d"; if (store.err) canvas.dataset.err = String(store.err.message || store.err).slice(0, 140); } catch {  } };
+    const mark = () => { try { canvas.dataset.haswebgl = hasWebGL() ? "yes" : "no"; canvas.dataset.render = store.scene ? "webgl" : "2d"; if (store.err) canvas.dataset.err = String(store.err.message || store.err).slice(0, 140); } catch { } };
     const dims = () => { const r = canvas.getBoundingClientRect(); return [Math.max(1, Math.round(r.width)), Math.max(1, Math.round(r.height))]; };
     const size = () => { const [w, h] = dims(), dpr = DPR(); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); if (store.renderer) { store.renderer.setSize(canvas.width, canvas.height, false); store.cam.aspect = w / h; store.cam.updateProjectionMatrix(); } };
 
@@ -148,7 +147,7 @@ export function SigilStage({ sigil }) {
       mark();
     })();
 
-    return () => { dead = true; if (store.raf) cancelAnimationFrame(store.raf); store.ro?.disconnect(); store.mo?.disconnect(); if (store.scene) disposeObj(store.scene); try { store.renderer?.dispose?.(); } catch {  } store.renderer = store.scene = store.m = null; };
+    return () => { dead = true; if (store.raf) cancelAnimationFrame(store.raf); store.ro?.disconnect(); store.mo?.disconnect(); if (store.scene) disposeObj(store.scene); try { store.renderer?.dispose?.(); } catch { } store.renderer = store.scene = store.m = null; };
   }, []);
   useEffect(() => { store.sigil = sigil; store.rebuildMandala?.(sigil); }, [sigil && sigil.seed]);
   return html`<canvas ref=${ref} data-sigil data-live aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>`;

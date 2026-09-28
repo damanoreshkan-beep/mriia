@@ -8,17 +8,17 @@ import { glbUrl } from "./state.js";
 
 export const STREET_W = 10, CHUNK = 24, AHEAD = 4, BEHIND = 2;
 export const LANE_W = 2.2, LANES = 4;
-export const laneX = (i) => (i - (LANES - 1) / 2) * LANE_W;   
-export const DECK_H = 2.4, RAMP = 5;                           
-const WALK = 1.6, KERB = STREET_W / 2 + WALK / 2, WALL = STREET_W / 2 + WALK + 0.2;   
-const TILE = 9;                                                                          
-const Z_H = 1.7, Z_MIN = 8, Z_MAX = 12;                                                  
-const WALKER_HP = 2, WALKER_SPEED = 0.7;                                                 
-export const CHASE = { menace: 4.6, surge: 2.3, catchAt: 1.1, relax: 1.4, decayM: 150, surgeS: 0.6, closing: 6 };   
+export const laneX = (i) => (i - (LANES - 1) / 2) * LANE_W;
+export const DECK_H = 2.4, RAMP = 5;
+const WALK = 1.6, KERB = STREET_W / 2 + WALK / 2, WALL = STREET_W / 2 + WALK + 0.2;
+const TILE = 9;
+const Z_H = 1.7, Z_MIN = 8, Z_MAX = 12;
+const WALKER_HP = 2, WALKER_SPEED = 0.7;
+export const CHASE = { menace: 4.6, surge: 2.3, catchAt: 1.1, relax: 1.4, decayM: 150, surgeS: 0.6, closing: 6 };
 const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 const A = (p) => new URL(p, import.meta.url).href;
 const CARS = ["sedan", "taxi", "suv", "van", "hatch"];
-const HORDE_SKINS = ["arissa", "michelle", "sophie", "eve", "nightshade"];   
+const HORDE_SKINS = ["arissa", "michelle", "sophie", "eve", "nightshade"];
 const NEON = [0x22d3ee, 0xff3eb5, 0x7c5cff, 0x39ff6a, 0xf5b942];
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -125,8 +125,8 @@ const vertical = () => { const c = document.createElement("canvas"); c.width = 4
 export function createWorld(scene) {
   const group = new THREE.Group(); scene.add(group);
   const loader = new GLTFLoader(); const draco = new DRACOLoader(); draco.setDecoderPath(DRACO_PATH); loader.setDRACOLoader(draco);
-  const chunks = new Map();   
-  const decks = [];           
+  const chunks = new Map();
+  const decks = [];
   let seedBase = 1, difficulty = 0, deckUntil = 0, lastTunnel = -9;
   const box = new THREE.BoxGeometry(1, 1, 1);
   const mesh = (geo, mat, x, y, z, parent, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(geo, mat); m.scale.set(sx, sy, sz); m.position.set(x, y, z); parent.add(m); return m; };
@@ -163,7 +163,7 @@ export function createWorld(scene) {
   const batGeo = (() => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute([-0.45, 0.12, 0, 0, 0, 0.08, -0.15, -0.04, 0, 0.45, 0.12, 0, 0, 0, 0.08, 0.15, -0.04, 0], 3)); g.computeVertexNormals(); return g; })();
 
   const sky = new THREE.Group(); scene.add(sky);
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(7, 24, 16), M.moon); moon.position.set(-9, 40, -170); sky.add(moon);   
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(7, 24, 16), M.moon); moon.position.set(-9, 40, -170); sky.add(moon);
   const halo = new THREE.Sprite(M.halo); halo.scale.set(46, 46, 1); halo.position.copy(moon.position); sky.add(halo);
   { const n = 420, p = new Float32Array(n * 3), r = rng(7); for (let i = 0; i < n; i++) { const th = r() * Math.PI * 2, ph = Math.acos(1 - r() * 0.9); p[i * 3] = 190 * Math.sin(ph) * Math.cos(th); p[i * 3 + 1] = Math.abs(190 * Math.cos(ph)) + 6; p[i * 3 + 2] = 190 * Math.sin(ph) * Math.sin(th); } const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); sky.add(new THREE.Points(g, M.stars)); }
   const BATS = 14, bats = new THREE.InstancedMesh(batGeo, M.bat, BATS); bats.frustumCulled = false; bats.count = 0; scene.add(bats);
@@ -190,7 +190,7 @@ export function createWorld(scene) {
       new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = A("assets/tex-facade.webp"); }),
       tex(A("assets/tex-graffiti.webp")), tex(A("assets/tex-asphalt.webp"), [(STREET_W + WALK * 2) / 7, CHUNK / 7]), tex(A("assets/tex-metal.webp"), [2, 1]), tex(A("assets/tex-sidewalk.webp")),
       loader.loadAsync(A("assets/props.glb")),
-      ...CARS.map((k) => tex(A(`assets/tex-car-${k}.webp`))),   
+      ...CARS.map((k) => tex(A(`assets/tex-car-${k}.webp`))),
     ]);
     carTex.push(...rust);
     for (const s of [3, 11]) facades.push(facadeSet(facadeImg, s));
@@ -209,8 +209,8 @@ export function createWorld(scene) {
     for (const node of props.scene.children) {
       const car = CARS.indexOf(node.name);
       const { geo, mat } = propGeo(node, car >= 0); const m = grade(mat.clone(), car >= 0 ? 0.6 : 0.2);
-      m.color.multiplyScalar(0.5); m.roughness = 0.92; m.metalness = 0.1;   
-      if (car >= 0) { m.map = carTex[car]; m.vertexColors = true; m.color.setScalar(0.9); m.roughness = 0.8; m.metalness = 0.2; }   
+      m.color.multiplyScalar(0.5); m.roughness = 0.92; m.metalness = 0.1;
+      if (car >= 0) { m.map = carTex[car]; m.vertexColors = true; m.color.setScalar(0.9); m.roughness = 0.8; m.metalness = 0.2; }
       if (node.name === "bin") { m.emissive = new THREE.Color(0x1c2a1a); m.emissiveIntensity = 0.5; }
       if (node.name === "lamp") { m.roughness = 0.85; m.metalness = 0.25; }
       P[node.name] = pool(geo, m, cap[node.name] || 16, group);
@@ -239,7 +239,7 @@ export function createWorld(scene) {
       if (!o.isMesh) return;
       const m = grade(o.material.clone(), 0.12);
       m.color.multiply(new THREE.Color(0.68, 0.74, 0.64)); m.roughness = 1; m.metalness = 0; m.envMapIntensity = 0;
-      m.emissive = new THREE.Color(0x8fa093); m.emissiveMap = m.map; m.emissiveIntensity = 0.16;   
+      m.emissive = new THREE.Color(0x8fa093); m.emissiveMap = m.map; m.emissiveIntensity = 0.16;
       o.material = m; deadMats.push(m);
     });
     return root;
@@ -280,7 +280,7 @@ export function createWorld(scene) {
     for (let i = zombies.length - 1; i >= 0; i--) {
       const zb = zombies[i];
       if ((zb.offT -= dt) < 0) { zb.offT = 2 + Math.random() * 4; zb.off = (Math.random() - 0.5) * 6; }
-      const surge = Math.sin(t * zb.w1 + zb.ph) * Math.sin(t * zb.w2);   
+      const surge = Math.sin(t * zb.w1 + zb.ph) * Math.sin(t * zb.w2);
       const tz = pz + chase.dist + zb.gap * (chase.caught ? 0.3 : 1);
       zb.z -= metres; zb.z += (tz - zb.z) * Math.min(1, dt * 2.5);
       const tx = Math.max(-lim, Math.min(lim, chase.caught ? px + zb.off * 0.25 : px + zb.off));
@@ -328,19 +328,19 @@ export function createWorld(scene) {
   }
   function obstacle(ch, r, kind, lane, z) {
     const x = laneX(lane), g = ch.group, y = floorAt(lane, z);
-    if (kind === "jump") {                 
+    if (kind === "jump") {
       mesh(box, M.barrier, x, y + 0.3, z, g, LANE_W - 0.3, 0.6, 0.35);
       mesh(box, M.post, x - LANE_W / 2 + 0.25, y + 0.32, z, g, 0.1, 0.64, 0.1); mesh(box, M.post, x + LANE_W / 2 - 0.25, y + 0.32, z, g, 0.1, 0.64, 0.1);
       ch.obstacles.push({ kind, lane, z, zHalf: 0.35 });
-    } else if (kind === "slide") {         
+    } else if (kind === "slide") {
       mesh(box, M.post, x - LANE_W / 2 + 0.15, y + 0.85, z, g, 0.14, 1.7, 0.14); mesh(box, M.post, x + LANE_W / 2 - 0.15, y + 0.85, z, g, 0.14, 1.7, 0.14);
       mesh(box, M.bar, x, y + 1.45, z, g, LANE_W - 0.1, 0.3, 0.3);
       ch.obstacles.push({ kind, lane, z, zHalf: 0.3 });
-    } else if (kind === "walker") {        
+    } else if (kind === "walker") {
       spawnWalker(ch, lane, z);
-    } else {                               
+    } else {
       if (r() < 0.5) { const sc = 1.25; place(ch, "bin", x, y, z, Math.PI / 2, sc); ch.obstacles.push({ kind: "bin", lane, z, zHalf: 0.9 }); }
-      else { car(ch, r, x, z, true); ch.obstacles.push({ kind: "car", lane, z, zHalf: 1.0 }); }   
+      else { car(ch, r, x, z, true); ch.obstacles.push({ kind: "car", lane, z, zHalf: 1.0 }); }
     }
   }
   function deck(ch, lanes, z0, z1) {

@@ -1,4 +1,3 @@
-
 const hud = '[data-swarm] [data-readout]';
 const num = (h, name) => h.attr(hud, `data-${name}`).then((v) => +v || 0);
 

@@ -36,7 +36,7 @@ export async function load() {
     .map(([code, perUsd]) => ({
       code,
       name: NAMES[code] || code,
-      rate: Math.round((1 / perUsd) * 10000) / 10000, 
+      rate: Math.round((1 / perUsd) * 10000) / 10000,
     }))
     .sort((a, b) => a.code.localeCompare(b.code));
   return { items, meta: { date: d.date || "" } };

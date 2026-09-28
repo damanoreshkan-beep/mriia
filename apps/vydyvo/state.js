@@ -11,17 +11,17 @@ import { LINES, WORLDS, worldOf, voiceOf, composePrompt, mockFrame, seedUrl } fr
 
 const OPTS_KEY = "ms:vydyvo:opts";
 const BASE = `${VPS_PROXY}/image`;
-const CAP = 2 + 4;   
-const AHEAD = 2;     
-const K = 2;         
+const CAP = 2 + 4;
+const AHEAD = 2;
+const K = 2;
 const BACKOFF = { eRate: 120_000, eBusy: 300_000, eTimeout: 300_000, eFailed: 180_000, eNetwork: 60_000, eSignIn: 600_000, eTranslate: 60_000 };
 const DEFAULT = { prompt: "", every: 120, quality: "2k", char: "lum" };
 export const EVERY = [30, 60, 120, 300];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v && EVERY.includes(v.every)) return { ...DEFAULT, ...v }; } catch {  } return DEFAULT; };
+const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v && EVERY.includes(v.every)) return { ...DEFAULT, ...v }; } catch { } return DEFAULT; };
 export const $opts = atom(loadOpts());
-export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch {  } };
+export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch { } };
 /** The chosen character's world id (worlds.js) — the grid's pick, `lum` until one is made or if the id is gone. */
 export const activeWorld = () => { const c = $opts.get().char; return WORLDS[c] ? c : "lum"; };
 /** The mode the DOCUMENT is in — the applied theme, which `?theme=` can override without touching the atom. */
@@ -32,7 +32,7 @@ export const $stage = atom({ cur: null, prev: null, since: 0, slot: 0 });
 export const $gen = atom({ phase: "idle", error: null, until: 0, live: null });
 const patchGen = (p) => $gen.set({ ...$gen.get(), ...p });
 
-const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch {  } } };
+const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch { } } };
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const lineOf = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % LINES; };
 
@@ -73,7 +73,7 @@ async function lineFor(id, world, mode, userWords, loc) {
     const line = jsonField(out, "line").replace(/^["«—–\-\s]+/, "").replace(/["»\s]+$/, "").slice(0, 90);
     if (!line || !$frames.get().some((f) => f.id === id)) return;
     $frames.set($frames.get().map((f) => (f.id === id ? { ...f, line } : f)));
-  } catch {  }
+  } catch { }
 }
 
 function present(id, now) {
@@ -94,10 +94,10 @@ function advance(now) {
 export function skip() { advance(Date.now()); }
 
 export function ensureSeed(mode = docMode(), wid = activeWorld()) {
-  if ($frames.get().some((f) => f.mode === mode && f.preset === wid)) return;   
+  if ($frames.get().some((f) => f.mode === mode && f.preset === wid)) return;
   const id = addFrame({ url: seedUrl(wid, mode), preset: wid, mode, seed: true, w: 90, h: 160 });
   const cur = current();
-  if (!cur || cur.mode !== mode || cur.preset !== wid) present(id, Date.now());  
+  if (!cur || cur.mode !== mode || cur.preset !== wid) present(id, Date.now());
 }
 
 let loopId = null, runs = 0, job = null, hold = null, ctxRef = null;
@@ -106,13 +106,13 @@ export function startLoop(ctx) {
   ctxRef = ctx;
   if (loopId) return;
   loopId = -1;
-  tick(); loopId = setInterval(tick, 1000);      
+  tick(); loopId = setInterval(tick, 1000);
 }
 function tick() {
   const now = Date.now(), st = $stage.get(), o = $opts.get();
   const m = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
   const w = activeWorld();
-  ensureSeed(m, w);                              
+  ensureSeed(m, w);
   const curF = current();
   if (!st.cur) { const first = unshown()[0] || $frames.get()[0]; if (first) present(first.id, now); }
   else if (curF?.seed && unshown().some((f) => !f.seed && f.mode === m && f.preset === w)) advance(now);
@@ -133,7 +133,7 @@ export function nudge() {
 /** The explicit "paint now": supersede whatever runs — the old
  * edge job is cancelled so its quota stops burning — clear any backoff and start a fresh race. */
 export function generateNow() {
-  runs++;                                     
+  runs++;
   if (job && !gate) cancelJob(BASE, job);
   hold?.(); hold = null; job = null;
   $frames.set($frames.get().filter((f) => { if (f.shown) return true; revoke(f.url); return false; }));
@@ -145,7 +145,7 @@ async function generate() {
   const run = ++runs, o = $opts.get(), wid = activeWorld(), world = worldOf(wid);
   const mode = document.documentElement.getAttribute("data-theme") === "signal-light" ? "light" : "dark";
   const seed = Math.floor(Math.random() * 1e9);
-  patchGen({ phase: "working", error: null, live: null, runs: run });   
+  patchGen({ phase: "working", error: null, live: null, runs: run });
   if (gate) {
     await sleep(90); if (run !== runs) return;
     for (let n = 0; n < K; n++) addFrame({ url: mockFrame(seed + n, mode), preset: wid, prompt: o.prompt, mode, w: 90, h: 160 });
@@ -159,7 +159,7 @@ async function generate() {
     userDriven ? `Owner's subject (depict exactly this): ${subject}.` : `In the spirit of: ${world.subject}.`,
     painted.length ? `Already painted: ${painted.join(" | ")}` : "",
   ].filter(Boolean).join("\n");
-  try { scene = jsonField(await suggest("scene", spark, ctxRef?.loc || "uk"), "scene").slice(0, 300); } catch {  }
+  try { scene = jsonField(await suggest("scene", spark, ctxRef?.loc || "uk"), "scene").slice(0, 300); } catch { }
   if (run !== runs) return;
   if (scene) subject = scene;
   if (subject) { try { subject = await toEnglish(subject); } catch (e) { return fail(run, e.code || "eTranslate"); } }

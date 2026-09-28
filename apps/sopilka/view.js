@@ -11,8 +11,8 @@ const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}><
 const TONIC = 72;
 const SCALE = [11, 9, 7, 5, 4, 2, 0];
 const HOLES = 6;
-const TOP = 28, GAP = 11.4;                         
-const HIT = 0.052;                                  
+const TOP = 28, GAP = 11.4;
+const HIT = 0.052;
 const NAMES = ["До", "До♯", "Ре", "Ре♯", "Мі", "Фа", "Фа♯", "Соль", "Соль♯", "Ля", "Ля♯", "Сі"];
 const LAT = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 
@@ -26,7 +26,7 @@ export function sopilka({ S }) {
   const [blowing, setBlowing] = useState(false);
   const [over, setOver] = useState(false);
   const eng = useRef(null), voice = useRef(null), pipe = useRef(null);
-  const ptrs = useRef(new Map());                   
+  const ptrs = useRef(new Map());
   const overRef = useRef(false); overRef.current = over;
 
   const ensure = () => {
@@ -37,7 +37,7 @@ export function sopilka({ S }) {
   };
   const freqOf = (set) => midiToFreq(TONIC + semitoneFor(set) + (overRef.current ? 12 : 0));
 
-  useEffect(() => () => { try { voice.current?.stop(); } catch {  } if (eng.current) eng.current.close(); }, []);
+  useEffect(() => () => { try { voice.current?.stop(); } catch { } if (eng.current) eng.current.close(); }, []);
   useEffect(() => { if (voice.current) voice.current.setFreq(freqOf(covered)); }, [over]);
 
   const holeAt = (clientY) => {
@@ -54,7 +54,7 @@ export function sopilka({ S }) {
   const sync = () => {
     const set = handCovered([...ptrs.current.values()].filter((v) => v != null));
     setCovered(set);
-    if (voice.current) voice.current.setFreq(freqOf(set));   
+    if (voice.current) voice.current.setFreq(freqOf(set));
     return set;
   };
 
@@ -80,7 +80,7 @@ export function sopilka({ S }) {
   };
   const up = (e) => {
     if (!ptrs.current.delete(e.pointerId)) return;
-    if (ptrs.current.size === 0) {                  
+    if (ptrs.current.size === 0) {
       voice.current?.stop(); voice.current = null;
       setBlowing(false); setCovered(new Set());
       return;
@@ -92,6 +92,7 @@ export function sopilka({ S }) {
   const oct = over ? 6 : 5;
 
   return html`<div class="flex flex-col items-center gap-[var(--ms-gap)]" data-note=${semi == null ? "" : LAT[semi]} data-blowing=${blowing} data-octave=${oct}>
+    ${""}
     <div class="text-center min-h-16">
       <div class=${LABEL}>${T(t, "note")}</div>
       <div class="text-4xl font-bold leading-none tabular-nums">
@@ -112,6 +113,7 @@ export function sopilka({ S }) {
         style=${`top:calc(${TOP + i * GAP}% - 0.875rem)`}></div>`)}
     </div>
 
+    ${""}
     <button id="over" data-over aria-pressed=${over} class=${`btn btn-sm gap-2 ${over ? "btn-primary" : "btn-outline"}`}
       data-haptic="bump" onClick=${() => setOver((v) => !v)}>${Icon("lucide:wind", "text-base")}${T(t, "overblow")}</button>
     ${!audioSupported ? html`<div class="text-sm text-muted text-center">${T(t, "noAudio")}</div>` : null}

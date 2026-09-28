@@ -13,7 +13,7 @@ async function post(path, body, timeout = 20000) {
   const to = setTimeout(() => ctrl.abort(), timeout);
   try {
     const r = await fetch(`${BASE}/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
-    if (!r.ok) { const e = new Error(`${path} ${r.status}`); e.status = r.status; try { e.body = await r.json(); } catch {  } throw e; }
+    if (!r.ok) { const e = new Error(`${path} ${r.status}`); e.status = r.status; try { e.body = await r.json(); } catch { } throw e; }
     return await r.json();
   } catch (e) {
     if (e && typeof e.status === "number") throw e;
@@ -21,7 +21,7 @@ async function post(path, body, timeout = 20000) {
   } finally { clearTimeout(to); }
 }
 
-export const $characters = atom(null);        
+export const $characters = atom(null);
 let lastSid = session.get()?.sid || null;
 session.listen((s) => { const sid = s?.sid || null; if (sid !== lastSid) { lastSid = sid; $characters.set(null); } });
 
@@ -55,7 +55,7 @@ export async function create(key) {
   if (gate) { const c = FIXTURE_CHARACTERS[0]; return c; }
   const sid = sidOf();
   if (!sid) throw Object.assign(new Error("no session"), { status: 401 });
-  const j = await post("chars/create", { sid, key }, 90000);     
+  const j = await post("chars/create", { sid, key }, 90000);
   const c = trimCharacter(j.character);
   const cur = $characters.get() || [];
   if (!cur.some((x) => x.id === c.id)) $characters.set([c, ...cur]);

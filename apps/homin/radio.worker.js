@@ -25,7 +25,7 @@ function ookTimings(bytes, hz) {
   const mag = magnitude(ch.re, ch.im);
   if (!mag.length) return { timings: [], usPerSample: 0 };
   const sorted = Float32Array.from(mag).sort();
-  const noise = sorted[Math.floor(sorted.length / 2)];          
+  const noise = sorted[Math.floor(sorted.length / 2)];
   const peak = sorted[sorted.length - 1];
   if (peak <= noise * 2) return { timings: [], usPerSample: 0 };
   const thr = (noise + peak) / 2;
@@ -78,7 +78,7 @@ function analyse(bytes) {
             ].filter(Boolean).join(" · ") || null;
           }
         }
-      } catch {  }
+      } catch { }
     }
 
     let tone = null;
@@ -86,7 +86,7 @@ function analyse(bytes) {
       try {
         const ch = extractChannel(bytes, { deltaHz: hz - TUNE_HZ, taps: 512 });
         tone = detectCtcss(instantFreq(ch.re, ch.im), ch.sampleRate);
-      } catch {  }
+      } catch { }
     }
 
     out.push(record({
@@ -125,7 +125,7 @@ async function openRadio() {
   if (!dev) return null;
   await dev.open();
   await dev.setSampleRate(SAMPLE_RATE);
-  await dev.setAgc(true);                   
+  await dev.setAgc(true);
   await dev.setFreq(TUNE_HZ);
   await dev.startRx();
   return dev;
@@ -152,7 +152,7 @@ async function run() {
     post({ type: "events", events: analyse(bytes) });
     demod(bytes);
   }
-  try { await rx.stop(); } catch {  }
+  try { await rx.stop(); } catch { }
   rx = null;
   post({ type: "state", connected: false });
 }

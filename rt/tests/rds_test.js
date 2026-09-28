@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { syndrome, OFFSET, ptyName, rdsChar, RdsBlockSync, RdsParser, Rds } from "../rds.js";
 import { goertzelPower, pilotRatioDb, rssiFromBytes, IF_RATE, PILOT_COEFF } from "../fmradio.js";
@@ -39,7 +38,7 @@ Deno.test("rds framing: bitstream → block sync → parser recovers PS, RadioTe
 });
 
 Deno.test("rds end-to-end DSP: 57 kHz DBPSK MPX → Rds recovers the station metadata", () => {
-  const FS = 250_000, CHIP = 2375;   
+  const FS = 250_000, CHIP = 2375;
   const bits = rdsStream(30);
   const chips = []; let e = 0;
   for (const b of bits) { e ^= b; chips.push(e ? 1 : -1, e ? -1 : 1); }
@@ -72,7 +71,6 @@ Deno.test("rds DSP robustness: locks through a carrier phase+freq offset and add
   assertEquals(snap.ptyName, "Pop music");
   assert(/HELLO RADIO/.test(snap.rt), `RadioText not recovered under impairment: "${snap.rt}"`);
 });
-
 
 Deno.test("goertzelPower: peaks at the target bin, low off-target", () => {
   const N = 2500, fs = IF_RATE, tone = new Float32Array(N);
@@ -124,8 +122,8 @@ Deno.test("rds RadioText: A/B flag debounced, last complete message latched", ()
   const p = new RdsParser();
   for (let r = 0; r < 3; r++) { p.group(g2A("HELLO\r", 0, 0)); p.group(g2A("HELLO\r", 1, 0)); }
   assertEquals(p.snapshot().rt, "HELLO");
-  p.group(g2A("XXXXXX", 0, 1));                 
+  p.group(g2A("XXXXXX", 0, 1));
   assertEquals(p.snapshot().rt, "HELLO", "one flipped A/B can't clear RadioText");
-  for (let r = 0; r < 3; r++) { p.group(g2A("WORLD\r", 0, 1)); p.group(g2A("WORLD\r", 1, 1)); } 
+  for (let r = 0; r < 3; r++) { p.group(g2A("WORLD\r", 0, 1)); p.group(g2A("WORLD\r", 1, 1)); }
   assertEquals(p.snapshot().rt, "WORLD", "a debounced new message replaces atomically");
 });

@@ -1,8 +1,6 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { instantFreq, magnitude, fmActivity, envelopeTransitions, classifyEvent, CLASSIFY } from "../burst.js";
 import { squelchOpen as levelSquelch } from "../demod.js";
-
 
 function synthOok({ fs = 25_000, pulses = 8, pulseMs = 1, offsetHz = 500, noise = 0.005 } = {}) {
   const per = Math.round(fs * pulseMs / 1000), n = pulses * 2 * per;
@@ -11,8 +9,8 @@ function synthOok({ fs = 25_000, pulses = 8, pulseMs = 1, offsetHz = 500, noise 
   const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return (seed / 0xffffffff - 0.5) * 2; };
   for (let i = 0; i < n; i++) {
     const on = Math.floor(i / per) % 2 === 0;
-    const a = (on ? Math.SQRT2 : 0);                    
-    const ph = 2 * Math.PI * offsetHz * i / fs;         
+    const a = (on ? Math.SQRT2 : 0);
+    const ph = 2 * Math.PI * offsetHz * i / fs;
     re[i] = a * Math.cos(ph) + rnd() * noise;
     im[i] = a * Math.sin(ph) + rnd() * noise;
   }
@@ -67,7 +65,7 @@ Deno.test("classifyEvent labels both correctly, and refuses to guess when it mat
   assertEquals(classifyEvent(ookEv), "burst");
   assertEquals(classifyEvent(voiceEv), "voice");
   assert(ookEv.transitions >= 8, `8 keyed pulses must show as edges, got ${ookEv.transitions}`);
-  assertEquals(voiceEv.transitions, 0);                 
+  assertEquals(voiceEv.transitions, 0);
   assertEquals(classifyEvent({ durationMs: 50, fmActivity: 0.05, transitions: 0 }), "unknown");
 });
 

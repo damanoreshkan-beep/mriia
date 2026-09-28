@@ -8,7 +8,7 @@ import { generateMelody } from "/_rt/melody.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
-const TONIC = 60;                                                   
+const TONIC = 60;
 const PC = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 const label = (m) => PC[m % 12] + (Math.floor(m / 12) - 1);
 const POS = (k) => (k === 0 ? 8 : k % 2 ? 7 - (k - 1) / 2 : 8 + k / 2);
@@ -57,7 +57,7 @@ export function kalimba({ S }) {
   const [voice, setVoice] = useState("classic");
   const [lit, setLit] = useState(() => new Set());
   const [playing, setPlaying] = useState(null);
-  const [dim, setDim] = useState({ w: 0, h: 0 });                   
+  const [dim, setDim] = useState({ w: 0, h: 0 });
   const eng = useRef(null), flashes = useRef([]), song = useRef([]), region = useRef(), ptr = useRef(new Map()), usingPtr = useRef(false), switching = useRef(false);
 
   const tines = useMemo(() => buildTines(STEPS[scale]), [scale]);
@@ -70,7 +70,7 @@ export function kalimba({ S }) {
   const pluck = (pos) => { const tn = tines[pos]; hit(ensure(), tn); flash(pos); };
 
   const tineAt = (x, y) => { const el = document.elementFromPoint(x, y); const b = el && el.closest && el.closest("[data-tine]"); return b ? Number(b.getAttribute("data-tine")) : null; };
-  const onDown = (e) => { const pos = tineAt(e.clientX, e.clientY); if (pos == null) return; usingPtr.current = true; e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch {  } ptr.current.set(e.pointerId, pos); pluck(pos); };
+  const onDown = (e) => { const pos = tineAt(e.clientX, e.clientY); if (pos == null) return; usingPtr.current = true; e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { } ptr.current.set(e.pointerId, pos); pluck(pos); };
   const onMove = (e) => { if (!ptr.current.has(e.pointerId)) return; const pos = tineAt(e.clientX, e.clientY); if (pos == null) return; if (ptr.current.get(e.pointerId) !== pos) { ptr.current.set(e.pointerId, pos); pluck(pos); } };
   const onLift = (e) => { ptr.current.delete(e.pointerId); };
   const onClickBoard = (e) => { if (usingPtr.current) return; const b = e.target.closest && e.target.closest("[data-tine]"); if (b) pluck(Number(b.getAttribute("data-tine"))); };
@@ -80,7 +80,7 @@ export function kalimba({ S }) {
   const play = (s) => {
     stop(); const e = ensure(); setPlaying(s.id);
     const sc = s.scale || scale;
-    if (s.scale && s.scale !== scale) { switching.current = true; setScale(s.scale); }   
+    if (s.scale && s.scale !== scale) { switching.current = true; setScale(s.scale); }
     const ba = sc === scale ? byAsc : baFor(sc);
     s.seq.forEach((off, step) => song.current.push(setTimeout(() => {
       if (off != null) { const tn = ba[BASE + off]; if (tn) { hit(e, tn); flash(tn.pos); } }
@@ -94,7 +94,7 @@ export function kalimba({ S }) {
     play({ id: "flow", step: 300, seq: g.notes.map((n) => (n.rest ? null : n.i)) });
   };
 
-  useEffect(() => { if (switching.current) { switching.current = false; return; } stop(); }, [scale]);   
+  useEffect(() => { if (switching.current) { switching.current = false; return; } stop(); }, [scale]);
   useEffect(() => { const el = region.current; if (!el) return; const apply = () => setDim({ w: el.clientWidth, h: el.clientHeight }); apply(); const ro = new ResizeObserver(apply); ro.observe(el); return () => ro.disconnect(); }, []);
   useEffect(() => () => { flashes.current.forEach(clearTimeout); song.current.forEach(clearTimeout); if (eng.current) eng.current.close(); }, []);
 
@@ -110,6 +110,7 @@ export function kalimba({ S }) {
         <div class="shrink-0 max-w-[55%]"><${Segmented} attr="data-scale" scroll size="sm" label=${T(t, "scale")}
           items=${SCALES.map((s) => ({ id: s.id, label: T(t, s.name) }))} value=${scale} onChange=${setScale} /></div>
       </div>
+      ${""}
       <${Segmented} attr="data-song" scroll size="sm" label=${T(t, "sFlow")} value=${playing || ""}
         items=${[{ id: "flow", label: T(t, "sFlow"), icon: "lucide:sparkles", dot: playing === "flow" || undefined },
                  ...SONGS.map((s) => ({ id: s.id, label: T(t, s.name) }))]}

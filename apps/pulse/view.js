@@ -8,7 +8,7 @@ import { Scramble } from "/_rt/skeleton.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const STREAM = "https://stream.wikimedia.org/v2/stream/recentchange";
-const WINDOW_MS = 60000; 
+const WINDOW_MS = 60000;
 const LBL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 
 const LANGS = [
@@ -37,17 +37,17 @@ export function pulse({ S }) {
   const [q, setQ] = useState("");
   const [humansOnly, setHumansOnly] = useState(false);
   const [articlesOnly, setArticlesOnly] = useState(false);
-  const buf = useRef([]);        
-  const win = useRef([]);        
-  const total = useRef(0);       
+  const buf = useRef([]);
+  const win = useRef([]);
+  const total = useRef(0);
   const f = useRef({}); f.current = { scope, humansOnly, articlesOnly };
 
   useEffect(() => {
     const onEvent = (ev) => {
-      if (ev.type !== "edit" && ev.type !== "new") return;              
+      if (ev.type !== "edit" && ev.type !== "new") return;
       const { scope, humansOnly, articlesOnly } = f.current;
       if (humansOnly && ev.bot) return;
-      if (articlesOnly && ev.namespace !== 0) return;                   
+      if (articlesOnly && ev.namespace !== 0) return;
       const code = wikiCode(ev);
       if (scope !== "all" && code !== scope) return;
       const now = Date.now();
@@ -72,9 +72,9 @@ export function pulse({ S }) {
       }, 250);
     } else {
       src = new EventSource(STREAM);
-      src.onmessage = (m) => { try { onEvent(JSON.parse(m.data)); } catch {  } };
+      src.onmessage = (m) => { try { onEvent(JSON.parse(m.data)); } catch { } };
       src.onopen = () => setS((p) => ({ ...p, live: true }));
-      src.onerror = () => setS((p) => ({ ...p, live: false })); 
+      src.onerror = () => setS((p) => ({ ...p, live: false }));
     }
 
     const flush = setInterval(() => {
@@ -110,11 +110,12 @@ export function pulse({ S }) {
   const ql = q.trim().toLowerCase();
   const shown = ql ? s.feed.filter((it) => (it.title + " " + it.user).toLowerCase().includes(ql)) : s.feed;
   const toggleBtn = (id, on, set, icon, label) => html`<button data-filter=${id} aria-pressed=${on} class=${`btn btn-sm flex-1 min-w-0 rounded-full gap-1 ${on ? "btn-primary" : ""}`} onClick=${() => set(!on)}>${Icon(icon)}<span class="truncate">${label}</span></button>`;
-  const filled = s.live && (s.total > 0 || s.feed.length > 0);   
+  const filled = s.live && (s.total > 0 || s.feed.length > 0);
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-live=${s.live ? "true" : "false"} data-scope=${scope} data-filters=${[humansOnly && "humans", articlesOnly && "articles"].filter(Boolean).join(" ") || null}>
     <${Panel} className="items-center text-center gap-1">
       <div class=${`flex items-center gap-1.5 ${LBL}`}>
+        ${""}
         <span class=${`inline-block w-2 h-2 rounded-full ${s.live ? "bg-success pl-live" : ""}`} style=${s.live ? "" : "background:var(--sf-track-face)"}></span>${s.live ? T(t, "live") : T(t, "connecting")}
         ${scope !== "all" ? html`<span class="text-muted">·</span><span class="normal-case tracking-normal font-sans text-base-content">${SCOPE_NAME[scope] || scope}</span>` : null}
       </div>
@@ -122,7 +123,7 @@ export function pulse({ S }) {
       <div class="text-sm text-base-content/80">${T(t, "perMin")}</div>
       <div class="w-full mt-2">
         <div class=${`flex justify-between mb-1 ${LBL}`}><span class="flex items-center gap-1">${Icon("lucide:user", "text-primary")}${T(t, "humans")} ${s.humanPct}%</span><span class="flex items-center gap-1 text-muted">${T(t, "bots")} ${100 - s.humanPct}% ${Icon("lucide:bot")}</span></div>
-        
+        ${""}
         <div class="h-2 rounded-full overflow-hidden" style="background:var(--sf-track-face)"><div class="h-full bg-primary transition-[width] duration-500" style=${`width:${s.humanPct}%`}></div></div>
       </div>
       ${scope === "all" && s.top.length ? html`<div class="flex flex-wrap gap-1 justify-center mt-2">${s.top.map((c) => html`<button data-top=${c} class="badge gap-1 cursor-pointer hover:badge-primary" key=${c} onClick=${() => setScope(c)}>${Icon("lucide:globe", "text-[0.85em]")}${c}</button>`)}</div>` : null}
@@ -146,7 +147,7 @@ export function pulse({ S }) {
       <div class="flex items-center gap-2"><span class="font-semibold truncate flex-1">${s.big.title}</span><span class=${`font-bold tabular-nums shrink-0 ${s.big.delta >= 0 ? "text-success" : "text-error"}`}>${signed(s.big.delta)}</span></div>
     <//>` : null}
 
-    
+    ${""}
     <div class="flex flex-col gap-2" data-feed>
       ${shown.length === 0
         ? html`<div class="text-center text-muted py-10 text-sm flex flex-col items-center gap-2">${Icon(ql ? "lucide:search-x" : "lucide:radio", "text-3xl")}${T(t, ql ? "noMatch" : "waiting")}</div>`

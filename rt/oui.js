@@ -1,4 +1,3 @@
-
 import { addrKind } from "./radar.js";
 
 /** Parse the packed asset. Two splits and no parser, which is why the format is what it is. */
@@ -43,9 +42,9 @@ export function locallyAdministered(addr) {
  */
 export function vendorOf(addr, kind, table) {
   if (!table || !table.size) return null;
-  if (kind === "lte") return null;                       
-  if (locallyAdministered(addr)) return null;            
-  if (kind === "ble" && addrKind(addr) === "resolvable") return null;   
+  if (kind === "lte") return null;
+  if (locallyAdministered(addr)) return null;
+  if (kind === "ble" && addrKind(addr) === "resolvable") return null;
   const p = prefixOf(addr);
   return p == null ? null : table.get(p) || null;
 }

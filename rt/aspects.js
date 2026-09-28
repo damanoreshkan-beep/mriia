@@ -1,4 +1,3 @@
-
 export const ASPECTS = [
   { type: "conjunction", angle: 0, orb: 8, nature: "neutral" },
   { type: "sextile", angle: 60, orb: 4, nature: "soft" },
@@ -26,7 +25,7 @@ export function aspects(positions, prevLon = null) {
         const pa = prevLon && prevLon[a.key], pb = prevLon && prevLon[b.key];
         if (pa != null && pb != null) applying = Math.abs(sep(pa, pb) - asp.angle) > delta;
         out.push({ a: a.key, b: b.key, type: asp.type, nature: asp.nature, angle: asp.angle, orb: +delta.toFixed(2), applying });
-        break; 
+        break;
       }
     }
   }

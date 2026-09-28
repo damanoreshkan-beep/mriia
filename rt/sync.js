@@ -44,13 +44,13 @@ export function openSync({ sid, app, onStatus, onPeers, onState, onCmd }) {
     return { sendState: () => {}, sendCmd: () => {}, close: () => {} };
   }
   let ws = null, alive = true, attempt = 0, retry = null, okd = false;
-  let lastState = null;                                          
-  const send = (obj) => { try { if (ws && ws.readyState === 1 && okd) ws.send(JSON.stringify(obj)); } catch {  } };
+  let lastState = null;
+  const send = (obj) => { try { if (ws && ws.readyState === 1 && okd) ws.send(JSON.stringify(obj)); } catch { } };
   const connect = () => {
     if (!alive) return;
     onStatus?.("conn"); okd = false;
     try { ws = new WebSocket(SYNC_URL); } catch { onStatus?.("off"); arm(); return; }
-    ws.onopen = () => { try { ws.send(JSON.stringify({ t: "hi", sid, app })); } catch {  } };
+    ws.onopen = () => { try { ws.send(JSON.stringify({ t: "hi", sid, app })); } catch { } };
     ws.onmessage = (e) => {
       const m = parseServer(e.data);
       if (!m) return;
@@ -60,11 +60,11 @@ export function openSync({ sid, app, onStatus, onPeers, onState, onCmd }) {
       else if (m.t === "cmd") onCmd?.(m);
     };
     ws.onclose = () => { if (alive) { onStatus?.("off"); arm(); } };
-    ws.onerror = () => { try { ws.close(); } catch {  } };
+    ws.onerror = () => { try { ws.close(); } catch { } };
   };
   const arm = () => { if (retry) clearTimeout(retry); retry = setTimeout(() => { retry = null; connect(); }, syncDelay(attempt++)); };
   connect();
-  const bye = () => { alive = false; if (retry) clearTimeout(retry); try { ws?.close(); } catch {  } };
+  const bye = () => { alive = false; if (retry) clearTimeout(retry); try { ws?.close(); } catch { } };
   if (typeof addEventListener !== "undefined") addEventListener("pagehide", bye);
   return {
     sendState: (s) => { lastState = packState(s); if (lastState) send({ t: "state", s: lastState }); },

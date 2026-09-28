@@ -31,14 +31,14 @@ export function podoba({ S, toast }) {
   const st = useStore(M.$st);
   const live = st.phase === "live", working = st.phase === "working", enhancing = st.phase === "enhancing", failed = st.phase === "error";
   const shown = (st.phase === "done" || enhancing) && !!st.out, done = st.phase === "done" && !!st.out;
-  const [ready, setReady] = useState(false);      
-  const [caps, setCaps] = useState(null);         
+  const [ready, setReady] = useState(false);
+  const [caps, setCaps] = useState(null);
   const [torch, setTorch] = useState(false);
-  const camEl = useRef(null);    
-  const frozen = useRef(null);   
+  const camEl = useRef(null);
+  const frozen = useRef(null);
   const ctx = { t, loc };
   const armed = ready;
-  useEffect(() => { setTorch(false); }, [st.facing]);   
+  useEffect(() => { setTorch(false); }, [st.facing]);
 
   const [, tick] = useState(0);
   useEffect(() => { if (!working && !enhancing) return; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [working, enhancing]);
@@ -97,8 +97,10 @@ export function podoba({ S, toast }) {
     <${GlStage} shader=${new URL("podoba.frag", import.meta.url)} seed=${0.21} ink=${ink} vary=${vary} cam=${cam} zClass="z-0" />
     ${shown ? html`<img data-keeper data-hd=${st.out.hd ? "1" : null} src=${st.out.url} alt=${T(t, "keeper")} decoding="async" class="ly-in fixed inset-0 z-[1] w-full h-full object-cover cursor-zoom-in" onClick=${() => done && S.screen.set("view")} />` : null}
     ${enhancing ? html`<div aria-hidden="true" class="fixed inset-0 z-[1] pointer-events-none overflow-hidden"><div class="ly-scan"></div></div>` : null}
+    ${""}
     <div aria-hidden="true" class="ly-scrim fixed inset-x-0 top-0 z-[2] pointer-events-none"></div>
-    
+
+    ${""}
     ${screen === "view" && done ? html`<div data-lightbox class="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick=${() => S.screen.set(null)}>
       <img src=${st.out.url} alt=${T(t, "keeper")} class="max-w-full max-h-full object-contain" />
       <button data-lightbox-close aria-label=${T(t, "close")} class="absolute top-3 right-3 btn btn-circle btn-sm bg-black/50 text-white border-0" onClick=${() => S.screen.set(null)}>${Icon("lucide:x", "text-base")}</button>
@@ -106,16 +108,18 @@ export function podoba({ S, toast }) {
 
     <div data-readout data-phase=${st.phase} data-material=${st.mat} data-facing=${st.facing} data-ready=${armed ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
       <${Stage}>
-        
+        ${""}
         <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")}
             privacy=${T(t, "primePrivacy")} privacyIcon="lucide:cloud-upload"
             facing=${st.facing} torch=${torch} still=${gate ? M.mockURL : null} show=${false} fullscreen=${false}
             onVideo=${(el) => { camEl.current = el; }} onState=${(s) => { setReady(!!s.ready); setCaps(s.caps); }}>
+          ${""}
           ${live ? null : html`<div data-keeper-tap class="absolute inset-0 z-[2]" onClick=${() => done && S.screen.set("view")}></div>`}
         <//>
       <//>
       <div class="shrink-0">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
+        ${""}
         <div data-strip role="group" aria-label=${T(t, "material")} class="ly-strip overflow-x-auto flex items-start gap-1 -mx-1 px-1">
           ${STYLES.map((s) => { const active = st.mat === s.id; return html`<button key=${s.id} data-mat=${s.id} aria-pressed=${active} aria-label=${T(t, s.key)}
               class="shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => M.setMat(s.id)}>
@@ -123,6 +127,7 @@ export function podoba({ S, toast }) {
             <span class=${`font-mono uppercase tracking-wide text-[0.58rem] leading-none truncate max-w-full ${active ? "text-base-content" : "text-base-content/70"}`}>${T(t, s.key)}</span>
           </button>`; })}
         </div>
+        ${""}
         <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 min-h-[3.9rem]">
           <div class="flex items-center gap-1">
             ${live && caps?.torch ? html`<button data-torch aria-pressed=${torch} class=${`${tool} ${torch ? "text-[var(--app-accent)]" : ""}`} aria-label=${T(t, "torch")} title=${T(t, "torch")} onClick=${() => setTorch((v) => !v)}>${Icon(torch ? "lucide:zap" : "lucide:zap-off", "text-lg")}</button>` : null}

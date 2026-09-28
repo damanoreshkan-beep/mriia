@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { bassEnergy, stepPulse, idleGroove, integratePhase, KICK_LO, KICK_HI } from "../afterdark.js";
 
@@ -12,7 +11,7 @@ Deno.test("bassEnergy: mean of the kick band, normalised 0..1, empty → 0", () 
   const f = new Uint8Array(512);
   for (let i = KICK_LO; i <= KICK_HI; i++) f[i] = 128;
   assert(Math.abs(bassEnergy(f) - 128 / 255) < 1e-9, "kick-band only");
-  const g = new Uint8Array(512); g[100] = 255;   
+  const g = new Uint8Array(512); g[100] = 255;
   assertEquals(bassEnergy(g), 0, "energy above the kick band does not register");
 });
 

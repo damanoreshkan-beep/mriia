@@ -115,12 +115,12 @@ void main() {
   finalColor = texture(uTexture, clamp(vTextureCoord - f * uInputSize.zw, uInputClamp.xy, uInputClamp.zw));
 }`;
 
-const FLOW_RES = 0.25;   
-const FLOW_MAX = 6;      
+const FLOW_RES = 0.25;
+const FLOW_MAX = 6;
 
 export async function createGraph(P, app, opts = {}) {
   const loadTex = opts.loadTex || ((url) => P.Assets.load(url));
-  const out = new P.Container();                   
+  const out = new P.Container();
   const base = new P.Sprite(P.Texture.EMPTY); base.anchor.set(0.5);
   const drain = new P.ColorMatrixFilter();
   const camSrc = new P.Sprite(P.Texture.EMPTY); camSrc.anchor.set(0.5);
@@ -162,7 +162,7 @@ export async function createGraph(P, app, opts = {}) {
     flip = 0; running = false;
     for (const s of [flowSpr, anchorSpr, traced, fresh, view]) s.position.set(0, 0);
     echo.position.set(w / 2, h / 2); echo.filters = [echoF];
-    const fs = r / FLOW_RES;   
+    const fs = r / FLOW_RES;
     anchor.resources.anchorU.uniforms.uFlowScale = fs; echoF.resources.echoU.uniforms.uFlowScale = fs;
     fitCam();
   };
@@ -188,7 +188,7 @@ export async function createGraph(P, app, opts = {}) {
     async setPreset(p, textureUrlOf) {
       preset = p;
       const t = p.tex ? await tex(textureUrlOf(p.tex)) : null;
-      if (preset !== p) return;   
+      if (preset !== p) return;
       const src = t ? t.source : white, per = period(p, src);
       const u = trace.resources.traceU.uniforms;
       u.uStrength = p.edge?.strength ?? 2; u.uStep = p.edge?.step ?? 1; u.uFloor = p.edge?.floor ?? 0.15;
@@ -203,7 +203,7 @@ export async function createGraph(P, app, opts = {}) {
       drain.reset(); if (p.base?.sat) drain.saturate(p.base.sat, false);
       base.filters = p.base?.sat ? [drain] : null;
       view.blendMode = p.lines?.blend || "add";
-      running = false;   
+      running = false;
     },
     /** One frame: copy, flow, anchor, trace, echo, loop, show. */
     tick(dt) {
@@ -212,7 +212,7 @@ export async function createGraph(P, app, opts = {}) {
       time += dt;
       const R = rt, cur = flip, prev = 1 - flip, render = (container, target, clearColor) => app.renderer.render({ container, target, clear: true, clearColor });
       render(camSrc, R.cam); render(camSrc, R.luma[cur]);
-      if (!running) {   
+      if (!running) {
         render(camSrc, R.luma[prev]);
         render(blank, R.flow[prev], [0.5, 0.5, 0, 1]); render(blank, R.anchor[prev], [0, 0, 0, 1]); render(blank, R.loop[prev], [0, 0, 0, 0]);
         running = true;

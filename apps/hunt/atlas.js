@@ -1,4 +1,3 @@
-
 import { TILE, T, K, WORLD, lit, shade, LIGHT } from "/_rt/hunt.js";
 import { PALETTE, RAMP, TRANSPARENT, ART } from "./art.js";
 
@@ -10,7 +9,6 @@ const W = {};
 WORLD_KEYS.forEach((k, i) => { W[k] = PALETTE.length + i; });
 export const WORLD_INDEX = W;
 
-
 const WORLD_RAMP = {
   [W.grass]: [W.grassLit, W.earth],
   [W.grassLit]: [W.grassLit, W.grass],
@@ -21,7 +19,6 @@ const WORLD_RAMP = {
   [W.wood]: [W.spear, W.earthDark],
 };
 export const FULL_RAMP = [...RAMP, ...WORLD_KEYS.map((_, i) => WORLD_RAMP[PALETTE.length + i] ?? [PALETTE.length + i, PALETTE.length + i])];
-
 
 const cell = (w, h) => ({ px: new Uint8Array(w * h).fill(TRANSPARENT), w, h });
 const at = (c, x, y) => (x < 0 || y < 0 || x >= c.w || y >= c.h ? TRANSPARENT : c.px[y * c.w + x]);
@@ -63,7 +60,7 @@ export function squashV(c) {
   for (let y = 0; y < h; y++)
     for (let x = 0; x < c.w; x++) {
       const a = at(c, x, y * 2), b = at(c, x, y * 2 + 1);
-      out.px[y * c.w + x] = a !== TRANSPARENT ? a : b;   
+      out.px[y * c.w + x] = a !== TRANSPARENT ? a : b;
     }
   return out;
 }
@@ -150,8 +147,6 @@ export function extrude(c, depth = 2) {
     }
   for (let i = 0; i < c.px.length; i++)
     if (out.px[i] === TRANSPARENT && c.px[i] !== TRANSPARENT) out.px[i] = shade(FULL_RAMP, c.px[i]);
-  
-  
   for (let y = 0; y < c.h; y++)
     for (let x = 0; x < c.w; x++) {
       const i = y * c.w + x;
@@ -167,7 +162,6 @@ const seam = (c, by = 1) => {
   return out;
 };
 
-
 const speck = (x, y, s) => (((x * 73856093) ^ (y * 19349663) ^ (s * 83492791)) >>> 0) % 11;
 const rnd = (x, y, s) => ((x * 73856093) ^ (y * 19349663) ^ (s * 83492791)) >>> 0;
 
@@ -182,7 +176,7 @@ function pebble(c, cx, cy, rx, ry) {
   for (let dy = -ry; dy <= ry; dy++) {
     const hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + 0.5)) ** 2)));
     for (let dx = -hw; dx <= hw; dx++) {
-      const lit = dy === -ry || (dx === -hw && dy < 0);              
+      const lit = dy === -ry || (dx === -hw && dy < 0);
       const dark = dy >= ry - 1 || dx >= hw - 1;
       put(c, cx + dx, cy + dy, lit ? W.gritLit : dark ? W.earthDeep : W.grit);
     }
@@ -194,7 +188,7 @@ function root(c, x, y, len, ink, v) {
   let cx = x;
   for (let j = 0; j < len; j++) {
     put(c, cx, y + j, ink);
-    if (j > 3 && speck(cx, y + j, v + 40) === 0) put(c, cx + 1, y + j, ink);      
+    if (j > 3 && speck(cx, y + j, v + 40) === 0) put(c, cx + 1, y + j, ink);
     cx += (rnd(cx, y + j, v + 7) % 3) - 1;
     if (cx < 0 || cx >= TILE) return;
   }
@@ -226,20 +220,18 @@ export function tileCell(id, variant = 0) {
   let c = cell(TILE, TILE);
   switch (id) {
     case T.GROUND: {
-      
       soil(c, W.earth, W.earthMid, W.earthDark, v);
       for (let i = 0; i < TILE; i++) {
-        const d = 4 + speck(i, 0, v + 11) % 3;                            
+        const d = 4 + speck(i, 0, v + 11) % 3;
         fill(c, i, 0, 1, d, W.grass);
-        put(c, i, 0, speck(i, 1, v + 5) % 3 ? W.grassLit : W.grass);      
-        put(c, i, d, W.earthDark);                                        
-        if (speck(i, 2, v + 17) === 0) fill(c, i, d, 1, 2, W.grass);      
+        put(c, i, 0, speck(i, 1, v + 5) % 3 ? W.grassLit : W.grass);
+        put(c, i, d, W.earthDark);
+        if (speck(i, 2, v + 17) === 0) fill(c, i, d, 1, 2, W.grass);
       }
-      
       for (let j = 7; j < TILE; j++)
         for (let i = 0; i < TILE; i++)
           if (speck(i, j, v + 30) < ((j - 7) * 11) / (TILE - 7)) put(c, i, j, W.earthDark);
-      if (v === 1) root(c, 7, 8, 12, W.earthDark, v);                     
+      if (v === 1) root(c, 7, 8, 12, W.earthDark, v);
       break;
     }
     case T.DIRT:
@@ -249,19 +241,18 @@ export function tileCell(id, variant = 0) {
       if (v === 1) root(c, 9, 0, 15, W.earthDeep, v);
       break;
     case T.BRICK: case T.STONE: case T.USED:
-      
       fill(c, 0, 0, TILE, TILE, W.stone);
       for (let j = 0; j < TILE; j++)
         for (let i = 0; i < TILE; i++) {
-          if (speck(i >> 1, j >> 1, v + 70) > 9) put(c, i, j, W.stoneLit);   
-          if (speck(i, j, v + 6) === 0) put(c, i, j, W.earthDark);           
+          if (speck(i >> 1, j >> 1, v + 70) > 9) put(c, i, j, W.stoneLit);
+          if (speck(i, j, v + 6) === 0) put(c, i, j, W.earthDark);
         }
       for (let i = 0; i < TILE; i++) {
         const d = 2 + speck(i, 0, v + 21) % 3;
         fill(c, i, 0, 1, d, W.grass);
         put(c, i, 0, speck(i, 1, v + 9) % 3 ? W.grassLit : W.grass);
         put(c, i, d, W.earthDark);
-        put(c, i, TILE - 1, W.earthDeep);                                    
+        put(c, i, TILE - 1, W.earthDeep);
       }
       break;
     case T.QUESTION:
@@ -278,17 +269,15 @@ export function tileCell(id, variant = 0) {
       break;
     }
     case T.COIN:
-      
       for (let j = 6; j < 18; j++) {
         const r = Math.round(Math.sqrt(36 - (j - 12) ** 2));
         fill(c, 12 - r, j, r * 2, 1, W.gold);
-        put(c, 12 - r, j, W.goldDark); put(c, 11 + r, j, W.goldDark);      
-        
+        put(c, 12 - r, j, W.goldDark); put(c, 11 + r, j, W.goldDark);
         if (j < 12) { put(c, 13 - r, j, W.goldLit); put(c, 14 - r, j, W.goldLit); }
       }
       for (let i = 9; i < 15; i++) { put(c, i, 6, W.goldDark); put(c, i, 17, W.goldDark); }
       break;
-    case T.SPEAR:                                    
+    case T.SPEAR:
       fill(c, 3, 13, 18, 2, W.spear);
       fill(c, 18, 11, 4, 6, W.spearTip);
       c = emboss(c);
@@ -310,7 +299,6 @@ export function tileCell(id, variant = 0) {
   tileCache.set(key, c);
   return c;
 }
-
 
 const spearCache = new Map();
 export function spearCell(slope) {

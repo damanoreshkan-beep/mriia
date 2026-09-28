@@ -1,4 +1,3 @@
-
 const live = (h, k) => h.attr("[data-live-screen]", "data-" + k);
 const num = async (h, k) => +(await live(h, k));
 const ready = async (h) => {
@@ -47,7 +46,6 @@ export default [
     },
   },
   {
-    
     name: "клавіатура: спис кидається з клавіатури, не лише пальцем", run: async (h) => {
       await ready(h);
       const SHOOT = 32;
@@ -93,10 +91,8 @@ export default [
     },
   },
   {
-    
     name: "екран: гра отримує ширину вигляду", run: async (h) => {
       await ready(h);
-      
       const viewW = await h.prop("#view", "clientWidth");
       const padL = parseFloat(await h.css("#view", "padding-left")) || 0;
       const padR = parseFloat(await h.css("#view", "padding-right")) || 0;

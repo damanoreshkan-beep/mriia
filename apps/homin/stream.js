@@ -10,6 +10,6 @@ export function stream(push, S) {
     push(rows);
   };
   $events.listen(emit);
-  S.t.listen(emit);      
+  S.t.listen(emit);
   emit();
 }

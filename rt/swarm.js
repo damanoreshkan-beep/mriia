@@ -1,4 +1,3 @@
-
 export const S = {
   FRAME: 0, SCORE: 1, WAVE: 2, HP: 3, ALIVE: 4, DEAD: 5, SFX: 6, COMBO: 7, KILLS: 8,
   COOLDOWN: 9, SHOTS: 10, NAZ: 11, NDIST: 12, INVULN: 13, SPAWNLEFT: 14, COUNT: 15,
@@ -31,16 +30,15 @@ export function decodeEntry(dl, i) {
 export function wrapT(d) { return ((d % 3600) + 5400) % 3600 - 1800; }
 
 export const FOV_T = 600;
+
 export function project(azT, elT, headingT, pitchT, w, h) {
   const k = w / FOV_T;
   return { x: w / 2 + wrapT(azT - headingT) * k, y: h / 2 - (elT - pitchT) * k, k };
 }
 
-
 export function angRadiusT(kind, distCm) {
   return ((KIND_R[kind] ?? 35) * 573) / Math.max(1, distCm);
 }
-
 
 export function lockOn(dl, n, aimAzT, aimElT) {
   let best = -1, bestD = Infinity;
@@ -54,13 +52,11 @@ export function lockOn(dl, n, aimAzT, aimElT) {
   return best;
 }
 
-
 export function radarPoint(azT, headingT, distCm, R) {
   const a = (wrapT(azT - headingT) / 1800) * Math.PI;
   const r = R * Math.min(1, distCm / 2400);
   return { x: Math.sin(a) * r, y: -Math.cos(a) * r };
 }
-
 
 export function betterRun(a, b) {
   if (!a) return b; if (!b) return a;

@@ -1,13 +1,12 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { aspects, ASPECTS } from "../aspects.js";
 
 Deno.test("aspects: exact trine, square and opposition are detected with zero orb", () => {
   const found = aspects([
     { key: "mars", lon: 10 },
-    { key: "jupiter", lon: 130 },   
-    { key: "saturn", lon: 100 },    
-    { key: "venus", lon: 190 },     
+    { key: "jupiter", lon: 130 },
+    { key: "saturn", lon: 100 },
+    { key: "venus", lon: 190 },
   ]);
   const of = (a, b) => found.find((x) => (x.a === a && x.b === b) || (x.a === b && x.b === a));
   assertEquals(of("mars", "jupiter").type, "trine");
@@ -32,8 +31,8 @@ Deno.test("aspects: luminaries get the +2° orb bonus", () => {
 Deno.test("aspects: sorted tightest orb first", () => {
   const found = aspects([
     { key: "sun", lon: 0 },
-    { key: "mars", lon: 122 },   
-    { key: "venus", lon: 119 },  
+    { key: "mars", lon: 122 },
+    { key: "venus", lon: 119 },
   ]);
   assert(found.length >= 2);
   assert(found[0].orb <= found[1].orb);

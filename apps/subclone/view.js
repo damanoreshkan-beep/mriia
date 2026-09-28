@@ -12,7 +12,7 @@ import { usbSupported, USB_FILTERS } from "/_rt/hackrf.js";
 import { createUsbSession } from "/_rt/usbsession.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const META = "font-mono text-[length:var(--ms-label)] tracking-wide tabular-nums";
 const fMhz = (hz) => (hz / 1e6).toFixed(2);
 const JC = (init) => ({ encode: JSON.stringify, decode: (s) => { try { return JSON.parse(s); } catch { return init; } } });
@@ -22,7 +22,7 @@ const $rec = atom({ state: "idle", cap: null }), $tx = atom(null);
 const $freq = persistentAtom("subclone:freq", 433_920_000, { encode: String, decode: Number });
 const $saved = persistentAtom("subclone:saved", [], JC([]));
 const $txGain = persistentAtom("subclone:txg", 30, { encode: String, decode: Number });
-const $repeats = persistentAtom("subclone:reps", 5, { encode: String, decode: Number });   
+const $repeats = persistentAtom("subclone:reps", 5, { encode: String, decode: Number });
 
 const rf = createUsbSession({
   atom,
@@ -44,7 +44,7 @@ const connect = () => { buzz(12); return rf.connect(); };
 const disconnect = () => { buzz(); rf.disconnect(); };
 function record() {
   buzz(12); if (gate || !rf.running()) return;
-  if ($rec.get().state === "recording") rf.post({ type: "stopRecord" });   
+  if ($rec.get().state === "recording") rf.post({ type: "stopRecord" });
   else { $rec.set({ state: "recording", cap: null }); rf.post({ type: "record", freq: $freq.get() }); }
 }
 function discard() { buzz(); $rec.set({ state: "idle", cap: null }); }

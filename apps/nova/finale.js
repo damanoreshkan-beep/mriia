@@ -6,8 +6,8 @@ import { mulberry32 } from "/_rt/groove.js";
 import { letterTile } from "/_rt/tile.js";
 import { Sheet } from "/_rt/ui.js";
 
-const GOLDEN = Math.PI * (3 - Math.sqrt(5));   
-const MAX_AV = 12;                             
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+const MAX_AV = 12;
 
 function readTheme() {
   const cs = getComputedStyle(document.documentElement);
@@ -37,7 +37,7 @@ export function Finale({ devs = [], t, open = false, onClose }) {
     canvas.dataset.render = "2d";
     let raf = 0, dead = false, W = 0, H = 0, dpr = 1;
     const theme = readTheme();
-    const rng = mulberry32(0x5eed51);    
+    const rng = mulberry32(0x5eed51);
     let stars = [];
 
     const seedStars = () => {
@@ -107,19 +107,21 @@ export function Finale({ devs = [], t, open = false, onClose }) {
   const extra = n - shown.length;
   const avatarSrc = (d) => (d.avatar
     ? `${d.avatar}${d.avatar.includes("?") ? "&" : "?"}size=120`
-    : letterTile(d.name || d.owner || "?", { w: 96, h: 96, light: 32 }));   
+    : letterTile(d.name || d.owner || "?", { w: 96, h: 96, light: 32 }));
 
   return html`<${Sheet} id="finale" open=${open} onClose=${onClose} size="lg" icon="lucide:sparkles"
     title=${T(t, "finaleTitle").replace("{n}", String(n))}>
     <div data-live class="flex flex-col gap-[var(--ms-gap)] min-w-0">
+      ${""}
       <div class="sf-inset relative w-full h-[clamp(11rem,42dvh,20rem)] overflow-hidden rounded-[var(--ms-r)]">
         <canvas ref=${canvasRef} aria-hidden="true" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+        ${""}
         <div class="absolute inset-x-3 inset-y-8">
           ${shown.map((d, i) => html`<a key=${`${d.owner}/${d.repo}`} href=${d.url} target="_blank" rel="noopener"
             class="ms-reveal absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1"
             style=${`left:${pts[i].x * 100}%;top:${pts[i].y * 100}%;animation-delay:${i * 90}ms`}>
             <span class="relative block">
-              
+              ${ ""}
               <span class="absolute -inset-1.5 rounded-full blur-md" style="background:radial-gradient(circle,var(--app-accent),transparent 70%);opacity:.5"></span>
               <img src=${avatarSrc(d)} alt=${d.name || d.owner} width="44" height="44" loading="lazy"
                 class="relative w-11 h-11 rounded-full object-cover ring-2 ring-base-100 bg-base-300" />
@@ -127,7 +129,7 @@ export function Finale({ devs = [], t, open = false, onClose }) {
             <span class="font-mono text-[length:var(--ms-label)] text-base-content/75 max-w-[5rem] truncate">${d.name || d.owner}</span>
           </a>`)}
         </div>
-        
+        ${""}
         ${extra > 0 ? html`<div class="absolute right-3 bottom-2 font-mono text-[length:var(--ms-label)] font-medium text-muted">${T(t, "andMore").replace("{n}", String(extra))}</div>` : null}
       </div>
 

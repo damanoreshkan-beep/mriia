@@ -1,9 +1,8 @@
-
 import { S, decodeEntry, project, angRadiusT, wrapT, radarPoint } from "/_rt/swarm.js";
 
-const INK = "rgba(10,10,14,0.6)";           
+const INK = "rgba(10,10,14,0.6)";
 const PAPER = "rgba(245,245,250,0.92)";
-const EDGE = "rgba(240,240,246,0.85)";      
+const EDGE = "rgba(240,240,246,0.85)";
 
 function sorted(dl, n) {
   const out = [];
@@ -16,7 +15,7 @@ function wasp(ctx, e, x, y, r, accent, frame) {
   ctx.save();
   ctx.translate(x, y);
   ctx.lineJoin = "round";
-  if (r < 6) {                                          
+  if (r < 6) {
     const sr = Math.max(1.6, r * 0.6);
     ctx.strokeStyle = INK; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.arc(0, 0, sr, 0, Math.PI * 2); ctx.stroke();
@@ -38,15 +37,15 @@ function wasp(ctx, e, x, y, r, accent, frame) {
     ctx.strokeStyle = EDGE; ctx.lineWidth = Math.max(1.2, r * 0.12); path(); ctx.stroke();
   };
   ctx.fillStyle = e.flash ? PAPER : "#1b1b21";
-  if (e.kind === 2) {                                   
+  if (e.kind === 2) {
     body(() => { ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + frame * 0.01; ctx[i ? "lineTo" : "moveTo"](Math.cos(a) * r, Math.sin(a) * r * 0.85); } ctx.closePath(); });
     ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1, r * 0.12);
     ctx.beginPath(); ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2); ctx.stroke();
-  } else if (e.kind === 1) {                            
+  } else if (e.kind === 1) {
     body(() => { ctx.beginPath(); ctx.moveTo(0, r * 0.9); ctx.lineTo(-r * 0.55, -r * 0.7); ctx.lineTo(0, -r * 0.35); ctx.lineTo(r * 0.55, -r * 0.7); ctx.closePath(); });
     ctx.fillStyle = accent;
     ctx.beginPath(); ctx.arc(0, r * 0.35, Math.max(1, r * 0.16), 0, Math.PI * 2); ctx.fill();
-  } else {                                              
+  } else {
     body(() => { ctx.beginPath(); ctx.ellipse(0, 0, r * 0.62, r * 0.85, 0, 0, Math.PI * 2); });
     ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1.5, r * 0.18);
     ctx.beginPath(); ctx.moveTo(-r * 0.55, r * 0.15); ctx.quadraticCurveTo(0, r * 0.45, r * 0.55, r * 0.15); ctx.stroke();
@@ -68,7 +67,7 @@ function crosshair(ctx, cx, cy, accent, locked, cooldownShare) {
     ctx.stroke();
   }
   if (locked) { ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill(); }
-  if (cooldownShare > 0) {                              
+  if (cooldownShare > 0) {
     ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(cx, cy, r + 6, -Math.PI / 2, -Math.PI / 2 + (1 - cooldownShare) * Math.PI * 2); ctx.stroke();
   }
@@ -119,7 +118,7 @@ export function renderFrame(ctx, dl, n, st, headingT, pitchT, w, h, fx) {
     }
   }
 
-  if (fx.muzzle > 0) {                                  
+  if (fx.muzzle > 0) {
     ctx.strokeStyle = `rgba(255,255,255,${(fx.muzzle / 4).toFixed(2)})`;
     ctx.lineWidth = 2;
     for (const a of [0.6, 2.2, 3.9, 5.4]) {
@@ -133,7 +132,7 @@ export function renderFrame(ctx, dl, n, st, headingT, pitchT, w, h, fx) {
   crosshair(ctx, cx, cy, fx.accent, fx.lockedIdx >= 0, st[S.DEAD] ? 0 : st[S.COOLDOWN] / 16);
   radar(ctx, entries, headingT, 16 + 40, h - 16 - 40, 34, fx.accent);
 
-  if (st[S.INVULN] > 30 || st[S.DEAD]) {                
+  if (st[S.INVULN] > 30 || st[S.DEAD]) {
     const a = st[S.DEAD] ? 0.42 : ((st[S.INVULN] - 30) / 15) * 0.35;
     const g = ctx.createRadialGradient(cx, cy, Math.min(w, h) * 0.35, cx, cy, Math.max(w, h) * 0.72);
     g.addColorStop(0, "rgba(200,40,30,0)");

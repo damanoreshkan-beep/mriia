@@ -286,7 +286,6 @@ export const RETRO_NOTE = [
   "видимий зворотний рух; сучасна практика читає це як перегляд і повернення, традиційна — як ослаблення",
 ];
 
-
 export function rulerOf(lon, { modern = false } = {}) {
   const s = signOf(lon), r = RULERS[s];
   return { sign: s, body: modern && r[1] ? r[1] : r[0], modern: !!(modern && r[1]) };
@@ -347,7 +346,6 @@ export const QUESTIONS = [
     focus: "Answer from the transits supplied: which slow bodies are contacting the luminaries and the angles, how long each lasts (use the tempo given), and what that season asks for. The natal points say what is being pressed on. This is the one question where the answer is legitimately about time — so be precise about duration and quote only the dates given." },
 ];
 export const questionById = (id) => QUESTIONS.find((q) => q.id === id) || null;
-
 
 const SIGN_EN = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
 const NAME_EN = { sun: "Sun", moon: "Moon", mercury: "Mercury", venus: "Venus", mars: "Mars", jupiter: "Jupiter", saturn: "Saturn", uranus: "Uranus", neptune: "Neptune", pluto: "Pluto", asc: "Ascendant", mc: "Midheaven", vertex: "Vertex" };

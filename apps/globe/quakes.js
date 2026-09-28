@@ -35,7 +35,7 @@ export function quakes({ S }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const [list, setList] = useState(isGate || MOCK ? sample() : null);
   const [err, setErr] = useState(false);
-  const [selId, setSelId] = useState(null); 
+  const [selId, setSelId] = useState(null);
   const rowsRef = useRef();
 
   useEffect(() => {
@@ -51,17 +51,17 @@ export function quakes({ S }) {
   }, []);
 
   const top = list && list.length ? list.reduce((a, b) => (b.mag > a.mag ? b : a)) : null;
-  const sel = (list && list.find((q) => q.id === selId)) || top; 
+  const sel = (list && list.find((q) => q.id === selId)) || top;
 
   useEffect(() => {
     if (!top || !rowsRef.current) return;
     const rows = rowsRef.current.querySelectorAll(".qrow");
     if (!rows.length) return;
     const a = animate(rows, { y: [12, 0] }, { delay: stagger(0.035), duration: 0.35, ease: "easeOut" });
-    return () => { try { a.stop(); } catch {  } };
+    return () => { try { a.stop(); } catch { } };
   }, [top && top.id]);
 
-  const ready = useReveal(!!list);   
+  const ready = useReveal(!!list);
   if (err && !list) return html`<div class="flex flex-col items-center text-base-content/70 py-20 gap-2 text-center px-6">${Icon("lucide:cloud-off", "text-3xl")}<span>${T(t, "qStatusError")}</span></div>`;
   if (!ready) return html`<div class="flex flex-col gap-4 items-center">
     <div class="w-full flex justify-center"><${Globe} points=${[]} spin=${true} height=${300} /></div>
@@ -85,6 +85,7 @@ export function quakes({ S }) {
       <div class="text-xs text-base-content/70 mt-0.5">${list.length} ${T(t, "count24")}</div>
     </div>` : null}
 
+    ${""}
     <div ref=${rowsRef} class="w-full max-w-[420px] rounded-2xl sf-raised overflow-hidden divide-y divide-base-300/40">
       ${recent.map((q) => html`<button data-quake class=${`qrow w-full text-left flex items-center gap-3 px-4 py-2.5 transition ${sel && q.id === sel.id ? "bg-primary/10" : "sf-press"}`} onClick=${() => setSelId(q.id)} key=${q.id}>
         <div class="w-11 text-center font-bold tabular-nums rounded-lg py-1 text-sm shrink-0" style=${`color:${magColor(q.mag)};border:1.5px solid ${magFill(q.mag)}`}>${q.mag.toFixed(1)}</div>

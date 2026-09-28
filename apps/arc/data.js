@@ -64,7 +64,7 @@ export async function load(filters) {
       const a = await jget(`${WD}?action=wbgetentities&ids=${[...authorQids].join("|")}&props=labels`
         + `&languages=en|uk&format=json&formatversion=2&origin=*`);
       for (const [id, e] of Object.entries(a.entities || {})) names[id] = e.labels?.en?.value || e.labels?.uk?.value || "";
-    } catch {  }
+    } catch { }
   }
 
   const items = [];
@@ -95,7 +95,7 @@ async function loadShelves() {
     const r = await jget(`${WP}?action=query&pageids=${flat.map((b) => b.pageid).join("|")}`
       + `&prop=pageimages&piprop=thumbnail&pithumbsize=320&format=json&formatversion=2&origin=*`, 12000);
     for (const p of r.query?.pages || []) if (p.thumbnail) thumbs[p.pageid] = p.thumbnail.source;
-  } catch {  }
+  } catch { }
   const items = flat.map((b) => ({
     id: b.id,
     pageid: b.pageid,

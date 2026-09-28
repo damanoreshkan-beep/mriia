@@ -40,7 +40,7 @@ const ASPECT_HUE = { soft: "var(--color-success)", hard: "var(--color-error)", n
 const ASPECT_DASH = { soft: "", hard: "2 2.4", neutral: "0.6 2" };
 const ASPECT_KEY = { conjunction: "aspConjunction", sextile: "aspSextile", square: "aspSquare", trine: "aspTrine", opposition: "aspOpposition" };
 const CHIPS = [[0, "today"], [1, "tomorrow"]];
-const SCRUB = 365;                                      
+const SCRUB = 365;
 const pad2 = (n) => String(n).padStart(2, "0");
 const ymd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const midnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -52,14 +52,13 @@ const GATE_BIRTH = { date: "1990-07-15", time: "14:32:00", zoneMode: "place", of
 const NOW = () => (gate ? new Date("2026-07-25T12:00:00Z") : new Date());
 
 const $birth = persistentAtom("transit:birth", gate ? GATE_BIRTH : null, BIRTH_CODEC);
-const $offset = atom(0);                               
+const $offset = atom(0);
 
 const GATE_INTERP = { uk: "Сатурн у квадратурі до натального Сонця робить цей період вимогливим: те, що ти будуєш, перевіряють на міцність, і поспіх лише додасть тертя. Транзитний Меркурій ретроградним рухом повертає до старої розмови, яку варто переписати, а не форсувати. Тригон Юпітера до натального Місяця дає тиху опору — рухайся послідовно, і обов'язок обернеться на структуру, а не на пастку.", en: "Saturn square your natal Sun makes this stretch exacting: what you are building is being tested for load, and pushing only adds friction. A retrograde Mercury turns you back to an old conversation worth rewriting rather than forcing. Jupiter's trine to your natal Moon lends quiet support — move step by step and the duty becomes structure, not a snare." };
 const GATE_TRANSIT = { uk: "Сонце проходить квадратурою до твого Асцендента — до самої точки, якою ти зустрічаєш світ. Сонце освітлює те, чого торкається, і ненадовго робить це центром: кілька днів навколо тебе більше уваги, ніж зазвичай, і менше можливості лишитися непоміченим. Квадратура означає тертя між тим, ким ти є всередині, і тим, як тебе бачать, — щось одне доведеться посунути. Орб уже менший за градус і аспект сходиться, тож це відбувається зараз, а не насувається. Сонце проходить градус за добу, тому мірою тут є дні: за тиждень від цього лишиться тільки те, що ти встиг(ла) з ним зробити.", en: "The Sun is passing square your Ascendant — the very point you meet the world with. The Sun lights up whatever it touches and briefly makes it the centre: for a few days there is more attention on you than usual and less room to go unnoticed. A square means friction between who you are inside and how you are seen, and one of the two will have to give. The orb is already inside a degree and the aspect is applying, so this is happening now rather than approaching. The Sun covers a degree a day, so the unit here is days: in a week only what you did with it will be left." };
 const GATE_PLACEMENT = { uk: "Місяць — це те, чим ти реагуєш раніше за думку, і в Рибах він реагує співчуттям: межа між твоїм і чужим станом тут тонка, і ти вбираєш настрій кімнати, ще не встигнувши його назвати. У пʼятому домі це виходить назовні як творення і прив'язаність — тебе живить те, що зроблено з любові й для когось конкретного. Сила цього положення в уяві та відгуку, ціна — у дрейфі й у чужому смутку, взятому за власний. Навчитися розрізняти, чиє це почуття, тут важливіше, ніж навчитися його стримувати.", en: "The Moon is what reacts in you before thought does, and in Pisces it reacts with sympathy: the line between your state and someone else's is thin here, and you absorb the mood of a room before you can name it. In the fifth house that comes out as making things and as attachment — you are fed by what is made out of love and for someone in particular. The gift of this placement is imagination and responsiveness; the cost is drift, and other people's sadness carried as your own. Learning whose feeling it is matters more here than learning to hold it in." };
 const GATE_HOUSE = { uk: "Другий дім — це те, що ти вважаєш своїм: гроші, речі, здатність заробити і власне відчуття вартості. Стрілець на куспіді додає сюди широти й віри в те, що вистачить, — ти радше ризикнеш і доробиш, ніж будеш рахувати наперед. Управитель цього дому Юпітер стоїть у девʼятому, а це означає, що твої ресурси майже завжди переплетені з чужими: спільні бюджети, борги, спадок, домовленості на довіру. Планет у самому домі немає, і в традиції це не порожнеча — просто справи цього дому робляться там, де стоїть його управитель. Тож питання не в тому, скільки в тебе є, а з ким це «є» пов’язане.", en: "The second house is what you count as yours: money, possessions, the ability to earn, and your own sense of worth. Sagittarius on the cusp brings width and a working faith that there will be enough — you would rather take the risk and make it up afterwards than count in advance. Jupiter rules this house and stands in the ninth, which means your resources are almost always tangled with someone else’s: shared budgets, debts, inheritance, arrangements held together by trust. No planet stands in the house itself, and in the tradition that is not emptiness — the affairs of the house are simply carried out where its ruler sits. So the question is less how much you have than whose it is bound up with." };
 const GATE_PORTRAIT = { uk: "Сонце в Раку при Асценденті в Терезах дає поєднання обережного серця і привітної поверхні: ти зустрічаєш світ рівно й тактовно, а вирішуєш усе всередині, за зачиненими дверима. Місяць у Рибах поглиблює це — реакція йде раніше за слова, і вона майже завжди про когось іншого. \n\nУправителька карти Венера стоїть у восьмому домі, тож те, що для тебе справді важить, ніколи не лежить на видноті: близькість тут вимірюється мірою довіри, а не кількістю часу. У карті переважає вода при браку вогню, і це означає, що почати щось тобі важче, ніж витримати. Кардинальна якість дає поштовх, але поштовх цей іде від обставин, а не від нетерпіння. \n\nНайщільніший аспект — тригон Сонця до Місяця: воля і почуття тут не воюють, і саме тому ти рідко помічаєш, наскільки на них спираєшся. Сатурн у десятому домі додає до цього обовʼязок, який ти сам собі виписав. Разом це карта людини, яку легко недооцінити ззовні й важко зрушити зсередини.", en: "A Cancer Sun under a Libra Ascendant sets a careful heart behind an agreeable surface: you meet the world evenly and tactfully, and decide everything inside, behind a closed door. The Moon in Pisces deepens that — the reaction comes before the words, and it is almost always about someone else. \n\nVenus, ruler of the chart, stands in the eighth house, so what actually matters to you is never left in plain view: closeness here is measured in trust rather than in hours. Water dominates the chart and fire is thin, which means starting a thing costs you more than enduring it. The cardinal emphasis does supply a push, but the push comes from circumstance rather than impatience. \n\nThe tightest aspect is the Sun trine the Moon: will and feeling are not at war here, which is exactly why you rarely notice how much you lean on them. Saturn in the tenth adds a duty you wrote for yourself. Together this is the chart of someone easy to underestimate from outside and hard to move from within." };
-
 
 function useChart(S) {
   const rec = useStore($birth), offset = useStore($offset), filters = useStore(S.filters);
@@ -87,7 +86,6 @@ function useChart(S) {
   }, [rec, offset, shownKey, system, Math.floor(Date.now() / 60000)]);
 }
 
-
 const NeedBirth = ({ t, onOpen }) => html`<div data-need-birth class="flex flex-col items-center gap-4 py-14 px-6 text-center">
   <div class="rounded-full sf-raised sf-e3 p-4 text-base-content/70">${Icon("lucide:calendar-clock", "text-3xl")}</div>
   <div class="text-base font-semibold max-w-[22rem]">${T(t, "needBirth")}</div>
@@ -95,7 +93,6 @@ const NeedBirth = ({ t, onOpen }) => html`<div data-need-birth class="flex flex-
     ${Icon("lucide:plus", "text-base")}<span>${T(t, "birthSet")}</span>
   </button>
 </div>`;
-
 
 const READ_TRANSIT = "tr:", READ_PLACEMENT = "pl:", READ_CUSP = "cu:", READ_PORTRAIT = "portrait", READ_ASK = "ask";
 const readScreen = (screen, pfx) => (typeof screen === "string" && screen.startsWith(pfx)) ? screen.slice(pfx.length) : null;
@@ -137,7 +134,6 @@ function fmtHitAt(ms, prec, locale) {
     : { hour: "2-digit", minute: "2-digit" });
   return `${date}, ${time}`;
 }
-
 
 function TransitSheet({ open, onClose, C, t, loc, dateLabel }) {
   const a = (open && C.ready) ? C.hits.find((x) => hitKey(x) === open) : null;
@@ -192,7 +188,6 @@ function TransitSheet({ open, onClose, C, t, loc, dateLabel }) {
   </${Sheet}>`;
 }
 
-
 function PlacementSheet({ open, onClose, C, t, loc }) {
   if (!open || !C.ready) return null;
   const key = open;
@@ -232,7 +227,6 @@ function PlacementSheet({ open, onClose, C, t, loc }) {
     </div>
   </${Sheet}>`;
 }
-
 
 function CuspSheet({ open, onClose, C, t, loc }) {
   if (open == null || !C.ready) return null;
@@ -275,7 +269,6 @@ function CuspSheet({ open, onClose, C, t, loc }) {
     </div>
   </${Sheet}>`;
 }
-
 
 const $asked = persistentAtom("transit:asked", gate ? ["love", "workNow"] : [], {
   encode: JSON.stringify,
@@ -341,7 +334,9 @@ function AskSheet({ open, onClose, C, t, loc }) {
 
   return html`<${Sheet} id="asksheet" open=${true} onClose=${onClose} title=${T(t, "askTitle")}
       subtitle=${placeLabel(C.b.place) + " · " + C.rec.date} icon="lucide:sparkles">
+    ${""}
     <div class="flex flex-col gap-5">
+      ${""}
       ${rest.length ? html`<div class="flex flex-wrap gap-2">
         ${rest.map((q) => html`<button data-ask=${q.id} onClick=${() => $asked.set([...$asked.get(), q.id])}
             class="rounded-full sf-raised sf-e2 sf-press px-3.5 py-2 text-[0.9rem] font-medium transition" key=${q.id}>
@@ -357,8 +352,6 @@ function AskSheet({ open, onClose, C, t, loc }) {
   </${Sheet}>`;
 }
 
-
-
 function PortraitSheet({ open, onClose, C, t, loc }) {
   if (!open || !C.ready) return null;
   const points = C.natal.map((p) => ({ key: p.key, lon: p.lon, house: houseOf(p.lon, C.H.cusps), retro: C.natalRetroFor(p.key, p.lon) }));
@@ -367,8 +360,6 @@ function PortraitSheet({ open, onClose, C, t, loc }) {
   const ruler = chartRuler(C.H.asc);
   const rulerPt = points.find((p) => p.key === ruler.body);
   const co = RULERS[ruler.sign][1];
-  
-  
   const bars = (counts, names) => html`<div class="flex gap-1.5">
     ${counts.map((n, i) => html`<div class="flex-1 flex flex-col items-center gap-1" key=${i}>
       <div class="w-full h-1.5 rounded-full sf-inset overflow-hidden"><div class="h-full rounded-full bg-primary/70" style=${`width:${points.length ? Math.round(n / points.length * 100) : 0}%`}></div></div>
@@ -399,12 +390,6 @@ function PortraitSheet({ open, onClose, C, t, loc }) {
   </${Sheet}>`;
 }
 
-
-
-
-
-
-
 function DayStep({ dir, t, offset }) {
   const to = clampScrub(offset + (dir === "prev" ? -1 : 1)), end = to === offset;
   return html`<button data-step=${dir} aria-label=${T(t, dir === "prev" ? "prevDay" : "nextDay")} disabled=${end}
@@ -419,9 +404,8 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
   const offset = useStore($offset);
 
   const fmtDate = (d) => d.toLocaleDateString(locale === "en" ? "en-GB" : locale || "uk", { day: "numeric", month: "short", year: "numeric" });
-  
   const shortDate = (d) => d.toLocaleDateString(locale === "en" ? "en-GB" : locale || "uk", { day: "numeric", month: "short" });
-  const picked = offset !== 0 && offset !== 1;           
+  const picked = offset !== 0 && offset !== 1;
 
   if (!C.ready) {
     return html`<${Fragment}>
@@ -433,10 +417,9 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
   const { H, natal, sky, hits, b } = C;
   const lonOf = Object.fromEntries([...C.targets].map((p) => [p.key, p.lon]));
 
-  
   const cuspLines = H.cusps.map((c, i) => {
     const [x1, y1] = pt(wheelAngle(c), 17), [x2, y2] = pt(wheelAngle(c), 40);
-    const angular = i === 0 || i === 9;                      
+    const angular = i === 0 || i === 9;
     return html`<line x1=${x1} y1=${y1} x2=${x2} y2=${y2} stroke="currentColor"
       stroke-width=${angular ? 0.7 : 0.3} stroke-opacity=${angular ? 0.85 : 0.4} key=${"c" + i}></line>`;
   });
@@ -462,8 +445,6 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
     ${chords}
   </svg>`;
 
-  
-  
   const marks = sky.map((p) => ({ key: p.key, body: p.key, angle: wheelAngle(p.lon), value: norm360(p.lon), label: bodyLabel(t, p.key) }));
   const rim = Array.from({ length: 12 }, (_, i) => ({ label: html`<${Sign} i=${i} cls="w-[18px] h-[18px]" />`, angle: wheelAngle(i * 30 + 15), cls: "text-base-content/70", rimR: 43 }));
   const natalRing = html`<div class="absolute inset-0 pointer-events-none">
@@ -492,16 +473,17 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
       </button>
 
       <div class="w-full max-w-[420px] flex flex-col gap-2">
-        
+        ${""}
         <div class="text-center">
           <span data-date class="text-2xl font-bold tabular-nums">${fmtDate(C.when)}</span>
         </div>
-        
+        ${""}
         <div class="flex items-center gap-2">
           <${DayStep} dir="prev" t=${t} offset=${offset} />
           <input id="scrub" type="range" min=${-SCRUB} max=${SCRUB} step="1" value=${offset} class="range range-xs range-primary min-w-0 flex-1" aria-label=${T(t, "dateAria")} onInput=${(e) => $offset.set(Number(e.target.value))} />
           <${DayStep} dir="next" t=${t} offset=${offset} />
         </div>
+        ${""}
         <div class="grid grid-cols-3 gap-1.5 text-center">
           ${CHIPS.map(([o, lbl]) => html`<button data-chip=${lbl} aria-pressed=${offset === o} class=${`rounded-[var(--ms-r-in)] py-1.5 text-[0.78rem] font-medium transition-colors ${offset === o ? "sf-e2 bg-primary/10 text-primary font-semibold" : "sf-inset"}`} onClick=${() => $offset.set(o)} key=${lbl}>${T(t, lbl)}</button>`)}
           <label data-chip="pick" data-picked=${picked ? "true" : "false"} class=${`relative flex items-center justify-center gap-1 rounded-[var(--ms-r-in)] py-1.5 text-[0.78rem] font-medium transition-colors cursor-pointer ${picked ? "sf-e2 bg-primary/10 text-primary font-semibold" : "sf-inset"}`}>
@@ -514,6 +496,7 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
           </label>
         </div>
       </div>
+
       <!-- the contacts themselves, tightest first; the header opens the grounded AI reading -->
       <${Panel} data-hits=${hits.length} className="w-full max-w-[420px] gap-1">
         <div class="flex items-center justify-between gap-2">
@@ -536,10 +519,6 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
-
-
 function ContactRow({ a, t, retro, onOpen }) {
   return html`<button data-contact onClick=${onOpen} class="w-full text-left flex items-center gap-2 py-1.5 border-b border-base-300/40 last:border-0 active:opacity-80 transition">
     ${dot(a.t)}
@@ -555,15 +534,6 @@ function ContactRow({ a, t, retro, onOpen }) {
   </button>`;
 }
 
-
-
-
-
-
-
-
-
-
 const hitKey = (a) => `${a.t}|${a.n}|${a.type}`;
 function useHitTimes(contacts, whenMs) {
   const [solved, setSolved] = useState({});
@@ -576,7 +546,7 @@ function useHitTimes(contacts, whenMs) {
       const a = contacts[i++];
       const times = hitTimes(a.t, a.natalLon, a.signedAngle, whenMs);
       setSolved((m) => ({ ...m, [hitKey(a)]: times }));
-      setTimeout(step, 0);                                  
+      setTimeout(step, 0);
     };
     const id = setTimeout(step, 0);
     return () => { cancelled = true; clearTimeout(id); };
@@ -588,8 +558,6 @@ export function hits({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const C = useChart(S);
   const loc = locale === "en" ? "en-GB" : locale || "uk";
-  
-  
   const solved = useHitTimes(C.hits || [], C.when.getTime());
 
   if (!C.ready) {
@@ -605,10 +573,6 @@ export function hits({ S, screen, openScreen, closeScreen }) {
         const times = solved[hitKey(a)];
         const prec = HIT_PRECISION[a.t] || "minute";
         const nearest = times && times.length ? times.reduce((best, x) => Math.abs(x - C.when) < Math.abs(best - C.when) ? x : best) : null;
-        
-        
-        
-        
         return html`<button data-hit data-hit-key=${hitKey(a)} onClick=${() => openScreen(READ_TRANSIT + hitKey(a))}
           class="w-full text-left rounded-[var(--ms-r)] sf-raised sf-e2 sf-press px-[var(--ms-pad)] py-3 flex flex-col gap-2 transition" key=${i}>
         <div class="flex items-center gap-2">
@@ -637,8 +601,6 @@ export function hits({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
 export function chart({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const C = useChart(S);
@@ -651,20 +613,8 @@ export function chart({ S, screen, openScreen, closeScreen }) {
   }
   const { H, natal, b } = C;
   const rows = natal.slice().sort((x, y) => norm360(x.lon) - norm360(y.lon));
-  
-  
-  
+
   const open = (key) => openScreen(READ_PLACEMENT + key);
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   const mark = () => Icon("lucide:sparkles", "text-xs text-primary shrink-0 w-3.5");
   const ROW = "w-full text-left flex items-center gap-1.5 py-1.5 border-b border-base-300/40 last:border-0 active:opacity-80 transition";
   const angleRow = (key, lbl, lon) => html`<button data-angle-row=${lbl} data-place=${key} onClick=${() => open(key)} class=${ROW} key=${key}>
@@ -675,6 +625,7 @@ export function chart({ S, screen, openScreen, closeScreen }) {
     <div class="w-[2.75rem] shrink-0"></div>
     ${mark()}
   </button>`;
+
   return html`<${Fragment}>
     <div class="flex flex-col gap-3">
       <button data-birth-row class="rounded-[var(--ms-r)] sf-raised sf-e2 sf-press px-[var(--ms-pad)] py-3 flex items-center gap-3 text-left transition" onClick=${() => openScreen("birth")}>
@@ -739,11 +690,6 @@ export function chart({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
-
-
-
 function BirthSheet({ open, onClose, t, locale }) {
   const stored = useStore($birth);
   const [draft, setDraft] = useState(stored || EMPTY);
@@ -752,7 +698,6 @@ function BirthSheet({ open, onClose, t, locale }) {
   const [searching, setSearching] = useState(false);
   useEffect(() => { if (open) { setDraft(stored || EMPTY); setQ(""); setResults(null); } }, [open]);
 
-  
   useEffect(() => {
     if (!open || q.trim().length < 2) { setResults(null); setSearching(false); return; }
     const ctl = new AbortController();
@@ -795,7 +740,7 @@ function BirthSheet({ open, onClose, t, locale }) {
           </button>`)}
         </div>` : html`<div class="text-sm text-muted px-1">${T(t, "placeNone")}</div>`) : null}
 
-        
+        ${""}
         ${draft.place ? html`<div data-birth-chosen class="rounded-[var(--ms-r-in)] sf-inset px-3 py-2">
           <div class="text-sm font-medium truncate">${placeLabel(draft.place)}</div>
           <div class=${`${META} truncate`}>${formatCoords(draft.place.lat, draft.place.lng)} · ${draft.place.zone}</div>
@@ -816,7 +761,7 @@ function BirthSheet({ open, onClose, t, locale }) {
             : html`<div class="text-sm text-muted mt-0.5">${T(t, "need_" + r.reason)}</div>`}
         </div>
 
-        
+        ${""}
         ${r.ok && r.ambiguous ? html`<div data-birth-warn class="rounded-[var(--ms-r-in)] sf-e2 bg-warning/10 px-3 py-2 text-sm">${T(t, "warnAmbiguous")}</div>` : null}
         ${r.ok && r.nonexistent ? html`<div data-birth-warn class="rounded-[var(--ms-r-in)] sf-e2 bg-warning/10 px-3 py-2 text-sm">${T(t, "warnNonexistent")}</div>` : null}
 
@@ -824,16 +769,6 @@ function BirthSheet({ open, onClose, t, locale }) {
       </div>
   </${Sheet}>`;
 }
-
-
-
-
-
-
-
-
-
-
 
 function InterpSheet({ open, onClose, C, t, loc, dateLabel }) {
   if (!open) return null;
@@ -848,16 +783,12 @@ function InterpSheet({ open, onClose, C, t, loc, dateLabel }) {
   const moonLon = skyLon.moon;
   const moon = moonLon == null ? null : { lon: moonLon, house: houseOf(moonLon, C.H.cusps), retro: false };
   const { text: input, sig } = groundSky({ dateEN, houseSystem: C.system, contacts, moon });
+
   return html`<${Sheet} id="interpsheet" open=${true} onClose=${onClose} title=${T(t, "interpTitle")} subtitle=${dateLabel} icon="lucide:sparkles">
       <${Reading} sig=${sig} input=${input} loc=${loc} api=${AI_SKY} t=${t}
         gateText=${GATE_INTERP[loc] || GATE_INTERP.en} lines=${[30, 34, 28, 20]} />
   </${Sheet}>`;
 }
-
-
-
-
-
 
 const dot = (p) => BODIES[p]
   ? html`<span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" style=${`background:${BODIES[p].color};box-shadow:inset -0.5px -0.5px 1px var(--nm-cast),0 0 0 0.5px var(--sf-rim)`}></span>`

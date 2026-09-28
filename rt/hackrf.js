@@ -1,9 +1,8 @@
-
 export const VENDOR_ID = 0x1d50, PRODUCT_ID = 0x6089;
 export const USB_FILTERS = [{ vendorId: VENDOR_ID, productId: PRODUCT_ID }];
-export const RX_ENDPOINT = 1;              
-export const TX_ENDPOINT = 2;              
-export const TRANSFER_SIZE = 262144;       
+export const RX_ENDPOINT = 1;
+export const TX_ENDPOINT = 2;
+export const TRANSFER_SIZE = 262144;
 
 export const REQUEST = {
   SET_TRANSCEIVER_MODE: 1,
@@ -14,10 +13,9 @@ export const REQUEST = {
   SET_LNA_GAIN: 19,
   SET_VGA_GAIN: 20,
   SET_TXVGA_GAIN: 21,
-  INIT_SWEEP: 26,                          
+  INIT_SWEEP: 26,
 };
 export const MODE = { OFF: 0, RECEIVE: 1, TRANSMIT: 2, RX_SWEEP: 5 };
-
 
 export function sampleRatePayload(rateHz, divider = 1) {
   const v = new DataView(new ArrayBuffer(8));
@@ -76,8 +74,8 @@ export class HackRF {
   setMode(mode) { return this._out(REQUEST.SET_TRANSCEIVER_MODE, mode, 0); }
 
   startTx() { return this.setMode(MODE.TRANSMIT); }
-  write(buffer) { return this.dev.transferOut(TX_ENDPOINT, buffer); }   
-  async stopTx() { try { await this.setMode(MODE.OFF); } catch {  } try { await this.setAmp(false); } catch {  } }
+  write(buffer) { return this.dev.transferOut(TX_ENDPOINT, buffer); }
+  async stopTx() { try { await this.setMode(MODE.OFF); } catch { } try { await this.setAmp(false); } catch { } }
 
   async read() { const r = await this.dev.transferIn(RX_ENDPOINT, TRANSFER_SIZE); return r.data ? new Uint8Array(r.data.buffer) : new Uint8Array(0); }
 
@@ -86,8 +84,8 @@ export class HackRF {
   initSweep(transfer) { return this._out(transfer.request, transfer.value, transfer.index, transfer.data); }
   async startRxSweep() { await this.setMode(MODE.RX_SWEEP); }
   async stop() {
-    try { await this.setMode(MODE.OFF); } catch {  }
-    try { await this.dev.releaseInterface(0); } catch {  }
-    try { await this.dev.close(); } catch {  }
+    try { await this.setMode(MODE.OFF); } catch { }
+    try { await this.dev.releaseInterface(0); } catch { }
+    try { await this.dev.close(); } catch { }
   }
 }

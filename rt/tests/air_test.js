@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { eaqiBand, pollutantBand, pollenBand, AQI_BANDS, POLLEN_BANDS } from "../air.js";
 

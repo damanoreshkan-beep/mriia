@@ -1,31 +1,30 @@
-
 export const BOOK_TYPES = new Set([
-  "Q7725634",    
-  "Q47461344",   
-  "Q571",        
-  "Q8261",       
-  "Q1667921",    
-  "Q13593966",   
-  "Q7725310",    
-  "Q49084",      
-  "Q25379",      
-  "Q5185279",    
-  "Q49100005",   
-  "Q1279564",    
-  "Q149537",     
+  "Q7725634",
+  "Q47461344",
+  "Q571",
+  "Q8261",
+  "Q1667921",
+  "Q13593966",
+  "Q7725310",
+  "Q49084",
+  "Q25379",
+  "Q5185279",
+  "Q49100005",
+  "Q1279564",
+  "Q149537",
 ]);
 
 export const NOT_BOOK_TYPES = new Set([
-  "Q11424",      
-  "Q5",          
-  "Q4167410",    
-  "Q22808320",   
-  "Q13406463",   
-  "Q482994",     
-  "Q5398426",    
-  "Q7889",       
-  "Q196600",     
-  "Q1985406",    
+  "Q11424",
+  "Q5",
+  "Q4167410",
+  "Q22808320",
+  "Q13406463",
+  "Q482994",
+  "Q5398426",
+  "Q7889",
+  "Q196600",
+  "Q1985406",
 ]);
 
 export function isBook(claims) {
@@ -61,7 +60,7 @@ export function cleanPlotText(text, heading) {
     .replace(/\[\s*(edit|\d+|citation needed|nb \d+|[a-z])\s*\]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
-  if (heading) {                                     
+  if (heading) {
     const h = String(heading).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     s = s.replace(new RegExp("^" + h + "\\s*", "i"), "");
   }
@@ -113,8 +112,8 @@ export function actSignature(pageid, level, locale) {
 
 export function plotUpToClimax(text, share = 0.72) {
   const s = String(text || "").trim();
-  if (s.length < 400) return s;                       
+  if (s.length < 400) return s;
   const cut = Math.floor(s.length * share);
-  const dot = s.lastIndexOf(". ", cut);               
+  const dot = s.lastIndexOf(". ", cut);
   return s.slice(0, dot > cut * 0.7 ? dot + 1 : cut).trim();
 }

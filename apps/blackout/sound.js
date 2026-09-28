@@ -18,9 +18,9 @@ export const SFX = {
   can: { lufs: -10.9, at: -19 }, boost: { loop: true, lufs: -14.5, at: -24 }, bats: { lufs: -13.9, at: -27, city: true },
 };
 const gainOf = (spec) => dbToGain(spec.at - spec.lufs);
-const MUSIC = dbToGain(-26 - -9.8);   
+const MUSIC = dbToGain(-26 - -9.8);
 const url = (name) => new URL(`assets/sfx-${name}.mp3`, import.meta.url).href;
-const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";   
+const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
 const IDLE_BPM = 126;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const frac = (x) => x - Math.floor(x);
@@ -44,7 +44,7 @@ export function createSound({ muted, mix }) {
     if (loading) return loading;
     loading = Promise.all(Object.keys(SFX).map(async (name) => {
       try { const ab = await (await fetch(url(name))).arrayBuffer(); buffers.set(name, await ctx.decodeAudioData(ab)); }
-      catch {  }
+      catch { }
     })).then(() => { loaded = true; });
     return loading;
   }
@@ -66,13 +66,13 @@ export function createSound({ muted, mix }) {
     return h;
   }
   const bedTo = (name, gain, rate = 1, k = 0.15) => { const h = bed(name); if (!h) return; const want = muted() ? 0 : gain * h.full; h.g.gain.value += (want - h.g.gain.value) * k; if (Math.abs(h.s.playbackRate.value - rate) > 0.005) h.s.playbackRate.value = rate; };
-  function stopBeds() { for (const h of loops.values()) { try { h.s.stop(); } catch {  } } loops.clear(); }
+  function stopBeds() { for (const h of loops.values()) { try { h.s.stop(); } catch { } } loops.clear(); }
 
   let el = null, src = null, an = null, beatAn = null, freq = null, fdb = null, mag = null, magPrev = null, live = false, wanted = false;
   const beat = { state: createBeatState(), pulseState: null, bpm: IDLE_BPM, phase: 0, confidence: 0, pulse: 0, energy: 0, tick: 0, last: 0 };
   function music(on) { wanted = on; stream(on && mix().music > 0); }
   function stream(on) {
-    if (!on) { if (el) { try { el.pause(); el.removeAttribute("src"); el.load(); } catch {  } } el = null; live = false; return; }
+    if (!on) { if (el) { try { el.pause(); el.removeAttribute("src"); el.load(); } catch { } } el = null; live = false; return; }
     if (el) { el.play().catch(() => {}); return; }
     const a = document.createElement("audio");
     a.crossOrigin = "anonymous"; a.preload = "none"; a.volume = 1;
@@ -84,7 +84,7 @@ export function createSound({ muted, mix }) {
       if (!an) { an = ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.4; freq = new Uint8Array(an.frequencyBinCount); }
       if (!beatAn) { beatAn = ctx.createAnalyser(); beatAn.fftSize = 1024; beatAn.smoothingTimeConstant = 0; fdb = new Float32Array(beatAn.frequencyBinCount); mag = new Float32Array(beatAn.frequencyBinCount); magPrev = new Float32Array(beatAn.frequencyBinCount); }
       src.connect(an); src.connect(beatAn); src.connect(musicGain);
-    } catch {  }
+    } catch { }
     a.src = STREAM;
     a.play().catch(() => { live = false; });
   }
@@ -121,6 +121,6 @@ export function createSound({ muted, mix }) {
     get live() { return live; },
     resume: () => ctx.resume(),
     preview(bus) { if (muted()) return; ctx.resume(); load().then(() => play(bus === "city" ? "crow" : "coin")); },
-    dispose() { stopBeds(); music(false); try { ctx.close(); } catch {  } },
+    dispose() { stopBeds(); music(false); try { ctx.close(); } catch { } },
   };
 }

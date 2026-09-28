@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { translit, isCyrillic, toPlace, placeLabel, formatCoords } from "../places.js";
 

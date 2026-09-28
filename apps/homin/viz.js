@@ -30,7 +30,7 @@ export function makeDial(canvas, THREE) {
   renderer.setClearColor(0x000000, 0);
   const scene = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
-  const rig = new THREE.Group();                 
+  const rig = new THREE.Group();
   rig.add(cam);
   cam.position.set(0, 2.05, 2.35);
   cam.lookAt(0, 0, 0);
@@ -94,7 +94,7 @@ export function makeDial(canvas, THREE) {
         if (v >= MAX_SPIKES * 6) break;
         const a = angleOf(e.channel);
         const age = Math.min(1, Math.max(0, (now - (e.lastSeen || now)) / AGE_MS));
-        const r = R_OUT - age * (R_OUT - R_IN);          
+        const r = R_OUT - age * (R_OUT - R_IN);
         const h = 0.06 + (e.strength || 0.3) * 0.62;
         const x = r * Math.cos(a), z = r * Math.sin(a);
         spikePos[v] = x; spikePos[v + 1] = 0; spikePos[v + 2] = z;
@@ -151,17 +151,17 @@ export function useDial(ref, getState) {
     };
     (async () => {
       let THREE;
-      try { THREE = await import("three"); } catch { return; }       
+      try { THREE = await import("three"); } catch { return; }
       if (dead) return;
       try { scene = makeDial(canvas, THREE); } catch { scene = null; return; }
       setWebgl(true);
       size();
       if (typeof ResizeObserver !== "undefined") { ro = new ResizeObserver(size); ro.observe(canvas); }
-      if (tilt?.supported) { try { stopTilt = tilt.start((t) => { beta = t.beta ?? 0; gamma = t.gamma ?? 0; }); } catch {  } }
+      if (tilt?.supported) { try { stopTilt = tilt.start((t) => { beta = t.beta ?? 0; gamma = t.gamma ?? 0; }); } catch { } }
       let last = 0;
       const loop = (ts) => {
         raf = requestAnimationFrame(loop);
-        if (ts - last < 33) return;                                   
+        if (ts - last < 33) return;
         last = ts;
         if (typeof document !== "undefined" && document.hidden) return;
         scene.frame(getState(), parallax.update(beta, gamma));
@@ -173,7 +173,7 @@ export function useDial(ref, getState) {
       cancelAnimationFrame(raf);
       ro?.disconnect();
       stopTilt?.();
-      try { scene?.dispose(); } catch {  }
+      try { scene?.dispose(); } catch { }
     };
   }, []);
   return webgl;

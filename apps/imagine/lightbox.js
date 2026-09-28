@@ -8,19 +8,19 @@ const fsSupported = typeof document !== "undefined" && !!(document.fullscreenEna
 export function Lightbox({ open, slides, src, index = 0, alt = "", onIndex, onClose }) {
   const ref = useRef();
   const scroller = useRef();
-  const drag = useRef({ from: 0, moved: false });   
+  const drag = useRef({ from: 0, moved: false });
   const list = (slides && slides.length ? slides : (src ? [{ url: src }] : []));
 
   useEffect(() => {
     if (!open || !list.length || !fsSupported) return;
     const el = ref.current; if (!el) return;
     let entered = false;
-    try { const r = el.requestFullscreen?.({ navigationUI: "hide" }) || el.webkitRequestFullscreen?.(); if (r && r.then) r.then(() => { entered = true; }, () => {}); else entered = true; } catch {  }
+    try { const r = el.requestFullscreen?.({ navigationUI: "hide" }) || el.webkitRequestFullscreen?.(); if (r && r.then) r.then(() => { entered = true; }, () => {}); else entered = true; } catch { }
     const onChange = () => { if (entered && !document.fullscreenElement) { entered = false; onClose?.(); } };
     document.addEventListener("fullscreenchange", onChange);
     return () => {
       document.removeEventListener("fullscreenchange", onChange);
-      if (document.fullscreenElement === el) { try { document.exitFullscreen?.(); } catch {  } }
+      if (document.fullscreenElement === el) { try { document.exitFullscreen?.(); } catch { } }
     };
   }, [open, list.length]);
 

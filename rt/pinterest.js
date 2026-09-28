@@ -1,4 +1,3 @@
-
 export const PIDGETS = "https://widgets.pinterest.com/v3/pidgets";
 export const pinInfoURL = (id) => `${PIDGETS}/pins/info/?pin_ids=${encodeURIComponent(id)}`;
 export const boardPinsURL = (user, slug) => `${PIDGETS}/boards/${encodeURIComponent(user)}/${encodeURIComponent(slug)}/pins/`;

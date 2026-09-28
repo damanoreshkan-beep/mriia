@@ -6,7 +6,7 @@ const ROOT = Deno.cwd();
 const appdir = `${ROOT}/apps/${app}`;
 try { if (!Deno.statSync(appdir).isDirectory) throw 0; } catch { console.error("no such app:", appdir); Deno.exit(1); }
 
-const RT_OVERLAY = `${ROOT}/rt`;                                              
+const RT_OVERLAY = `${ROOT}/rt`;
 const localRuntime = `${ROOT}/../packages/runtime`;
 let RT_CORE;
 try {
@@ -18,7 +18,7 @@ console.log(`  /_rt core source: ${RT_CORE.includes("/packages/runtime") && !RT_
 const HEAD_KILL = `<script>try{navigator.serviceWorker&&navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));window.caches&&caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));}catch(_){}</script>`;
 const RELOAD = `<script>(()=>{const c=()=>{const e=new EventSource("/__dev");e.onmessage=m=>{if(m.data==="reload")location.reload()};e.onerror=()=>{e.close();setTimeout(c,1000)}};c()})()</script>`;
 const clients = new Set();
-const noStore = (res) => { try { res.headers.set("cache-control", "no-store"); } catch {  } return res; };
+const noStore = (res) => { try { res.headers.set("cache-control", "no-store"); } catch { } return res; };
 
 async function handler(req) {
   const u = new URL(req.url);
@@ -34,7 +34,7 @@ async function handler(req) {
   const fresh = new Request(req.url, { method: "GET", headers: (() => { const h = new Headers(req.headers); h.delete("if-none-match"); h.delete("if-modified-since"); return h; })() });
   if (u.pathname.startsWith("/_rt/")) {
     let o;
-    try { o = await serveDir(fresh, { fsRoot: RT_OVERLAY, urlRoot: "_rt", quiet: true }); } catch {  }
+    try { o = await serveDir(fresh, { fsRoot: RT_OVERLAY, urlRoot: "_rt", quiet: true }); } catch { }
     if (!o || o.status === 404) o = await serveDir(fresh, { fsRoot: RT_CORE, urlRoot: "_rt", quiet: true });
     return noStore(o);
   }
@@ -57,6 +57,6 @@ const ping = () => { const d = new TextEncoder().encode("data: reload\n\n"); for
 })();
 
 const PORT = 8123;
-const iface = (() => { try { for (const n of Deno.networkInterfaces()) if (n.family === "IPv4" && !n.address.startsWith("127.")) return n.address; } catch {  } return "<LAN-IP>"; })();
+const iface = (() => { try { for (const n of Deno.networkInterfaces()) if (n.family === "IPv4" && !n.address.startsWith("127.")) return n.address; } catch { } return "<LAN-IP>"; })();
 console.log(`\n  jobx dev · ${app}\n  mock:  http://localhost:${PORT}/${app}/\n  real:  http://${iface}:${PORT}/${app}/   ← open this for live data + WebGL\n  live-reload on save. Ctrl+C to stop.\n`);
 Deno.serve({ port: PORT, hostname: "0.0.0.0" }, handler);

@@ -1,4 +1,3 @@
-
 import {
   SCRW, SCRH, TILE, ROWS, LAYERS, shadowFor, parallaxX, worldAt,
   T, K, S, POSE, ANIM, animFrame, decodeEntry,
@@ -8,6 +7,7 @@ import { tileCell, frameCell, spearCell, anim, WORLD_INDEX as W } from "./atlas.
 const hash = (n) => { let x = (n * 2654435761) >>> 0; x ^= x >>> 15; x = (x * 2246822519) >>> 0; x ^= x >>> 13; return x; };
 
 const DEPTH = Object.freeze({ range: 0.06, far: LAYERS[0], mid: LAYERS[1], near: LAYERS[2] });
+
 /** Smooth 1-D value noise in [0,1): nodes every `period` px, smoothstepped between them. This is
     the difference between rolling land and a row of triangles, and it costs one lerp. */
 function vnoise(wx, period, salt) {
@@ -44,21 +44,17 @@ function silhouette(p, ink, base, top) {
  */
 function conifers(p, camx, o) {
   const off = parallaxX(camx, o.depth);
-  
   if (o.floor) silhouette(p, o.ink, o.base, (x) => o.base - o.floor - Math.round(vnoise(x + off, 13, o.salt + 9) * 7));
   const i0 = Math.floor((off - o.period) / o.period), i1 = Math.ceil((off + SCRW + o.period) / o.period);
   for (let i = i0; i <= i1; i++) {
-    
     const seed = hash(o.salt + i);
     const w = o.wlo + (seed >>> 2) % o.wspan;
-    
     const h = ((seed >>> 26) % 7 ? 1 : 1.35) * (o.hlo + (seed >>> 8) % o.hspan);
     const cx = i * o.period + ((seed >>> 4) % o.period) - off;
     if (cx + w < 0 || cx - w > SCRW) continue;
     const trunk = o.trunk && (seed >>> 17) % 3 ? o.trunk + ((seed >>> 19) % 12) : 0;
     const bot = o.base - trunk;
     const half = w >> 1;
-    
     const taper = 1 + ((seed >>> 12) % 90) / 100;
     for (let dx = -half; dx <= half; dx++) {
       const x = cx + dx;
@@ -66,7 +62,6 @@ function conifers(p, camx, o) {
       const top = bot - Math.round(h * (1 - Math.abs(dx) / half) ** taper) + (hash(o.salt * 31 + x + i * 7) & 1);
       if (top < bot) {
         p.rect(x, top, 1, bot - top, o.ink);
-        
         if (o.litInk && dx < 0 && (x & 1) === 0) p.rect(x, top, 1, 1, o.litInk);
       }
     }
@@ -102,10 +97,8 @@ const colOf = (x) => Math.round(x / TILE) + 1;
 function backdrop(p, camx, crust, world, frameNo) {
   p.sky(world.sky[0], world.sky[1]);
   const horizon = ROWS * TILE - TILE * 3;
-  
   const base = horizon + 2;
 
-  
   if (world.stars > 0.03) {
     for (let i = 0; i < 54; i++) {
       const s = hash(i * 2711 + 17);
@@ -113,12 +106,11 @@ function backdrop(p, camx, crust, world, frameNo) {
     }
   }
 
-  
   {
     const { x: cx, y: cy, r: R, kind, tones, alpha } = world.orb;
     if (alpha > 0.05) {
       if (kind === 1) {
-        for (const [hr, ha] of [[R + 6, 0.08], [R + 3, 0.14]]) {         
+        for (const [hr, ha] of [[R + 6, 0.08], [R + 3, 0.14]]) {
           for (let dy = -hr; dy <= hr; dy++) {
             const hw = Math.floor(Math.sqrt(Math.max(0, hr * hr - dy * dy)));
             if (hw > 0) p.rect(cx - hw, cy + dy, hw * 2, 1, W.moonMid, ha * alpha);
@@ -138,7 +130,7 @@ function backdrop(p, camx, crust, world, frameNo) {
             } else {
               const nx = dx / R, ny = dy / R;
               const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
-              const lam = (-nx - ny + nz) * KL;                 
+              const lam = (-nx - ny + nz) * KL;
               tone = lam > 0.66 ? W.moon : lam > 0.3 ? W.moonMid : W.moonDim;
             }
           }
@@ -177,17 +169,14 @@ function backdrop(p, camx, crust, world, frameNo) {
     return base - 44 - Math.round(n * 34) + (hash(wx * 3 + 91) & 1);
   });
 
-  
   conifers(p, camx, { depth: DEPTH.far, base, salt: 5100, period: 17, wlo: 20, wspan: 12, hlo: 18, hspan: 18, floor: 16, ink: W.canopyFar });
   conifers(p, camx, { depth: DEPTH.mid, base, salt: 6100, period: 26, wlo: 30, wspan: 16, hlo: 30, hspan: 26, floor: 20, ink: W.canopyMid });
   conifers(p, camx, {
     depth: DEPTH.near, base, salt: 7100, period: 54, wlo: 34, wspan: 16, hlo: 46, hspan: 34,
     ink: W.canopy, litInk: W.canopyLit, trunk: 11,
   });
-  
+
   silhouette(p, W.earthDeep, SCRH, (x) => (crust[colOf(x)] === 32767 ? SCRH : horizon));
-  
-  
   silhouette(p, W.earthDark, horizon + 3, (x) => {
     const c = crust[colOf(x)];
     return c !== 32767 && c > horizon ? horizon : horizon + 3;
@@ -208,7 +197,7 @@ function fringe(p, sx, sy, wx) {
   for (let i = 0; i < TILE; i++) {
     const x = wx + i;
     let t = Math.round(vnoise(x, 5, 8800) * 3) - 1;
-    if (hash(x * 13 + 41) % 23 === 0) t += 3;             
+    if (hash(x * 13 + 41) % 23 === 0) t += 3;
     if (t <= 0) continue;
     p.rect(sx + i, sy - t, 1, t, hash(x + 999) & 3 ? W.grass : W.grassLit);
   }
@@ -227,6 +216,7 @@ function deepSoil(p, camx, crust) {
   silhouette(p, W.earthDeep, SCRH, (x) =>
     (crust[colOf(x)] === 32767 ? SCRH : SCRH - 20 - Math.round(vnoise(x + camx, 41, 9100) * 16)));
 }
+
 /** The floor under each column, so a shadow has something to fall on — and a pit has none. */
 function groundMap(dl, dln) {
   const cols = new Int16Array(SCRW / TILE + 4).fill(32767);
@@ -273,10 +263,8 @@ function ellipse(p, cx, cy, rx, ry, alpha) {
 const whoOf = (kind) => (kind === K.PLAYER ? "hero" : kind === K.HERO || kind === K.WALKER || kind === K.HOPPER ? "foe" : null);
 
 export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
-  
   const boxH = (kind) => (box ? box(kind).h : TILE);
   const camx = st[S.CAMX], frameNo = st[S.FRAME];
-  
   const qd = st[S.DIST] - (st[S.DIST] % 4);
   const world = worldAt(qd);
   p.setWorld?.(world.colors, qd);
@@ -287,7 +275,6 @@ export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
   for (let i = 0; i < dln; i++) {
     const e = decodeEntry(dl, i);
     if (e.isSprite) { sprites.push(e); continue; }
-    
     const wx = e.x + camx;
     const c = tileCell(e.tile, hash(wx * 7 + e.y * 31) >>> 8);
     if (c.w) p.cell(c, e.x, e.y);
@@ -295,7 +282,6 @@ export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
   }
   deepSoil(p, camx, crust);
 
-  
   for (const e of sprites) {
     const who = whoOf(e.kind);
     if (!who) continue;
@@ -310,7 +296,6 @@ export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
 
   for (const e of sprites) {
     if (e.kind === K.SPEAR) {
-      
       const back = e.flip ? 1 : -1;
       for (let k = 1; k <= 3; k++) {
         p.rect(e.x + (e.flip ? 12 : -4) + back * k * 7, e.y + 2, 4, 1, W.spearTip, 0.3 / k);
@@ -326,14 +311,11 @@ export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
     const cell = frameCell(who, ANIM[e.frame] && anim(who, ANIM[e.frame]) ? ANIM[e.frame] : "idle",
                            animFrame(a, e.frame, frameNo), e.frame === POSE.LOW);
     const ox = e.x + ((TILE - cell.w) >> 1), oy = e.y + boxH(e.kind) - cell.h;
-    
     const blink = e.kind === K.PLAYER && st[S.INVULN] > 0 && (frameNo >> 2) % 2 ? 0.4 : 1;
-    
     const rim = e.kind === K.PLAYER && world.rimA > 0.03 ? { hex: world.rim, a: world.rimA } : null;
     p.cell(cell, ox, oy, { flip: e.flip, alpha: blink, rim });
   }
 
-  
   const flyN = Math.round(9 * world.fireflies);
   for (let i = 0; i < flyN; i++) {
     const s = hash(i * 517 + 29);
@@ -353,22 +335,19 @@ export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
   }
 
   if (hud) {
-    
     for (let i = 0; i < st[S.HP]; i++) p.cell(tileCell(T.HEART), -1 + i * 14, -3);
 
-    
     const ammo = Math.max(0, Math.min(20, st[S.AMMO]));
     for (let i = 0; i < Math.max(8, ammo); i++) {
       const x = 6 + i * 5;
       if (i < ammo) { p.rect(x, 16, 2, 10, W.spear); p.rect(x, 16, 2, 2, W.spearTip); }
       else p.rect(x, 18, 2, 8, W.quiverEmpty);
     }
-    
+
     const score = String(Math.max(0, Math.floor(st[S.SCORE] || 0)));
     let x = SCRW - 11 - (score.length - 1) * 8;
     for (const ch of score) { p.glyph(ch, x, 5); x += 8; }
 
-    
     if (st[S.COINS] > 0) {
       const coins = String(st[S.COINS]);
       let cx = SCRW - 11 - (coins.length - 1) * 8;
@@ -380,6 +359,7 @@ export function renderFrame(p, dl, dln, st, { hud = true, box = null } = {}) {
     }
   }
 }
+
 const FONT = {
   "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
   "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],

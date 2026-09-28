@@ -1,4 +1,3 @@
-
 import { firLowpass, iqFromBytes, deemphasisAlpha, IN_RATE, IF_RATE, OUT_RATE } from "./fmradio.js";
 
 const TAU = Math.PI * 2;
@@ -14,16 +13,16 @@ export class Demodulator {
     if (!MODE_PARAMS[mode]) throw new Error(`unknown demod mode: ${mode}`);
     this.mode = mode;
     const p = MODE_PARAMS[mode];
-    this.decim = IN_RATE / IF_RATE;                                   
+    this.decim = IN_RATE / IF_RATE;
     this.h1 = firLowpass(48, Math.min(p.channelHz, IF_RATE / 2 - 1), IN_RATE);
     this.hi = new Float32Array(this.h1.length); this.hq = new Float32Array(this.h1.length);
     this.hp = 0; this.phase = 0;
     this.cosT = new Float32Array(this.decim); this.sinT = new Float32Array(this.decim);
     for (let n = 0; n < this.decim; n++) { const a = (-TAU * offsetHz * n) / IN_RATE; this.cosT[n] = Math.cos(a); this.sinT[n] = Math.sin(a); }
-    this.pI = 1; this.pQ = 0;                                         
-    this.ampl = p.dev ? OUT_RATE / (TAU * p.dev) : 1;                 
-    this.deemY = 0; this.deemA = p.deemphUs ? deemphasisAlpha(IF_RATE, p.deemphUs) : 1; 
-    this.dcY = 0;                                                     
+    this.pI = 1; this.pQ = 0;
+    this.ampl = p.dev ? OUT_RATE / (TAU * p.dev) : 1;
+    this.deemY = 0; this.deemA = p.deemphUs ? deemphasisAlpha(IF_RATE, p.deemphUs) : 1;
+    this.dcY = 0;
     this.h2 = firLowpass(64, Math.min(15_000, OUT_RATE / 2 - 1), IF_RATE);
     this.a2 = new Float32Array(this.h2.length); this.ap = 0;
     this.rateMul = IF_RATE / OUT_RATE; this.readFrom = 0;
@@ -62,7 +61,7 @@ export class Demodulator {
       const real = this.pI * I + this.pQ * Q, imag = this.pI * Q - I * this.pQ;
       this.pI = I; this.pQ = Q;
       const d = Math.atan2(imag, real) * this.ampl;
-      this.deemY += this.deemA * (d - this.deemY);                    
+      this.deemY += this.deemA * (d - this.deemY);
       out[n] = this.deemY;
     }
     return out;
@@ -72,8 +71,8 @@ export class Demodulator {
     const out = new Float32Array(ifI.length);
     for (let n = 0; n < ifI.length; n++) {
       const env = Math.hypot(ifI[n], ifQ[n]);
-      this.dcY += 0.001 * (env - this.dcY);                          
-      out[n] = (env - this.dcY) / 128;                              
+      this.dcY += 0.001 * (env - this.dcY);
+      out[n] = (env - this.dcY) / 128;
     }
     return out;
   }

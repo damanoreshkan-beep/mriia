@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { Fragment } from "preact";
 import { useEffect, useRef, useState, useCallback } from "preact/hooks";
@@ -24,13 +23,14 @@ const DECK_PAD = [
   { id: "padDown", pad: "down", bit: PAD.DOWN, icon: "lucide:chevron-down", label: "padDown" },
 ];
 
-
 const DECK_ACTIONS = [
   { id: "jump", bit: PAD.JUMP, icon: "lucide:chevrons-up", label: "keyJump" },
   { id: "throw", bit: IN.SHOOT, icon: "lucide:send", iconCls: "-rotate-45", label: "keyThrow" },
   { id: "run", bit: PAD.RUN, icon: "lucide:wind", label: "keyRun", latch: true },
 ];
+
 const DEATH_ARC = 45;
+
 const NS = "hunt:";
 const $best = persistentAtom(`${NS}best`, null, { encode: JSON.stringify, decode: JSON.parse });
 const $runs = persistentAtom(`${NS}runs`, "0");
@@ -77,7 +77,6 @@ export function hunt(props) {
       sound.current = makeSound();
       sound.current.enabled = $sound.get() === "1";
       E.init(seed.current);
-      
       fell.current = null;
       $over.set(false);
 
@@ -87,7 +86,6 @@ export function hunt(props) {
       painter.current = canvasPainter(ctx);
       setReady(true);
 
-      
       const shake = { current: 0 };
       const clock = makeClock(() => {
         E.step(mask.current);
@@ -101,7 +99,6 @@ export function hunt(props) {
         }
       });
 
-      
       if (gate) {
         const track = (i) => IN.RIGHT | ((i % 60) < 16 ? IN.JUMP : 0) | ((i % 30) === 0 ? IN.SHOOT : 0);
         const survives = (n) => {
@@ -134,7 +131,6 @@ export function hunt(props) {
           h.dataset.camx = st[S.CAMX];
           h.dataset.mask = mask.current;
         }
-        
         if (st[S.DEAD]) {
           if (fell.current == null) {
             fell.current = st[S.FRAME];
@@ -169,6 +165,7 @@ export function hunt(props) {
   }, []);
   restartRef.current = restart;
   const arm = useCallback(() => { sound.current?.arm(); }, []);
+
   return html`<${Fragment}>
     <${GameConsole}
       deck=${deckProps}
@@ -183,11 +180,11 @@ export function hunt(props) {
         { id: "records", act: "records", icon: "lucide:trophy", label: "records" },
       ]}
       overlay=${over ? html`
-        
+        ${""}
         <div class="absolute inset-0 grid place-items-center overflow-hidden" data-over>
           <button class="sf-raised sf-press active:sf-pressed bg-base-100 rounded-[var(--ms-r)] gap-1 flex flex-col items-center max-w-full max-h-full px-[var(--ms-pad)] py-[calc(var(--ms-pad)*0.7)]"
                   onClick=${restart} data-restart>
-            
+            ${""}
             <span class="font-mono uppercase tracking-widest text-[length:var(--ms-label)] text-base-content/70">${T(t, "gameOver")}</span>
             <span class="font-mono text-[length:var(--ms-title)]">${digits(best?.dist ?? 0, 4)}</span>
           </button>
@@ -199,7 +196,7 @@ export function hunt(props) {
           style="image-rendering:pixelated"
           role="img" aria-label=${T(t, "screenAlt")}></canvas>
         ${!ready && !err ? html`<div class="absolute inset-0 grid place-items-center"><${Pixels} cls="w-full h-full" /></div>` : null}
-        
+        ${""}
         ${err ? html`<div class="absolute inset-0 grid place-items-center text-center px-3 text-muted" data-err>${T(t, "noEngine")}</div>` : null}
       </div>
     </${GameConsole}>
@@ -208,7 +205,7 @@ export function hunt(props) {
       title=${T(t, "records")} icon="lucide:trophy" locale=${loc}>
       <div class="grid grid-cols-3 gap-[var(--ms-gap)] text-center">
         ${[["distance", best?.dist ?? 0], ["kills", best?.kills ?? 0], ["runs", +runs || 0]].map(([k, v]) => html`
-          
+          ${""}
           <div class="sf-inset rounded-[var(--ms-r-in)] p-[var(--ms-pad)] min-w-0">
             <div class="font-mono text-[length:var(--ms-title)] truncate" data-stat=${k}>${v}</div>
             <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70 mt-1 leading-[1.4] break-words">${T(t, k)}</div>

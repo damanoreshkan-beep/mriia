@@ -1,4 +1,3 @@
-
 import { fib } from "@microspec/core/runtime/spectrum.js";
 
 export const MIRRORS = [

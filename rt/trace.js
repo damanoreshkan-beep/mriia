@@ -1,5 +1,4 @@
-
-const R = 6371008.8;                       
+const R = 6371008.8;
 const rad = (d) => (d * Math.PI) / 180;
 export const M_PER_DEG_LAT = (R * Math.PI) / 180;
 export const mPerDegLon = (lat) => M_PER_DEG_LAT * Math.cos(rad(lat));

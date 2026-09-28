@@ -11,10 +11,10 @@ const WINDOWS = { week: 7, month: 30, quarter: 90 };
 
 export async function load(filters = {}) {
   const days = WINDOWS[filters.period] || 30;
-  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); 
+  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
   const topic = (filters.category || "").trim();
   const q = (filters.q || "").trim();
-  const parts = ["stars:>10", `created:>${since}`];   
+  const parts = ["stars:>10", `created:>${since}`];
   if (topic) parts.push(`topic:${topic}`);
   if (q) parts.push(q);
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(parts.join(" "))}&sort=stars&order=desc&per_page=40`;

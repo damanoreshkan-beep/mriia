@@ -16,7 +16,7 @@ import { bindAudio, enableImmersion, disableImmersion, immersionState, immersion
 import { Parallax } from "/_rt/spectrum.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const N = 16, STEPS = [...Array(N).keys()];
 const PC = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
 const letter = (m) => PC[((m % 12) + 12) % 12];
@@ -60,17 +60,17 @@ const $loop = atom(Array.from({ length: N }, () => [])), $bpm = atom(80);
 const $playing = atom(false), $recording = atom(false), $cur = atom(-1), $sweep = atom(-1), $lit = atom(new Set()), $hist = atom({ seeds: [], idx: -1 });
 const SAVES = collection("handpanLoops");
 const curScale = () => scaleById($scale.get());
-const offsets = (s) => s.midi.map((m) => m - s.midi[0]);   
+const offsets = (s) => s.midi.map((m) => m - s.midi[0]);
 const emptyLoop = () => Array.from({ length: N }, () => []);
 
 let eng = null, busIn = null, revSend = null, drone = null, sched = null, raf = null, nextT = 0, stepN = 0, q = [];
 let wl = null, np = null;
 const npTitle = () => `${T(dictNow(), curScale().name)} · ${T(dictNow(), timbreById($timbre.get()).name)}`;
-let _dict = {}; const dictNow = () => _dict;                     
+let _dict = {}; const dictNow = () => _dict;
 const artUrl = () => { try { return new URL("icons/icon-512.png", location.href).href; } catch { return null; } };
 const spaceGain = (v) => 0.05 + 0.95 * clamp(v, 0, 1);
 
-function applySpace() { if (revSend && eng) { try { revSend.gain.setTargetAtTime(spaceGain($space.get()), eng.ctx.currentTime, 0.05); } catch {  } } }
+function applySpace() { if (revSend && eng) { try { revSend.gain.setTargetAtTime(spaceGain($space.get()), eng.ctx.currentTime, 0.05); } catch { } } }
 function ensure() {
   if (!audioSupported) return null;
   if (!eng) {
@@ -93,29 +93,29 @@ function strikeNote(freq, vel = 1) {
   const e = eng; if (!e) return; const c = e.ctx, t = c.currentTime, tb = timbreById($timbre.get());
   const g = c.createGain(); g.gain.value = 1; g.connect(busIn);
   const parts = tb.partials.slice();
-  if ($shimmer.get()) { parts.push([2, 0.1, 0.45], [3, 0.06, 0.3]); }   
+  if ($shimmer.get()) { parts.push([2, 0.1, 0.45], [3, 0.06, 0.3]); }
   for (const [r, pg, ds = 1] of parts) {
     const o = c.createOscillator(); o.type = "sine"; o.frequency.value = freq * r;
     const og = c.createGain(); const dur = tb.dur * ds;
     og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(tb.peak * pg * vel, t + tb.attack); og.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.05);
-    o.onended = () => { try { o.disconnect(); og.disconnect(); } catch {  } };
+    o.onended = () => { try { o.disconnect(); og.disconnect(); } catch { } };
   }
-  if (tb.chiff && e.buffers.white) {                                    
+  if (tb.chiff && e.buffers.white) {
     const s = c.createBufferSource(); s.buffer = e.buffers.white; const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = clamp(freq * 6, 800, 9000); f.Q.value = 0.7;
     const ng = c.createGain(); ng.gain.setValueAtTime(tb.chiff * vel, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
-    s.connect(f); f.connect(ng); ng.connect(g); s.start(t); s.stop(t + 0.1); s.onended = () => { try { s.disconnect(); f.disconnect(); ng.disconnect(); } catch {  } };
+    s.connect(f); f.connect(ng); ng.connect(g); s.start(t); s.stop(t + 0.1); s.onended = () => { try { s.disconnect(); f.disconnect(); ng.disconnect(); } catch { } };
   }
 }
 
 function applyDrone() {
   if (!eng) return; const c = eng.ctx;
-  if (drone) { try { drone.stop(); drone.g.gain.setTargetAtTime(0, c.currentTime, 0.2); } catch {  } drone = null; }
+  if (drone) { try { drone.stop(); drone.g.gain.setTargetAtTime(0, c.currentTime, 0.2); } catch { } drone = null; }
   if (!$drone.get()) return;
   const base = curScale().midi[0] - 12, g = c.createGain(); g.gain.value = 0; g.connect(busIn);
   g.gain.setTargetAtTime(0.09, c.currentTime, 0.6);
   const oscs = [midiToFreq(base), midiToFreq(base + 7), midiToFreq(base + 12)].map((fr, i) => { const o = c.createOscillator(); o.type = i === 2 ? "triangle" : "sine"; o.frequency.value = fr; const og = c.createGain(); og.gain.value = i === 2 ? 0.3 : 1; o.connect(og); og.connect(g); o.start(); return o; });
-  drone = { g, stop: () => oscs.forEach((o) => { try { o.stop(); o.disconnect(); } catch {  } }) };
+  drone = { g, stop: () => oscs.forEach((o) => { try { o.stop(); o.disconnect(); } catch { } }) };
 }
 
 const flash = (i) => { const s = new Set($lit.get()); s.add(i); $lit.set(s); setTimeout(() => { const n = new Set($lit.get()); n.delete(i); $lit.set(n); }, 520); };
@@ -129,7 +129,7 @@ function strike(idx, vel = 1) {
   if ($recording.get() && $playing.get()) { const step = $cur.get() < 0 ? 0 : $cur.get(); const cur = $loop.get(), cell = cur[step] || []; if (!cell.includes(idx)) { const next = cur.slice(); next[step] = [...cell, idx]; $loop.set(next); } }
 }
 
-const spb = () => 60 / $bpm.get() / 2;                              
+const spb = () => 60 / $bpm.get() / 2;
 function fireStep(step, time) {
   const s = curScale(), cell = $loop.get()[step] || [];
   for (const idx of cell) strikeAtTime(midiToFreq(s.midi[idx]), time);
@@ -142,9 +142,9 @@ function strikeAtTime(freq, t) {
   for (const [r, pg, ds = 1] of parts) {
     const o = c.createOscillator(); o.type = "sine"; o.frequency.value = freq * r; const og = c.createGain(); const dur = tb.dur * ds;
     og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(tb.peak * pg, t + tb.attack); og.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.05); o.onended = () => { try { o.disconnect(); og.disconnect(); } catch {  } };
+    o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.05); o.onended = () => { try { o.disconnect(); og.disconnect(); } catch { } };
   }
-  if (tb.chiff && e.buffers.white) { const s = c.createBufferSource(); s.buffer = e.buffers.white; const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = clamp(freq * 6, 800, 9000); f.Q.value = 0.7; const ng = c.createGain(); ng.gain.setValueAtTime(tb.chiff, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); s.connect(f); f.connect(ng); ng.connect(g); s.start(t); s.stop(t + 0.1); s.onended = () => { try { s.disconnect(); f.disconnect(); ng.disconnect(); } catch {  } }; }
+  if (tb.chiff && e.buffers.white) { const s = c.createBufferSource(); s.buffer = e.buffers.white; const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = clamp(freq * 6, 800, 9000); f.Q.value = 0.7; const ng = c.createGain(); ng.gain.setValueAtTime(tb.chiff, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); s.connect(f); f.connect(ng); ng.connect(g); s.start(t); s.stop(t + 0.1); s.onended = () => { try { s.disconnect(); f.disconnect(); ng.disconnect(); } catch { } }; }
 }
 const tick = () => { const e = eng; if (!e) return; const dt = spb(); if (nextT < e.ctx.currentTime) nextT = e.ctx.currentTime; while (nextT < e.ctx.currentTime + 0.12) { fireStep(stepN, nextT); nextT += dt; stepN = (stepN + 1) % N; } };
 const draw = () => { const e = eng; if (e) { const now = e.ctx.currentTime; while (q.length && q[0].time <= now) { const it = q.shift(); $cur.set(it.step); const cell = $loop.get()[it.step] || []; cell.forEach((i) => { flash(i); rippleFor(i, 0.9); }); } } raf = requestAnimationFrame(draw); };
@@ -185,7 +185,7 @@ export function handpan({ S }) {
   const t = useStore(S.t); _dict = t;
   const loc = useStore(S.locale);
   const scaleId = useStore($scale), playing = useStore($playing), recording = useStore($recording), lit = useStore($lit), sweep = useStore($sweep), space = useStore($space);
-  const s = scaleById(scaleId), n = s.midi.length - 1;              
+  const s = scaleById(scaleId), n = s.midi.length - 1;
   const ptr = useRef(new Map()), usingPtr = useRef(false), panRef = useRef();
   useEffect(() => {
     const el = panRef.current; if (!el || typeof requestAnimationFrame === "undefined") return;
@@ -207,7 +207,7 @@ export function handpan({ S }) {
   const pick = (id) => { buzz(); ensure(); $scale.set(id); applyDrone(); $hist.set({ seeds: [], idx: -1 }); };
 
   const fieldAt = (x, y) => { const el = document.elementFromPoint(x, y); const b = el && el.closest && el.closest("[data-field]"); return b ? Number(b.getAttribute("data-field")) : null; };
-  const onDown = (e) => { const i = fieldAt(e.clientX, e.clientY); if (i == null) return; usingPtr.current = true; e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch {  } ptr.current.set(e.pointerId, i); strike(i); };
+  const onDown = (e) => { const i = fieldAt(e.clientX, e.clientY); if (i == null) return; usingPtr.current = true; e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { } ptr.current.set(e.pointerId, i); strike(i); };
   const onMove = (e) => { if (!ptr.current.has(e.pointerId)) return; const i = fieldAt(e.clientX, e.clientY); if (i == null) return; if (ptr.current.get(e.pointerId) !== i) { ptr.current.set(e.pointerId, i); strike(i, 0.85); } };
   const onLift = (e) => { ptr.current.delete(e.pointerId); };
   const onClickBoard = (e) => { if (usingPtr.current) return; const b = e.target.closest && e.target.closest("[data-field]"); if (b) strike(Number(b.getAttribute("data-field"))); };
@@ -224,6 +224,7 @@ export function handpan({ S }) {
     </div>
 
     <div class="flex-1 min-h-0 relative grid place-items-center px-3">
+      ${""}
       <div ref=${panRef} class="relative w-[min(90vw,62vh)] aspect-square rounded-full sf-raised select-none" style="touch-action:none"
         onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onLift} onPointerCancel=${onLift} onClick=${onClickBoard}>
         <!-- ding (centre) — a convex steel dome -->
@@ -240,7 +241,7 @@ export function handpan({ S }) {
 
     <div class="shrink-0 px-3 pb-2 pt-1 flex justify-center">
       <${Island} className="w-full max-w-md flex items-center gap-2">
-        
+        ${""}
         <${Transport} className="shrink-0" locale=${loc} stopIcon playing=${playing} onToggle=${toggle}
           actions=${[
             { id: "flow", icon: "lucide:sparkles", label: T(t, "genFlow"), onClick: newFlow, tone: "accent", active: sweep >= 0, pulse: sweep >= 0, attr: { "data-flow": true } },
@@ -256,17 +257,17 @@ export function handpan({ S }) {
   </div>`;
 }
 
-
 export function handpanWeave({ S, toast, screen, openScreen, closeScreen }) {
   const t = useStore(S.t); _dict = t;
   const loc = useStore(S.locale);
   const scaleId = useStore($scale), loop = useStore($loop), playing = useStore($playing), cur = useStore($cur), sweep = useStore($sweep);
-  const s = scaleById(scaleId), rows = s.midi.map((m, i) => ({ i, m })).reverse();   
+  const s = scaleById(scaleId), rows = s.midi.map((m, i) => ({ i, m })).reverse();
   const cellToggle = (i, step) => { ensure(); const cell = loop[step] || []; const has = cell.includes(i); const next = loop.slice(); next[step] = has ? cell.filter((x) => x !== i) : [...cell, i]; $loop.set(next); if (!has) strike(i); };
-  const save = async () => { try { const list = await SAVES.all(); const rec = { loop, scaleId, bpm: $bpm.get() }; if (loopCount(loop) === 0) { buzz(); return; } if (list.find((it) => loopSig(it) === loopSig(rec))) { buzz(); toast?.(T(t, "toastDup", { name: autoName(t, scaleId, loop, list) })); return; } await SAVES.put("l" + Date.now(), { name: autoName(t, scaleId, loop, list), ...rec, timbreId: $timbre.get(), space: $space.get() }); toast?.(T(t, "toastSaved")); } catch {  } };
+  const save = async () => { try { const list = await SAVES.all(); const rec = { loop, scaleId, bpm: $bpm.get() }; if (loopCount(loop) === 0) { buzz(); return; } if (list.find((it) => loopSig(it) === loopSig(rec))) { buzz(); toast?.(T(t, "toastDup", { name: autoName(t, scaleId, loop, list) })); return; } await SAVES.put("l" + Date.now(), { name: autoName(t, scaleId, loop, list), ...rec, timbreId: $timbre.get(), space: $space.get() }); toast?.(T(t, "toastSaved")); } catch { } };
 
   return html`<${Fragment}>
     <div class="pb-40 flex flex-col gap-[3px]">
+      ${""}
       <div class="sticky z-10 -mx-4 px-4 bg-base-100 sf-e2 flex items-center gap-[3px] py-1" style="top:calc(var(--hdr-h) + env(safe-area-inset-top))">
         <div class="w-7 shrink-0"></div>
         ${STEPS.map((step) => html`<div class=${`flex-1 h-1 rounded-full transition-colors ${step % 4 === 0 && step > 0 ? "ml-1" : ""} ${step === sweep ? "bg-accent" : step === cur ? "bg-secondary" : ""}`}
@@ -274,14 +275,15 @@ export function handpanWeave({ S, toast, screen, openScreen, closeScreen }) {
       </div>
       ${rows.map(({ i, m }) => { const live = loop.some((cell) => cell && cell.includes(i)); return html`<div class="flex items-center gap-[3px]" key=${i}>
         <div class=${`w-7 shrink-0 text-center text-sm font-medium tabular-nums ${i === 0 ? "text-secondary" : live ? "text-base-content" : "text-base-content/70"}`} title=${label(m)}>${letter(m)}</div>
-        
-        
+        ${""}
+        ${""}
         ${STEPS.map((step) => { const on = (loop[step] || []).includes(i); const beat = step % 4 === 0; return html`<button data-cell=${`${i}-${step}`} aria-pressed=${on} aria-label=${`${label(m)} ${step + 1}`} onClick=${() => cellToggle(i, step)} key=${step}
           class=${`flex-1 min-w-0 h-9 rounded-md touch-manipulation transition-[box-shadow,background-color,transform,scale] duration-150 ${beat && step > 0 ? "ml-1" : ""} ${on ? `sf-e2 ${i === 0 ? "bg-secondary" : "bg-primary"}` : "sf-inset"} ${step === sweep ? "outline-2 outline-accent scale-105" : step === cur ? "outline-2 outline-base-content/50" : ""}`}></button>`; })}
       </div>`; })}
     </div>
 
     <${Island} pinned className="w-full max-w-xl">
+        ${""}
         <${Transport} locale=${loc} stopIcon playing=${playing} onToggle=${toggle} keep=${1}
           subtitle=${T(t, scaleById(scaleId).name)}
           moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
@@ -301,7 +303,7 @@ export function handpanWeave({ S, toast, screen, openScreen, closeScreen }) {
 function SettingsSheet({ open, onClose, t }) {
   const bpm = useStore($bpm), space = useStore($space), shimmer = useStore($shimmer), drone = useStore($drone), timbre = useStore($timbre), scaleId = useStore($scale);
   return html`<${Sheet} id="setsheet" open=${open} onClose=${onClose} title=${T(t, "settings")} icon="lucide:sliders-horizontal">
-    
+    ${""}
     <div class="grid grid-cols-2 gap-x-4 gap-y-2">
       <${Slider} id="tempo" attr="data-set" label=${`${T(t, "tempo")} · ${bpm}`} value=${bpm} min=${52} max=${132} step=${1} onInput=${(v) => $bpm.set(v)} />
       <${Slider} id="space" attr="data-set" label=${T(t, "space")} value=${space} min=${0} max=${1} step=${0.02} onInput=${(v) => { $space.set(v); applySpace(); }} />
@@ -326,10 +328,6 @@ function SettingsSheet({ open, onClose, t }) {
   </${Sheet}>`;
 }
 
-
-
-
-
 const Spectrum = ({ loop, live, cur }) => { const bars = (loop || emptyLoop()).map((c) => (c ? c.length : 0)), mx = Math.max(1, ...bars); return html`<span data-spectrum class="flex items-end gap-px h-5 w-full" aria-hidden="true">${bars.map((v, s) => html`<span class=${`flex-1 rounded-sm transition-colors ${live && s === cur ? "bg-secondary" : v ? "bg-primary" : ""}`} style=${`height:${Math.round((v ? 0.25 + 0.75 * (v / mx) : 0.12) * 100)}%${(live && s === cur) || v ? "" : ";background:var(--sf-track-face)"}`} key=${s}></span>`)}</span>`; };
 
 export function handpanSaved({ S, undo }) {
@@ -343,11 +341,13 @@ export function handpanSaved({ S, undo }) {
   const loadLoop = (it) => { $scale.set(it.scaleId || "kurd"); $loop.set((it.loop || emptyLoop()).map((c) => (c ? c.slice() : []))); $bpm.set(it.bpm || 80); if (it.timbreId) $timbre.set(it.timbreId); if (typeof it.space === "number") { $space.set(it.space); applySpace(); } applyDrone(); };
   const open = (it) => { buzz(); loadLoop(it); S.tab.set("weave"); };
   const play = (it) => { buzz(); if (isCur(it)) { stop(); return; } loadLoop(it); start(); };
-  const del = async (it) => { const { id, _ts, ...rec } = it; try { await SAVES.remove(id); } catch {  } load(); undo?.(async () => { try { await SAVES.put(id, rec); } catch {  } load(); }, it.name || T(t, "loopWord")); };
+  const del = async (it) => { const { id, _ts, ...rec } = it; try { await SAVES.remove(id); } catch { } load(); undo?.(async () => { try { await SAVES.put(id, rec); } catch { } load(); }, it.name || T(t, "loopWord")); };
+
   if (!useReveal(list !== null)) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel class="card bg-base-100 rounded-[var(--ms-r)] overflow-hidden" key=${i}><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${12} /></div><div class="h-5"><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
   if (!list.length) return html`<div class="flex flex-col items-center text-base-content/70 py-20 gap-2 text-center px-6">${Icon("lucide:bookmark", "text-4xl")}<span>${T(t, "savedEmpty")}</span></div>`;
+
   return html`<div class="flex flex-col gap-2">
-    
+    ${""}
     ${list.map((it) => { const on = isCur(it); return html`<div data-saved class="card bg-base-100 rounded-[var(--ms-r)] transition-colors" key=${it.id}>
       <div class="card-body p-3 flex-row items-center gap-3">
         <button data-play aria-label=${on ? T(t, "aStop") : T(t, "aPlay")} class=${`btn btn-circle btn-sm shrink-0 ${on ? "btn-secondary" : "btn-primary"}`} onClick=${() => play(it)}>${Icon(on ? "lucide:square" : "lucide:play", "text-base")}</button>

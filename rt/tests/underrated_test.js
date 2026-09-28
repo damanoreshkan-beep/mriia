@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { scoreRepo, parseFunding, ageDays, hostLabel } from "../underrated.js";
 

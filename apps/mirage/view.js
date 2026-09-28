@@ -40,11 +40,11 @@ export function mirage({ S, toast }) {
   const slides = mode === "read" ? [] : st.slides, cur = slides[st.idx] || slides[0] || null;
   const working = st.phase === "working";
   const anyBusy = [make, edit, read, blendSt, styleSt].some((s) => s.phase === "working");
-  const shown = cur?.url || st.src || st.a || null;              
+  const shown = cur?.url || st.src || st.a || null;
   const text = mode === "read" ? st.question : st.prompt;
   const setText = (v) => M.patch(mode, mode === "read" ? { question: v } : { prompt: v });
   const [hist, remember] = usePromptHistory(mode);
-  const [hold, setHold] = useState(false);                          
+  const [hold, setHold] = useState(false);
   const ctx = { t, loc };
 
   useEffect(() => { M.resume(ctx); }, []);
@@ -75,7 +75,7 @@ export function mirage({ S, toast }) {
     if (working) return;
     if (gate) { setText(mode === "make" ? M.GATE_PROMPT : GATE_EDIT); return; }
     const list = SPARKS[mode];
-    try { const p = await suggestPrompt(mode === "make" ? "dream" : "edit", list[Math.floor(Math.random() * list.length)], loc); if (p) setText(p.local); } catch {  }
+    try { const p = await suggestPrompt(mode === "make" ? "dream" : "edit", list[Math.floor(Math.random() * list.length)], loc); if (p) setText(p.local); } catch { }
   };
   const save = async () => { if (!shown) return; try { await downloadUrl(shown, `mirage-${cur?.seed || Date.now()}.${cur?.ext || "jpg"}`); toast?.(T(t, "saved")); } catch { toast?.(T(t, "eNetwork")); } };
   const share = async () => { if (!shown) return; try { const r = await shareFile(await (await fetch(shown)).blob(), `mirage-${cur?.seed || Date.now()}.${cur?.ext || "jpg"}`); if (r === "saved") toast?.(T(t, "saved")); } catch { toast?.(T(t, "eNetwork")); } };
@@ -89,13 +89,13 @@ export function mirage({ S, toast }) {
   const live = M.liveOf(st.live);
   const elapsed = st.t0 ? Math.round((Date.now() - st.t0) / 1000) : 0;
   const models = useStore(M.$models);
-  const enh = useStore(M.$enhance);   
+  const enh = useStore(M.$enhance);
   const modelList = M.modelsFor(mode);
   const chosen = opts.model?.[mode] || "auto";
   const modelSel = chosen !== "auto" && !modelList.some((m) => m.id === chosen) && models.at && !models.error ? "auto" : chosen;
   const shortName = (id) => { const n = id.split("/").pop(); return n.length > 20 ? n.slice(0, 19) + "…" : n; };
   const optsMeta = modelSel !== "auto" ? shortName(modelSel) : mode === "make" ? T(t, opts.quality === "2k" ? "q2k" : "qFast") : null;
-  const styleSel = styleOf(opts.style);   
+  const styleSel = styleOf(opts.style);
   const label = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
   const [body, tags] = (() => { const lines = read.text.trim().split(/\n+/); const last = lines[lines.length - 1] || ""; const isTags = lines.length > 1 && last.split(",").length >= 3 && last.length < 120; return isTags ? [lines.slice(0, -1).join("\n"), last.split(",").map((s) => s.trim()).filter(Boolean)] : [read.text, []]; })();
 
@@ -166,6 +166,7 @@ export function mirage({ S, toast }) {
           <${Segmented} attr="data-aspect" label=${T(t, "aspect")} value=${opts.aspect} onChange=${(a) => M.setOpts({ aspect: a })}
             items=${ASPECTS.map(([id, icon]) => ({ id, icon, label: T(t, "a" + id[0].toUpperCase() + id.slice(1)) }))} />
         </${Fragment}>` : null}
+        ${""}
         <div class="flex items-center justify-between gap-2">
           <div class=${label}>${T(t, "model")}</div>
           <button data-models-check aria-label=${T(t, "modelCheck")} class="btn btn-ghost btn-xs btn-circle text-base-content/70" disabled=${models.loading} onClick=${() => M.loadModels(true)}>${Icon("lucide:refresh-cw", `text-base ${models.loading ? "animate-spin" : ""}`)}</button>
@@ -176,7 +177,7 @@ export function mirage({ S, toast }) {
       </div>
     <//>
 
-    
+    ${""}
     <${Sheet} id="styles" open=${screen === "styles"} onClose=${() => S.screen.set(null)} title=${T(t, "styleSheet")} icon="lucide:paintbrush" locale=${loc}>
       <div class="grid grid-cols-3 gap-2.5">
         <button data-style="none" aria-pressed=${!styleSel} onClick=${() => { M.setOpts({ style: "none" }); S.screen.set(null); }}
@@ -208,13 +209,14 @@ export function mirage({ S, toast }) {
     <div class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)] ms-side">
       <${Stage}>${stage()}<//>
 
-      
+      ${""}
       <div class="ms-side-main shrink-0 flex flex-col justify-center">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
         <${Segmented} attr="data-mode" label=${T(t, "tabStage")} items=${modeItems} value=${mode} onChange=${(m) => M.$mode.set(m)} />
+
         ${hasResult ? html`<div data-actions class="@container flex items-center gap-1.5">
           ${mode === "edit" ? handoff("keep", "lucide:wand-sparkles", T(t, "keep"), M.keepEditing) : handoff("to-edit", "lucide:wand-sparkles", T(t, "toEdit"), () => M.toEdit(cur.url))}
-          
+          ${""}
           ${(() => { const busy = enh.phase === "working" && enh.mode === mode; const hd = !!cur?.hd; const eta = busy && enh.live?.eta ? Math.max(0, Math.round(enh.live.eta - (enh.live.elapsed || 0))) : null;
             return html`<button data-act="enhance" aria-busy=${busy ? "true" : null} aria-pressed=${hd ? "true" : "false"} disabled=${hd || busy || working} class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5"
               aria-label=${T(t, hd ? "enhanced" : busy ? "enhancing" : "enhance")} onClick=${() => M.enhance(mode)}>${Icon(hd ? "lucide:check" : "lucide:scan-eye", "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${T(t, hd ? "enhanced" : busy ? "enhancing" : "enhance")}${eta != null ? html` <span class="tabular-nums font-mono text-xs opacity-70">${eta} s</span>` : ""}</span></button>`; })()}

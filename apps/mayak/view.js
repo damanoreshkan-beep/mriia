@@ -68,7 +68,7 @@ export function map({ S, openScreen, closeScreen }) {
       runLive(liveOf(p), KIND_OF[p]);
     })();
     return () => { alive = false; };
-  }, [me]);   // eslint-disable-line
+  }, [me]);
 
   const pickCat = (id) => { setCat(id); setQ(""); const p = CATEGORIES.find((c) => c.id === id).presets[0]; runLive(liveOf(p), KIND_OF[p]); };
   const search = () => { const query = q.trim(); if (!query) return; setCat(null); runLive(parseQuery(query, "").query, null); };
@@ -174,7 +174,7 @@ export function state({ S }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (gate) return;   
+      if (gate) return;
       const s = me || await restore().catch(() => null);
       if (!s || !alive) return;
       try {
@@ -182,7 +182,7 @@ export function state({ S }) {
         if (!r.ok) return;
         const j = await r.json();
         if (alive && j && typeof j.scan_credits === "number") { setAcc(j); setLive(true); }
-      } catch {  }
+      } catch { }
     })();
     return () => { alive = false; };
   }, [me]);

@@ -1,4 +1,3 @@
-
 export const KICK_LO = 1;
 export const KICK_HI = 6;
 

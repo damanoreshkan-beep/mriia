@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { LPD433, PMR446, ISM433, TUNE_HZ, planSpanHz, channelCentre, channelAt, binOf, channelBins, integrateChannels } from "../chan433.js";
-
 
 Deno.test("channel plans: 1-based centres round-trip, and reject anything off-plan", () => {
   assertEquals(channelCentre(LPD433, 1), 433_075_000);
@@ -29,8 +27,8 @@ Deno.test("the whole LPD433 plan fits inside one 2.4 MS/s window, and PMR446 doe
 Deno.test("binOf: the tune centre lands on the middle bin, and the grid is symmetric", () => {
   const geom = { fftSize: 2048, sampleRate: 2_400_000, centreHz: TUNE_HZ };
   assertEquals(binOf(TUNE_HZ, geom), 1024);
-  assertEquals(binOf(TUNE_HZ - 1_200_000, geom), 0);          
-  assertEquals(binOf(TUNE_HZ + 1_200_000, geom), 2048);       
+  assertEquals(binOf(TUNE_HZ - 1_200_000, geom), 0);
+  assertEquals(binOf(TUNE_HZ + 1_200_000, geom), 2048);
   const c35 = channelBins(LPD433, geom)[34];
   assert(c35.lo < 1024 && c35.hi > 1024, "channel 35 straddles the DC bin — the defect dcBin() pins");
 });
@@ -39,7 +37,7 @@ Deno.test("integrateChannels: energy lands in its own channel and nowhere else",
   const geom = { fftSize: 2048, sampleRate: 2_400_000, centreHz: TUNE_HZ };
   const bins = channelBins(LPD433, geom);
   const power = new Float32Array(geom.fftSize);
-  const target = bins[19];                                     
+  const target = bins[19];
   for (let b = Math.ceil(target.lo); b <= Math.floor(target.hi) - 1; b++) power[b] = 1;
   const out = integrateChannels(power, bins);
   assert(out[19] > 0.9, `channel 20 must hold the energy, got ${out[19]}`);

@@ -1,5 +1,3 @@
-
-
 const DAY = 86_400_000;
 
 export function ageDays(ts, now = Date.now()) {
@@ -40,7 +38,6 @@ export function scoreRepo(repo = {}, now = Date.now()) {
   return { score: Math.max(0, Math.min(100, score)), reasons };
 }
 
-
 const PLATFORMS = {
   github: { label: "GitHub Sponsors", url: (h) => `https://github.com/sponsors/${h}` },
   patreon: { label: "Patreon", url: (h) => `https://patreon.com/${h}` },
@@ -73,7 +70,7 @@ export function parseFunding(yamlText) {
   const out = [];
   const seen = new Set();
   for (const line of yamlText.split(/\r?\n/)) {
-    if (/^\s/.test(line)) continue;                    
+    if (/^\s/.test(line)) continue;
     const m = stripComment(line).match(/^([a-z_][a-z0-9_]*)\s*:\s*(.*)$/i);
     if (!m) continue;
     const key = m[1].toLowerCase();
@@ -83,8 +80,8 @@ export function parseFunding(yamlText) {
       let url, label;
       if (key === "custom" || isUrl) { url = h; label = key === "custom" ? "" : (PLATFORMS[key]?.label || key); }
       else if (PLATFORMS[key]) { url = PLATFORMS[key].url(h); label = PLATFORMS[key].label; }
-      else continue;                                   
-      if (!/^https?:\/\//i.test(url)) continue;        
+      else continue;
+      if (!/^https?:\/\//i.test(url)) continue;
       if (seen.has(url)) continue;
       seen.add(url);
       out.push({ platform: key, label: label || hostLabel(url), handle: isUrl ? "" : h, url });

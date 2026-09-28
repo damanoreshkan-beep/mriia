@@ -57,17 +57,17 @@ function CharGrid({ t, loc, mode, picked, onPick }) {
 
 export function vydyvo({ t, S, screen, closeScreen, toast }) {
   const opts = useStore($opts), frames = useStore($frames), stage = useStore($stage), gen = useStore($gen), loc = useStore(S.locale);
-  useStore(S.theme);   
+  useStore(S.theme);
   const now = useTick();
   const show = screen === "show";
   const stageRef = useRef(null);
   const docMode = (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme")) === "signal-light" ? "light" : "dark";
   const docModeRef = useRef(docMode); docModeRef.current = docMode;
   const ambRef = useRef(0);
-  const wid = activeWorld();   
+  const wid = activeWorld();
   const byId = (id) => frames.find((f) => f.id === id) || null;
   const cur = byId(stage.cur);
-  const next = unshown()[0];   
+  const next = unshown()[0];
 
   useEffect(() => { startLoop({ t, loc }); }, [t, loc]);
   useLayoutEffect(() => { ensureSeed(docMode, wid); }, [docMode, wid]);
@@ -95,14 +95,14 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
       try {
         const r = el.requestFullscreen?.({ navigationUI: "hide" }) || el.webkitRequestFullscreen?.();
         if (r && r.then) r.then(() => { entered = true; }, () => {}); else entered = true;
-      } catch {  }
+      } catch { }
     }
     const onChange = () => { if (entered && !document.fullscreenElement) { entered = false; if (S.screen.get() === "show") S.screen.set(null); } };
     document.addEventListener("fullscreenchange", onChange);
     return () => {
       document.removeEventListener("fullscreenchange", onChange);
       wl?.release?.();
-      if (document.fullscreenElement === el) { try { document.exitFullscreen?.(); } catch {  } }
+      if (document.fullscreenElement === el) { try { document.exitFullscreen?.(); } catch { } }
     };
   }, [show]);
 
@@ -121,6 +121,7 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
         return html`<img key=${slot} data-frame data-slot=${slot} data-on=${on ? "1" : null} src=${f?.url || ""} alt="" aria-hidden="true" decoding="async" class="vy-layer pointer-events-none" style=${`--vy-every:${opts.every}s`} />`;
       })}
       ${next ? html`<img src=${next.url} alt="" decoding="async" class="absolute w-px h-px opacity-0 pointer-events-none" aria-hidden="true" />` : null}
+      ${""}
       ${veiled ? html`<div data-veiled class="absolute inset-0 pointer-events-none" aria-hidden="true">
         <img src=${new URL(`assets/amb-${docMode === "light" ? "d" : "n"}.webp`, import.meta.url).href} alt="" decoding="async" class="vy-amb" />
         ${hasWebGL2() ? html`<${GlStage} shader=${new URL("vydyvo.frag", import.meta.url)} seed=${7} zClass="z-0"
@@ -136,7 +137,7 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
     </div>
 
     <div class="relative z-10 flex-1 min-h-0 flex flex-col p-[var(--ms-pad)]">
-      
+      ${""}
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col justify-end">
         <${CharGrid} t=${t} loc=${loc} mode=${docMode} picked=${wid}
           onPick=${(id) => { if (id !== wid) { setOpts({ char: id }); generateNow(); } S.screen.set("show"); }} />
@@ -148,8 +149,6 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
             onInput=${(e) => {
               const v = e.currentTarget.value, had = opts.prompt;
               setOpts({ prompt: v });
-              
-              
               if (!v && had && gen.phase === "working") generateNow();
             }}
             onKeyDown=${(e) => { if (e.key === "Enter") { e.currentTarget.blur(); generateNow(); } }}
@@ -160,16 +159,18 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
         </div>
         <div class="flex items-center gap-2 min-w-0">
           <button data-settings class=${`flex items-center gap-2 min-w-0 flex-1 text-left ${label}`} onClick=${() => S.screen.set("settings")}>
-            
+            ${""}
             <span data-status key=${counting ? "count" : status} class=${`vy-st truncate ${counting ? "tabular-nums" : "font-sans normal-case tracking-normal text-sm"}`}>${status}${working ? html`<span class="vy-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>` : null}</span>
             ${Icon("lucide:sliders-horizontal", "ml-auto text-base shrink-0")}
           </button>
+          ${""}
           <button data-save class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "saveFrame")} disabled=${!cur}
             onClick=${async () => { try { const b = await (await fetch(cur.url)).blob(); await downloadBlob(b, `vydyvo-${cur.preset}-${cur.id}.${b.type.includes("png") ? "png" : b.type.includes("webp") ? "webp" : "jpg"}`); toast?.(T(t, "savedFrame")); } catch { toast?.(T(t, "eFailed")); } }}>${Icon("lucide:download", "text-base")}</button>
           <button data-gen-now class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${gen.phase === "working" ? "text-secondary" : ""}`} aria-label=${T(t, "genNow")} onClick=${generateNow}>${Icon("lucide:wand-sparkles", "text-base")}</button>
         </div>
       <//>
     </div>
+
     <${Sheet} id="vy-settings" open=${screen === "settings"} onClose=${closeScreen} title=${T(t, "settings")} icon="lucide:sliders-horizontal" locale=${loc}>
       <div class="flex flex-col gap-[var(--ms-gap)]">
         <div class=${label}>${T(t, "every")}</div>

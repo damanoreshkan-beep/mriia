@@ -56,13 +56,13 @@ export function onthisday({ S }) {
     return () => { live = false; };
   }, [locale]);
 
-  const ready = useReveal(!!data);   
+  const ready = useReveal(!!data);
   useEffect(() => {
     if (!listRef.current) return;
     const rows = listRef.current.querySelectorAll(".otd");
     if (!rows.length) return;
     const a = animate(rows, { y: [10, 0] }, { delay: stagger(0.025), duration: 0.3, ease: "easeOut" });
-    return () => { try { a.stop(); } catch {  } };
+    return () => { try { a.stop(); } catch { } };
   }, [cat, ready]);
 
   const dateStr = new Date().toLocaleDateString(locale === "en" ? "en-GB" : locale || "uk", { day: "numeric", month: "long" });

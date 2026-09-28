@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { useRef, useEffect } from "preact/hooks";
 import { splitBands, seedFrame } from "/_rt/spectrum.js";
@@ -46,18 +45,15 @@ export function Field({ hue = 220 }) {
       const live = _get && !gate ? _get() : null;
       const u8 = live || seedFrame(1024, phase * 0.6);
       const b = splitBands(u8, 44100, 2048);
-      
       for (const k of ["bass", "mid", "treble"]) { const v = Math.min(1, (b[k] || 0)); env[k] += (v - env[k]) * (v > env[k] ? 0.2 : 0.04); }
 
       const H = hueRef.current;
-      
       ctx.globalCompositeOperation = "source-over";
       const bg = ctx.createLinearGradient(0, 0, 0, h);
       bg.addColorStop(0, `hsl(${H}, 32%, 5%)`);
       bg.addColorStop(1, `hsl(${(H + 20) % 360}, 40%, 8%)`);
       ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
-      
       ctx.globalCompositeOperation = "lighter";
       const base = Math.min(w, h);
       for (const bl of BLOBS) {
@@ -72,7 +68,6 @@ export function Field({ hue = 220 }) {
         g.addColorStop(1, `hsla(${(H + bl.dh + 360) % 360}, 70%, ${light}%, 0)`);
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, TAU); ctx.fill();
       }
-      
       const hz = ctx.createRadialGradient(w * 0.5, h * 1.02, 0, w * 0.5, h * 1.02, base * 0.9);
       hz.addColorStop(0, `hsla(${H}, 80%, 60%, ${0.10 + env.mid * 0.12})`);
       hz.addColorStop(1, `hsla(${H}, 80%, 60%, 0)`);

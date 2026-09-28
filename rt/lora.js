@@ -39,10 +39,9 @@ export function detectPreamble(re, im, sf, { prThresh = 4, runMin = 6, hop } = {
   return { found: best >= runMin, sf, run: best, bin: bestBin, pr: bestPr };
 }
 
-
-const FRAME_PRE = 8;        
-const FRAME_SYNC = 2;       
-const FRAME_DATA_OFF = 12.25; 
+const FRAME_PRE = 8;
+const FRAME_SYNC = 2;
+const FRAME_DATA_OFF = 12.25;
 
 function modeInt(arr) {
   const m = new Map(); let best = arr[0], bestC = 0;
@@ -84,7 +83,7 @@ export function decodeLoraSignal(re, im, { sf, cr = 1, crc = false, hasHeader = 
   }
   if (bestRun < 6 || bestStart < 0) return { found: false, sf, cfo: 0, sto: 0, symbols: [], bytes: [], crcOk: null };
 
-  const dataOff = Math.round(FRAME_DATA_OFF * N); 
+  const dataOff = Math.round(FRAME_DATA_OFF * N);
   const nProbe = 3;
   let bestP = bestStart, bestScore = -Infinity;
   const lo = Math.max(0, bestStart - N), hi = bestStart + N;
@@ -104,7 +103,7 @@ export function decodeLoraSignal(re, im, { sf, cr = 1, crc = false, hasHeader = 
   const kDown = modeInt([dnA, dnB]);
   const wrap = (x) => { x %= N; if (x > N / 2) x -= N; if (x <= -N / 2) x += N; return x; };
   const cfo = wrap(kUp);
-  const sto = p; 
+  const sto = p;
 
   const symbols = [];
   for (let o = p + dataOff; o + N <= R.length; o += N) {
@@ -115,7 +114,6 @@ export function decodeLoraSignal(re, im, { sf, cr = 1, crc = false, hasHeader = 
   const dec = loraDecode(symbols, { sf, cr, crc, hasHeader, len });
   return { found: true, sf, cfo, sto, kUp, kDown, symbols, bytes: dec.bytes, crcOk: dec.crcOk, header: dec.header };
 }
-
 
 export const WHITENING = new Uint8Array([
   0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe1, 0xc2, 0x85, 0x0b, 0x17, 0x2f, 0x5e, 0xbc, 0x78, 0xf1, 0xe3,
@@ -207,7 +205,7 @@ function diagDeinterleave(symbols, ppm) {
     for (let i = 0; i < nsym; i++) v |= ((symbols[i] >>> (ppm - 1 - ((k + i) % ppm))) & 1) << i;
     raw[k] = v;
   }
-  return raw.reverse(); 
+  return raw.reverse();
 }
 
 function grayDecoding(symbolsI, sf, ldr) {
@@ -319,7 +317,7 @@ export function loraDecode(symbols, { sf, cr, crc = false, hasHeader = true, ldr
     const checksumOk = rxSum.every((b, i) => b === calcSum[i]);
     header = { payloadLen, cr, crc, checksumOk };
     len = payloadLen;
-    nibbles = firstNibbles.slice(5); 
+    nibbles = firstNibbles.slice(5);
   } else {
     nibbles = firstNibbles.slice();
     if (len === undefined) len = calcPayloadLen(symbols.length, sf, cr, hasHeader, ldr);
@@ -336,7 +334,7 @@ export function loraDecode(symbols, { sf, cr, crc = false, hasHeader = true, ldr
   for (let i = 0; i < nbytes; i++) bytesAll[i] = (nibbles[2 * i] & 0xf) | ((nibbles[2 * i + 1] & 0xf) << 4);
 
   const payload = bytesAll.slice(0, len);
-  whitenInto(payload, len); 
+  whitenInto(payload, len);
   let crcOk = null;
   if (crc) {
     const rxCrc = [bytesAll[len], bytesAll[len + 1]];

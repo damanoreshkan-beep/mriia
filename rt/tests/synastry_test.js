@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { signOf, contacts, score, band, ELEMENT, MODALITY, MOIETY, SYN_BODIES } from "../synastry.js";
 

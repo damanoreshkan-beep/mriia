@@ -1,11 +1,9 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { newRose, addSample, roseStats, hasBearing } from "../df.js";
 
-
 Deno.test("df: an omnidirectional antenna produces a CIRCLE and no bearing is offered", () => {
   const rose = newRose(72);
-  for (let h = 0; h < 360; h += 5) addSample(rose, h, 0.7);              
+  for (let h = 0; h < 360; h += 5) addSample(rose, h, 0.7);
   const s = roseStats(rose);
   assert(s.r < 0.01, `a uniform sweep must have near-zero concentration, got ${s.r}`);
   assertEquals(hasBearing(s), false, "the stock whip must never produce an arrow");
@@ -15,7 +13,7 @@ Deno.test("df: an omnidirectional antenna produces a CIRCLE and no bearing is of
 Deno.test("df: a directional lobe earns a bearing, and points where the signal actually peaked", () => {
   const rose = newRose(72);
   for (let h = 0; h < 360; h += 5) {
-    const lobe = Math.max(0, Math.cos((h - 90) * Math.PI / 180)) ** 2;   
+    const lobe = Math.max(0, Math.cos((h - 90) * Math.PI / 180)) ** 2;
     addSample(rose, h, lobe);
   }
   const s = roseStats(rose);
@@ -35,7 +33,7 @@ Deno.test("df: headings wrap — 350 and 10 average to 0, not 180", () => {
 Deno.test("df: a decaying rose follows the walk — stale strength expires and the arrow goes recent", () => {
   const rose = newRose(72, 30_000);
   const t0 = 1_000_000;
-  for (let i = 0; i < 5; i++) addSample(rose, i, 1.0, t0 + i * 100);           
+  for (let i = 0; i < 5; i++) addSample(rose, i, 1.0, t0 + i * 100);
   let s = roseStats(rose);
   assert(s.bearingDeg < 6 || s.bearingDeg > 354, `fresh rose should point ~0, got ${s.bearingDeg}`);
   for (let i = 0; i < 5; i++) addSample(rose, 90 + i, 0.6, t0 + 90_000 + i * 100);
@@ -46,16 +44,16 @@ Deno.test("df: a decaying rose follows the walk — stale strength expires and t
 Deno.test("df: a tau-less rose keeps the old accumulate-forever behaviour bit for bit", () => {
   const rose = newRose(72);
   addSample(rose, 0, 1, 1_000_000);
-  addSample(rose, 0, 1, 99_000_000);                                            
-  assertEquals(rose.count[0], 2);                                               
+  addSample(rose, 0, 1, 99_000_000);
+  assertEquals(rose.count[0], 2);
   assertEquals(rose.sum[0], 2);
 });
 
 Deno.test("df: an unswept arc is not a null — unvisited bins stay distinguishable from measured silence", () => {
   const rose = newRose(72);
-  for (let h = 0; h < 90; h += 5) addSample(rose, h, 1);                 
+  for (let h = 0; h < 90; h += 5) addSample(rose, h, 1);
   const s = roseStats(rose);
   assert(s.coverage < 0.3, `coverage must report the truth, got ${s.coverage}`);
   assertEquals(hasBearing(s), false);
-  assertEquals(rose.count[40], 0);                                       
+  assertEquals(rose.count[40], 0);
 });

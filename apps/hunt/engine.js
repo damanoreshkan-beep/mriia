@@ -1,4 +1,3 @@
-
 import { SCRW, SCRH, WORLD, S, SFX } from "/_rt/hunt.js";
 import { renderFrame, glyphRects } from "./render.js";
 import { FULL, TRANSPARENT, WORLD_INDEX } from "./atlas.js";
@@ -20,11 +19,9 @@ export async function loadEngine(url = WASM_URL) {
     step: (mask) => E.game_step(mask >>> 0),
     state: () => new Int32Array(E.memory.buffer, E.game_state(), S.COUNT),
     list: () => ({ dl: new Int16Array(E.memory.buffer, E.game_dl(), E.game_dl_count() * 4), n: E.game_dl_count() }),
-    
     box: (kind) => { const v = E.game_box(kind | 0); return { w: (v >> 16) & 0xffff, h: v & 0xffff }; },
   };
 }
-
 
 function bake(cell, flip, rim) {
   const c = document.createElement("canvas");
@@ -32,8 +29,6 @@ function bake(cell, flip, rim) {
   if (!cell.w) return c;
   const g = c.getContext("2d");
   const img = g?.createImageData?.(cell.w, cell.h);
-  
-  
   if (!img?.data || !g.putImageData) return c;
   const R = rim ? rgb(rim.hex) : null;
   const src = (x, y) => (x < 0 || y < 0 || x >= cell.w || y >= cell.h)
@@ -55,7 +50,6 @@ function bake(cell, flip, rim) {
 }
 
 export function canvasPainter(ctx) {
-  
   let cache = new Map(), gen = null;
   const baked = (cell, flip, rim) => {
     let m = cache.get(cell);
@@ -110,7 +104,6 @@ export function canvasPainter(ctx) {
   };
 }
 
-
 export const STEP_MS = 1000 / 60;
 export const MAX_CATCHUP = 5;
 
@@ -129,7 +122,6 @@ export function makeClock(step) {
     },
   };
 }
-
 
 export function makeSound() {
   let eng = null, on = true;
@@ -165,8 +157,8 @@ export function makeSound() {
     set enabled(v) { on = v; },
     play(bits) {
       if (!on || !eng) return;
-      if (bits & SFX.SHOOT) noise(0.09, 0.16, 2600);                       
-      if (bits & SFX.EMPTY) tone(180, 0.06, "square", 0.07);               
+      if (bits & SFX.SHOOT) noise(0.09, 0.16, 2600);
+      if (bits & SFX.EMPTY) tone(180, 0.06, "square", 0.07);
       if (bits & SFX.STOMP) { noise(0.12, 0.2, 900); tone(160, 0.14, "square", 0.1, -60); }
       if (bits & SFX.PICK) { tone(880, 0.05, "triangle", 0.13); setTimeout(() => tone(1320, 0.1, "triangle", 0.11), 50); }
       if (bits & SFX.COIN) tone(1046, 0.09, "triangle", 0.1);

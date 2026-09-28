@@ -1,4 +1,3 @@
-
 export const ROSTER = [
   { id: "m5",     kind: "mcu",   name: "M5 Stick",  short: "M5",     usb: [0x1a86], transport: "ble+serial" },
   { id: "hackrf", kind: "radio", name: "HackRF",    short: "HackRF", usb: [0x1d50], transport: "usb" },
@@ -20,9 +19,9 @@ export function classify(snap) {
   const usb = (snap && snap.usb) || [];
   const open = (snap && snap.open) || new Set();
   for (const d of ROSTER) {
-    if (!bridge) { out.set(d.id, STATE.ABSENT); continue; }        
+    if (!bridge) { out.set(d.id, STATE.ABSENT); continue; }
     if (open.has(d.id)) { out.set(d.id, STATE.CONNECTED); continue; }
-    const seen = usb.some((u) => u && d.usb.includes(u.vendorId ?? u.vid));   
+    const seen = usb.some((u) => u && d.usb.includes(u.vendorId ?? u.vid));
     out.set(d.id, seen ? STATE.PRESENT : STATE.ABSENT);
   }
   return out;

@@ -1,10 +1,9 @@
-
-export const VENDOR_ID = 0x0bda, PRODUCT_ID = 0x2838;   
+export const VENDOR_ID = 0x0bda, PRODUCT_ID = 0x2838;
 export const USB_FILTERS = [{ vendorId: 0x0bda, productId: 0x2832 }, { vendorId: 0x0bda, productId: 0x2838 }];
-export const RX_ENDPOINT = 1;                            
-export const TRANSFER_SIZE = 262144;                     
+export const RX_ENDPOINT = 1;
+export const TRANSFER_SIZE = 262144;
 export const MODE = { OFF: 0, RECEIVE: 1 };
-export const supportsSweep = false;                      
+export const supportsSweep = false;
 
 const XTAL_FREQ = 28_800_000, IF_FREQ = 3_570_000, WRITE_FLAG = 0x10;
 const BLOCK = { USB: 0x100, SYS: 0x200, I2C: 0x600 };
@@ -18,7 +17,6 @@ const MUX_CFGS = [[0, 0x08, 0x02, 0xdf], [50, 0x08, 0x02, 0xbe], [55, 0x08, 0x02
 
 const le = (v, n) => { const b = new DataView(new ArrayBuffer(n)); if (n === 1) b.setUint8(0, v); else if (n === 2) b.setUint16(0, v, true); else b.setUint32(0, v, true); return b.buffer; };
 const be = (v, n) => { const b = new DataView(new ArrayBuffer(n)); if (n === 1) b.setUint8(0, v); else if (n === 2) b.setUint16(0, v, false); else b.setUint32(0, v, false); return b.buffer; };
-
 
 export function ifFreqWord(hz, xtal = XTAL_FREQ) {
   const v = -1 * Math.floor(hz * (1 << 22) / xtal);
@@ -80,7 +78,7 @@ export class RtlSdr {
   _out(value, index, data) { return this.dev.controlTransferOut({ ...VENDOR, request: 0, value, index }, data); }
   async _inN(value, index, len) { const r = await this.dev.controlTransferIn({ ...VENDOR, request: 0, value, index }, Math.max(8, len)); const u = new Uint8Array(r.data.buffer).slice(0, len); return len === 1 ? u[0] : (u[0] | (u[1] << 8)); }
   _wReg(block, reg, val, n) { return this._out(reg, block | WRITE_FLAG, le(val, n)); }
-  async _wDemod(page, addr, val, n) { await this._out((addr << 8) | 0x20, page | WRITE_FLAG, be(val, n)); try { await this._inN((0x0a << 8) | 0x20, page, 1); } catch {  } }
+  async _wDemod(page, addr, val, n) { await this._out((addr << 8) | 0x20, page | WRITE_FLAG, be(val, n)); try { await this._inN((0x0a << 8) | 0x20, page, 1); } catch { } }
   _i2cOpen() { return this._wDemod(1, 1, 0x18, 1); }
   _i2cClose() { return this._wDemod(1, 1, 0x10, 1); }
   _i2cWrite(addr, reg, val) { return this._out(addr, BLOCK.I2C | WRITE_FLAG, new Uint8Array([reg, val]).buffer); }
@@ -131,11 +129,11 @@ export class RtlSdr {
   async _setPll(freq) {
     await this._rEach([[0x10, 0x00, 0x10], [0x1a, 0x00, 0x0c], [0x12, 0x80, 0xe0]]);
     let { divNum, mixDiv } = pllDivider(freq);
-    const fine = ((await this._i2cReadBuf(TUNER, 0x00, 5))[4] & 0x30) >> 4;   
+    const fine = ((await this._i2cReadBuf(TUNER, 0x00, 5))[4] & 0x30) >> 4;
     if (fine > 2) divNum--; else if (fine < 2) divNum++;
     await this._rMask(0x10, divNum << 5, 0xe0);
     const { nint, fra, sdm, ni, si, valid } = pllWords(freq, mixDiv);
-    if (!valid) return;                                                       
+    if (!valid) return;
     await this._rEach([[0x14, ni + (si << 6), 0xff], [0x12, fra === 0 ? 0x08 : 0x00, 0x08]]);
     await this._rEach([[0x16, sdm >> 8, 0xff], [0x15, sdm & 0xff, 0xff]]);
     await this._rMask(0x1a, 0x08, 0x08);
@@ -143,14 +141,14 @@ export class RtlSdr {
 
   async setSampleRate(rateHz) {
     const { hi, lo, achieved } = sampleRateRatio(rateHz);
-    this.sampleRate = achieved;                        
+    this.sampleRate = achieved;
     await this._wDemod(1, 0x9f, hi, 2);
     await this._wDemod(1, 0xa1, lo, 2);
     await this._wDemod(1, 0x3e, 0x00, 1); await this._wDemod(1, 0x3f, 0x00, 1);
     await this._wDemod(1, 0x01, 0x14, 1); await this._wDemod(1, 0x01, 0x10, 1);
   }
   async setFreq(hz) {
-    if (this._ds) return this._setIfFreq(hz);           
+    if (this._ds) return this._setIfFreq(hz);
     await this._i2cOpen(); await this._setMux(hz + IF_FREQ); await this._setPll(hz + IF_FREQ); await this._i2cClose();
   }
   async _setIfFreq(hz) {
@@ -162,10 +160,10 @@ export class RtlSdr {
   async setDirectSampling(on) {
     this._ds = !!on;
     if (on) {
-      await this._wDemod(1, 0xb1, 0x1a, 1);             
-      await this._wDemod(1, 0x15, 0x00, 1);             
-      await this._wDemod(0, 0x08, 0x4d, 1);             
-      await this._wDemod(0, 0x06, 0x90, 1);             
+      await this._wDemod(1, 0xb1, 0x1a, 1);
+      await this._wDemod(1, 0x15, 0x00, 1);
+      await this._wDemod(0, 0x08, 0x4d, 1);
+      await this._wDemod(0, 0x06, 0x90, 1);
     } else {
       await this._i2cOpen(); await this._tunerInit(); await this._i2cClose();
       await this._setIfFreq(IF_FREQ);
@@ -175,12 +173,12 @@ export class RtlSdr {
   }
   async setBiasTee(on) {
     const bit = 1 << 0;
-    const gpd = await this._inN(0x3004, BLOCK.SYS, 1); await this._wReg(BLOCK.SYS, 0x3004, gpd & ~bit, 1);   
-    const gpoe = await this._inN(0x3003, BLOCK.SYS, 1); await this._wReg(BLOCK.SYS, 0x3003, gpoe | bit, 1);  
+    const gpd = await this._inN(0x3004, BLOCK.SYS, 1); await this._wReg(BLOCK.SYS, 0x3004, gpd & ~bit, 1);
+    const gpoe = await this._inN(0x3003, BLOCK.SYS, 1); await this._wReg(BLOCK.SYS, 0x3003, gpoe | bit, 1);
     const gpo = await this._inN(0x3001, BLOCK.SYS, 1); await this._wReg(BLOCK.SYS, 0x3001, on ? (gpo | bit) : (gpo & ~bit), 1);
   }
-  setBasebandFilter() { return Promise.resolve(); }     
-  setAmp() { return Promise.resolve(); }                
+  setBasebandFilter() { return Promise.resolve(); }
+  setAmp() { return Promise.resolve(); }
   setGain(db) { this._gain = db; this._agc = false; return this._applyGain(); }
   setLnaGain(db) { return this.setGain(db); }
   setVgaGain() { return Promise.resolve(); }
@@ -200,7 +198,7 @@ export class RtlSdr {
     await this._rEach([[0x05, 0x10, 0x10], [0x07, 0x00, 0x10], [0x0c, 0x08, 0x9f], [0x05, lnaV, 0x0f], [0x07, mixV, 0x0f]]);
     await this._i2cClose();
   }
-  setMode() { return Promise.resolve(); }               
+  setMode() { return Promise.resolve(); }
   async startRx() { await this._wReg(BLOCK.USB, REG.EPA_CTL, 0x0210, 2); await this._wReg(BLOCK.USB, REG.EPA_CTL, 0x0000, 2); }
   async read() {
     const r = await this.dev.transferIn(RX_ENDPOINT, TRANSFER_SIZE);
@@ -210,7 +208,7 @@ export class RtlSdr {
   initSweep() { throw new Error("RtlSdr: no hardware sweep"); }
   startRxSweep() { throw new Error("RtlSdr: no hardware sweep"); }
   async stop() {
-    try { await this.dev.releaseInterface(0); } catch {  }
-    try { await this.dev.close(); } catch {  }
+    try { await this.dev.releaseInterface(0); } catch { }
+    try { await this.dev.close(); } catch { }
   }
 }

@@ -95,14 +95,14 @@ export async function runReel({ prompt, firstFrame = "", locale = "en" }) {
   $reel.set(beats.map((beat, n) => ({ i: n + 1, beat, status: "waiting", url: "", blob: null, thumb: "", dur: 0 })));
   setJob({ phase: "filming", at: 1, of: beats.length });
 
-  let carry = firstFrame;                 
+  let carry = firstFrame;
   for (const [n, beat] of beats.entries()) {
     if (run !== runs) return;
     const i = n + 1;
     setJob({ at: i });
     setChunk(i, { status: "filming" });
 
-    if (gate) {                            
+    if (gate) {
       await sleep(60);
       if (run !== runs) return;
       const blob = await (await fetch(new URL("./assets/mock.webm", import.meta.url).href)).blob().catch(() => null);
@@ -124,14 +124,14 @@ export async function runReel({ prompt, firstFrame = "", locale = "en" }) {
       if (run !== runs) return;
       if (r.status !== "done" || !r.blob || !r.blob.type.startsWith("video/") || r.blob.size < MIN_CLIP_BYTES) {
         setChunk(i, { status: "error" });
-        carry = "";                        
+        carry = "";
         continue;
       }
       const url = r.url || URL.createObjectURL(r.blob);
       const thumb = await lastFrame(r.blob);
       if (run !== runs) return;
       setChunk(i, { status: "done", blob: r.blob, url, dur: r.dur || 0, thumb });
-      carry = thumb;                       
+      carry = thumb;
     } catch (e) {
       if (run !== runs) return;
       live = null;

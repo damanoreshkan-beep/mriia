@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { signatures, decodeContinuity, CATALOG } from "../blesig.js";
 
@@ -22,14 +21,14 @@ Deno.test("blesig: Nearby Action Wi-Fi Password + Nearby Info decode from one Ap
   const na = sigs.find((x) => x.msg === "nearbyAction");
   assert(na, "nearby action present");
   assertEquals(na.detail.action, "wifiPassword");
-  assertEquals(na.detail.popup, true);                 
-  assertEquals(na.text.fixed, "na_wifiPassword");      
+  assertEquals(na.detail.popup, true);
+  assertEquals(na.text.fixed, "na_wifiPassword");
   assert(!("free" in na.text), "no free-form text on Continuity");
 
   const ni = sigs.find((x) => x.msg === "nearbyInfo");
   assert(ni, "nearby info present");
-  assertEquals(ni.detail.status, 3);                   
-  assertEquals(ni.detail.activity, 7);                 
+  assertEquals(ni.detail.status, 3);
+  assertEquals(ni.detail.activity, 7);
 });
 
 Deno.test("blesig: Proximity Pairing names a known AirPods model and always reports the raw code", () => {
@@ -48,16 +47,16 @@ Deno.test("blesig: Swift Pair is the ONE protocol that carries a free-form name 
   assertEquals(sp.protocol, "swiftPair");
   assertEquals(sp.detail.subScenario, 0x00);
   assertEquals(sp.detail.name, name);
-  assertEquals(sp.text.free, name);                    
+  assertEquals(sp.text.free, name);
 });
 
 Deno.test("blesig: Fast Pair discoverable reports a model id whose NAME lives in Google's DB, not the packet", () => {
-  const raw = FLAGS + svc(0xfe2c, "aa bb cc");         
+  const raw = FLAGS + svc(0xfe2c, "aa bb cc");
   const [fp] = signatures(raw);
   assertEquals(fp.protocol, "fastPair");
   assertEquals(fp.detail.mode, "discoverable");
   assertEquals(fp.detail.modelId, "aabbcc");
-  assertEquals(fp.text.db, "aabbcc");                  
+  assertEquals(fp.text.db, "aabbcc");
   const acct = signatures(FLAGS + svc(0xfe2c, "00 11 22 33 44"));
   assertEquals(acct[0].detail.mode, "account");
   assertEquals(acct[0].text, null);
@@ -72,10 +71,10 @@ Deno.test("blesig: Eddystone URL frame decodes to a readable URL", () => {
 });
 
 Deno.test("blesig: ordinary and own-transmitter advertisements produce no signatures", () => {
-  assertEquals(signatures(FLAGS), []);                                  
-  assertEquals(signatures(FLAGS + mfg(0xffff, "e1 00000155")), []);     
-  assertEquals(signatures(""), []);                                     
-  assertEquals(signatures("zz"), []);                                   
+  assertEquals(signatures(FLAGS), []);
+  assertEquals(signatures(FLAGS + mfg(0xffff, "e1 00000155")), []);
+  assertEquals(signatures(""), []);
+  assertEquals(signatures("zz"), []);
 });
 
 Deno.test("blesig: the Continuity TLV parser stops cleanly at a truncated trailing message", () => {

@@ -2,7 +2,7 @@ import { noteFreq } from "@microspec/core/runtime/audio.js";
 
 export const centsToRatio = (c) => 2 ** (c / 1200);
 export const semiToRatio = (s) => 2 ** (s / 12);
-export const beatHz = (f1, f2) => Math.abs(f1 - f2);            
+export const beatHz = (f1, f2) => Math.abs(f1 - f2);
 export const chord = (rootHz, intervals) => intervals.map((s) => rootHz * semiToRatio(s));
 
 export const dbToGain = (db) => 10 ** (db / 20);

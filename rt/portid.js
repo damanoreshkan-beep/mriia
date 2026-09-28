@@ -1,4 +1,3 @@
-
 /** Ports that are open and silent get a hint from this table — a HINT, never an identification. */
 export const PORT_HINTS = {
   21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 53: "dns", 80: "http", 110: "pop3", 143: "imap",

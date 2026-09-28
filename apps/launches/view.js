@@ -59,6 +59,7 @@ export function pads({ S }) {
             ${sites.map((s) => html`<div key=${s.key}>
               <button type="button" data-site-row=${s.key} aria-expanded=${s.key === sel}
                 class="flex items-center gap-2.5 py-2 w-full text-left min-w-0" onClick=${() => choose(s)}>
+                ${""}
                 <span class="w-9 h-9 shrink-0 rounded-[var(--ms-r-in)] sf-inset grid place-items-center font-mono text-[0.68rem] font-semibold tracking-wider">${s.country || "—"}</span>
                 <span class="min-w-0 flex-1">
                   <span class="block font-medium truncate">${s.pad || s.place}</span>
@@ -95,7 +96,7 @@ export function agenda({ S }) {
     return [...s].sort();
   }, [items, dated, here]);
 
-  const goMonth = (next) => { setYm(next); setDay(null); };   
+  const goMonth = (next) => { setYm(next); setDay(null); };
   const inMonth = day && day.slice(0, 7) === ym;
   const shown = inMonth ? dated.filter((it) => it.day === day) : dated.filter((it) => it.day.startsWith(ym));
   const fuzzy = items.filter((it) => it.fuzzy && monthKey(Date.parse(it.net)) === ym);
@@ -114,6 +115,7 @@ export function agenda({ S }) {
           <div class="divide-y divide-base-300/40">${shown.map((it) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} key=${it.id} />`)}</div>
         <//>`
       : data.loading ? null : Nothing(t, data.error ? "statusError" : items.length ? "calNone" : "mapEmpty")}
+    ${""}
     ${fuzzy.length
       ? html`<${Panel} title=${T(t, "calFuzzy")} data-agenda-fuzzy=${fuzzy.length}>
           <div class="divide-y divide-base-300/40">${fuzzy.map((it) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} key=${it.id} />`)}</div>
@@ -122,12 +124,10 @@ export function agenda({ S }) {
   </div>`;
 }
 
-
 export function launch({ item, t }) {
   const [, tick] = useState(0);
   const exact = !item.precision || item.precision === "day";
   const ms = Date.parse(item.net) - Date.now();
-  
   useEffect(() => {
     if (!exact || ms <= 0) return;
     const id = setInterval(() => tick((x) => x + 1), 1000);

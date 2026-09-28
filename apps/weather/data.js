@@ -3,7 +3,7 @@ import { geo } from "/_rt/sensors.js";
 import { gate } from "/_rt/gate.js";
 import { wmoIcon, wmoKey, solarPosition, moonPhase, skyVary, skyInk } from "/_rt/weather.js";
 
-const KYIV = { lat: 50.4501, lng: 30.5234, place: null };      
+const KYIV = { lat: 50.4501, lng: 30.5234, place: null };
 const LAST = "ms-weather-fix";
 
 async function placeName(lat, lng, loc) {
@@ -29,11 +29,11 @@ export async function load() {
   if (gate) return shape(FIXTURE.place, KYIV.lat, KYIV.lng, gateResponse(), loc);
 
   let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(LAST) || "null"); } catch {  }
+  try { saved = JSON.parse(localStorage.getItem(LAST) || "null"); } catch { }
   let fix = null;
-  try { fix = await geo.once({ timeout: 6000, maximumAge: 600000 }); } catch {  }
+  try { fix = await geo.once({ timeout: 6000, maximumAge: 600000 }); } catch { }
   if (fix) {
-    try { localStorage.setItem(LAST, JSON.stringify({ lat: fix.lat, lng: fix.lng })); } catch {  }
+    try { localStorage.setItem(LAST, JSON.stringify({ lat: fix.lat, lng: fix.lng })); } catch { }
   }
   const at = fix || saved || KYIV;
   const place = fix ? await placeName(at.lat, at.lng, loc) : (saved ? await placeName(at.lat, at.lng, loc) : null);
@@ -82,7 +82,7 @@ function shape(place, lat, lng, d, loc) {
   }));
 
   const items = d.daily.time.map((t, i) => ({
-    day: t,                                      
+    day: t,
     hi: Math.round(d.daily.temperature_2m_max[i]),
     lo: Math.round(d.daily.temperature_2m_min[i]),
     prob: d.daily.precipitation_probability_max[i] ?? 0,
@@ -100,9 +100,9 @@ function shape(place, lat, lng, d, loc) {
   return {
     items,
     meta: {
-      place: place || "place",                   
+      place: place || "place",
       temp: Math.round(now.temperature_2m),
-      cond: wmoKey(now.weather_code),            
+      cond: wmoKey(now.weather_code),
       wicon: wmoIcon(now.weather_code),
       feels: Math.round(now.apparent_temperature),
       humidity: now.relative_humidity_2m,
@@ -110,7 +110,7 @@ function shape(place, lat, lng, d, loc) {
       gust: Math.round(now.wind_gusts_10m),
       rain: now.precipitation_probability ?? 0,
       hourly,
-      skyAlt, skyCloud, skyWet, skyWind, skySnow, skyHaze, skyStorm, skyLight,   
+      skyAlt, skyCloud, skyWet, skyWind, skySnow, skyHaze, skyStorm, skyLight,
       moon: moonPhase(ms),
     },
   };

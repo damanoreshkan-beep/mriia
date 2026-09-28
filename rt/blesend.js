@@ -1,10 +1,9 @@
-
 const enc = new TextEncoder();
 const hx = (bytes) => Array.from(bytes, (b) => (b & 0xff).toString(16).padStart(2, "0")).join("");
 const mfg = (id, bytes) => ({ kind: "mfg", id, data: hx(bytes) });
 const svc = (id, bytes) => ({ kind: "svc", id, data: hx(bytes) });
 
-const FILL = 0xba;                                   
+const FILL = 0xba;
 function noise(rnd, n) {
   if (typeof rnd === "function") return Array.from(rnd(n), (b) => b & 0xff);
   return new Array(n).fill(FILL);
@@ -33,11 +32,11 @@ export function nearbyAction(actionType, rnd) {
  *  the model code does, and 0x07 is the proven-on-air value). */
 export function proximityPairing(model = 0x0e20, rnd) {
   const body = [
-    0x07, (model >> 8) & 0xff, model & 0xff,   
-    0x55, ...noise(rnd, 1), ...noise(rnd, 1),  
-    ...noise(rnd, 1),                          
-    0x00, 0x00,                                
-    ...nz(noise(rnd, 16)),                     
+    0x07, (model >> 8) & 0xff, model & 0xff,
+    0x55, ...noise(rnd, 1), ...noise(rnd, 1),
+    ...noise(rnd, 1),
+    0x00, 0x00,
+    ...nz(noise(rnd, 16)),
   ];
   return [mfg(APPLE, [0x07, body.length, ...body])];
 }
@@ -103,8 +102,8 @@ export function assemble(structures) {
     const idLo = (s.id & 0xff).toString(16).padStart(2, "0");
     const idHi = ((s.id >> 8) & 0xff).toString(16).padStart(2, "0");
     const type = s.kind === "svc" ? "16" : "ff";
-    const value = idLo + idHi + s.data;               
-    const len = (1 + value.length / 2).toString(16).padStart(2, "0");   
+    const value = idLo + idHi + s.data;
+    const len = (1 + value.length / 2).toString(16).padStart(2, "0");
     out += len + type + value;
   }
   return out;

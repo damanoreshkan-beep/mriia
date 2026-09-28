@@ -36,7 +36,7 @@ export default [
     name: "a reference card still opens, and says it has not been heard",
     async run(h) {
       await h.waitFor(/Swift Pair/);
-      await h.tap('[data-card="findMy"]');   
+      await h.tap('[data-card="findMy"]');
       await h.wait(200);
       h.expect((await h.count("[data-never]")) === 1, "тиха картка не показала довідковий стан");
       h.expect((await h.count("[data-custom]")) === 1, "довідкова картка все одно має пояснити текст");

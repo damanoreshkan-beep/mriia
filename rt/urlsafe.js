@@ -1,4 +1,3 @@
-
 const SHORTENERS = new Set(["bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "cutt.ly", "rebrand.ly", "ow.ly", "buff.ly", "t.me", "tiny.cc", "shorturl.at", "rb.gy", "clck.ru", "surl.li", "trib.al"]);
 const CODE_SCHEMES = new Set(["javascript", "data", "vbscript", "file", "blob"]);
 
@@ -39,10 +38,10 @@ export function analyzeQR(raw) {
   if (lower.startsWith("otpauth:")) return { kind: "otp", raw: text, verdict: "caution", flags: [{ level: "warn", code: "otp-secret" }] };
 
   let u = null;
-  try { u = new URL(text); } catch {  }
+  try { u = new URL(text); } catch { }
   if (!u) {
     if (/^[a-z0-9.-]+\.[a-z]{2,}(\/|$|\?|#)/i.test(text)) {
-      try { return finishUrl(new URL("https://" + text), text, [{ level: "warn", code: "no-scheme" }]); } catch {  }
+      try { return finishUrl(new URL("https://" + text), text, [{ level: "warn", code: "no-scheme" }]); } catch { }
     }
     return { kind: "text", raw: text, verdict: "info", flags: [] };
   }
@@ -56,9 +55,9 @@ function finishUrl(u, raw, pre) {
 
   const host = u.hostname.toLowerCase();
   const flags = [...pre];
-  if (u.username || u.password) flags.push({ level: "danger", code: "userinfo" });     
+  if (u.username || u.password) flags.push({ level: "danger", code: "userinfo" });
   if (scheme === "http") flags.push({ level: "warn", code: "insecure" });
-  if (mixedScript(rawHost(raw))) flags.push({ level: "danger", code: "mixed-script" });  
+  if (mixedScript(rawHost(raw))) flags.push({ level: "danger", code: "mixed-script" });
   else if (host.split(".").some((l) => l.startsWith("xn--"))) flags.push({ level: "warn", code: "punycode" });
   if (isIp(host)) flags.push({ level: "warn", code: "ip-host" });
   const reg = host.split(".").slice(-2).join(".");

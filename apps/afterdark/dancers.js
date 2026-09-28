@@ -1,4 +1,3 @@
-
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -10,12 +9,12 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const frac = (x) => x - Math.floor(x);
 const TARGET_H = 1.7;
 const ORDER = CHARACTERS.map((g) => g.id);
-const IDLE_URL = new URL("assets/clip-idle.glb", import.meta.url).href;   
-const LOCK = 0.3;                                                    
-const CLIP_BPM_REF = 125;                                            
-const SYNC_MIN = 0.3;                                                
-const MIN_GAP = 0.8;                                                 
-const MAX_DRIFT_X = 1.4, MAX_DRIFT_Z = 1.1;                          
+const IDLE_URL = new URL("assets/clip-idle.glb", import.meta.url).href;
+const LOCK = 0.3;
+const CLIP_BPM_REF = 125;
+const SYNC_MIN = 0.3;
+const MIN_GAP = 0.8;
+const MAX_DRIFT_X = 1.4, MAX_DRIFT_Z = 1.1;
 
 const C_KEY = 0xffe9f4, C_MAG = 0xff3eb5, C_GRN = 0x39ff6a, C_GOLD = 0xf5b942, C_VIO = 0x8b5cf6;
 const BAR_COLORS = [new THREE.Color(C_MAG), new THREE.Color(C_VIO), new THREE.Color(C_GRN), new THREE.Color(C_GOLD)];
@@ -73,7 +72,7 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
   const additive = { blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor, depthWrite: false, transparent: true };
   const grid = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), new THREE.ShaderMaterial({ uniforms: gridU, vertexShader: FLOOR_VERT, fragmentShader: FLOOR_FRAG, ...additive }));
   grid.rotation.x = -Math.PI / 2; grid.position.set(0, 0.003, -1.5); scene.add(grid);
-  const lightPool = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ map: radial("rgba(77,77,77,1)", "rgba(0,0,0,1)"), color: C_MAG, ...additive }));   
+  const lightPool = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ map: radial("rgba(77,77,77,1)", "rgba(0,0,0,1)"), color: C_MAG, ...additive }));
   lightPool.rotation.x = -Math.PI / 2; lightPool.position.set(0, 0.004, -0.6); scene.add(lightPool);
   const shadowMat = new THREE.MeshBasicMaterial({ map: radial("rgba(0,0,0,0.6)", "rgba(0,0,0,0)"), transparent: true, depthWrite: false });
 
@@ -92,7 +91,7 @@ export function createDanceStage(canvas, getEnv, onStatus = () => {}) {
   const CONE_VERT = `varying float vA; varying float vF; void main(){ vA = uv.y; vec4 mv = modelViewMatrix * vec4(position, 1.0); vec3 n = normalize(normalMatrix * normal); vF = 1.0 - abs(dot(n, normalize(-mv.xyz))); gl_Position = projectionMatrix * mv; }`;
   const CONE_FRAG = `precision highp float; varying float vA; varying float vF; uniform vec3 uColor; uniform float uPower;
 void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2); gl_FragColor = vec4(uColor * along * edge * uPower * 0.3, 0.0); }`;
-  const coneGeo = new THREE.ConeGeometry(1.15, 4.4, 28, 1, true); coneGeo.translate(0, -2.2, 0);   
+  const coneGeo = new THREE.ConeGeometry(1.15, 4.4, 28, 1, true); coneGeo.translate(0, -2.2, 0);
   const cones = [-1.8, -0.6, 0.6, 1.8].map((x, i) => {
     const m = new THREE.Mesh(coneGeo, new THREE.ShaderMaterial({ uniforms: { uColor: { value: BAR_COLORS[i].clone() }, uPower: { value: 0 } }, vertexShader: CONE_VERT, fragmentShader: CONE_FRAG, side: THREE.DoubleSide, ...additive }));
     m.position.set(x, 3.7, -1.4); scene.add(m); return m;
@@ -105,7 +104,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
   const loading = new Set();
   const hipsOf = (obj) => { let h = null; obj.traverse((o) => { if (!h && /hips$/i.test(o.name)) h = o; }); return h ? { bone: h, y: h.position.y, prefix: h.name.replace(/hips$/i, "") } : { bone: null, y: 0, prefix: "" }; };
   const retargetHips = (clip, srcY, dstY, srcPrefix, dstPrefix) => {
-    const rename = srcPrefix !== dstPrefix;   
+    const rename = srcPrefix !== dstPrefix;
     const scale = srcY && dstY && Math.abs(srcY - dstY) >= 1e-4;
     if (!rename && !scale) return clip;
     const c = clip.clone(), r = scale ? dstY / srcY : 1;
@@ -121,10 +120,10 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     loading.add(id);
     loader.loadAsync(url).then((g) => { loading.delete(id); if (!dead && g.animations[0]) { pool.set(id, poolEntry(g.animations[0], hipsOf(g.scene))); assignMoves(); } }).catch(() => { loading.delete(id); });
   }
-  loadClip("idle", IDLE_URL);                                      
+  loadClip("idle", IDLE_URL);
 
   const _v = new THREE.Vector3();
-  const cast = new Map();       
+  const cast = new Map();
   let order = [];
   let dead = false, loaded = 0, camDist = 6, camY = 1.05, lookY = 0.95;
   let tiers = tiersFor(DEFAULT_MOVES), moves = DEFAULT_MOVES.slice();
@@ -222,21 +221,21 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     const aniso = renderer.capabilities.getMaxAnisotropy();
     root.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; for (const m of [].concat(o.material || [])) for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"]) if (m[k]) { m[k].anisotropy = aniso; m[k].needsUpdate = true; } } });
     e.mixer = new THREE.AnimationMixer(root);
-    const hips = hipsOf(root); e.hips = hips.bone; e.hipsY = hips.y; e.prefix = hips.prefix;   
+    const hips = hipsOf(root); e.hips = hips.bone; e.hipsY = hips.y; e.prefix = hips.prefix;
     e.feet = []; root.traverse((o) => { if (/(Toe_End|ToeBase|Foot)$/i.test(o.name)) e.feet.push(o); });
-    if (gltf.animations[0] && !pool.has(id)) pool.set(id, poolEntry(gltf.animations[0], hips));   
+    if (gltf.animations[0] && !pool.has(id)) pool.set(id, poolEntry(gltf.animations[0], hips));
     e.baseScale = s; e.root = root;
     scene.add(root);
     e.shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 32), shadowMat);
     e.shadow.rotation.x = -Math.PI / 2; scene.add(e.shadow);
     computeLayout();
-    playMove(e, pool.has(id) ? id : (pool.keys().next().value), 0);              
-    assignMoves(0);                                                              
+    playMove(e, pool.has(id) ? id : (pool.keys().next().value), 0);
+    assignMoves(0);
     if (++loaded === 1) onStatus("ready", id);
   }
 
   function setCast(ids) {
-    const want = [...ORDER.filter((id) => ids.includes(id)), ...ids.filter((id) => !ORDER.includes(id))];   
+    const want = [...ORDER.filter((id) => ids.includes(id)), ...ids.filter((id) => !ORDER.includes(id))];
     if (!want.length) return;
     for (const id of [...cast.keys()]) if (!want.includes(id)) { disposeEntry(cast.get(id)); cast.delete(id); }
     order = want;
@@ -261,7 +260,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     if (document.hidden) return;
     const env = getEnv() || {};
     const pulse = clamp(env.pulse || 0, 0, 1);
-    const active = env.playing !== false;                                        
+    const active = env.playing !== false;
     const now = performance.now();
     if (!t0) t0 = now;
     const dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
@@ -275,9 +274,9 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
 
     if (!still && active && pulse > prevPulse + 0.05 && pulse > 0.26) kick = 1; else kick *= Math.pow(0.008, dt);
     kick = clamp(kick, 0, 1); prevPulse = pulse;
-    const lit = still ? 0 : (locked ? conf : 0);                                 
-    const beatEnv = Math.exp(-beatA * 6) * lit;                                  
-    const hit = Math.max(kick, beatEnv);                                          
+    const lit = still ? 0 : (locked ? conf : 0);
+    const beatEnv = Math.exp(-beatA * 6) * lit;
+    const hit = Math.max(kick, beatEnv);
     sEnergy += ((env.energy ?? pulse) - sEnergy) * clamp(dt * 3, 0, 1);
     calm += (((tier === "calm") ? 1 : 0) - calm) * clamp(dt * 4, 0, 1);
 
@@ -286,8 +285,8 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
     const may = (target === "calm" || tier === "calm") ? now - lastTierAt > dwell : (locked ? phraseTick : now - lastTierAt > dwell);
     if (target !== tier && may) {
       tier = target; lastTierAt = now; rotation++;
-      if (tier === "calm") assignMoves(0.6);                                     
-      else for (const id of order) { const e = cast.get(id); if (e) { e.phraseEnd = beatIndex; e.swapAt = now; } }   
+      if (tier === "calm") assignMoves(0.6);
+      else for (const id of order) { const e = cast.get(id); if (e) { e.phraseEnd = beatIndex; e.swapAt = now; } }
     }
 
     const day = clamp(env.day || 0, 0, 1), pal = env.pal;
@@ -305,14 +304,14 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
 
     const kEff = kick * (1 - calm * 0.85);
     const drive = tier === "drive" ? 1 : tier === "groove" ? 0.35 : 0;
-    const dip = 1 - 0.55 * lit * (barA > 0.86 ? (barA - 0.86) / 0.14 : 0);       
-    const slam = lit * Math.exp(-barA * 4);                                       
+    const dip = 1 - 0.55 * lit * (barA > 0.86 ? (barA - 0.86) / 0.14 : 0);
+    const slam = lit * Math.exp(-barA * 4);
     const chase = beatIndex & 3;
     const dayDip = 1 - (1 - dip) * (1 - 0.7 * day);
     for (let i = 0; i < 4; i++) {
       const lead = chase === i ? 1 : 0.22;
       const on = Math.max(pulse * 0.8, beatEnv * lead, slam * 0.5);
-      const idle = 0.55 * (1 - lit) + 0.12 * lit;                                
+      const idle = 0.55 * (1 - lit) + 0.12 * lit;
       washes[i].intensity = ((idle + 2.6 * on) * dayDip) * (1 - calm) * (1 - 0.6 * day) + 0.45 * calm * (1 - 0.5 * day);
     }
     const strobe = drive * lit * Math.exp(-beatA * 18) * (0.5 + 0.5 * Math.min(1, sEnergy * 2)) * (1 - 0.85 * day);
@@ -340,14 +339,14 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
       c.rotation.z = Math.sin(st * 0.45 + i * 1.9) * 0.28; c.rotation.x = Math.sin(st * 0.33 + i * 2.6) * 0.16;
     }
     lightPool.material.color.copy(washes[0].color);
-    lightPool.material.opacity = (0.3 + 0.7 * hit) * dip * (1 - calm * 0.7) * (1 - 0.5 * day);   
+    lightPool.material.opacity = (0.3 + 0.7 * hit) * dip * (1 - calm * 0.7) * (1 - 0.5 * day);
     lightPool.scale.setScalar(1 + 0.12 * hit);
     gridU.uTime.value = (now - t0) / 1000; gridU.uBeat.value = beatA; gridU.uBar.value = barA; gridU.uPulse.value = pulse;
     gridU.uConf.value = locked ? conf : 0.35; gridU.uCalm.value = calm;
     gridU.uColor.value.copy(BAR_COLORS[colorIdx]); gridU.uColor2.value.copy(BAR_COLORS[(colorIdx + 1) % BAR_COLORS.length]);
 
     const beatKick = Math.max(kEff, beatEnv * 0.85 * (1 - calm));
-    const sq = 1 - 0.07 * beatKick, ex = 1 + 0.06 * beatKick, hop = 0.08 * beatKick;   
+    const sq = 1 - 0.07 * beatKick, ex = 1 + 0.06 * beatKick, hop = 0.08 * beatKick;
     const list = tiers[tier] || tiers.groove;
     for (const id of order) {
       const e = cast.get(id); if (!e || !e.mixer || !e.root) continue;
@@ -364,12 +363,12 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
       let ts = 1;
       if (locked && src && !still && tier !== "calm") {
         const want = (env.bpm || CLIP_BPM_REF) / src.bpm;
-        ts = clamp(1 + (want - 1) * Math.max(SYNC_MIN, conf), 0.95, 1.35);   
+        ts = clamp(1 + (want - 1) * Math.max(SYNC_MIN, conf), 0.95, 1.35);
         const a = e.currentAction;
         if (barTick && a) {
           const beatLen = src.clip.duration / src.beats;
-          const err = frac((env.beatPhase || 0) - frac(a.time / beatLen) + 0.5) - 0.5;   
-          if (Math.abs(err) > 0.04) { e.hold = e.hold || { x: e.hx, z: e.hz };            
+          const err = frac((env.beatPhase || 0) - frac(a.time / beatLen) + 0.5) - 0.5;
+          if (Math.abs(err) > 0.04) { e.hold = e.hold || { x: e.hx, z: e.hz };
             a.time = ((a.time + err * beatLen * 0.5) % src.clip.duration + src.clip.duration) % src.clip.duration; }
         }
       }
@@ -410,8 +409,8 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
       e.ox = clamp(e.ox, -MAX_DRIFT_X, MAX_DRIFT_X); e.oz = clamp(e.oz, -MAX_DRIFT_Z, MAX_DRIFT_Z);
       e.root.position.x = e.tx + e.centerDX + e.ox; e.root.position.z = e.tz + e.oz;
     }
-    env.crowdMin = crowdMin;                                                    
-    env.moves = order.map((id) => cast.get(id)?.current || "");               
+    env.crowdMin = crowdMin;
+    env.moves = order.map((id) => cast.get(id)?.current || "");
 
     const tx = env.tiltX || 0, ty = env.tiltY || 0;
     const cam = env.cam || {}, yaw = cam.yaw || 0, pitch = cam.pitch || 0, R = camDist * (cam.zoom || 1);
@@ -433,7 +432,7 @@ void main(){ float along = pow(vA, 2.4); float edge = 0.04 + 0.96 * pow(vF, 2.2)
       dead = true; cancelAnimationFrame(raf); removeEventListener("resize", computeLayout);
       for (const e of cast.values()) disposeEntry(e);
       grid.geometry.dispose(); grid.material.dispose(); smokeGeo.dispose(); smokeMat.dispose(); coneGeo.dispose(); for (const c of cones) c.material.dispose();
-      try { renderer.dispose(); renderer.forceContextLoss?.(); } catch {  }
+      try { renderer.dispose(); renderer.forceContextLoss?.(); } catch { }
     },
   };
 }

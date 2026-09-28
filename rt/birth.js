@@ -17,7 +17,7 @@ export function parseDate(str) {
   const y = +m[1], mo = +m[2], d = +m[3];
   if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
   const probe = new Date(Date.UTC(2000, mo - 1, d));
-  if (probe.getUTCMonth() !== mo - 1) return null;              
+  if (probe.getUTCMonth() !== mo - 1) return null;
   if (mo === 2 && d === 29) {
     const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     if (!leap) return null;

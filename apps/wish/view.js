@@ -16,13 +16,13 @@ const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider 
 const listsColl = collection("wishlists");
 const wishesColl = collection("wishes");
 
-const $lists = atom([]);     
-const $wishes = atom([]);    
-const $active = atom(null);  
+const $lists = atom([]);
+const $wishes = atom([]);
+const $active = atom(null);
 const $ready = atom(false);
-const $draft = atom(null);   
-const $ldraft = atom(null);  
-const $busy = atom(false);   
+const $draft = atom(null);
+const $ldraft = atom(null);
+const $busy = atom(false);
 
 const COLORS = ["#fb7185", "#f59e0b", "#a78bfa", "#34d399", "#60a5fa", "#f472b6", "#f97316", "#2dd4bf"];
 const LIST_ICONS = ["lucide:gift", "lucide:home", "lucide:book-open", "lucide:plane", "lucide:shirt", "lucide:gamepad-2", "lucide:cake", "lucide:heart", "lucide:baby", "lucide:bike", "lucide:sparkles", "lucide:palette"];
@@ -41,11 +41,11 @@ async function loadAll() {
     const saved = localStorage.getItem("wish:active");
     const ids = ls.map((l) => l.id);
     $active.set(ids.includes(saved) ? saved : (ids[0] || null));
-  } catch {  }
+  } catch { }
   $ready.set(true);
 }
 
-function setActive(id) { $active.set(id); try { id ? localStorage.setItem("wish:active", id) : localStorage.removeItem("wish:active"); } catch {  } }
+function setActive(id) { $active.set(id); try { id ? localStorage.setItem("wish:active", id) : localStorage.removeItem("wish:active"); } catch { } }
 
 async function saveList(d) {
   const id = d.id || uid("l");
@@ -53,7 +53,7 @@ async function saveList(d) {
   const rest = $lists.get().filter((l) => l.id !== id);
   $lists.set([...rest, { id, ...rec }].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)));
   if (!d.id) setActive(id);
-  try { await listsColl.put(id, rec); } catch {  }
+  try { await listsColl.put(id, rec); } catch { }
   return id;
 }
 async function removeList(id) {
@@ -61,7 +61,7 @@ async function removeList(id) {
   $lists.set($lists.get().filter((l) => l.id !== id));
   $wishes.set($wishes.get().filter((w) => w.listId !== id));
   setActive($lists.get()[0]?.id || null);
-  try { await listsColl.remove(id); for (const w of dropped) await wishesColl.remove(w.id); } catch {  }
+  try { await listsColl.remove(id); for (const w of dropped) await wishesColl.remove(w.id); } catch { }
 }
 
 const wishRec = (w) => ({ listId: w.listId, name: (w.name || "").trim(), price: w.price == null ? null : Number(w.price), currency: w.currency || "UAH", url: (w.url || "").trim(), image: w.image || "", want: w.want || 2, note: (w.note || "").trim(), granted: !!w.granted, createdAt: w.createdAt || Date.now() });
@@ -70,14 +70,14 @@ async function saveWish(d) {
   const id = d.id || uid("w");
   const rec = wishRec(d);
   $wishes.set([{ id, ...rec }, ...$wishes.get().filter((w) => w.id !== id)]);
-  try { await wishesColl.put(id, rec); } catch {  }
+  try { await wishesColl.put(id, rec); } catch { }
   return id;
 }
 async function removeWish(id) {
   const w = $wishes.get().find((x) => x.id === id);
   $wishes.set($wishes.get().filter((x) => x.id !== id));
-  try { await wishesColl.remove(id); } catch {  }
-  return w;                                                  
+  try { await wishesColl.remove(id); } catch { }
+  return w;
 }
 async function toggleGrant(w) { await saveWish({ ...w, granted: !w.granted }); }
 
@@ -92,12 +92,12 @@ async function prefill() {
     if (m.price != null && cur.price == null) { cur.price = m.price; cur.currency = m.currency || cur.currency; }
     if (m.image && !cur.image) cur.image = m.image;
     $draft.set(cur);
-  } catch {  } finally { $busy.set(false); }
+  } catch { } finally { $busy.set(false); }
 }
 
 function exportData() {
   const blob = new Blob([JSON.stringify({ lists: $lists.get(), wishes: $wishes.get() }, null, 2)], { type: "application/json" });
-  downloadBlob(blob, "wishlist.json");   
+  downloadBlob(blob, "wishlist.json");
 }
 async function importData(file) {
   try {
@@ -105,7 +105,7 @@ async function importData(file) {
     for (const l of d.lists || []) await listsColl.put(l.id, { name: l.name, icon: l.icon, color: l.color, createdAt: l.createdAt || Date.now() });
     for (const w of d.wishes || []) await wishesColl.put(w.id, wishRec(w));
     await loadAll();
-  } catch {  }
+  } catch { }
 }
 
 async function seed() {
@@ -155,6 +155,7 @@ function WishCard({ w, list, t, onOpen }) {
           </span>
           ${w.note ? html`<span class="block text-xs text-base-content/70 mt-1 line-clamp-1">${w.note}</span>` : null}
         </button>
+        ${""}
         <button data-grant aria-pressed=${w.granted} aria-label=${w.granted ? T(t, "ungrant") : T(t, "grant")}
           onClick=${() => toggleGrant(w)}
           class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center transition-colors ${w.granted ? "bg-success text-success-content sf-e2" : "sf-inset text-muted"}`}>
@@ -162,8 +163,6 @@ function WishCard({ w, list, t, onOpen }) {
       </div>
     <//>`;
 }
-
-
 
 function WishSheet({ S, t, open }) {
   const d = useStore($draft), busy = useStore($busy);
@@ -173,7 +172,7 @@ function WishSheet({ S, t, open }) {
   return html`<${Sheet} id="w-sheet" open=${open && !!d} onClose=${close} icon="lucide:gift"
     title=${T(t, d && d.id ? "editWish" : "newWish")}>
     ${d ? html`<${Fragment}>
-      
+      ${""}
       <input id="w-name" class="input w-full" placeholder=${T(t, "namePh")} value=${d.name}
         maxlength="80" onInput=${(e) => set({ name: e.target.value })} />
       <div class="flex gap-2">
@@ -198,8 +197,6 @@ function WishSheet({ S, t, open }) {
   </${Sheet}>`;
 }
 
-
-
 function ListSheet({ S, t, open, closeScreen, confirm }) {
   const d = useStore($ldraft), wishes = useStore($wishes);
   const set = (patch) => $ldraft.set({ ...$ldraft.get(), ...patch });
@@ -215,13 +212,13 @@ function ListSheet({ S, t, open, closeScreen, confirm }) {
     ${d ? html`<${Fragment}>
       <input id="l-name" class="input w-full" placeholder=${T(t, "listNamePh")} value=${d.name}
         maxlength="40" onInput=${(e) => set({ name: e.target.value })} />
-      
+      ${""}
       <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "icon")}</div>
         <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2" id="l-icons">${LIST_ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${d.icon === ic}
           onClick=${() => set({ icon: ic })}
           class="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
           style=${d.icon === ic ? `color:${d.color}` : ""}>${Icon(ic, "text-lg")}</button>`)}</div></div>
-      
+      ${""}
       <div class="flex flex-col gap-1.5"><div class=${LABEL}>${T(t, "color")}</div>
         <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${d.color === c}
           onClick=${() => set({ color: c })}
@@ -232,10 +229,6 @@ function ListSheet({ S, t, open, closeScreen, confirm }) {
     </${Fragment}>` : null}
   </${Sheet}>`;
 }
-
-
-
-
 
 function WishDetail({ open, id, S, t, closeScreen, undo }) {
   const wishes = useStore($wishes), lists = useStore($lists);
@@ -250,7 +243,7 @@ function WishDetail({ open, id, S, t, closeScreen, undo }) {
       <${Panel}>
         <div class="flex items-center gap-3">
           <${Thumb} w=${w} list=${list} size="w-16 h-16" />
-          
+          ${""}
           <div class="min-w-0 flex-1">
             ${w.price != null ? html`<div class="font-mono text-xl tabular-nums">${fmtMoney(w.price, w.currency)}</div>` : null}
           </div>
@@ -276,7 +269,6 @@ function WishDetail({ open, id, S, t, closeScreen, undo }) {
   </${Sheet}>`;
 }
 
-
 const ListSwitcher = ({ lists, wishes, active, t, onAdd }) => html`<div class="flex items-center gap-2 min-w-0">
   <div class="flex-1 min-w-0"><${Segmented} attr="data-list" scroll variant="outline" label=${T(t, "tabLists")}
     items=${lists.map((l) => ({ id: l.id, label: l.name, icon: l.icon, dot: l.color, meta: wishes.filter((w) => w.listId === l.id && !w.granted).length }))}
@@ -284,7 +276,6 @@ const ListSwitcher = ({ lists, wishes, active, t, onAdd }) => html`<div class="f
   <button id="add-list" class="btn btn-circle btn-sm w-9 h-9 shrink-0 text-base-content/70" aria-label=${T(t, "addList")}
     onClick=${onAdd}>${Icon("lucide:plus", "text-lg")}</button>
 </div>`;
-
 
 export function wish({ S, closeScreen, confirm, undo }) {
   const t = useStore(S.t), lists = useStore($lists), wishes = useStore($wishes), active = useStore($active),
@@ -350,7 +341,7 @@ export function wish({ S, closeScreen, confirm, undo }) {
         </div>
       </div>`}
 
-    
+    ${""}
     <${WishSheet} S=${S} t=${t} open=${!!sheet} />
     <${ListSheet} S=${S} t=${t} open=${screen === "list"} closeScreen=${closeScreen} confirm=${confirm} />
     <${WishDetail} id=${detailId} open=${!!detailId} S=${S} t=${t} closeScreen=${closeScreen} undo=${undo} />

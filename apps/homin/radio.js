@@ -15,7 +15,7 @@ const NO_WORKER_ENV = typeof Worker === "undefined";
 export const $events = atom(gate || NO_WORKER_ENV ? SEED.map((e) => ({ ...e, lastSeen: Date.now() })) : []);
 export const $connected = atom(false);
 export const $freshAt = atom(0);
-export const $listening = atom(null);      
+export const $listening = atom(null);
 
 const NO_WORKER = typeof Worker === "undefined";
 let worker = null;
@@ -71,7 +71,7 @@ export function ensureWorker() {
 }
 
 export function stopWorker() {
-  try { worker?.postMessage({ type: "stop" }); worker?.terminate(); } catch {  }
+  try { worker?.postMessage({ type: "stop" }); worker?.terminate(); } catch { }
   worker = null;
 }
 
@@ -91,7 +91,7 @@ export async function listen(channel) {
   try {
     const c = audio();
     if (c && c.state === "suspended") await c.resume();
-  } catch {  }
+  } catch { }
   nextAt = 0;
   $listening.set(channel);
   ensureWorker()?.postMessage({ type: "listen", channel });

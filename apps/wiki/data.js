@@ -33,7 +33,7 @@ export async function load(filters) {
     exintro: "1", explaintext: "1", exchars: "600",
     piprop: "thumbnail", pithumbsize: "400", origin: "*",
   };
-  if (filters.cursor != null) params.gsroffset = String(filters.cursor); 
+  if (filters.cursor != null) params.gsroffset = String(filters.cursor);
   const api = `https://${lang}.wikipedia.org/w/api.php?` + new URLSearchParams(params);
   const data = await fetchJson(api);
   const pages = Object.values(data.query?.pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));

@@ -31,7 +31,7 @@ export default [
       await key(h, "KeyD");
       h.expect((await g(h, "lane")) === "3", "правіше третьої не буває");
       await key(h, "ArrowUp"); await key(h, "ArrowDown");
-      h.expect(+(await g(h, "acts")) === n0 + 8, `дій: ${await g(h, "acts")} (було ${n0})`);   
+      h.expect(+(await g(h, "acts")) === n0 + 8, `дій: ${await g(h, "acts")} (було ${n0})`);
       await key(h, "ArrowLeft"); await key(h, "ArrowLeft");
       h.expect((await g(h, "lane")) === "1", "не повернулась на стартову доріжку");
     },

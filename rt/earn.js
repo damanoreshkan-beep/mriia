@@ -1,8 +1,7 @@
-
 export const CURRENCIES = ["UAH", "USD"];
 const SYMBOL = { UAH: "₴", USD: "$" };
-const SUFFIX = { UAH: true };                 
-const NBSP = " ";                        
+const SUFFIX = { UAH: true };
+const NBSP = " ";
 
 export const MODES = ["month", "shift", "day"];
 export const DEFAULTS = {

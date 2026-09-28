@@ -18,14 +18,14 @@ export const SKINS = [
   { id: "pirate", name: "Pirate", tint: "#38BDF8", price: 180 },
   { id: "akai", name: "Akai", tint: "#F472B6", price: 220 },
 ];
-export const GEN_PRICE = 1000;   
+export const GEN_PRICE = 1000;
 export const WEAPONS = [
   { id: "pistol", name: "Pistol", price: 0, dmg: 1, rate: 3, mag: 8, reloadS: 1.1, lanes: 0, range: 28, tint: "#F5B942", sfx: "shot-pistol" },
   { id: "shotgun", name: "Shotgun", price: 350, dmg: 2, rate: 1.2, mag: 4, reloadS: 1.6, lanes: 1, range: 14, tint: "#FB7185", sfx: "shot-shotgun" },
   { id: "smg", name: "SMG", price: 600, dmg: 1, rate: 8, mag: 24, reloadS: 1.4, lanes: 0, range: 24, tint: "#22D3EE", sfx: "shot-smg" },
 ];
 export const weaponById = (id) => WEAPONS.find((w) => w.id === id) || WEAPONS[0];
-const BUNDLED = new Set(["arissa"]);   
+const BUNDLED = new Set(["arissa"]);
 
 export const $myChars = persistentAtom("blackout:myChars", "[]");
 export function myChars() { let a; try { a = JSON.parse($myChars.get()); } catch { a = null; } return Array.isArray(a) ? a.filter((c) => c && typeof c.id === "string" && typeof c.glb === "string") : []; }
@@ -40,11 +40,11 @@ const sidNow = () => { try { return localStorage.getItem("ms:gh:sid") || ""; } c
 async function loadMyChars() { const list = await fetchMyChars(); if (list) setMyChars(list); }
 if (!gate) {
   let loadedFor = sidNow();
-  if (loadedFor) setTimeout(loadMyChars, 0);   
+  if (loadedFor) setTimeout(loadMyChars, 0);
   session.listen((s) => { const sid = s ? s.sid : ""; if (sid === loadedFor) return; loadedFor = sid; if (s) loadMyChars(); else setMyChars([]); });
 }
 
-export const skinById = (id) => SKINS.find((s) => s.id === id) || myChars().find((c) => c.id === id) || SKINS[0];   
+export const skinById = (id) => SKINS.find((s) => s.id === id) || myChars().find((c) => c.id === id) || SKINS[0];
 export const avatarUrl = (id) => { const s = skinById(id); return s.avatar || new URL(`assets/av-${s.id}.png`, import.meta.url).href; };
 export const glbUrl = (id) => { const s = skinById(id); if (s.glb) return s.glb; return new URL(BUNDLED.has(s.id) ? `assets/${s.id}.glb` : `../afterdark/assets/${s.id}.glb`, import.meta.url).href; };
 
@@ -52,7 +52,7 @@ const NS = "blackout:";
 export const $best = persistentAtom(`${NS}best`, "0");
 export const $runs = persistentAtom(`${NS}runs`, "0");
 export const $skin = persistentAtom(`${NS}skin`, "arissa");
-export const $muted = persistentAtom(`${NS}muted`, "0");   
+export const $muted = persistentAtom(`${NS}muted`, "0");
 export const $weapon = persistentAtom(`${NS}weapon`, "pistol");
 
 export const wallet = makeWallet("blackout", { gateBalance: 1250 });

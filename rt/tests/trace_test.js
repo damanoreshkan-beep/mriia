@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { distanceM as trDist, length as trLength, bbox as trBbox, spanM as trSpan, boxAround as trBoxAround, segments as trSegments, simplify as trSimplify, project as trProject, share as trShare, stops as trStops, M_PER_DEG_LAT, mPerDegLon } from "../trace.js";
-
 
 Deno.test("trace: distance is haversine, and longitude shrinks with latitude", () => {
   assert(Math.abs(trDist({ lat: 0, lon: 0 }, { lat: 1, lon: 0 }) - M_PER_DEG_LAT) < 0.5);
@@ -35,7 +33,7 @@ Deno.test("trace: a stroke ends at a time gap AND at an impossible jump", () => 
   const base = { lat: 50, lon: 30 };
   const gapped = [
     { ...base, at: 0 }, { ...base, at: 10_000 },
-    { ...base, at: 10_000 + 400_000 },                       
+    { ...base, at: 10_000 + 400_000 },
   ];
   assertEquals(trSegments(gapped).map((s) => s.length), [2, 1]);
 
@@ -75,7 +73,7 @@ Deno.test("trace: project keeps aspect, points north up, and fills the stage it 
   const c = { lat: 50.45, lon: 30.52 };
   const box = trBoxAround(c, 1000, 1000);
   const corners = [
-    { lat: box.maxLat, lon: box.minLon },   
+    { lat: box.maxLat, lon: box.minLon },
     { lat: box.maxLat, lon: box.maxLon },
     { lat: box.minLat, lon: box.maxLon },
   ];
@@ -114,8 +112,8 @@ Deno.test("trace: a stop is a cluster that lasted, not every pair of close fixes
   const at = (min) => min * 60_000;
   const here = { lat: 50.45, lon: 30.52 };
   const pts = [
-    { ...here, at: at(0) }, { ...here, at: at(3) }, { ...here, at: at(9) },   
-    { lat: 50.46, lon: 30.53, at: at(20) },                                    
+    { ...here, at: at(0) }, { ...here, at: at(3) }, { ...here, at: at(9) },
+    { lat: 50.46, lon: 30.53, at: at(20) },
   ];
   const found = trStops(pts);
   assertEquals(found.length, 1);

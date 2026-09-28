@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { PLANETS, squareFor, isMagic, magicConstant, distill, sigilPath, hash32, smooth } from "../sigil.js";
-
 
 Deno.test("sigil: every planetary kamea is magic (rows=cols=diagonals)", () => {
   for (const p of PLANETS) {

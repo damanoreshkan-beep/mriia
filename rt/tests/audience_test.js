@@ -1,7 +1,7 @@
 import { assert, assertEquals } from "jsr:@std/assert";
 import { makeAudience, ratePerSec, smooth } from "../audience.js";
 
-const POLL = 700;   
+const POLL = 700;
 
 Deno.test("audience/ratePerSec: requests per second between two samples", () => {
   assertEquals(ratePerSec({ hits: 0, at: 0 }, { hits: 10, at: 5000 }), 2);

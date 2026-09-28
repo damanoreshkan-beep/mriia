@@ -1,4 +1,3 @@
-
 import { assertEquals, assertAlmostEquals } from "jsr:@std/assert@1";
 import {
   CURRENCIES, MODES, DEFAULTS, normRate, perSecond, earned, hoardFill, lifetimeDepth,
@@ -7,12 +6,11 @@ import {
 
 const NBSP = "\u00A0";
 
-
 Deno.test("normRate: unknown mode and blank fields fall back to the mode default", () => {
   assertEquals(normRate({ mode: "weekly" }).mode, "month");
   assertEquals(normRate({ mode: "month", pay: "" }).pay, DEFAULTS.month.pay);
   assertEquals(normRate({ mode: "shift", hours: 0 }).hours, DEFAULTS.shift.hours);
-  assertEquals(normRate({ mode: "day", currency: "EUR" }).currency, "UAH");   
+  assertEquals(normRate({ mode: "day", currency: "EUR" }).currency, "UAH");
   assertEquals(normRate(null).mode, "month");
 });
 
@@ -26,7 +24,6 @@ Deno.test("normRate: a comma decimal is a real keyboard on a uk phone", () => {
   assertEquals(normRate({ mode: "day", pay: "1200,50", hours: "7,5" }).pay, 1200.5);
   assertEquals(normRate({ mode: "day", hours: "7,5" }).hours, 7.5);
 });
-
 
 Deno.test("perSecond: the work clock, not the calendar", () => {
   assertAlmostEquals(perSecond({ mode: "month", pay: 30000, days: 21, hours: 8 }), 30000 / 604800, 1e-12);
@@ -44,10 +41,9 @@ Deno.test("perSecond: shift and day are the same formula at different block leng
 
 Deno.test("earned: elapsed milliseconds, clamped at zero", () => {
   assertAlmostEquals(earned(0.05, 60000), 3, 1e-12);
-  assertEquals(earned(0.05, -5000), 0);     
+  assertEquals(earned(0.05, -5000), 0);
   assertEquals(earned(-1, 60000), 0);
 });
-
 
 Deno.test("hoardFill: saturating on the WORK, so any salary fills in the same day", () => {
   const ps = 0.05;
@@ -72,7 +68,6 @@ Deno.test("lifetimeDepth: one month of work ≈ 0.63, not one day", () => {
   assertAlmostEquals(lifetimeDepth(month, ps), 0.632, 0.002);
   assertEquals(lifetimeDepth(earned(ps, 8 * 3600 * 1000), ps) < 0.06, true);
 });
-
 
 Deno.test("rateDp: a small per-second rate keeps its information", () => {
   assertEquals(rateDp(2.5), 2);
@@ -104,17 +99,16 @@ Deno.test("fmtSpan: hours appear only once there are hours", () => {
   assertEquals(fmtSpan(59_000), "00:59");
   assertEquals(fmtSpan(12 * 60_000 + 4000), "12:04");
   assertEquals(fmtSpan(3 * 3600_000 + 12 * 60_000 + 4000), "3:12:04");
-  assertEquals(fmtSpan(9 * 3600_000), "9:00:00");     
+  assertEquals(fmtSpan(9 * 3600_000), "9:00:00");
   assertEquals(fmtSpan(-1), "00:00");
 });
-
 
 Deno.test("vaultTotals: grouped per currency, in CURRENCIES order", () => {
   const t = vaultTotals([
     { currency: "USD", amount: 40, ms: 3600_000 },
     { currency: "UAH", amount: 1200, ms: 28800_000 },
     { currency: "UAH", amount: 300.5, ms: 7200_000 },
-    { currency: "PLN", amount: 99, ms: 1000 },        
+    { currency: "PLN", amount: 99, ms: 1000 },
   ]);
   assertEquals(t.map((x) => x.currency), CURRENCIES);
   assertEquals(t[0], { currency: "UAH", sum: 1599.5, ms: 36001_000, count: 3 });

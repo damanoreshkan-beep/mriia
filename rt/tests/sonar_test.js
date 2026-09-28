@@ -1,4 +1,3 @@
-
 import { assert, assertEquals, assertAlmostEquals } from "jsr:@std/assert@1";
 import {
   DEFAULTS, speedOfSound, dopplerHz, radialFromHz, binWidth, binOf, hzOfBin, snapCarrier,
@@ -8,7 +7,6 @@ import {
 const SR = 48000, FFT = DEFAULTS.fftSize;
 const frame = (opts = {}) => synthSpectrum({ sampleRate: SR, fftSize: FFT, ...opts });
 const read = (opts = {}) => analyzeFrame(frame(opts), { sampleRate: SR, fftSize: FFT });
-
 
 Deno.test("sonar speedOfSound: matches the NPL values the design is scaled to", () => {
   assertAlmostEquals(speedOfSound(0), 331.3, 1e-9);
@@ -34,7 +32,6 @@ Deno.test("sonar temperature is negligible for DETECTION, not for m/s", () => {
   assert(Math.abs(cold - hot) / cold > 0.05, "…but >5% of the reading");
 });
 
-
 Deno.test("sonar snapCarrier: lands on an EXACT bin centre, and 19 kHz does not", () => {
   const w = binWidth(SR, FFT);
   assertAlmostEquals(w, 1.4648, 1e-4);
@@ -51,7 +48,6 @@ Deno.test("sonar bin helpers: round-trip, and follow the sample rate", () => {
   assertAlmostEquals(binWidth(44100, FFT), 1.3458, 1e-4);
 });
 
-
 Deno.test("sonar median/mad: an outlier moves neither much", () => {
   assertEquals(median([3, 1, 2]), 2);
   assertEquals(median([4, 1, 3, 2]), 2.5);
@@ -60,7 +56,6 @@ Deno.test("sonar median/mad: an outlier moves neither much", () => {
   assertEquals(mad([10, 10, 10]), 0);
   assertEquals(mad([1, 2, 3, 4, 1000]), 1);
 });
-
 
 Deno.test("sonar fixture 1: no carrier → not ok, nothing claimed", () => {
   const r = read({ carrierHz: 0 });
@@ -111,7 +106,7 @@ Deno.test("sonar fixture 6: a drifted carrier is TRACKED, and sidebands follow i
 });
 
 Deno.test("sonar fixture 7: a carrier below the SNR floor is lost, not guessed at", () => {
-  const r = read({ carrierDb: -108 });                       
+  const r = read({ carrierDb: -108 });
   assertEquals(r.ok, false);
   assert(r.carrier.snrDb < DEFAULTS.carrierSnrDb, `snr ${r.carrier.snrDb.toFixed(1)} dB`);
   const far = analyzeFrame(frame({ carrierHz: 19000 + 400 }), { sampleRate: SR, fftSize: FFT });
@@ -153,7 +148,6 @@ Deno.test("sonar fixture 11: walking (1 m/s) is unmistakable and sits inside the
   assertAlmostEquals(r.dominantHz, hz, 1.5);
 });
 
-
 Deno.test("sonar Calibration: thresholds come from the ROOM, and hysteresis is ordered", () => {
   const cal = Calibration({ minFrames: 4 });
   assertEquals(cal.ready, false);
@@ -192,11 +186,11 @@ Deno.test("sonar Detector: attack/release are TIME, not frames", () => {
 
 Deno.test("sonar Detector: the dead band between off and on cannot chatter", () => {
   const d = Detector({ on: 5, off: 1 });
-  for (let i = 0; i < 100; i++) d.update(3, 16);                 
+  for (let i = 0; i < 100; i++) d.update(3, 16);
   assertEquals(d.active, false, "an idle detector stays idle in the dead band");
   for (let i = 0; i < 20; i++) d.update(9, 16);
   assertEquals(d.active, true);
-  for (let i = 0; i < 100; i++) d.update(3, 16);                 
+  for (let i = 0; i < 100; i++) d.update(3, 16);
   assertEquals(d.active, true, "…and an active one stays active — that is the point of two thresholds");
   d.reset();
   assertEquals(d.active, false);

@@ -1,5 +1,4 @@
-
-const NBSP = " ";                                 
+const NBSP = " ";
 
 const CUR = {
   "$": "USD", "us$": "USD", "usd": "USD",
@@ -10,16 +9,16 @@ const CUR = {
 };
 export const CURRENCIES = ["UAH", "USD", "EUR", "GBP", "PLN"];
 const SYMBOL = { UAH: "₴", USD: "$", EUR: "€", GBP: "£", PLN: "zł" };
-const SUFFIX = { UAH: true, PLN: true };               
+const SUFFIX = { UAH: true, PLN: true };
 
 const curOf = (tok) => CUR[String(tok || "").toLowerCase()] || null;
 
 export function toNumber(raw) {
-  let s = String(raw || "").replace(/\s/g, "");        
+  let s = String(raw || "").replace(/\s/g, "");
   if (!s) return null;
   const hasDot = s.includes("."), hasComma = s.includes(",");
-  if (hasDot && hasComma) s = s.replace(/,/g, "");                 
-  else if (hasComma) s = /,\d{2}$/.test(s) ? s.replace(",", ".") : s.replace(/,/g, ""); 
+  if (hasDot && hasComma) s = s.replace(/,/g, "");
+  else if (hasComma) s = /,\d{2}$/.test(s) ? s.replace(",", ".") : s.replace(/,/g, "");
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
 }
@@ -32,7 +31,7 @@ export function parsePrice(text) {
   const s = String(text || "");
   for (const m of s.matchAll(PRICE_RE)) {
     const cur = curOf(m[1]) || curOf(m[3]);
-    if (!cur) continue;                                             
+    if (!cur) continue;
     const price = toNumber(m[2]);
     if (price == null || price <= 0) continue;
     return { price, currency: cur };

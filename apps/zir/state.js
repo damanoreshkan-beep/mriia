@@ -20,9 +20,9 @@ export const $st = atom({
   live: null, error: null, t0: 0,
 });
 const DEFAULT_OPTS = { quality: "hd", model: "auto" };
-const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v?.quality) return { ...DEFAULT_OPTS, ...v }; } catch {  } return DEFAULT_OPTS; };
+const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v?.quality) return { ...DEFAULT_OPTS, ...v }; } catch { } return DEFAULT_OPTS; };
 export const $opts = atom(loadOpts());
-export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch {  } };
+export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch { } };
 
 const GATE_MODELS = [{ id: "OzzyGT/basic_upscaler", tier: "hd", alive: true }, { id: "Phips/Upscaler", tier: "hd", alive: true }, { id: "ovi054/image-upscaler-pro", tier: "fast", alive: null }];
 export const $models = atom({ list: [], at: 0, loading: false, error: false });
@@ -38,10 +38,10 @@ export async function loadModels(fresh = false) {
     $models.set({ list: j.upscale || [], at: Date.now(), loading: false, error: false });
   } catch { $models.set({ ...$models.get(), loading: false, error: true }); }
 }
-export const modelsAlive = () => $models.get().list.filter((m) => m.alive !== false);   
+export const modelsAlive = () => $models.get().list.filter((m) => m.alive !== false);
 
 export const patch = (p) => { const a = $st.get(); $st.set({ ...a, ...(typeof p === "function" ? p(a) : p) }); };
-const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch {  } } };
+const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch { } } };
 
 let run = 0, job = null, hold = null;
 
@@ -66,7 +66,7 @@ export async function enlarge(ctx) {
   const r = ++run;
   if (st.out) revoke(st.out.url);
   patch({ phase: "working", out: null, error: null, live: null, t0: Date.now() });
-  if (gate) {                                                                    
+  if (gate) {
     await new Promise((ok) => setTimeout(ok, 350));
     if (r !== run) return;
     patch({ phase: "done", out: { url: mockArt(3, 4), w: 3072, h: 4096, ext: "png", by: "gate" }, inW: 768, inH: 1024, live: null });
@@ -80,12 +80,12 @@ export async function enlarge(ctx) {
   try { job = await startJob(BASE, { image: sent.data, quality, ...(model && model !== "auto" ? { model } : {}) }); }
   catch (e) { return fail(r, e.code || "eNetwork"); }
   if (r !== run) { cancelJob(BASE, job); return; }
-  try { localStorage.setItem(JOB_KEY, JSON.stringify({ job, ts: Date.now() })); } catch {  }
+  try { localStorage.setItem(JOB_KEY, JSON.stringify({ job, ts: Date.now() })); } catch { }
   hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") });
   const res = await followOne({ base: BASE, job, alive: () => r === run, onLive: (live) => patch({ live }) });
   if (r !== run) return;
   hold?.(); hold = null;
-  try { localStorage.removeItem(JOB_KEY); } catch {  }
+  try { localStorage.removeItem(JOB_KEY); } catch { }
   if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : res.status === "timeout" ? "eTimeout" : "eFailed");
   const size = (await sizeOf(res.blob)) || { w: 0, h: 0 };
   if (r !== run) return;

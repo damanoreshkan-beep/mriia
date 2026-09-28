@@ -26,12 +26,12 @@ const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-
 const instant = () => gate || reduced();
 
 const $method = persistentAtom("iching:method", "yarrow");
-const $lines = atom(null);          
-const $last = atom(null);           
-const $view = atom(null);           
-const $sel = atom(null);            
-const $logv = atom(0);              
-const $seedLines = atom(null);      
+const $lines = atom(null);
+const $last = atom(null);
+const $view = atom(null);
+const $sel = atom(null);
+const $logv = atom(0);
+const $seedLines = atom(null);
 
 /** The dedupe key: one question is one entry, however it is spaced or capitalized. */
 const qkey = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
@@ -101,14 +101,14 @@ const W = 100, BAR = 6, PITCH = 11, GAP = 16, VB_H = PITCH * 6 - (PITCH - BAR);
  * @param bits   0/1 bottom-first — a plain hexagram (the transformed one has no line values)
  */
 const HexSvg = ({ lines, bits, label, cls }) => {
-  const rows = lines ?? bits.map((b) => (b ? 7 : 8));      
-  const lineAttr = (i) => (lines ? i + 1 : null);          
+  const rows = lines ?? bits.map((b) => (b ? 7 : 8));
+  const lineAttr = (i) => (lines ? i + 1 : null);
   const movAttr = (moving) => (lines ? (moving ? "1" : "0") : null);
   return html`<svg viewBox=${`0 0 ${W} ${VB_H}`} class=${`w-full ${cls || ""}`} role="img"
     aria-label=${label || ""} fill="currentColor" data-hex=${lines ? "cast" : "to"}>
     ${rows.map((v, i) => {
       const yang = bitOf(v) === 1, moving = isMoving(v);
-      const y = (5 - i) * PITCH;                            
+      const y = (5 - i) * PITCH;
       const mid = y + BAR / 2;
       return html`<${Fragment} key=${i}>
         ${yang
@@ -151,8 +151,10 @@ export function iching({ S, screen, openScreen, closeScreen }) {
   const openRead = () => { const row = $last.get(); if (!row) return openAsk(); $view.set({ mode: "read", row }); openScreen("ask"); };
 
   return html`<${Fragment}>
+    ${""}
     <${HeroStage} shader=${new URL("hero.wgsl", import.meta.url)} seed=${packSeed(shuffling ?? (r ? r.lines : null) ?? [7, 7, 7, 7, 7, 7])} />
-    
+
+    ${""}
     <div class="ms-stage z-10 flex flex-col items-center pointer-events-none" data-ic-state=${shuffling ? "shuffle" : r ? "cast" : "empty"}>
       <div class="flex-1 min-h-0 w-full flex flex-col items-center justify-center px-6">
         ${r ? html`<button data-read data-live data-reading aria-label=${T(t, "readingOpen")} onClick=${openRead}
@@ -183,10 +185,6 @@ export function iching({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
-
-
 function Ceremony({ open, onClose, t, loc }) {
   const dref = useRef(), qRef = useRef(), actRef = useRef();
   const [phase, setPhase] = useState("ask");
@@ -206,23 +204,22 @@ function Ceremony({ open, onClose, t, loc }) {
     else { setRow(null); setReplay(false); setQText(""); setPhase("ask"); }
     if (!instant()) setTimeout(() => qRef.current?.focus?.(), 420);
   }, [open]);
-  
   useEffect(() => {
     if (instant() || !open) return;
     const el = actRef.current;
     if (el) animate(el, { opacity: [0, 1], transform: ["translateY(18px)", "translateY(0px)"] }, { duration: 0.45, ease: "easeOut" });
   }, [phase, open]);
+
   const begin = (entry, rep) => {
     setRow(entry); setReplay(rep);
     $lines.set(entry.lines); $last.set(entry);
-    if (!gate && !entry.tx?.[loc]) warmSummary(sigOf(entry), buildInput(entry), loc);   
+    if (!gate && !entry.tx?.[loc]) warmSummary(sigOf(entry), buildInput(entry), loc);
     setPhase(instant() ? "answer" : "cast");
   };
 
   const submit = async () => {
     const q = qText.trim(), qk = qkey(q);
     if (qk) {
-      
       const rows = gate ? GATE_ROWS : await CASTS.all().catch(() => []);
       const hit = rows.filter((x) => (x.qk ?? qkey(x.q)) === qk).sort((a, b) => b.at - a.at)[0];
       if (hit) return begin(hit, true);
@@ -233,8 +230,6 @@ function Ceremony({ open, onClose, t, loc }) {
     begin(entry, false);
   };
 
-  
-  
   const recast = () => {
     const r = reading(gate ? GATE_LINES : cast(method()));
     const upd = { ...row, at: Date.now(), day: dayKey(), m: method(), lines: r.lines, n: r.number, to: r.toNumber, tx: {} };
@@ -246,19 +241,19 @@ function Ceremony({ open, onClose, t, loc }) {
   const name = r ? nameOf(r.number) : null;
   const toName = r?.toNumber ? nameOf(r.toNumber) : null;
   const canRecast = phase === "answer" && row && row.day !== dayKey();
-  
-  
   const pill = "btn btn-ghost rounded-full px-6 font-mono uppercase tracking-[0.18em] text-sm font-normal";
 
   return html`<dialog id="ask" ref=${dref} class="modal" aria-label=${T(t, "askTitle")} onClose=${onClose}>
-    
+    ${""}
     <div ref=${boxRef} class="modal-box max-w-none w-screen h-[100dvh] max-h-none rounded-none p-0 overflow-hidden relative text-base-content [&_*]:!shadow-none" style="background:transparent">
+      ${""}
       <div aria-hidden="true" class="ic-veil absolute inset-0" data-thin=${phase === "cast" ? "" : null}></div>
       <div class="relative z-10 flex flex-col h-full px-6" style="padding-top:calc(env(safe-area-inset-top) + 0.5rem);padding-bottom:calc(env(safe-area-inset-bottom) + 1.25rem)">
         ${grip}
         <div class="flex items-center justify-end shrink-0">
           <button data-ask-close aria-label=${T(t, "close")} class="btn btn-sm btn-circle btn-ghost" onClick=${onClose}>${Icon("lucide:x", "text-lg")}</button>
         </div>
+
         ${phase === "ask" ? html`<div data-phase="ask" ref=${actRef} class="flex-1 min-h-0 flex flex-col max-w-[440px] w-full mx-auto">
           <div class="flex-1 min-h-0 flex flex-col justify-center gap-6">
             <div class=${`text-center ${LABEL} tracking-[0.35em]`}>${T(t, "askTitle")}</div>
@@ -267,15 +262,15 @@ function Ceremony({ open, onClose, t, loc }) {
                 placeholder=${T(t, "question")} aria-label=${T(t, "question")}
                 class="w-full resize-none bg-transparent text-center text-2xl font-light leading-snug text-base-content placeholder:text-muted outline-none border-0 px-1"
                 style="caret-color:var(--app-accent)"></textarea>
-              
+              ${""}
               <div aria-hidden="true" class="ic-line"></div>
             </div>
             <button data-cast onClick=${submit} class=${`${pill} self-center`}>
               ${T(t, "cast")}</button>
           </div>
-          
+          ${""}
           <div class="shrink-0 flex flex-col items-center gap-2 pb-2">
-            
+            ${""}
             <div class="w-full max-w-[300px]"><${Segmented} attr="data-method" size="sm" variant="outline" label=${T(t, "methodLabel")}
               items=${[{ id: "yarrow", label: T(t, "methodYarrow") }, { id: "coins", label: T(t, "methodCoins") }]}
               value=${m} onChange=${(id) => $method.set(id)} /></div>
@@ -283,11 +278,12 @@ function Ceremony({ open, onClose, t, loc }) {
               ${T(t, "oddsYinYang")} ${w.weights[6]}/${w.total} · ${T(t, "oddsYangYin")} ${w.weights[9]}/${w.total}</div>
           </div>
         </div>` : null}
+
         ${phase === "cast" && row ? (() => {
           const wm = METHODS[row.m] ?? METHODS.yarrow;
           return html`<div data-phase="cast" ref=${actRef} class="flex-1 min-h-0 flex flex-col items-center justify-center gap-7">
             <${CastPlay} lines=${row.lines} onDone=${() => setPhase("answer")} />
-            
+            ${""}
             <div class="ic-chip rounded-full px-4 py-1.5 font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/75">
               ${T(t, row.m === "coins" ? "methodCoins" : "methodYarrow")} · ${T(t, "oddsYinYang")} ${wm.weights[6]}/${wm.total} · ${T(t, "oddsYangYin")} ${wm.weights[9]}/${wm.total}</div>
           </div>`;
@@ -320,7 +316,7 @@ function Ceremony({ open, onClose, t, loc }) {
           </div>
 
           <div class="shrink-0 flex flex-col items-center gap-3 pb-1">
-            
+            ${""}
             <div class="flex items-start gap-2 text-[length:var(--ms-label)] text-base-content/70 text-center">
               ${Icon("lucide:sparkles", "shrink-0 mt-0.5")}<span>${T(t, "readingGenerated")}</span>
             </div>
@@ -338,13 +334,6 @@ function Ceremony({ open, onClose, t, loc }) {
   </dialog>`;
 }
 
-
-
-
-
-
-
-
 const HW = (W - GAP) / 2;
 function CastPlay({ lines, onDone }) {
   const [cur, setCur] = useState(() => lines.map(() => 7));
@@ -361,7 +350,7 @@ function CastPlay({ lines, onDone }) {
       lockRef.current = i + 1;
       setLocked(i + 1);
       step();
-      try { navigator.vibrate?.(6); } catch {  }
+      try { navigator.vibrate?.(6); } catch { }
     }, 1000 + i * 280));
     const done = setTimeout(onDone, 1000 + 5 * 280 + 700);
     return () => { clearInterval(flick); timers.forEach(clearTimeout); clearTimeout(done); $seedLines.set(null); };
@@ -389,10 +378,6 @@ function CastPlay({ lines, onDone }) {
   </svg>`;
 };
 
-
-
-
-
 function Typewriter({ text }) {
   const [n, setN] = useState(() => (instant() ? text.length : 0));
   useEffect(() => {
@@ -409,7 +394,6 @@ function Typewriter({ text }) {
     <span aria-hidden="true">${text.slice(0, n)}${done ? "" : Caret("ml-0.5")}</span>
   </div>`;
 }
-
 
 export function ichingLog({ S, screen, openScreen, closeScreen, confirm, undo }) {
   const t = useStore(S.t), loc = useStore(S.locale);
@@ -452,7 +436,6 @@ export function ichingLog({ S, screen, openScreen, closeScreen, confirm, undo })
   return html`<div class="flex flex-col gap-2 max-w-[440px] mx-auto w-full" data-live data-log>
     ${rows.map((row) => {
       const nm = nameOf(row.n), to = row.to ? nameOf(row.to) : null;
-      
       return html`<div key=${row.id} data-entry class="rounded-[var(--ms-r)] sf-raised sf-e2 px-[var(--ms-pad)] py-3 flex items-center gap-[var(--ms-gap)]">
         <button data-open class="flex-1 min-w-0 flex items-center gap-[var(--ms-gap)] text-left" onClick=${() => { $sel.set(row); openScreen("entry"); }}>
           <div class="w-10 shrink-0"><${HexSvg} lines=${row.lines} label=${nm.cn} cls="text-base-content/85" /></div>
@@ -472,8 +455,6 @@ export function ichingLog({ S, screen, openScreen, closeScreen, confirm, undo })
     <${LogSheet} open=${screen === "entry"} onClose=${closeScreen} row=${sel} t=${t} loc=${loc} />
   </div>`;
 }
-
-
 
 function LogSheet({ open, onClose, row, t, loc }) {
   const nm = row ? nameOf(row.n) : null;

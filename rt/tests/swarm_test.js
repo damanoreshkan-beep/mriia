@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { S, SFX, packInput, decodeEntry, wrapT, project, lockOn, betterRun, radarPoint } from "../swarm.js";
 
@@ -39,8 +38,6 @@ etest("swarm engine · deterministic: same seed, same 300 frames, same state", a
 });
 
 etest("swarm engine · the ring attacks from every quadrant — turning is the game", async () => {
-  
-  
   for (const seed of [1, 0xB33F, 0xA17C7]) {
     const g = await engine();
     g.E.game_init(seed);
@@ -120,7 +117,6 @@ Deno.test("swarm math · wrapT takes the short way round", () => {
 });
 
 Deno.test("swarm math · input packing round-trips through the wasm's unpacking", () => {
-  
   for (const [az, el, fire] of [[0, 0, 0], [3599, 63, 1], [1800, -64, 1], [7200 + 90, 5, 0]]) {
     const p = packInput(az, el, fire);
     assertEquals((p & 0xfff) % 3600, ((az % 3600) + 3600) % 3600);
@@ -132,19 +128,17 @@ Deno.test("swarm math · input packing round-trips through the wasm's unpacking"
 Deno.test("swarm math · projection centres what you face and mirrors the wrap", () => {
   const w = 384, h = 700;
   assertEquals(project(2100, 0, 2100, 0, w, h).x, w / 2);
-  
   assertEquals(project(2150, 0, 2100, 0, w, h).x, w / 2 + 50 * (w / 600));
   assert(project(3590, 0, 10, 0, w, h).x < w / 2, "the 0/360 seam projected the long way round");
   assert(project(0, 100, 0, 0, w, h).y < h / 2);
 });
 
 Deno.test("swarm math · lockOn picks the nearest covered target, and only a covered one", () => {
-  
   const mk = (kind, azT, elT, distCm) => [0x100 + kind, azT, elT, (distCm >> 1) & 0x7ff];
   const dl = Int16Array.from([
-    ...mk(0, 100, 0, 800),     
-    ...mk(0, 100, 0, 400),     
-    ...mk(0, 900, 0, 200),     
+    ...mk(0, 100, 0, 800),
+    ...mk(0, 100, 0, 400),
+    ...mk(0, 900, 0, 200),
   ]);
   assertEquals(lockOn(dl, 3, 100, 0), 1, "did not prefer the nearer covered target");
   assertEquals(lockOn(dl, 3, 2700, 0), -1, "locked with the crosshair on empty sky");

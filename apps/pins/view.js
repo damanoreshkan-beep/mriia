@@ -16,9 +16,9 @@ const SAVED = collection("pinsSaved");
 const $q = atom("");
 const $busy = atom(false);
 const $err = atom("");
-const $items = atom([]);          
-const $kind = atom("");           
-const $full = atom({});           
+const $items = atom([]);
+const $kind = atom("");
+const $full = atom({});
 const $owned = atom(new Set());
 
 const FIXTURE = [{
@@ -81,13 +81,14 @@ function confirmFull(pin) {
 const fullOf = (pin, full) => full[pin.id] || pin.src;
 
 async function loadOwned() {
-  try { const all = await SAVED.all(); $owned.set(new Set(all.map((x) => x.id))); } catch {  }
+  try { const all = await SAVED.all(); $owned.set(new Set(all.map((x) => x.id))); } catch { }
 }
 
 const PinCard = ({ pin, t, full, owned, onSave, onCopy, compact }) => {
   const url = fullOf(pin, full);
   const isFull = !!full[pin.id];
   return html`<${Panel} className="gap-2" data-pin=${pin.id}>
+    ${""}
     <a href=${url} target="_blank" rel="noopener" data-open-image
       class="block w-full overflow-hidden rounded-[var(--ms-r-in)]"
       style=${`aspect-ratio:1/${ratio(pin)};background:${pin.color}`}>
@@ -116,8 +117,6 @@ const PinCard = ({ pin, t, full, owned, onSave, onCopy, compact }) => {
   <//>`;
 };
 
-
-
 const SHAPES = ["https://pin.it/", "https://www.pinterest.com/pin/", "https://www.pinterest.com/user/board/"];
 function Idle({ t }) {
   const owned = useStore($owned);
@@ -140,7 +139,6 @@ function Idle({ t }) {
   </div>`;
 }
 
-
 export function pins({ S, toast }) {
   const t = useStore(S.t);
   const q = useStore($q);
@@ -153,13 +151,13 @@ export function pins({ S, toast }) {
 
   useEffect(() => {
     loadOwned();
-    
     try {
       const u = new URLSearchParams(location.search).get("url");
       if (u) { $q.set(u); grab(u); }
       else if (gate) grab("https://pin.it/4TgG4yGpF");
-    } catch {  }
+    } catch { }
   }, []);
+
   useEffect(() => { items.forEach(confirmFull); }, [items]);
 
   const onCopy = async (url) => {
@@ -182,7 +180,7 @@ export function pins({ S, toast }) {
           aria-label=${T(t, "inputLabel")} placeholder=${T(t, "inputPlaceholder")}
           onInput=${(e) => $q.set(e.target.value)}
           class="input input-bordered w-full flex-1 min-w-0" />
-        
+        ${""}
         <button id="grab" type="submit" disabled=${busy} aria-busy=${busy ? "true" : null} class="btn btn-primary gap-1.5 shrink-0">
           ${Icon("lucide:arrow-down-to-line", "text-base")}
           <span class="truncate">${T(t, busy ? "grabbing" : "grab")}</span>
@@ -206,7 +204,6 @@ export function pins({ S, toast }) {
           </div>`}
   </div>`;
 }
-
 
 export function pinsSaved({ S, toast }) {
   const t = useStore(S.t);

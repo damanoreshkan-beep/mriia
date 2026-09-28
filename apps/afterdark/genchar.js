@@ -6,8 +6,8 @@ const gen = makeGenerator({
   $loading: $genCharLoading, $pct: $genCharPct, $error: $genCharError,
   onDone: (c) => { addMyChar(c); toggleChar(c.id); $newChar.set(c.id); wallet.refresh(); },
   onCharged: wallet.refresh,
-  onFail: () => setTimeout(wallet.refresh, 1500),   
+  onFail: () => setTimeout(wallet.refresh, 1500),
 });
 export const { generateCharacter, resumeGeneration, cancelGenerate, genElapsed } = gen;
 
-setTimeout(resumeGeneration, 0);   
+setTimeout(resumeGeneration, 0);

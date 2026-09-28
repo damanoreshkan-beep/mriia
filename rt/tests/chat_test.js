@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { asked as chatAsked, answered as chatAnswered, foldThread as chatFold, askSignature as chatSig, groundBook as chatGround } from "../chat.js";
-
 
 Deno.test("foldThread keeps the tail, and the tail is what carries the pronouns", () => {
   const turns = [];

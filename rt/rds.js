@@ -1,4 +1,3 @@
-
 export const RDS_BITRATE = 1187.5, RDS_SUBCARRIER = 57000;
 
 const GPOLY = 0x5B9;
@@ -50,7 +49,7 @@ export class RdsBlockSync {
         if (this.expect >= 0 && this.gap === 26 && t === this.expect) this.streak++;
         else this.streak = 1;
         this.expect = (t + 1) % 4; this.gap = 0;
-        if (this.streak >= 3) {                       
+        if (this.streak >= 3) {
           this.synced = true; this.badRun = 0;
           this.blocks[t] = (this.reg >> 10) & 0xFFFF; this.ok[t] = true;
           this.blockIdx = (t + 1) % 4; this.nbit = 0;
@@ -71,7 +70,7 @@ export class RdsBlockSync {
   }
 }
 
-const DYN_WINDOW = 90, DYN_DISTINCT = 3, AB_DEBOUNCE = 2;   
+const DYN_WINDOW = 90, DYN_DISTINCT = 3, AB_DEBOUNCE = 2;
 const txt = (arr, n) => { let s = ""; for (let i = 0; i < n; i++) { if (arr[i] === 0x0D) break; s += rdsChar(arr[i]); } return s.replace(/\s+$/, ""); };
 
 export class RdsParser {
@@ -82,9 +81,9 @@ export class RdsParser {
     this.rt = new Uint8Array(64).fill(0x20); this.rtSeen = new Uint8Array(64); this.rtTerm = -1;
     this.stableRT = ""; this.rtPublished = false; this.abCommit = -1; this.abCand = -1; this.abCount = 0;
   }
-  _psVote() {                                          
-    const out = new Uint8Array(8);                      
-    for (let p = 0; p < 8; p++) {                       
+  _psVote() {
+    const out = new Uint8Array(8);
+    for (let p = 0; p < 8; p++) {
       if (this.fill[p] < 2) return null;
       const a = this.p1[p], b = this.p2[p], c = this.p3[p];
       if (a === b || a === c) out[p] = a; else if (b === c) out[p] = b; else return null;
@@ -93,7 +92,7 @@ export class RdsParser {
   }
   group(g) {
     const { a, b, c, d, ok } = g;
-    if (!ok[0] || !ok[1]) return;                      
+    if (!ok[0] || !ok[1]) return;
     this.gn++; this.pi = a;
     const type = (b >> 12) & 0xF, ver = (b >> 11) & 1;
     this.pty = (b >> 5) & 0x1F; this.tp = (b >> 10) & 1;
@@ -115,18 +114,18 @@ export class RdsParser {
     }
   }
   _confirmPS() {
-    const cand = this._psVote(); if (!cand) return;    
+    const cand = this._psVote(); if (!cand) return;
     this.lastCand = cand;
-    if (this.stablePS && this._eq(cand, this.stablePS)) return;   
+    if (this.stablePS && this._eq(cand, this.stablePS)) return;
     this.psHist.push({ s: txt(cand, 8), gn: this.gn });
     this.psHist = this.psHist.filter((e) => e.gn > this.gn - DYN_WINDOW);
-    if (new Set(this.psHist.map((e) => e.s)).size >= DYN_DISTINCT) { this.dynamic = true; return; }   
-    if (!this.dynamic) this.stablePS = cand;           
+    if (new Set(this.psHist.map((e) => e.s)).size >= DYN_DISTINCT) { this.dynamic = true; return; }
+    if (!this.dynamic) this.stablePS = cand;
   }
   _confirmRT() {
-    if (this.rtPublished) return;                                 
+    if (this.rtPublished) return;
     const end = this.rtTerm >= 0 ? this.rtTerm : 64;
-    for (let p = 0; p < end; p++) if (!this.rtSeen[p]) return;    
+    for (let p = 0; p < end; p++) if (!this.rtSeen[p]) return;
     this.stableRT = txt(this.rt, end); this.rtPublished = true;
   }
   _eq(a, b) { for (let i = 0; i < 8; i++) if (a[i] !== b[i]) return false; return true; }
@@ -145,12 +144,12 @@ import { firLowpass } from "./fmradio.js";
 export class RdsDemod {
   constructor(fs = 250_000) {
     this.step = 2 * Math.PI * RDS_SUBCARRIER / fs; this.ph = 0;
-    this.dec = 5; this.fs2 = fs / this.dec;                     
+    this.dec = 5; this.fs2 = fs / this.dec;
     this.lpf = firLowpass(48, 3000, fs);
     this.hi = new Float32Array(this.lpf.length); this.hq = new Float32Array(this.lpf.length); this.hp = 0; this.dc = 0;
-    this.cph = 0; this.cfr = 0;                                 
-    this.sps = this.fs2 / (RDS_BITRATE * 2);                    
-    this.mu = this.sps; this.pv = 0; this.iv = 0;               
+    this.cph = 0; this.cfr = 0;
+    this.sps = this.fs2 / (RDS_BITRATE * 2);
+    this.mu = this.sps; this.pv = 0; this.iv = 0;
     this.prevChip = 0; this.chipParity = 0; this.lastE = 0; this.haveE = false;
   }
   process(mpx) {
@@ -165,13 +164,13 @@ export class RdsDemod {
       for (let k = 0; k < hlen; k++) { p = (p - 1 + hlen) % hlen; const t = this.lpf[k]; fi += this.hi[p] * t; fq += this.hq[p] * t; }
       const cc = Math.cos(this.cph), ss = Math.sin(this.cph);
       const ri = fi * cc + fq * ss, rq = -fi * ss + fq * cc;
-      const err = (ri > 0 ? rq : -rq);                          
+      const err = (ri > 0 ? rq : -rq);
       this.cfr += 2e-4 * err; this.cph += this.cfr + 5e-3 * err;
       if (this.cph > Math.PI) this.cph -= 2 * Math.PI; else if (this.cph < -Math.PI) this.cph += 2 * Math.PI;
       this.mu -= 1;
       if (this.mu < 1) {
-        const frac = this.mu, cur = this.iv + (ri - this.iv) * (1 + frac); 
-        const te = (this.pv >= 0 ? 1 : -1) * cur - (cur >= 0 ? 1 : -1) * this.pv; 
+        const frac = this.mu, cur = this.iv + (ri - this.iv) * (1 + frac);
+        const te = (this.pv >= 0 ? 1 : -1) * cur - (cur >= 0 ? 1 : -1) * this.pv;
         this.mu += this.sps - 0.01 * te;
         this.pv = cur;
         const e = cur >= 0 ? 1 : 0;

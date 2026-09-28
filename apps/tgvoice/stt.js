@@ -1,4 +1,3 @@
-
 import { detect } from "/_rt/langid.js";
 import { gate } from "/_rt/gate.js";
 import { log, mark } from "./log.js";
@@ -6,7 +5,7 @@ import { log, mark } from "./log.js";
 const assetURL = (f) => new URL(`./assets/${f}`, import.meta.url).href;
 
 export const LID_HEAD_SEC = 8;
-export const MODEL_ROOT_FS = "/models";     
+export const MODEL_ROOT_FS = "/models";
 
 const HF = "https://huggingface.co";
 export const MODELS = {
@@ -43,7 +42,6 @@ export const LANGS = Object.keys(MODELS);
 
 const resolveUrl = (u) => u;
 
-
 export async function decodePcm16k(arrayBuffer, headSeconds = 0) {
   const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AC) throw new Error("no AudioContext");
@@ -76,7 +74,6 @@ async function resampleTo16k(mono, srcRate) {
   const rendered = await oac.startRendering();
   return rendered.getChannelData(0);
 }
-
 
 const CACHE = "tgvoice-models-v1";
 
@@ -129,7 +126,6 @@ export async function ensureModel(lang, onFraction) {
   return bytes;
 }
 
-
 let enginePromise = null;
 
 /** Has the vendored WASM engine been built and committed? False until CI produces it. */
@@ -151,8 +147,8 @@ function loadEngine() {
   if (enginePromise) return enginePromise;
   enginePromise = (async () => {
     log("engine: loading scripts");
-    await loadScript(assetURL("sherpa-onnx-asr.js"));            
-    await loadScript(assetURL("sherpa-onnx-wasm-web.js"));       
+    await loadScript(assetURL("sherpa-onnx-asr.js"));
+    await loadScript(assetURL("sherpa-onnx-wasm-web.js"));
     mark("engine");
     log("engine: instantiating wasm");
     const Module = await globalThis.SherpaOnnx({
@@ -170,7 +166,7 @@ function loadEngine() {
 
 async function buildRecognizer(Module, lang, files) {
   const dir = `${MODEL_ROOT_FS}/${lang}`;
-  try { Module.FS.mkdirTree(dir); } catch {  }
+  try { Module.FS.mkdirTree(dir); } catch { }
   const paths = {};
   for (const [key, bytes] of Object.entries(files)) {
     const p = `${dir}/${key}.bin`;
@@ -187,7 +183,7 @@ async function buildRecognizer(Module, lang, files) {
     featConfig: { sampleRate: 16000, featureDim: 80 },
     modelConfig, decodingMethod: "greedy_search",
   }, Module);
-  if (!rec.handle) { try { rec.free(); } catch {  } throw new Error(`modelInit:${lang}`); }
+  if (!rec.handle) { try { rec.free(); } catch { } throw new Error(`modelInit:${lang}`); }
   return rec;
 }
 
@@ -202,11 +198,11 @@ async function withRecognizer(lang, files, fn) {
     mark(null);
     return out;
   } finally {
-    try { rec.free(); } catch {  }
+    try { rec.free(); } catch { }
     try {
       const dir = `${MODEL_ROOT_FS}/${lang}`;
       for (const f of Module.FS.readdir(dir)) if (f !== "." && f !== "..") Module.FS.unlink(`${dir}/${f}`);
-    } catch {  }
+    } catch { }
     log(`recognizer ${lang}: freed`);
   }
 }
@@ -232,7 +228,6 @@ async function runOne(rec, pcm, onChunk) {
   }
   return parts.join(" ").trim();
 }
-
 
 const FIXTURE = {
   uk: "привіт це тестове голосове повідомлення з телеграму все працює офлайн",

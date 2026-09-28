@@ -16,15 +16,15 @@ const iso = (flag) => Array.from(flag || "").map((ch) => { const n = ch.codePoin
 
 export function globe({ S }) {
   const t = useStore(S.t), loc = useStore(S.locale);
-  const [sel, setSel] = useState(null);      
+  const [sel, setSel] = useState(null);
   const [q, setQ] = useState("");
-  const [focus, setFocus] = useState(null);  
+  const [focus, setFocus] = useState(null);
   const f = sel ? facts[sel] : null;
   const ql = q.trim().toLowerCase();
   const matches = ql ? LIST.filter((c) => c.n.toLowerCase().includes(ql) || (c.nUk || "").toLowerCase().includes(ql)).slice(0, 6) : [];
 
-  const pick = ({ id }) => { if (id && facts[id]) { setSel(id); setQ(""); } };                 
-  const choose = (c) => { setSel(c.id); setQ(""); setFocus({ lat: c.ll[0], lon: c.ll[1] }); };  
+  const pick = ({ id }) => { if (id && facts[id]) { setSel(id); setQ(""); } };
+  const choose = (c) => { setSel(c.id); setQ(""); setFocus({ lat: c.ll[0], lon: c.ll[1] }); };
 
   const num = (n) => n == null ? "—" : Number(n).toLocaleString(loc === "uk" ? "uk-UA" : "en-US");
   const row = (icon, label, val) => val ? html`<div class="flex items-start gap-2.5 py-2"><span class="text-muted shrink-0 w-5 text-center mt-0.5">${Icon(icon)}</span><div class="min-w-0"><div class=${LABEL}>${T(t, label)}</div><div class="font-medium break-words">${val}</div></div></div>` : null;
@@ -38,6 +38,7 @@ export function globe({ S }) {
     ${f
       ? html`<${Panel} data-facts=${sel}>
           <div class="flex items-center gap-3">
+            ${""}
             <span class="w-11 h-11 shrink-0 rounded-[var(--ms-r-in)] sf-inset grid place-items-center font-mono font-semibold tracking-wider">${iso(f.flag)}</span>
             <div class="min-w-0"><div class="font-bold text-lg leading-tight break-words">${f.n}</div><div class="text-sm text-muted">${f.reg}${f.sub ? " · " + f.sub : ""}</div></div>
           </div>

@@ -1,8 +1,7 @@
-
 export function capture(bytes, { fs = 2_000_000, decim = 8, gapTrimUs = 3000 } = {}) {
   const nS = bytes.length >> 1, M = Math.floor(nS / decim);
   if (M < 4) return [];
-  const env = new Float32Array(M);                       
+  const env = new Float32Array(M);
   for (let m = 0; m < M; m++) {
     let acc = 0;
     for (let d = 0; d < decim; d++) { const j = (m * decim + d) * 2; let I = bytes[j], Q = bytes[j + 1]; if (I > 127) I -= 256; if (Q > 127) Q -= 256; acc += I * I + Q * Q; }
@@ -10,8 +9,8 @@ export function capture(bytes, { fs = 2_000_000, decim = 8, gapTrimUs = 3000 } =
   }
   const sorted = [...env].sort((a, b) => a - b);
   const noise = sorted[M >> 1] || 0, peak = sorted[Math.min(M - 1, Math.floor(M * 0.97))] || 0;
-  if (peak - noise < 4) return [];                       
-  const thi = noise + 0.5 * (peak - noise), tlo = noise + 0.35 * (peak - noise);  
+  if (peak - noise < 4) return [];
+  const thi = noise + 0.5 * (peak - noise), tlo = noise + 0.35 * (peak - noise);
   const usPer = (decim / fs) * 1e6;
   const raw = []; let state = env[0] > thi, run = 1;
   for (let m = 1; m < M; m++) { const v = env[m], nx = state ? v > tlo : v > thi; if (nx === state) run++; else { raw.push([state, run]); state = nx; run = 1; } }
@@ -29,7 +28,7 @@ export function isolateFrame(timings, { gapUs = 3000 } = {}) {
   if (cur.length) frames.push(cur);
   if (!frames.length) return { frame: [], repeats: 0, gapUs, count: 0 };
   const byLen = {}; for (const f of frames) (byLen[f.length] = byLen[f.length] || []).push(f);
-  const modal = Object.values(byLen).sort((a, b) => b.length - a.length)[0];  
+  const modal = Object.values(byLen).sort((a, b) => b.length - a.length)[0];
   return { frame: modal[0], repeats: modal.length, gapUs, count: frames.length };
 }
 
@@ -63,4 +62,4 @@ export function renderOOK(timings, { fs = 2_000_000, freqOffset = 250_000, amp =
   return out;
 }
 
-export const OOK_FREQS = [433_920_000, 315_000_000, 868_350_000];   
+export const OOK_FREQS = [433_920_000, 315_000_000, 868_350_000];

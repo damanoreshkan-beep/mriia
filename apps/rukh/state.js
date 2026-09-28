@@ -10,11 +10,11 @@ import { toEnglish } from "/_rt/translate.js";
 import { report } from "/_rt/telemetry.js";
 
 const BASE = `${VPS_PROXY}/video`;
-export const WORDS_MAX = 500;        
-const CAP = 24;                      
-const MIN_CLIP_BYTES = 4096;         
-const DECODE_MS = 8000;              
-const MOCK_CLIP = new URL("./assets/mock.webm", import.meta.url).href;   
+export const WORDS_MAX = 500;
+const CAP = 24;
+const MIN_CLIP_BYTES = 4096;
+const DECODE_MS = 8000;
+const MOCK_CLIP = new URL("./assets/mock.webm", import.meta.url).href;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** The first frame: a same-origin picture URL (blob:/data:), or null — the words alone film. */
@@ -37,7 +37,7 @@ const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const setJob = (patch) => $job.set({ ...$job.get(), ...patch });
 
 const held = (url) => $src.get() === url || $clips.get().some((c) => c.url === url || c.pic === url) || $clip.get()?.url === url;
-const revoke = (url) => { if (url?.startsWith?.("blob:") && !held(url)) { try { URL.revokeObjectURL(url); } catch {  } } };
+const revoke = (url) => { if (url?.startsWith?.("blob:") && !held(url)) { try { URL.revokeObjectURL(url); } catch { } } };
 
 const GATE_MODELS = [{ id: "Lightricks/LTX-2-3", tier: "both", alive: true }, { id: "Upsampler/wan-2-2-5b-video", tier: "both", alive: true }, { id: "zerogpu-aoti/wan2-2-fp8da-aoti-faster", tier: "i2v", alive: null }];
 /** Fetch the catalogue (public on the edge; `fresh` re-probes liveness). Under the gate a three-row mock. */
@@ -82,7 +82,7 @@ function load(url, play) {
   if (!el) { pending = { url, play }; return; }
   clearTimeout(decodeTimer);
   $player.set({ playing: false, pos: 0, dur: 0, muted: true, unplayable: false });
-  if (el.src !== url) { el.src = url; el.load?.(); }   
+  if (el.src !== url) { el.src = url; el.load?.(); }
   if (gate) return;
   decodeTimer = setTimeout(() => { if (el && el.src === url && !(el.readyState >= 1)) $player.set({ ...$player.get(), unplayable: true }); }, DECODE_MS);
   if (play) { el.muted = true; el.play?.()?.catch?.(() => {}); }
@@ -119,7 +119,7 @@ function land({ blob, url, by, words, pic, dur, res }) {
   $clip.set(clip);
   if (idbSupported && !gate) clipStore.put(id, { blob, words, pic: !!clip.pic, by: clip.by, dur: clip.dur, res: clip.res }).catch(() => {});
   setJob({ phase: "done", error: null, eta: null, pct: null, elapsed: 0 });
-  $src.set(null);            
+  $src.set(null);
   load(clip.url, true);
 }
 const fail = (run, code) => { if (run !== runs) return; setJob({ phase: "error", error: code, eta: null, pct: null, elapsed: 0 }); report("clip.fail", { reason: code, mode: $src.get() ? "picture" : "text", model: $model.get() }); };
@@ -200,6 +200,6 @@ export async function boot() {
   try {
     const rows = await clipStore.all();
     $clips.set(rows.slice(0, CAP).map((r) => ({ id: r.id, url: URL.createObjectURL(r.blob), blob: r.blob, words: r.words || "", pic: "", by: r.by || "", ts: r._ts, dur: r.dur || 0, res: r.res || "" })));
-  } catch {  }
+  } catch { }
 }
 export { mockArt };

@@ -18,13 +18,13 @@ export default [
       h.expect((await h.count("[data-viztick]")) === 10, "перемикач не має 10 варіантів");
       await h.tap('[data-viztick="4"]'); await h.wait(150);
       h.expect((await h.attr('[data-viztick="4"]', "aria-current")) === "true", "варіант спектра не перемкнувся");
-      await h.tap('[data-viztick="0"]'); await h.wait(120);                 
+      await h.tap('[data-viztick="0"]'); await h.wait(120);
     },
   },
   {
     name: "генератор пише біт", run: async (h) => {
       await ready(h);
-      await h.tap("#gen"); await h.wait(700);   
+      await h.tap("#gen"); await h.wait(700);
       h.expect((await h.count("[data-viz] > div")) === 16, "візуалізатор зник після генерації");
     },
   },
@@ -40,13 +40,13 @@ export default [
   {
     name: "налаштування переживають перезапуск", run: async (h) => {
       await ready(h);
-      await h.tap('[data-style="house"]'); await h.wait(200);              
+      await h.tap('[data-style="house"]'); await h.wait(200);
       h.expect((await h.attr('[data-style="house"]', "aria-pressed")) === "true", "house не обрався");
       await h.reload();
       await ready(h);
       h.expect((await h.attr('[data-style="house"]', "aria-pressed")) === "true", "стиль не зберігся після перезапуску");
       h.expect(/124\s*BPM/i.test(await h.bodyText()), "темп не зберігся після перезапуску");
-      await h.tap('[data-style="techno"]'); await h.wait(150);             
+      await h.tap('[data-style="techno"]'); await h.wait(150);
     },
   },
   {
@@ -66,7 +66,7 @@ export default [
   {
     name: "збереження генерованого біта названо за жанром, не «Біт»", run: async (h) => {
       await ready(h);
-      await h.tap("#gen"); await h.wait(700);          
+      await h.tap("#gen"); await h.wait(700);
       await h.tap("#save"); await h.wait(250);
       await h.click('[data-tab="saved"]'); await h.wait(300);
       const name = (await h.text("[data-saved] .font-semibold")).trim();

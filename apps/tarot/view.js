@@ -16,8 +16,8 @@ import { HeroStage } from "/_rt/hero.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const QS = new URLSearchParams(location.search);
-const SPREAD_OVERRIDE = QS.get("spread"); 
-const imgURL = (file) => new URL(`./assets/${file}`, import.meta.url).href;   
+const SPREAD_OVERRIDE = QS.get("spread");
+const imgURL = (file) => new URL(`./assets/${file}`, import.meta.url).href;
 const randSeed = () => Math.floor(Math.random() * 0x100000000) >>> 0;
 const dk = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -31,18 +31,18 @@ const LBL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider te
 export function tarot({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
-  useStore(trTick);                                              
-  useStore(aiTick);                                             
+  useStore(trTick);
+  useStore(aiTick);
   const [spreadId, setSpreadId] = useState(SPREADS.some((s) => s.id === SPREAD_OVERRIDE) ? SPREAD_OVERRIDE : "daily");
-  const [nonce, setNonce] = useState(0);                         
-  const [override, setOverride] = useState(null);                
-  const [detail, setDetail] = useState(0);                       
-  const liveBase = useRef(randSeed()).current;                   
+  const [nonce, setNonce] = useState(0);
+  const [override, setOverride] = useState(null);
+  const [detail, setDetail] = useState(0);
+  const liveBase = useRef(randSeed()).current;
 
   const now = gate ? new Date(2027, 6, 23) : new Date();
   const spread = spreadById(spreadId);
   const seed = spreadId === "daily" ? hashSeed(dk(now))
-    : override != null ? override                                
+    : override != null ? override
     : ((gate ? 0 : liveBase) ^ hashSeed(spreadId + ":" + nonce)) >>> 0;
   const drawn = draw(seed, spread.pos.length, spread.majorOnly ? 22 : 78);
   const isDaily = spread.pos.length === 1;
@@ -51,7 +51,7 @@ export function tarot({ S, screen, openScreen, closeScreen }) {
   const synthText = `${T(t, SPREAD_KEY[spreadId])} — ${T(t, DESC_KEY[spreadId])}\n` +
     drawn.map((d, i) => `${i + 1}. ${T(t, spread.pos[i])}: ${cardName(DECK[d.card], loc)} (${T(t, d.reversed ? "reversed" : "upright")}) — ${meaningOf(d)}`).join("\n");
 
-  useEffect(() => { setOverride(null); }, [spreadId]);           
+  useEffect(() => { setOverride(null); }, [spreadId]);
   useEffect(() => { warm(drawn.map(meaningOf), loc); }, [seed, loc]);
   useEffect(() => {
     if (gate || isDaily) return;
@@ -65,22 +65,23 @@ export function tarot({ S, screen, openScreen, closeScreen }) {
   const pickSpread = (id) => { setSpreadId(id); };
   const sIdx = SPREADS.findIndex((s) => s.id === spreadId);
   const goSpread = (d) => { const s = SPREADS[(sIdx + d + SPREADS.length) % SPREADS.length]; if (s) setSpreadId(s.id); };
-  const { paneRef, pan } = usePanX({ onNext: () => goSpread(1), onPrev: () => goSpread(-1) });   
+  const { paneRef, pan } = usePanX({ onNext: () => goSpread(1), onPrev: () => goSpread(-1) });
   const shuffle = () => { setOverride(null); setNonce((n) => n + 1); };
-  const openRitual = () => { try { const req = typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission; if (typeof req === "function") req.call(DeviceOrientationEvent).catch(() => {}); } catch {  } openScreen("ritual"); };
+  const openRitual = () => { try { const req = typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission; if (typeof req === "function") req.call(DeviceOrientationEvent).catch(() => {}); } catch { } openScreen("ritual"); };
   const completeRitual = (s) => { setOverride(s >>> 0); closeScreen(); };
 
   const rows = spread.rows || defaultRows(spread.pos.length);
 
   return html`<${Fragment}>
+    ${""}
     <${HeroStage} shader=${new URL("hero.wgsl", import.meta.url)} seed=${((drawn[0]?.card ?? 0) + 1) / 79} />
+
     ${isDaily
       ? html`<div class="relative z-10 flex flex-col gap-4" data-spread-id=${spreadId} data-cards=${drawn.length}>
           <${Picker} t=${t} spreadId=${spreadId} onPick=${pickSpread} />
           <${Header} t=${t} spreadId=${spreadId} isDaily=${true} />
           <div class="overflow-hidden"><div ref=${paneRef} ...${pan} class="touch-pan-y will-change-transform"><${Solo} d=${drawn[0]} pos=${spread.pos[0]} t=${t} loc=${loc} onOpen=${() => openCard(0)} /></div></div>
         </div>`
-      
       : html`<div class="relative z-10 flex flex-col gap-2.5 h-[calc(100dvh-11.5rem)] min-h-0 overflow-hidden" data-spread-id=${spreadId} data-cards=${drawn.length}>
           <${Picker} t=${t} spreadId=${spreadId} onPick=${pickSpread} />
           <${Header} t=${t} spreadId=${spreadId} isDaily=${false} onShuffle=${shuffle} onRitual=${openRitual} onSynth=${() => openScreen("synth")} />
@@ -93,8 +94,6 @@ export function tarot({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
 const seq = (a, b) => Array.from({ length: b - a }, (_, i) => a + i);
 function defaultRows(n) {
   if (n <= 4) return [seq(0, n)];
@@ -103,7 +102,6 @@ function defaultRows(n) {
   for (let i = 0; i < n; i += per) rows.push(seq(i, Math.min(i + per, n)));
   return rows;
 }
-
 
 function Picker({ t, spreadId, onPick }) {
   const wrapRef = useRef();
@@ -115,13 +113,13 @@ function Picker({ t, spreadId, onPick }) {
   </div>`;
 }
 
-
 function Header({ t, spreadId, isDaily, onShuffle, onRitual, onSynth }) {
   return html`<div class="shrink-0 flex items-start justify-between gap-3">
     <div class="min-w-0">
       <div class="font-bold text-lg leading-tight">${T(t, SPREAD_KEY[spreadId])}</div>
       <p class="mt-0.5 text-sm leading-snug text-muted break-words line-clamp-2">${T(t, DESC_KEY[spreadId])}</p>
     </div>
+    ${""}
     ${!isDaily ? html`<div class="shrink-0 flex items-center gap-1.5">
       <button data-synth aria-label=${T(t, "synthTitle")} class="btn btn-sm btn-circle" onClick=${onSynth}>${Icon("lucide:scroll-text", "text-base")}</button>
       <button data-shuffle aria-label=${T(t, "redraw")} class="btn btn-sm btn-circle" onClick=${onShuffle}>${Icon("lucide:shuffle", "text-base")}</button>
@@ -130,13 +128,10 @@ function Header({ t, spreadId, isDaily, onShuffle, onRitual, onSynth }) {
   </div>`;
 }
 
-
 const GATE_SUMMARY = { uk: "Розклад радить довіритися внутрішньому чуттю: минуле поступово відпускає, теперішнє прояснюється, а майбутнє винагородить терпіння й чесність із собою. Дій виважено — рівновага вже поруч.", en: "The spread counsels trust in your own instinct: the past is loosening its grip, the present is clearing, and the future rewards patience and honesty with yourself. Move deliberately — the balance you seek is already near." };
 function SynthSheet({ open, onClose, sig, input, t, loc, spreadName }) {
   useStore(aiTick);
   const [failed, setFailed] = useState(false);
-  
-  
   const run = () => { setFailed(false); warmSummary(sig, input, loc); return setTimeout(() => setFailed(!isSummarized(sig, loc)), 12000); };
   useEffect(() => {
     if (!open || gate || isSummarized(sig, loc)) return;
@@ -154,8 +149,6 @@ function SynthSheet({ open, onClose, sig, input, t, loc, spreadName }) {
   </${Sheet}>`;
 }
 
-
-
 function FitReading({ rows, drawn, pos, t, loc, onOpen, paneRef, pan }) {
   const maxCols = Math.max(...rows.map((r) => r.length));
   const wpct = (94 / maxCols).toFixed(2);
@@ -165,13 +158,6 @@ function FitReading({ rows, drawn, pos, t, loc, onOpen, paneRef, pan }) {
     </div>`)}
   </div>`;
 }
-
-
-
-
-
-
-
 
 function FitTile({ d, pos, t, loc, wpct, onOpen }) {
   const c = DECK[d.card];
@@ -183,17 +169,9 @@ function FitTile({ d, pos, t, loc, wpct, onOpen }) {
   </button>`;
 }
 
-
-
-
-
-
-
-
-
-
 const RIT_COLORS = [[242, 184, 75], [92, 228, 220], [240, 101, 94], [64, 193, 115], [90, 169, 230], [232, 160, 214]];
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
 function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
   const dref = useRef(), cref = useRef();
   const [color, setColor] = useState(0);
@@ -202,28 +180,23 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
   const [live, setLive] = useState(gate ? { tilt: 18, head: 127, time: "07:23:00" } : { tilt: 0, head: 0, time: "" });
   const S = useRef({ samples: [], heading: 0, tx: 0, ty: 0, px: 0.5, py: 0.5, touch: 0, moved: 0, color: 0, num: 0 }).current;
 
-  
-  
-  
   const recount = () => { const n = hashSeed(`${S.color}|${S.samples.join(",")}`) % deckLen; S.num = n; setNum(n); };
   useEffect(() => { const el = dref.current; if (!el) return; if (open) { if (!el.open) el.showModal?.(); } else el.close?.(); }, [open]);
   useEffect(() => { S.color = color; recount(); }, [color]);
 
-  
   useEffect(() => {
     if (!open) return;
     const cv = cref.current; if (!cv || !cv.getContext) return;
-    const ctx = cv.getContext("2d"); if (!ctx || typeof ctx.arc !== "function") return;   
+    const ctx = cv.getContext("2d"); if (!ctx || typeof ctx.arc !== "function") return;
     S.samples = []; S.touch = 0; S.moved = 0;
     const dpr = Math.min((globalThis.devicePixelRatio || 1), 2);
     const size = () => { const r = cv.getBoundingClientRect(); cv.width = Math.max(1, (r.width || globalThis.innerWidth || 360) * dpr); cv.height = Math.max(1, (r.height || globalThis.innerHeight || 640) * dpr); };
     size();
-    
     const P = Array.from({ length: 96 }, (_, i) => ({ a: i * 2.39996, r: 0.14 + ((i * 0.61803) % 1) * 0.86, sz: 1 + ((i * 0.37) % 1) * 2.4, spd: 0.0025 + ((i * 0.113) % 1) * 0.006 }));
     const paint = (now) => {
       const w = cv.width, h = cv.height, cx = w / 2, cy = h * 0.44, R = Math.min(w, h) * 0.4, c = RIT_COLORS[S.color];
       ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = "rgba(10,10,12,0.22)"; ctx.fillRect(0, 0, w, h);       
+      ctx.fillStyle = "rgba(10,10,12,0.22)"; ctx.fillRect(0, 0, w, h);
       ctx.globalCompositeOperation = "lighter";
       const tx = S.tx * 0.5 + (S.touch ? (S.px - 0.5) * 0.7 : 0), ty = S.ty * 0.5 + (S.touch ? (S.py - 0.5) * 0.7 : 0);
       for (const p of P) {
@@ -234,7 +207,7 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
         ctx.fillStyle = rgba(c, 0.06); ctx.beginPath(); ctx.arc(x, y, p.sz * 5 * dpr, 0, 6.2832); ctx.fill();
       }
     };
-    if (gate) { ctx.fillStyle = "#0a0a0c"; ctx.fillRect(0, 0, cv.width, cv.height); paint(1400); return; }   
+    if (gate) { ctx.fillStyle = "#0a0a0c"; ctx.fillRect(0, 0, cv.width, cv.height); paint(1400); return; }
     let raf, last = 0;
     const push = (now) => {
       if (now - last < 90) return; last = now;
@@ -256,11 +229,10 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
     return () => { cancelAnimationFrame(raf); window.removeEventListener("deviceorientation", onOri); cv.removeEventListener("pointerdown", onPtr); cv.removeEventListener("pointermove", onPtr); window.removeEventListener("pointerup", onUp); window.removeEventListener("resize", size); };
   }, [open]);
 
-  const drawNow = () => { onDraw(hashSeed(`${S.color}|${S.num}`) >>> 0); };   
+  const drawNow = () => { onDraw(hashSeed(`${S.color}|${S.num}`) >>> 0); };
   const col = RIT_COLORS[color];
-  const { boxRef, grip } = useSheetDrag(onClose);   
+  const { boxRef, grip } = useSheetDrag(onClose);
 
-  
   const ink = "text-white", inkMuted = "text-white/70";
   return html`<dialog id="ritual" ref=${dref} class="modal" onClose=${onClose}>
     <div ref=${boxRef} data-charge=${charge.toFixed(2)} data-key-color=${color} class=${`modal-box max-w-none w-screen h-[100dvh] max-h-none rounded-none p-0 ${ink} overflow-hidden relative`} style="background:#000">
@@ -299,7 +271,7 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
           </div>
         </div>
 
-        
+        ${""}
         <div class="flex flex-col gap-4">
           <div class="flex justify-center gap-3">
             ${RIT_COLORS.map((c, i) => html`<button data-color=${i} aria-label=${`${T(t, "colorPick")} ${i + 1}`} aria-pressed=${color === i} class=${`h-8 w-8 rounded-full transition-[transform,box-shadow] ${color === i ? "ring-2 ring-offset-2 ring-offset-black scale-110" : ""}`} style=${`background:${rgba(c, color === i ? 1 : 0.6)};--tw-ring-color:${rgba(c, 1)}`} onClick=${() => setColor(i)} key=${i}></button>`)}
@@ -311,7 +283,6 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
     <form method="dialog" class="modal-backdrop"><button>${T(t, "close")}</button></form>
   </dialog>`;
 }
-
 
 function Solo({ d, pos, t, loc, onOpen }) {
   useStore(trTick);
@@ -329,7 +300,6 @@ function Solo({ d, pos, t, loc, onOpen }) {
   </div>`;
 }
 
-
 function CardSheet({ open, onClose, d, pos, t, loc }) {
   useStore(trTick);
   const c = d ? DECK[d.card] : null;
@@ -341,7 +311,7 @@ function CardSheet({ open, onClose, d, pos, t, loc }) {
         <div class="text-center">
           <div class="font-bold text-xl leading-tight">${cardName(c, loc)}</div>
           <div class=${`${LBL} mt-1`}>${kind}</div>
-          
+          ${""}
           <div class=${`mt-2 badge badge-sm font-medium ${d.reversed ? "badge-warning" : "badge-secondary"}`}>${T(t, d.reversed ? "reversed" : "upright")}</div>
         </div>
         <p class="text-[0.95rem] leading-relaxed">${tr(meaningOf(d), loc)}</p>

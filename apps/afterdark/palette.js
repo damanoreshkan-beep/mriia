@@ -1,4 +1,3 @@
-
 export const SLOTS = 8;
 const FALLBACK = { washes: ["#FF3EB5", "#8B5CF6", "#39FF6A", "#F5B942"], sun: "#F5B942", key: "#FFE9F4", base: "#0A0510", content: "#F2EEE6" };
 const cache = new Map();
@@ -28,7 +27,7 @@ export function isDay() { return typeof document !== "undefined" && (document.do
 export function readPalette() {
   const out = new Float32Array(SLOTS * 4);
   let get = () => "";
-  try { const cs = getComputedStyle(document.documentElement); get = (k) => cs.getPropertyValue(k); } catch {  }
+  try { const cs = getComputedStyle(document.documentElement); get = (k) => cs.getPropertyValue(k); } catch { }
   const day = isDay();
   const tok = (k, fb) => rgb(get(k)) || rgb(fb);
   const washes = [tok("--app-accent", FALLBACK.washes[0]), tok("--color-secondary", FALLBACK.washes[1]), tok("--color-accent", FALLBACK.washes[2]), tok("--color-warning", FALLBACK.washes[3])]

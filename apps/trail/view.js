@@ -21,17 +21,16 @@ const dayIdOf = (t) => { const d = new Date(t); return `${d.getFullYear()}-${pad
 const monthIdOf = (id) => id.slice(0, 7);
 
 const HOME_M = 120;
-const MIN_SPAN_M = 300;   
+const MIN_SPAN_M = 300;
 
 const $days = atom(new Map());
 const $rec = atom(false);
 const $err = atom(null);
 const $loaded = atom(false);
-const $perm = atom("unknown");      
+const $perm = atom("unknown");
 const $month = atom(monthIdOf(dayIdOf(Date.now())));
 
 let cancelWatch = null;
-
 
 const dayOf = (id) => $days.get().get(id) || { id, points: [], lost: 0 };
 
@@ -39,7 +38,7 @@ async function putDay(day) {
   const next = new Map($days.get());
   next.set(day.id, day);
   $days.set(next);
-  try { await DAYS.put(day.id, { points: day.points, lost: day.lost }); } catch {  }
+  try { await DAYS.put(day.id, { points: day.points, lost: day.lost }); } catch { }
 }
 
 async function onFix(fix) {
@@ -58,10 +57,10 @@ async function reconcile() {
     const day = dayOf(dayIdOf(Date.now()));
     const lost = Math.max(0, (st.fixes || 0) - day.points.length);
     if (lost !== day.lost) await putDay({ ...day, lost });
-  } catch {  }
+  } catch { }
 }
+
 async function checkPermission() {
-  
   if (gate) { $perm.set(MOCK === "grant" ? "needsSettings" : "ok"); return; }
   if (!shell.has("bg.start") || !shell.has("location.watch")) {
     $perm.set(shell.why("bg.start") === ERR.staleBridge ? "stale" : "noApp");
@@ -70,7 +69,6 @@ async function checkPermission() {
   try {
     const info = await shell.call("system.info", {});
     const perms = info?.perms || {};
-    
     $perm.set(perms.ACCESS_BACKGROUND_LOCATION === true ? "ok" : "needsSettings");
   } catch { $perm.set("needsSettings"); }
 }
@@ -88,22 +86,17 @@ async function startDay(t) {
 async function stopDay() {
   cancelWatch?.();
   cancelWatch = null;
-  try { await shell.call("bg.stop", {}); } catch {  }
+  try { await shell.call("bg.stop", {}); } catch { }
   $rec.set(false);
 }
-
-
-
-
 
 function sampleMonth() {
   const rnd = mulberry32(0x7241_1c);
   const now = new Date();
   const days = new Map();
-  
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   for (let d = 1; d <= lastDay; d++) {
-    if (rnd() < 0.22) continue;                                   
+    if (rnd() < 0.22) continue;
     const id = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(d)}`;
     const base = new Date(now.getFullYear(), now.getMonth(), d, 8, 30).getTime();
     const home = rnd() < 0.18;
@@ -112,10 +105,7 @@ function sampleMonth() {
     let lat = 50.4501 + (rnd() - 0.5) * 0.01, lon = 30.5234 + (rnd() - 0.5) * 0.01;
     let hx = (rnd() - 0.5), hy = (rnd() - 0.5);
     const points = [];
-    const gapAt = d % 9 === 4 ? Math.floor(n / 2) : -1;            
-    
-    
-    
+    const gapAt = d % 9 === 4 ? Math.floor(n / 2) : -1;
     const kLon = 1 / Math.cos(50.45 * Math.PI / 180);
     for (let i = 0; i < n; i++) {
       hx += (rnd() - 0.5) * 0.6; hy += (rnd() - 0.5) * 0.6;
@@ -135,13 +125,12 @@ async function loadDays() {
   try {
     const rows = await DAYS.all();
     $days.set(new Map(rows.map((r) => [r.id, { id: r.id, points: r.points || [], lost: r.lost || 0 }])));
-  } catch {  }
+  } catch { }
 }
-
-
 
 const walked = (points) => segments(points).reduce((m, s) => m + length(s), 0);
 const isHome = (points) => { const b = bbox(points); if (!b) return true; const s = spanM(b); return Math.max(s.w, s.h) < HOME_M; };
+
 /** One scale for the whole month: each day keeps its own centre, every day shares the span. A 2 km day
  *  drawing the same size as a 40 km one would be the prettiest lie this app could tell. */
 function sharedSpan(days) {
@@ -162,8 +151,6 @@ function ownBox(points, grow = 1.08) {
 const km = (m) => (m >= 10_000 ? Math.round(m / 1000) : Math.round(m / 100) / 10);
 const hhmm = (ms) => `${Math.floor(ms / 3_600_000)}:${pad2(Math.round(ms % 3_600_000 / 60_000))}`;
 const movingMs = (points) => segments(points).reduce((m, s) => m + (s.length > 1 ? s[s.length - 1].at - s[0].at : 0), 0);
-
-
 
 export function trailToday({ t, S }) {
   const days = useStore($days), rec = useStore($rec), perm = useStore($perm), err = useStore($err);
@@ -213,7 +200,6 @@ export function trailToday({ t, S }) {
   </div>`;
 }
 
-
 const Stat = (label, value, unit) => html`<div class="rounded-[var(--ms-r)] sf-inset px-3 py-2 min-w-0">
   <div class=${`${LABEL} truncate`}>${label}</div>
   <div class="font-mono text-[length:var(--ms-title)] leading-tight truncate">${value}${unit ? html`<span class="font-mono text-[length:var(--ms-label)] text-base-content/70 ml-1">${unit}</span>` : null}</div>
@@ -252,8 +238,6 @@ function DayCanvas(points, box, cls, pad = 0) {
   </svg>`;
 }
 
-
-
 export function trailMonth({ t, S, screen, openScreen, closeScreen, toast, confirm }) {
   const days = useStore($days), month = useStore($month);
   useStore(S.locale);
@@ -268,15 +252,14 @@ export function trailMonth({ t, S, screen, openScreen, closeScreen, toast, confi
 
   const [y, mo] = month.split("-").map(Number);
   const first = new Date(y, mo - 1, 1);
-  const lead = (first.getDay() + 6) % 7;                       
+  const lead = (first.getDay() + 6) % 7;
   const count = new Date(y, mo, 0).getDate();
-  
-  
   const raw = first.toLocaleDateString(S.locale.get() === "uk" ? "uk-UA" : "en-GB", { month: "long", year: "numeric" });
   const label = raw.charAt(0).toUpperCase() + raw.slice(1);
 
   const openId = screen && screen.startsWith("day:") ? screen.slice(4) : null;
   const open = openId ? days.get(openId) : null;
+
   const shift = (n) => { const d = new Date(y, mo - 1 + n, 1); $month.set(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}`); };
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]">
@@ -297,11 +280,6 @@ export function trailMonth({ t, S, screen, openScreen, closeScreen, toast, confi
             const id = `${month}-${pad2(i + 1)}`;
             const d = days.get(id);
             const has = d && d.points.length > 0;
-            
-            
-            
-            
-            
             if (!has) return html`<div key=${id} class="aspect-square rounded-[var(--ms-r-in)] sf-inset" aria-hidden="true"></div>`;
             return html`<button key=${id} data-day=${id} aria-label=${id}
               class="aspect-square rounded-[var(--ms-r-in)] sf-raised sf-e2 active:scale-95 transition-transform p-0.5"
@@ -365,12 +343,8 @@ async function removeDay(id) {
   const next = new Map($days.get());
   next.delete(id);
   $days.set(next);
-  try { await DAYS.remove(id); } catch {  }
+  try { await DAYS.remove(id); } catch { }
 }
-
-
-
-
 
 const SHEET = 2048;
 

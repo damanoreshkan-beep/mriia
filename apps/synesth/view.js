@@ -29,8 +29,8 @@ export function synesth({ S }) {
   const [lum, setLum] = useState(seed ? seed.lum : 0.5);
   const [scale, setScale] = useState("penta");
   const [playing, setPlaying] = useState(false);
-  const [ready, setReady] = useState(false);      
-  const [vid, setVid] = useState(null);           
+  const [ready, setReady] = useState(false);
+  const [vid, setVid] = useState(null);
   const canvasRef = useRef();
   const engRef = useRef(null), filterRef = useRef(null), voicesRef = useRef(new Map());
 
@@ -48,9 +48,9 @@ export function synesth({ S }) {
         ctx.drawImage(v, 0, 0, W, H);
         const data = ctx.getImageData(0, 0, W, H).data;
         setPal(palette(data, 5)); setLum(luminance(avgColor(data)));
-      } catch {  }
+      } catch { }
     };
-    const timer = setInterval(sample, 400);   
+    const timer = setInterval(sample, 400);
     return () => clearInterval(timer);
   }, [vid]);
 
@@ -58,23 +58,23 @@ export function synesth({ S }) {
     const eng = engRef.current, f = filterRef.current;
     if (!playing || !eng || !f) return;
     const ctx = eng.ctx, now = ctx.currentTime, voices = voicesRef.current, want = new Set(notes);
-    try { f.frequency.setTargetAtTime(brightnessToCutoff(lum), now, 0.4); } catch {  }
+    try { f.frequency.setTargetAtTime(brightnessToCutoff(lum), now, 0.4); } catch { }
     for (const n of notes) if (!voices.has(n)) {
       try {
         const osc = ctx.createOscillator(); osc.type = "triangle"; osc.frequency.value = midiToFreq(n);
         const g = ctx.createGain(); g.gain.value = 0; osc.connect(g); g.connect(f); osc.start();
         g.gain.setTargetAtTime(0.13, now, 0.6); voices.set(n, { osc, g });
-      } catch {  }
+      } catch { }
     }
     for (const [n, v] of voices) if (!want.has(n)) {
-      try { v.g.gain.setTargetAtTime(0, now, 0.4); v.osc.stop(now + 1.4); } catch {  }
+      try { v.g.gain.setTargetAtTime(0, now, 0.4); v.osc.stop(now + 1.4); } catch { }
       voices.delete(n);
     }
   }, [notes, lum, playing]);
 
   const silence = () => {
     const ctx = engRef.current?.ctx, now = ctx?.currentTime || 0;
-    for (const [, v] of voicesRef.current) { try { v.g.gain.setTargetAtTime(0, now, 0.2); v.osc.stop(now + 0.6); } catch {  } }
+    for (const [, v] of voicesRef.current) { try { v.g.gain.setTargetAtTime(0, now, 0.2); v.osc.stop(now + 0.6); } catch { } }
     voicesRef.current.clear();
   };
   const toggle = () => {
@@ -82,17 +82,18 @@ export function synesth({ S }) {
     try {
       if (!engRef.current) {
         const eng = createEngine({ noise: false });
-        if (!eng) return;                          
+        if (!eng) return;
         engRef.current = eng;
         const f = filter(eng.ctx, "lowpass", brightnessToCutoff(lum), 0.8); f.connect(eng.master); filterRef.current = f;
       }
       engRef.current.resume(); setPlaying(true);
-    } catch {  }
+    } catch { }
   };
-  useEffect(() => () => { try { silence(); engRef.current?.close(); } catch {  } }, []);
+  useEffect(() => () => { try { silence(); engRef.current?.close(); } catch { } }, []);
 
   return html`<div class="ms-stage z-20 bg-base-100 flex flex-col" data-enabled=${ready ? "yes" : "no"} data-playing=${playing ? "on" : "off"} data-scale-id=${scale}>
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
+      ${""}
       <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")}
           show=${true} picClassName="opacity-35" primeFull=${true} fullscreen=${false} gestures=${false}
           onVideo=${(el) => setVid(el)} onState=${(s) => setReady(!!s.ready)}>
@@ -107,12 +108,12 @@ export function synesth({ S }) {
       <//>
     </div>
 
-    
+    ${""}
     <div class="shrink-0 px-[var(--ms-gap)] pb-[var(--ms-gap)] pt-[var(--ms-gap)]">
       <${Island} className="max-w-md w-full mx-auto flex flex-col gap-[var(--ms-gap)]">
         <${Segmented} attr="data-scale" scroll size="sm"
           items=${SCALE_KEYS.map(([s, k]) => ({ id: s, label: T(t, k) }))} value=${scale} onChange=${setScale} />
-        
+        ${""}
         <${Transport} locale=${loc} size="sm" playing=${playing} onToggle=${toggle}
           subtitle=${notes.length ? notes.map(noteName).join(" · ") : "—"} />
       <//>

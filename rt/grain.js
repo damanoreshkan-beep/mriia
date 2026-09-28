@@ -11,7 +11,7 @@ export const grainRate = (durSec, overlap) => overlap / Math.max(1e-4, durSec);
 export const overlapOf = (durSec, rate) => rate * durSec;
 export const cloudGain = (peak, overlap) => peak / Math.sqrt(Math.max(1, overlap));
 
-export const semisToRate = (s) => Math.pow(2, s / 12);      
+export const semisToRate = (s) => Math.pow(2, s / 12);
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 export function planGrains({
@@ -21,11 +21,11 @@ export function planGrains({
   const dur = Math.max(0.005, grainMs / 1000), rate = semisToRate(semis);
   const gps = grainRate(dur, overlap), step = 1 / gps, rng = mulberry32(seed >>> 0);
   const gain = cloudGain(peak, overlap), spray = Math.max(0, sprayMs / 1000);
-  const span_ = Math.max(0, Math.min(sampleDur, span));       
+  const span_ = Math.max(0, Math.min(sampleDur, span));
   const out = [];
   for (let t = 0, i = 0; t < span_ && i < maxGrains; t += step, i++) {
     const centre = pos + advance * t + (rng() * 2 - 1) * spray;
-    const read = Math.max(0, sampleDur - dur * rate);          
+    const read = Math.max(0, sampleDur - dur * rate);
     out.push({ t, offset: wrap(centre, read), dur, rate, gain });
   }
   return out;
@@ -52,10 +52,10 @@ export function trimBounds(x, sr) {
   for (let i = 0; i + win <= x.length; i += hop) frames.push(rms(x, i, i + win));
   if (!frames.length) return [0, x.length];
   const floor = frames.slice().sort((a, b) => a - b)[Math.floor(frames.length * 0.1)] || 0;
-  const thr = Math.max(10 ** (-48 / 20), floor * 3.98);        
+  const thr = Math.max(10 ** (-48 / 20), floor * 3.98);
   const active = frames.map((v) => v >= thr);
   const first = runStart(active, RUN), last = runStart([...active].reverse(), RUN);
-  if (first < 0 || last < 0) return [0, x.length];             
+  if (first < 0 || last < 0) return [0, x.length];
   const m = Math.round(sr * TRIM_MARGIN);
   let a = Math.max(0, first * hop - m), b = Math.min(x.length, x.length - last * hop + m);
   const minLen = Math.min(x.length, Math.round(sr * MIN_KEEP));
@@ -69,7 +69,7 @@ export function edgeFade(x, sr, ms = 8) {
   for (let i = 0; i < n; i++) { const g = i / n; x[i] *= g; x[x.length - 1 - i] *= g; }
   return x;
 }
-export const TARGET_PEAK = 0.89125, MAX_BOOST = 8;            
+export const TARGET_PEAK = 0.89125, MAX_BOOST = 8;
 export function normalizePeak(x, target = TARGET_PEAK) {
   const p = peakOf(x); if (p < 1e-6) return { gain: 1, quiet: true };
   const g = Math.min(MAX_BOOST, target / p);
@@ -100,8 +100,8 @@ export function yinFrame(x, sr, from = 0, { frame = YIN_FRAME, threshold = YIN_T
   let tau = -1;
   for (let t = tauMin; t <= tauMax; t++) if (cm[t] < threshold) { while (t + 1 <= tauMax && cm[t + 1] < cm[t]) t++; tau = t; break; }
   if (tau < 0) { let best = tauMin; for (let t = tauMin; t <= tauMax; t++) if (cm[t] < cm[best]) best = t; tau = best; if (cm[tau] > 0.5) return { hz: 0, conf: 0 }; }
-  const y0 = cm[tau - 1] ?? cm[tau], y1 = cm[tau], y2 = cm[tau + 1] ?? cm[tau];      
-  const denom = 2 * (2 * y1 - y0 - y2);                                              
+  const y0 = cm[tau - 1] ?? cm[tau], y1 = cm[tau], y2 = cm[tau + 1] ?? cm[tau];
+  const denom = 2 * (2 * y1 - y0 - y2);
   const shift = denom === 0 ? 0 : (y2 - y0) / denom;
   return { hz: sr / (tau + clamp(shift, -1, 1)), conf: clamp(1 - cm[tau], 0, 1) };
 }
@@ -140,7 +140,7 @@ export function syntheticSample(sr = 48000, seconds = 1.6, hz = 220) {
   for (let i = 0; i < n; i++) {
     const t = i / sr, env = Math.exp(-t * 2.4);
     x[i] = env * (0.6 * Math.sin(2 * Math.PI * hz * t) + 0.25 * Math.sin(4 * Math.PI * hz * t) + 0.12 * Math.sin(6 * Math.PI * hz * t))
-      + Math.exp(-t * 60) * (rng() * 2 - 1) * 0.25;            
+      + Math.exp(-t * 60) * (rng() * 2 - 1) * 0.25;
   }
   return x;
 }

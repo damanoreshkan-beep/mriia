@@ -13,9 +13,9 @@ import { wakeLock } from "/_rt/sensors.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
-const PORT = 8080;          
+const PORT = 8080;
 const FEED = "/feed";
-const POLL_MS = 700;        
+const POLL_MS = 700;
 const STATUS_MS = 4000;
 const PUBLISH_MS = 200;
 
@@ -127,7 +127,7 @@ export function wallView({ t, S, openScreen, closeScreen }) {
           $on.set(!!st.running);
           if (st.url) $url.set(st.url);
           $viewers.set(audience.push(st.hits ?? 0, Date.now()));
-        } catch {  }
+        } catch { }
       }, STATUS_MS);
     }
     return () => { clearInterval(timer); clearTimeout(pubTimer); };

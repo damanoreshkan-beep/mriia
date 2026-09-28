@@ -1,4 +1,3 @@
-
 export const CATEGORIES = [
   { id: "deep", key: "cDeep", hue: 214 },
   { id: "groove", key: "cGroove", hue: 28 },

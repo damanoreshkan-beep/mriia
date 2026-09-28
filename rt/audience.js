@@ -1,4 +1,4 @@
-const MIN_DT_MS = 1200;   
+const MIN_DT_MS = 1200;
 
 /** Requests per second between two {hits, at} samples. null when the pair cannot answer. */
 export function ratePerSec(prev, next) {
@@ -6,7 +6,7 @@ export function ratePerSec(prev, next) {
   const dt = next.at - prev.at;
   if (!(dt >= MIN_DT_MS)) return null;
   const dh = next.hits - prev.hits;
-  if (dh < 0) return null;                      
+  if (dh < 0) return null;
   return (dh * 1000) / dt;
 }
 

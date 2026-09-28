@@ -26,7 +26,7 @@ const SECTIONS = [
 ];
 const ORDER = SECTIONS.flatMap((s) => s.cards);
 
-const $sel = atom(ORDER[0]);          
+const $sel = atom(ORDER[0]);
 
 const GATE_SPIRIT = {
   uk: "Я — та сила, що тримає рівновагу між поспіхом і зупинкою. Сьогодні не вирішуй усе одразу: візьми одну справу й доведи її до кінця, а решту залиш на завтра. Не сперечайся з тим, хто ще не готовий слухати. Спокій тепер — твій найкращий союзник.",
@@ -109,6 +109,7 @@ function CardPage({ open, onClose, idx, t, loc }) {
         </div>
 
         <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-[var(--ms-gap)] px-[var(--ms-pad)] pb-[var(--ms-pad)]">
+          ${""}
           <div ref=${paneRef} ...${pan} class="sp-void sp-stage shrink-0 flex items-center justify-center touch-pan-y">
             <button ref=${frameRef} data-card data-reversed=${rev ? "1" : "0"} aria-label=${T(t, "flip")} aria-pressed=${rev} onClick=${() => setRev((r) => !r)}
               class=${`sp-frame sf-e3 ${rev ? "rotate-180" : ""}`}>
@@ -128,6 +129,7 @@ function CardPage({ open, onClose, idx, t, loc }) {
                   <button data-spirit-retry onClick=${retry} class="btn btn-sm rounded-full gap-2">${Icon("lucide:rotate-cw", "text-base")}<span class="text-xs">${T(t, "retry")}</span></button>
                 </div>`
               : html`<div class="flex flex-col items-center gap-2 text-muted">${[26, 32, 28, 20].map((n, i) => html`<div key=${i}><${Scramble} len=${n} /></div>`)}</div>`}
+            ${""}
             <div aria-hidden="true" class="mt-5 h-px w-full" style="background:linear-gradient(90deg,transparent,var(--app-accent),transparent);opacity:.5"></div>
             <p data-meaning class="mt-4 text-center text-sm leading-relaxed text-muted">${tr(meaning, loc)}</p>
             <div class="mt-4 flex items-start justify-center gap-2 text-[length:var(--ms-label)] text-muted text-center">
@@ -140,7 +142,6 @@ function CardPage({ open, onClose, idx, t, loc }) {
     <form method="dialog" class="modal-backdrop"><button>${T(t, "close")}</button></form>
   </dialog>`;
 }
-
 
 function Typewriter({ text }) {
   const [n, setN] = useState(() => (instant() ? text.length : 0));

@@ -15,8 +15,8 @@ const LABEL = "font-mono uppercase tracking-wide font-semibold text-[length:var(
 const habitsColl = collection("habits");
 const marksColl = collection("marks");
 
-const $habits = atom([]);   
-const $marks = atom({});    
+const $habits = atom([]);
+const $marks = atom({});
 const $ready = atom(false);
 const $draft = atom({ name: "", icon: "lucide:check", color: "#10b981" });
 
@@ -26,11 +26,11 @@ const ICONS = ["lucide:check", "lucide:dumbbell", "lucide:book-open", "lucide:dr
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const addDays = (d, n) => { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + n); return x; };
 const today = () => ymd(new Date());
-const weekdayMon = (d) => (d.getDay() + 6) % 7;                 
+const weekdayMon = (d) => (d.getDay() + 6) % 7;
 const between = (a, b) => Math.round((new Date(b + "T12:00") - new Date(a + "T12:00")) / 864e5);
 
 function streak(id, marks) {
-  let n = 0; const start = marks[id + "|" + today()] ? 0 : 1;   
+  let n = 0; const start = marks[id + "|" + today()] ? 0 : 1;
   for (let i = start; ; i++) { if (marks[id + "|" + ymd(addDays(new Date(), -i))]) n++; else break; }
   return n;
 }
@@ -54,25 +54,25 @@ async function loadAll() {
     const map = {}; for (const m of ms) map[m.id] = 1;
     $habits.set(hs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)));
     $marks.set(map);
-  } catch {  }
+  } catch { }
   $ready.set(true);
 }
 async function addHabit(name, icon, color) {
   const id = "h" + Date.now().toString(36) + Math.floor(performance.now()).toString(36);
   const h = { name: name.trim(), icon, color, createdAt: Date.now() };
   $habits.set([...$habits.get(), { id, ...h }]);
-  try { await habitsColl.put(id, h); } catch {  }
+  try { await habitsColl.put(id, h); } catch { }
   return id;
 }
 async function removeHabit(id) {
   $habits.set($habits.get().filter((h) => h.id !== id));
   const m = { ...$marks.get() }; for (const k in m) if (k.startsWith(id + "|")) delete m[k]; $marks.set(m);
-  try { await habitsColl.remove(id); const all = await marksColl.all(); await Promise.all(all.filter((r) => r.id.startsWith(id + "|")).map((r) => marksColl.remove(r.id))); } catch {  }
+  try { await habitsColl.remove(id); const all = await marksColl.all(); await Promise.all(all.filter((r) => r.id.startsWith(id + "|")).map((r) => marksColl.remove(r.id))); } catch { }
 }
 async function toggle(id, day) {
   const key = id + "|" + day, m = { ...$marks.get() };
-  if (m[key]) { delete m[key]; $marks.set(m); haptic.tick(); try { await marksColl.remove(key); } catch {  } }
-  else { m[key] = 1; $marks.set(m); haptic.bump(); try { await marksColl.put(key, { d: 1 }); } catch {  } }
+  if (m[key]) { delete m[key]; $marks.set(m); haptic.tick(); try { await marksColl.remove(key); } catch { } }
+  else { m[key] = 1; $marks.set(m); haptic.bump(); try { await marksColl.put(key, { d: 1 }); } catch { } }
 }
 async function seed() {
   const defs = [["Читати", "lucide:book-open", "#3b82f6"], ["Спорт", "lucide:dumbbell", "#10b981"], ["Вода", "lucide:droplets", "#14b8a6"]];
@@ -83,7 +83,7 @@ async function seed() {
 }
 function exportData() {
   const blob = new Blob([JSON.stringify({ habits: $habits.get(), marks: Object.keys($marks.get()) }, null, 2)], { type: "application/json" });
-  downloadBlob(blob, "habits.json");   
+  downloadBlob(blob, "habits.json");
 }
 async function importData(file) {
   try {
@@ -91,7 +91,7 @@ async function importData(file) {
     for (const h of d.habits || []) await habitsColl.put(h.id, { name: h.name, icon: h.icon, color: h.color, createdAt: h.createdAt || Date.now() });
     for (const k of d.marks || []) await marksColl.put(k, { d: 1 });
     await loadAll();
-  } catch {  }
+  } catch { }
 }
 
 const Dots = ({ h, marks, onToggle, t }) => {
@@ -107,7 +107,7 @@ const Dots = ({ h, marks, onToggle, t }) => {
 
 function Heatmap({ h, marks, onToggle, t }) {
   const now = new Date(), WEEKS = 13;
-  const start = addDays(now, -weekdayMon(now) - 7 * (WEEKS - 1));   
+  const start = addDays(now, -weekdayMon(now) - 7 * (WEEKS - 1));
   const cols = [];
   for (let w = 0; w < WEEKS; w++) {
     const cells = [];
@@ -142,6 +142,7 @@ function AddSheet({ open, onClose, t }) {
     </div>
     <div class="flex flex-col gap-1.5">
       <div class=${LABEL}>${T(t, "color")}</div>
+      ${""}
       <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${draft.color === c}
         onClick=${() => $draft.set({ ...draft, color: c })}
         class="w-8 h-8 rounded-full transition-transform"
@@ -151,12 +152,9 @@ function AddSheet({ open, onClose, t }) {
   </${Sheet}>`;
 }
 
-
-
 function DetailSheet({ open, id, t, onClose, confirm }) {
   const habits = useStore($habits), marks = useStore($marks);
   const h = habits.find((x) => x.id === id);
-  
   const askDelete = () => h && confirm({
     title: T(t, "delHabitTitle", { name: h.name }),
     body: T(t, "delHabitBody", { n: Object.keys(marks).filter((k) => k.startsWith(h.id + "|")).length }),
@@ -177,7 +175,6 @@ function DetailSheet({ open, id, t, onClose, confirm }) {
     </${Fragment}>` : null}
   </${Sheet}>`;
 }
-
 
 export function habits({ S, closeScreen, confirm }) {
   const t = useStore(S.t), hs = useStore($habits), marks = useStore($marks), ready = useStore($ready), screen = useStore(S.screen), sheet = useStore(S.sheet);
@@ -201,8 +198,9 @@ export function habits({ S, closeScreen, confirm }) {
                 <span class="min-w-0"><span class="font-semibold block truncate">${h.name}</span>
                   <span class="text-sm text-muted flex items-center gap-1">${s > 0 ? html`${Icon("lucide:flame", "text-[0.9em]")} ${T(t, "dayStreak", { n: s })}` : T(t, "noStreak")}</span></span>
               </button>
-              
-              
+              ${""}
+              ${""}
+              ${""}
               <button data-today type="button" class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center active:scale-90 transition-transform ${done ? "sf-e3" : "sf-raised"}`}
                 aria-pressed=${done} aria-label=${`${h.name} ${T(t, "todayToggle")}`}
                 style=${done ? `background:${h.color};color:var(--color-base-100)` : `color:${h.color}`}
@@ -219,7 +217,7 @@ export function habits({ S, closeScreen, confirm }) {
         </div>
       </div>`}
 
-    
+    ${""}
     <${AddSheet} open=${!!sheet} onClose=${() => S.sheet.set(false)} t=${t} />
     <${DetailSheet} open=${!!detailId} id=${detailId} t=${t} onClose=${closeScreen} confirm=${confirm} />
   </${Fragment}>`;

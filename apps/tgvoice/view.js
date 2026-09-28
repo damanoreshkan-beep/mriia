@@ -10,7 +10,7 @@ import { transcribe, ensureModel, isModelCached, engineAvailable, MODELS, LANGS 
 import { log, logLines, clearLog, readMark, mark } from "./log.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const LBL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider";
 const b64ToBytes = (b64) => { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 
@@ -18,12 +18,12 @@ export function tgvoice({ S, toast }) {
   const t = useStore(S.t);
   const scr = useStore(S.screen);
   const [lang, setLang] = useState("auto");
-  const [phase, setPhase] = useState(gate ? "result" : "idle");     
-  const [stage, setStage] = useState(null);                         
+  const [phase, setPhase] = useState(gate ? "result" : "idle");
+  const [stage, setStage] = useState(null);
   const [res, setRes] = useState(gate ? { text: "привіт це тестове голосове повідомлення з телеграму все працює офлайн", lang: "uk", ambiguous: false } : null);
   const [errKey, setErrKey] = useState(null);
   const [cached, setCached] = useState({ uk: false, ru: false, en: false });
-  const [audioUrl, setAudioUrl] = useState(null);   
+  const [audioUrl, setAudioUrl] = useState(null);
   const [audioName, setAudioName] = useState(null);
   const [crashStep, setCrashStep] = useState(null);
   const [bridgeLines, setBridgeLines] = useState(null);
@@ -71,12 +71,12 @@ export function tgvoice({ S, toast }) {
 
   function accept(buf, name, mime) {
     log(`accept: ${name || "?"} (${mime || "no mime"}, ${buf.byteLength}b)`);
-    lastBufRef.current = buf;   
+    lastBufRef.current = buf;
     try {
       const url = URL.createObjectURL(new Blob([buf], { type: mime || "audio/ogg" }));
-      setAudioUrl((old) => { if (old) { try { URL.revokeObjectURL(old); } catch {  } } return url; });
+      setAudioUrl((old) => { if (old) { try { URL.revokeObjectURL(old); } catch { } } return url; });
       setAudioName(name || "audio");
-    } catch {  }
+    } catch { }
     run(buf);
   }
 
@@ -101,12 +101,12 @@ export function tgvoice({ S, toast }) {
         const seen = Number(localStorage.getItem("tgvoice.lastShareAt") || 0);
         if (frame.at && frame.at <= seen) { log(`share.incoming: duplicate (at=${frame.at}) — skipped`); return; }
         if (frame.at) localStorage.setItem("tgvoice.lastShareAt", String(frame.at));
-      } catch {  }
+      } catch { }
       const item = frame.items.find((it) => it.base64);
       if (item) accept(b64ToBytes(item.base64).buffer, item.name, item.mime);
       else if (frame.items.some((it) => it.tooLarge)) { setErrKey("errTooLarge"); setPhase("error"); }
     }, (e) => { log(`share.incoming: subscribe FAILED ${e && e.code || e}`); });
-    return () => { try { stop(); } catch {  } };
+    return () => { try { stop(); } catch { } };
   }, [lang]);
 
   useEffect(() => {
@@ -122,11 +122,11 @@ export function tgvoice({ S, toast }) {
     finally { busyRef.current = false; setStage(null); refreshCached(); }
   };
 
-  const doCopy = async () => { try { await navigator.clipboard.writeText(res.text); toast?.(T(t, "copied")); buzz(); } catch {  } };
+  const doCopy = async () => { try { await navigator.clipboard.writeText(res.text); toast?.(T(t, "copied")); buzz(); } catch { } };
   const doShare = async () => {
     const text = res.text;
-    if (shell.has("files.share")) { try { await shell.call("files.share", { text }); return; } catch {  } }
-    try { if (navigator.share) { await navigator.share({ text }); return; } } catch {  }
+    if (shell.has("files.share")) { try { await shell.call("files.share", { text }); return; } catch { } }
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch { }
     doCopy();
   };
 
@@ -164,6 +164,7 @@ export function tgvoice({ S, toast }) {
         ? html`<${Panel} title=${T(t, stageKey(stage))} className="flex-1 min-h-0">
             ${stage && stage.fraction != null
               ? html`<div class=${`${LBL} text-base-content/70`}>${Math.round(stage.fraction * 100)}%</div>` : null}
+            ${""}
             <div data-working class="flex-1 min-h-0 flex flex-col gap-1 text-muted">${[24, 30, 18].map((n) => html`<div key=${n}><${Scramble} len=${n} /></div>`)}<//>
           <//>`
         : phase === "error"
@@ -188,7 +189,7 @@ export function tgvoice({ S, toast }) {
       ${phase === "result"
         ? html`<button data-copy onClick=${doCopy} class="btn btn-sm btn-ghost" aria-label=${T(t, "copy")}>${Icon("lucide:copy")}</button>
             <button data-share onClick=${doShare} class="btn btn-sm btn-ghost" aria-label=${T(t, "shareOut")}>${Icon("lucide:share-2")}</button>
-            <button data-again onClick=${() => { setPhase("idle"); setRes(null); setAudioUrl((o) => { if (o) { try { URL.revokeObjectURL(o); } catch {  } } return null; }); setAudioName(null); }} class="btn btn-sm btn-primary gap-1.5 normal-case">${Icon("lucide:plus")}<span>${T(t, "again")}</span></button>`
+            <button data-again onClick=${() => { setPhase("idle"); setRes(null); setAudioUrl((o) => { if (o) { try { URL.revokeObjectURL(o); } catch { } } return null; }); setAudioName(null); }} class="btn btn-sm btn-primary gap-1.5 normal-case">${Icon("lucide:plus")}<span>${T(t, "again")}</span></button>`
         : phase !== "working"
         ? html`<button data-pick onClick=${() => fileRef.current?.click()} class="btn btn-sm btn-primary gap-1.5 normal-case">
             ${Icon("lucide:folder-open")}<span>${T(t, "pick")}</span></button>`
@@ -203,7 +204,7 @@ export function tgvoice({ S, toast }) {
         <button data-log-copy class="btn btn-sm btn-primary gap-1.5 normal-case" onClick=${async () => {
           const all = [...logLines(), ...(bridgeLines ? ["--- shell ---", ...bridgeLines] : [])].join("\n");
           try { await navigator.clipboard.writeText(all); toast?.(T(t, "copied")); }
-          catch { try { await shell.call("files.share", { text: all.slice(-3900) }); } catch {  } }
+          catch { try { await shell.call("files.share", { text: all.slice(-3900) }); } catch { } }
         }}>${Icon("lucide:copy")}<span>${T(t, "logCopy")}</span></button>
         <button data-log-clear class="btn btn-sm btn-ghost normal-case" onClick=${() => { clearLog(); S.screen.set(null); }}>${T(t, "logClear")}</button>
       </div>

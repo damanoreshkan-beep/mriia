@@ -25,7 +25,7 @@ const $track = atom(DEMO);
 const $playing = atom(false);
 const $posMs = atom(0);
 const $durMs = atom(0);
-const $size = atom(0);          
+const $size = atom(0);
 const $err = atom("");
 const $saved = atom("");
 
@@ -38,9 +38,9 @@ const $syncing = atom(false);
 const $owned = atom(new Set());
 const $queue = atom([]);
 const $qIndex = atom(-1);
-const $repeat = atom("off");                           
-const $shuffle = atom(false);                          
-let notify = null;                                     
+const $repeat = atom("off");
+const $shuffle = atom(false);
+let notify = null;
 
 let ctx = null, node = null, preGain = null, analyser = null, timeBuf = null;
 let wasmBytes = null, moduleAdded = false, loadedId = null, np = null, wl = null, levelTimer = null;
@@ -69,7 +69,7 @@ async function ensureNode() {
         else if (m.type === "position") { if (!scrubbing) $posMs.set(m.ms); }
         else if (m.type === "ended") {
           $playing.set(false); $posMs.set($durMs.get()); releaseHold();
-          playNext(false);                             
+          playNext(false);
         }
         else if (m.type === "error") $err.set("loadError");
       };
@@ -80,7 +80,7 @@ async function ensureNode() {
       analyser = ctx.createAnalyser();
       analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.7;
       timeBuf = new Uint8Array(analyser.fftSize);
-      node.connect(preGain);            
+      node.connect(preGain);
       node.connect(analyser);
       preGain.connect(limiter);
       limiter.connect(ctx.destination);
@@ -122,7 +122,7 @@ async function bytesFor(track) {
     try {
       const r = await fetch(trackURL(track.author, track.file, m));
       if (r.ok) return await r.arrayBuffer();
-    } catch {  }
+    } catch { }
   }
   throw new Error("unreachable");
 }
@@ -142,7 +142,7 @@ async function loadInto(track) {
   try { raw = await bytesFor(track); data = await maybeGunzip(raw); }
   catch { $err.set("loadError"); return false; }
   $size.set(raw.byteLength);
-  setTuneBytes(raw);                                   
+  setTuneBytes(raw);
   loadedId = track.id;
   node.port.postMessage({ cmd: "load", bytes: data }, [data]);
   return true;
@@ -162,9 +162,9 @@ function syncHold() {
   np.meta?.($track.get()?.name);
   np.setPlaying?.($track.get()?.name);
   np.position?.($durMs.get(), $posMs.get());
-  try { wl = wl || wakeLock.acquire?.(); } catch {  }
+  try { wl = wl || wakeLock.acquire?.(); } catch { }
 }
-function releaseHold() { try { wl?.release?.(); } catch {  } wl = null; }
+function releaseHold() { try { wl?.release?.(); } catch { } wl = null; }
 
 async function selectAndPlay(track) {
   $track.set(track); $posMs.set(0); $durMs.set(0); $err.set("");
@@ -202,7 +202,7 @@ const GATE_TUNES = Array.from({ length: 96 }, (_, i) => ({
 
 async function fetchText(pathFor) {
   for (let m = 0; m < MIRRORS.length; m++) {
-    try { const r = await fetch(pathFor(m)); if (r.ok) return await r.text(); } catch {  }
+    try { const r = await fetch(pathFor(m)); if (r.ok) return await r.text(); } catch { }
   }
   return null;
 }
@@ -216,7 +216,7 @@ async function refreshCatalog() {
     const authors = parseAuthors(root);
     const queue = [...authors];
     const acc = [];
-    const cold = !($tunes.get() || []).length;         
+    const cold = !($tunes.get() || []).length;
     await Promise.all(Array.from({ length: 6 }, async () => {
       while (queue.length) {
         const a = queue.shift();
@@ -226,9 +226,9 @@ async function refreshCatalog() {
         if (cold) $tunes.set([...acc]);
       }
     }));
-    if (acc.length) {                                  
+    if (acc.length) {
       $tunes.set(acc);
-      try { await CATALOG.put(CATALOG_KEY, { tunes: acc }); } catch {  }
+      try { await CATALOG.put(CATALOG_KEY, { tunes: acc }); } catch { }
     } else if (cold) $tunes.set([]);
   } finally { $syncing.set(false); }
 }
@@ -242,7 +242,7 @@ async function loadCatalog() {
   try {
     const rec = idbSupported ? await CATALOG.get(CATALOG_KEY) : null;
     if (rec?.tunes?.length) { $tunes.set(rec.tunes); ts = rec._ts || 0; }
-  } catch {  }
+  } catch { }
   if (Date.now() - ts < CATALOG_TTL) return;
   await refreshCatalog();
 }
@@ -251,7 +251,7 @@ async function loadOwned() {
   try {
     const rows = idbSupported ? await SAVES.all() : [];
     $owned.set(new Set(rows.map((r) => r.id)));
-  } catch {  }
+  } catch { }
 }
 
 async function saveCurrent(toastText) {
@@ -277,14 +277,14 @@ async function forgetCurrent() {
   try { rec = await SAVES.get(tr.id); await SAVES.remove(tr.id); } catch { return null; }
   const next = new Set($owned.get()); next.delete(tr.id); $owned.set(next);
   $saved.set("");
-  return rec;                                          
+  return rec;
 }
 
 const bySize = (a, b) => a.size - b.size;
 function queueList() {
   const q = $queue.get();
   if (q.length) return q;
-  const all = $tunes.get() || [];                      
+  const all = $tunes.get() || [];
   return [...all].sort(bySize);
 }
 
@@ -340,7 +340,7 @@ export function v2m({ S, toast, undo }) {
   const shuffle = useStore($shuffle);
   const hasQueue = ($queue.get().length || (tunes || []).length) > 0;
   const inLibrary = owned.has(track?.id);
-  useEffect(() => {                                    
+  useEffect(() => {
     notify = toast; primeDemo(); loadCatalog(); loadOwned();
     return () => { notify = null; };
   }, []);
@@ -351,7 +351,7 @@ export function v2m({ S, toast, undo }) {
     if (!rec) return;
     const { id, _ts, ...rest } = rec;
     undo?.(async () => {
-      try { await SAVES.put(id, rest); $owned.set(new Set($owned.get()).add(id)); } catch {  }
+      try { await SAVES.put(id, rest); $owned.set(new Set($owned.get()).add(id)); } catch { }
     }, rec.name || T(t, "trackWord"));
   };
 
@@ -375,6 +375,7 @@ export function v2m({ S, toast, undo }) {
             onScrubStart=${() => { scrubbing = true; }}
             onScrub=${(v) => { scrubbing = true; $posMs.set(v); }}
             title=${titleOf(track?.name || "")}
+            ${""}
             subtitle=${size > 0 ? html`<span data-size>${kb(size)}</span>` : null}
             trail=${html`
               <button id="save" data-saved-track=${inLibrary ? "true" : "false"}
@@ -388,7 +389,6 @@ export function v2m({ S, toast, undo }) {
       </div>
     </div>`;
 }
-
 
 const SORTS = [
   { id: "size", key: bySize },
@@ -406,9 +406,7 @@ export function v2mStore({ S, toast }) {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("size");
   const [shown, setShown] = useState(PAGE);
-  
   const [sentinel, setSentinel] = useState(null);
-  
   const [cold] = useState(() => $tunes.get() === null);
   const revealed = useReveal(tunes !== null);
   const showSkel = cold ? !revealed : tunes === null;
@@ -421,7 +419,6 @@ export function v2mStore({ S, toast }) {
     return x.file.toLowerCase().includes(s) || x.author.toLowerCase().includes(s);
   }).sort(SORTS.find((s) => s.id === sort).key);
 
-  
   useEffect(() => {
     if (!sentinel || shown >= list.length || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver((es) => {
@@ -432,9 +429,9 @@ export function v2mStore({ S, toast }) {
   }, [sentinel, shown, list.length]);
 
   const play = (tune) => {
-    S.tab.set("play");                                 
+    S.tab.set("play");
     const i = list.findIndex((x) => x.author === tune.author && x.file === tune.file);
-    $queue.set(list);                                  
+    $queue.set(list);
     playIndex(i < 0 ? 0 : i);
   };
 
@@ -459,7 +456,7 @@ export function v2mStore({ S, toast }) {
 
       ${showSkel ? html`
         <div class="flex flex-col gap-1">${[0, 1, 2, 3, 4, 5, 6, 7].map(() => html`
-          
+          ${""}
           <div data-skel class="flex items-center gap-3 px-3 py-2.5 rounded-[var(--ms-r)] sf-inset">
             <div class="font-mono text-sm w-14 shrink-0"><${Scramble} len=${5} /></div>
             <div class="flex-1 min-w-0">
@@ -477,9 +474,6 @@ export function v2mStore({ S, toast }) {
           ${list.slice(0, shown).map((x) => {
             const id = trackId(x.author, x.file);
             const active = cur?.id === id;
-            
-            
-            
             return html`
               <button data-tune=${id} onClick=${() => play(x)} aria-current=${active ? "true" : null}
                 class=${"flex items-center gap-3 px-3 py-2.5 rounded-[var(--ms-r)] text-left transition-colors " +
@@ -498,7 +492,6 @@ export function v2mStore({ S, toast }) {
     </div>`;
 }
 
-
 export function v2mLibrary({ S, undo }) {
   const t = useStore(S.t);
   const cur = useStore($track);
@@ -513,14 +506,14 @@ export function v2mLibrary({ S, undo }) {
   };
   const del = async (it) => {
     const { id, _ts, ...rec } = it;
-    try { await SAVES.remove(id); } catch {  }
+    try { await SAVES.remove(id); } catch { }
     load();
-    undo?.(async () => { try { await SAVES.put(id, rec); } catch {  } load(); }, it.name || T(t, "trackWord"));
+    undo?.(async () => { try { await SAVES.put(id, rec); } catch { } load(); }, it.name || T(t, "trackWord"));
   };
 
   if (!useReveal(list !== null)) {
     return html`<div class="flex flex-col gap-2 pt-2">${[0, 1, 2].map(() => html`
-      
+      ${""}
       <div data-skel class="card">
         <div class="card-body flex-row items-center gap-3 p-3">
           <div class="w-9 h-9 rounded-[var(--ms-r-in)] sf-inset shrink-0"></div>
@@ -546,10 +539,6 @@ export function v2mLibrary({ S, undo }) {
 
   return html`<div class="flex flex-col gap-2 pt-2">${list.map((it) => {
     const active = cur?.id === it.id;
-    
-    
-    
-    
     return html`<div data-track-row=${it.id}
       class=${"card" + (active ? " bg-primary/10" : "")}>
       <div class="card-body flex-row items-center gap-3 p-3">

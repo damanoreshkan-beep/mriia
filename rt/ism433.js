@@ -1,16 +1,15 @@
-
 import { isolateFrame, framesEqual } from "./ook.js";
 
 export function ppmBits(timings, { pulseUs = 500, shortGapUs = 1000, longGapUs = 2000, tol = 0.4 } = {}) {
   const bits = [];
   for (let i = 0; i + 1 < timings.length; i++) {
     const p = timings[i], g = timings[i + 1];
-    if (p <= 0 || g >= 0) continue;                                   
-    if (Math.abs(Math.abs(p) - pulseUs) > tol * pulseUs + 60) { continue; }  
+    if (p <= 0 || g >= 0) continue;
+    if (Math.abs(Math.abs(p) - pulseUs) > tol * pulseUs + 60) { continue; }
     const gap = -g;
     const d0 = Math.abs(gap - shortGapUs), d1 = Math.abs(gap - longGapUs);
     bits.push(d1 < d0 ? 1 : 0);
-    i++;                                                              
+    i++;
   }
   return bits;
 }
@@ -19,8 +18,8 @@ export function pwmBits(timings, { shortUs = 500, longUs = 1500, tol = 0.4 } = {
   const bits = [];
   const mid = (shortUs + longUs) / 2;
   for (const t of timings) {
-    if (t <= 0) continue;                                            
-    if (t > longUs * (1 + tol) + 60) continue;                       
+    if (t <= 0) continue;
+    if (t > longUs * (1 + tol) + 60) continue;
     bits.push(t <= mid ? 1 : 0);
   }
   return bits;
@@ -35,7 +34,7 @@ export function bitsToBytes(bits, { msbFirst = true } = {}) {
       const bit = bits[i + j] & 1;
       if (msbFirst) byte = (byte << 1) | bit; else byte |= bit << j;
     }
-    if (msbFirst && n < 8) byte <<= (8 - n);                         
+    if (msbFirst && n < 8) byte <<= (8 - n);
     out.push(byte & 0xff);
   }
   return out;
@@ -67,13 +66,13 @@ export const PROTO_NAMES = {
 export function matchNexus(bytes) {
   if (bytes.length < 5) return null;
   const b = bytes;
-  if ((b[3] & 0xf0) !== 0xf0) return null;                           
-  if ((b[1] & 0x30) === 0x30) return null;                           
+  if ((b[3] & 0xf0) !== 0xf0) return null;
+  if ((b[1] & 0x30) === 0x30) return null;
   if ((b[0] === 0 && b[2] === 0 && b[3] === 0) ||
-      (b[0] === 0xff && b[2] === 0xff && b[3] === 0xff)) return null; 
+      (b[0] === 0xff && b[2] === 0xff && b[3] === 0xff)) return null;
   const humidity = ((b[3] & 0x0f) << 4) | (b[4] >> 4);
-  if (humidity !== 0 && humidity > 100) return null;                 
-  let temp = ((b[1] & 0x0f) << 8) | b[2];                            
+  if (humidity !== 0 && humidity > 100) return null;
+  let temp = ((b[1] & 0x0f) << 8) | b[2];
   if (temp & 0x800) temp -= 0x1000;
   return {
     kind: "sensor", proto: "nexus", name: PROTO_NAMES.nexus, id: b[0],
@@ -89,9 +88,9 @@ export function matchNexus(bytes) {
 export function matchFineOffsetWH2(bytes) {
   if (bytes.length < 5) return null;
   const b = bytes;
-  if (crc8(b, 4, 0x31, 0x00) !== b[4]) return null;                 
+  if (crc8(b, 4, 0x31, 0x00) !== b[4]) return null;
   const id = ((b[0] & 0x0f) << 4) | ((b[1] & 0xf0) >> 4);
-  let temp = ((b[1] & 0x0f) << 8) | b[2];                           
+  let temp = ((b[1] & 0x0f) << 8) | b[2];
   if (temp & 0x800) { temp &= 0x7ff; temp = -temp; }
   return {
     kind: "sensor", proto: "wh2", name: PROTO_NAMES.wh2, id,
@@ -102,7 +101,7 @@ export function matchFineOffsetWH2(bytes) {
 function frameHash(frame) {
   let h = 2166136261 >>> 0;
   for (const t of frame) {
-    h ^= (Math.round(t / 4) & 0xffff);                              
+    h ^= (Math.round(t / 4) & 0xffff);
     h = Math.imul(h, 16777619) >>> 0;
   }
   return h.toString(16).padStart(8, "0").slice(0, 8);
@@ -110,7 +109,7 @@ function frameHash(frame) {
 
 export function matchRemote(frameTimings, prevFrameTimings) {
   if (!frameTimings || frameTimings.length < 4) return null;
-  if (!prevFrameTimings || !framesEqual(frameTimings, prevFrameTimings, 0.3)) return null; 
+  if (!prevFrameTimings || !framesEqual(frameTimings, prevFrameTimings, 0.3)) return null;
   return { kind: "remote", proto: "remote", name: PROTO_NAMES.remote, id: frameHash(frameTimings), fired: true };
 }
 
@@ -122,7 +121,7 @@ export function decodeOOK(timings, { ts = Date.now(), rssi = null } = {}) {
 
   const nb = bitsToBytes(ppmBits(frame, { pulseUs: 500, shortGapUs: 1000, longGapUs: 2000, tol: 0.4 }), { msbFirst: true });
   const rn = matchNexus(nb);
-  if (rn) out.push({ ...rn, ts, rssi, bytes: Array.from(nb.slice(0, 5)) });   
+  if (rn) out.push({ ...rn, ts, rssi, bytes: Array.from(nb.slice(0, 5)) });
 
   const wbits = pwmBits(frame, { shortUs: 500, longUs: 1500, tol: 0.4 });
   const ds = findSync(wbits, [1, 1, 1, 1, 1, 1, 1, 1]);

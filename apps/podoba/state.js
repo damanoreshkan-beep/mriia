@@ -27,7 +27,7 @@ export function setMat(id) {
   if (!styleOf(id)) return;
   if ($st.get().phase !== "live") again();
   patch({ mat: id });
-  try { localStorage.setItem(MAT_KEY, id); } catch {  }
+  try { localStorage.setItem(MAT_KEY, id); } catch { }
 }
 /** The same frozen frame once more — the keeper failed, the shot is still worth developing. */
 export function retry(ctx) { const st = $st.get(); if (st.phase === "error" && st.frame) return shoot(st.frame, ctx); }
@@ -57,7 +57,7 @@ export async function shoot(frame, ctx) {
   if (res.status === "stale") return;
   hold?.(); hold = null; job = null;
   if (res.status !== "done") return fail(r, res.status === "timeout" ? "eTimeout" : res.status === "busy" ? "eBusy" : "eFailed");
-  const size = await sizeOf(res.blob);   
+  const size = await sizeOf(res.blob);
   if (r !== run) { revoke(res.url); return; }
   patch({ phase: "done", out: { url: res.url, w: size?.w || 0, h: size?.h || 0, by: res.by, ext: extOf(res.blob) }, live: null });
   if (document.visibilityState === "hidden") notify({ id: "podoba-done", title: T(ctx.t, "title"), body: T(ctx.t, "notifDone"), url: "./" }).catch(() => {});
@@ -67,7 +67,7 @@ function fail(r, code) {
   if (r !== run) return;
   hold?.(); hold = null; job = null;
   patch({ phase: "error", error: code, live: null });
-  report("keeper.fail", { reason: code, mat: $st.get().mat });   
+  report("keeper.fail", { reason: code, mat: $st.get().mat });
 }
 
 export async function enhance(ctx) {

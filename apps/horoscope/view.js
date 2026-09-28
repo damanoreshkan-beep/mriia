@@ -15,7 +15,7 @@ import { gate } from "/_rt/gate.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const QS = new URLSearchParams(location.search);
-const SIGN_OVERRIDE = QS.get("sign"); 
+const SIGN_OVERRIDE = QS.get("sign");
 
 const API = `${VPS_PROXY}/horoscope`;
 const DAY_IDS = ["yesterday", "today", "tomorrow"], DAY_KEYS = ["dYesterday", "dToday", "dTomorrow"];
@@ -26,7 +26,7 @@ const $sign = persistentAtom("horoscope.sign", "");
 const clampSign = (n) => Math.max(0, Math.min(11, Number(n) || 0));
 const ck = (s, d) => `horoscope:v3:${s}:${d}`;
 const readCache = (s, d) => { try { return JSON.parse(localStorage.getItem(ck(s, d)) || "null"); } catch { return null; } };
-const writeCache = (s, d, v) => { try { localStorage.setItem(ck(s, d), JSON.stringify(v)); } catch {  } };
+const writeCache = (s, d, v) => { try { localStorage.setItem(ck(s, d), JSON.stringify(v)); } catch { } };
 
 const GATE = {
   yesterday: { date: "Jul 22, 2027", ratings: { sex: 2, hustle: 2, vibe: 2, success: 2 }, text: "Tension in your romantic life is apt to well up today, Leo. More than likely, there are certain responsibilities that you feel you have to attend to that take you away from your intimate experience with another. Try to find a healthy balance between work and play." },
@@ -46,10 +46,10 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
   const stored = useStore($sign);
-  const now = gate ? new Date(2027, 6, 23) : new Date();          
+  const now = gate ? new Date(2027, 6, 23) : new Date();
   const signIdx = (SIGN_OVERRIDE != null && SIGN_OVERRIDE !== "") ? clampSign(SIGN_OVERRIDE)
     : stored === "" ? sunSign(now.getMonth() + 1, now.getDate()) : clampSign(stored);
-  const [day, setDay] = useState(1);                              
+  const [day, setDay] = useState(1);
   const [data, setData] = useState(gate ? GATE[DAY_IDS[1]] : null);
   const [err, setErr] = useState(false);
 
@@ -62,7 +62,7 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
     let live = true;
     fetchReading(signIdx, dayId)
       .then((d) => { if (!live) return; setData(d); setErr(false); writeCache(signIdx, dayId, d); })
-      .catch(() => { if (live) setErr(!cached); });               
+      .catch(() => { if (live) setErr(!cached); });
     return () => { live = false; };
   }, [signIdx, day]);
 
@@ -74,6 +74,7 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
 
   return html`<${Fragment}>
     <div class="flex flex-col gap-[var(--ms-gap)]" data-state=${state} data-day-sel=${DAY_IDS[day]} data-sign-idx=${signIdx}>
+      ${""}
       <button data-sign class="w-full flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 sf-press p-[var(--ms-pad)] transition-colors" onClick=${() => openScreen("signs")}>
         <span class="shrink-0" style="color:var(--app-accent)"><${Sign} i=${signIdx} cls="w-11 h-11" /></span>
         <span class="flex-1 min-w-0 text-left">
@@ -83,7 +84,7 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
         ${Icon("lucide:chevrons-up-down", "text-muted text-xl shrink-0")}
       </button>
 
-      
+      ${""}
       <${Segmented} attr="data-day" label=${T(t, "dToday")}
         items=${[0, 1, 2].map((i) => ({ id: DAY_IDS[i], label: T(t, DAY_KEYS[i]) }))}
         value=${DAY_IDS[day]} onChange=${(id) => setDay(DAY_IDS.indexOf(id))} />
@@ -104,13 +105,14 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
               ${err ? html`<span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-warning truncate">${T(t, "offline")}</span>` : null}
             </div>
             ${localizing
-      ? proseSkeleton   
+      ? proseSkeleton
       : html`<p data-reading data-live class="text-[0.97rem] leading-relaxed">${readingText}</p>`}
+
             <!-- the day's four real star ratings -->
             <${Panel} title=${T(t, "ratings")} data-ratings="">
               ${RATINGS.map(([label, key]) => html`<div class="flex items-center gap-[var(--ms-gap)]" key=${key}>
                 <span class="w-16 shrink-0 text-sm text-muted">${T(t, label)}</span>
-                
+                ${""}
                 <span class="flex-1 flex gap-1">${[0, 1, 2, 3, 4].map((n) => html`<span class="flex-1 h-1.5 rounded-full" style=${`background:${n < (data.ratings[key] || 0) ? "var(--app-accent)" : "var(--sf-track-face)"}`} key=${n}></span>`)}</span>
               </div>`)}
             <//>
@@ -124,7 +126,7 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
 function SignSheet({ open, onClose, t, signIdx }) {
   const choose = (i) => { $sign.set(String(i)); onClose(); };
   return html`<${Sheet} id="signsheet" open=${open} onClose=${onClose} title=${T(t, "pickSign")} icon="lucide:sparkles">
-      
+      ${""}
       <div class="grid grid-cols-3 gap-2 sf-inset rounded-[var(--ms-r)] p-2">
         ${Array.from({ length: 12 }, (_, i) => html`<button data-signpick=${i} aria-pressed=${i === signIdx} class=${`flex flex-col items-center gap-1.5 py-3 rounded-[var(--ms-r-in)] transition-colors ${i === signIdx ? "bg-[var(--app-tint)]" : "text-base-content/80"}`} onClick=${() => choose(i)} key=${i}>
           <${Sign} i=${i} cls="w-6 h-6" />

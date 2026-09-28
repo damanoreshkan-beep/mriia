@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { RippleField, ring, RIPPLE_DEFAULTS } from "../ripple.js";
-
 
 Deno.test("ring: crest at the front (u=0) is 1, decays away from it", () => {
   assertEquals(ring(0, 0.95, 3.7), 1, "peak at the wavefront");
@@ -11,7 +9,7 @@ Deno.test("ring: crest at the front (u=0) is 1, decays away from it", () => {
 Deno.test("RippleField: the crest rides an outgoing front r=speed·age", () => {
   const f = RippleField();
   f.strike(0, 0, { amp: 1, hue: 260, t: 0 });
-  const age = 1, front = RIPPLE_DEFAULTS.speed * age;   
+  const age = 1, front = RIPPLE_DEFAULTS.speed * age;
   const atFront = Math.abs(f.sample(front, 0, age).h);
   const atOrigin = Math.abs(f.sample(0, 0, age).h);
   assert(atFront > atOrigin, "displacement peaks at the wavefront, not the origin");
@@ -28,9 +26,9 @@ Deno.test("RippleField: energy decays monotonically after a strike", () => {
 
 Deno.test("RippleField: amplitude-weighted hue leans to the dominant strike", () => {
   const f = RippleField();
-  f.strike(0, 0, { amp: 1, hue: 210, t: 0 });   
-  f.strike(9, 0, { amp: 1, hue: 290, t: 0 });   
-  const front = RIPPLE_DEFAULTS.speed * 1;       
+  f.strike(0, 0, { amp: 1, hue: 210, t: 0 });
+  f.strike(9, 0, { amp: 1, hue: 290, t: 0 });
+  const front = RIPPLE_DEFAULTS.speed * 1;
   const hue = f.sample(front, 0, 1).hue;
   assert(hue >= 200 && hue <= 300, "hue stays in the non-wrapping band");
   assert(Math.abs(hue - 210) < Math.abs(hue - 290), "biased toward the crest we sampled on");
@@ -40,7 +38,7 @@ Deno.test("RippleField: prune drops rung-out strikes; max caps the source list",
   const f = RippleField({ life: 0.2, max: 3 });
   f.strike(0, 0, { t: 0 });
   assertEquals(f.active(), 1);
-  f.prune(5);                                    
+  f.prune(5);
   assertEquals(f.active(), 0, "pruned the dead strike");
   for (let i = 0; i < 6; i++) f.strike(i, 0, { t: 0 });
   assertEquals(f.active(), 3, "capped at max, oldest evicted");

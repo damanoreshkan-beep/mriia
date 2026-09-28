@@ -1,11 +1,9 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { capture, isolateFrame, framesEqual, renderOOK, OOK_FREQS } from "../ook.js";
 
-
 Deno.test("renderOOK: correct length; ON regions carry a carrier, OFF is silence", () => {
   const iq = renderOOK([+1000, -1000], { fs: 2e6, repeats: 1, gapUs: 0, tailUs: 0, amp: 110 });
-  assertEquals(iq.length, 2 * (2000 + 2000));            
+  assertEquals(iq.length, 2 * (2000 + 2000));
   let onMag = 0, offMag = 0;
   for (let s = 0; s < 2000; s++) onMag += iq[2 * s] ** 2 + iq[2 * s + 1] ** 2;
   for (let s = 2000; s < 4000; s++) offMag += iq[2 * s] ** 2 + iq[2 * s + 1] ** 2;
@@ -24,7 +22,7 @@ Deno.test("OOK round-trip: renderOOK → capture recovers the timing frame (vali
 
 Deno.test("isolateFrame: splits repeated frames on long gaps, keeps the modal frame", () => {
   const f = [+400, -1200, +1200, -400];
-  const stream = [...f, -5000, ...f, -5000, ...f, -5000];   
+  const stream = [...f, -5000, ...f, -5000, ...f, -5000];
   const iso = isolateFrame(stream, { gapUs: 3000 });
   assertEquals(iso.frame, f);
   assertEquals(iso.repeats, 3);

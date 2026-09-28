@@ -1,4 +1,3 @@
-
 const TAU = 2 * Math.PI;
 const rad = (deg) => deg * Math.PI / 180;
 const deg = (r) => ((r * 180 / Math.PI) % 360 + 360) % 360;

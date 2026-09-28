@@ -23,7 +23,7 @@ export function forge({ S, toast }) {
 
   useEffect(() => {
     if (!url || editedName.current) return;
-    try { setName(siteName(url)); } catch {  }
+    try { setName(siteName(url)); } catch { }
   }, [url]);
 
   useEffect(() => {
@@ -46,9 +46,9 @@ export function forge({ S, toast }) {
     setBusy(true); setErr(null); setDone(null);
     try {
       let iconB64 = icon;
-      if (!iconB64) { try { iconB64 = await letterTilePng(name, accent()); } catch {  } }
+      if (!iconB64) { try { iconB64 = await letterTilePng(name, accent()); } catch { } }
       if (!gate) {
-        let layers = {}; try { layers = await adaptiveFromTile(iconB64, accent()); } catch {  }
+        let layers = {}; try { layers = await adaptiveFromTile(iconB64, accent()); } catch { }
         const blob = await buildApk({ url, name: name.trim(), iconB64, fgB64: layers.fg, bg: layers.bg });
         downloadBlob(blob, apkFilename(name));
       }
@@ -60,6 +60,7 @@ export function forge({ S, toast }) {
   };
 
   return html`<div data-forge-screen data-busy=${busy ? "1" : "0"} data-done=${done ? "1" : "0"} data-valid=${valid ? "1" : "0"} class="flex flex-col gap-[var(--ms-gap)] max-w-md w-full mx-auto">
+    ${""}
     <${Panel} data-forge className="shrink-0">
       <div class="flex items-center gap-[var(--ms-gap)]">
         <div class="size-14 rounded-[var(--ms-r-in)] overflow-hidden sf-inset shrink-0 grid place-items-center">
@@ -74,7 +75,7 @@ export function forge({ S, toast }) {
       </div>
     <//>
 
-    
+    ${""}
     <input type="url" inputmode="url" value=${url} onInput=${(e) => setUrl(e.target.value)}
       placeholder=${T(t, "forgeUrlPlaceholder")} aria-label=${T(t, "forgeUrlLabel")}
       class="input w-full sf-inset border-0 h-[var(--ms-ctl)] rounded-[var(--ms-r)] font-mono text-sm shrink-0" />
@@ -83,12 +84,14 @@ export function forge({ S, toast }) {
       placeholder=${T(t, "forgeNamePlaceholder")} aria-label=${T(t, "forgeNameLabel")}
       class="input w-full sf-inset border-0 h-[var(--ms-ctl)] rounded-[var(--ms-r)] text-sm shrink-0" />
 
-    
+    ${""}
     ${done
       ? html`<div data-built class="shrink-0 flex items-start gap-2 rounded-[var(--ms-r)] sf-inset px-[var(--ms-pad)] py-2.5 text-sm leading-snug text-muted">
           ${Icon("lucide:shield-alert", "text-[length:var(--ms-icon)] shrink-0 text-warning")}<span>${T(t, "forgeNote")}</span>
         </div>`
       : null}
+
+    ${""}
     <button data-generate disabled=${!valid || busy} onClick=${generate}
       class="btn btn-primary rounded-full w-full gap-2 shrink-0">
       ${busy

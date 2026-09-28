@@ -10,13 +10,13 @@ import { gate, isGate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { session } from "/_rt/auth.js";
 
-try { if (typeof localStorage !== "undefined" && localStorage.getItem("jobx:theme") === "ink") localStorage.setItem("jobx:theme", "signal"); } catch {  }
+try { if (typeof localStorage !== "undefined" && localStorage.getItem("jobx:theme") === "ink") localStorage.setItem("jobx:theme", "signal"); } catch { }
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const EMPLOYMENT = ["full", "part", "remote", "contract", "internship"];
 const empKey = { full: "empFull", part: "empPart", remote: "empRemote", contract: "empContract", internship: "empInternship" };
 
-const GEO = "https://dreamstudio.mooo.com/geo";      
+const GEO = "https://dreamstudio.mooo.com/geo";
 const LUMA = "9.4.2";
 const DECK_URL = `https://esm.sh/deck.gl@9.4.0?deps=${["core", "engine", "shadertools", "webgl", "gpgpu", "gltf"].map((p) => `@luma.gl/${p}@${LUMA}`).join(",")}`;
 
@@ -31,10 +31,10 @@ const CITY_IDS = Object.keys(CITIES);
 const cityName = (id, loc) => { const c = CITIES[id] || CITIES.kyiv; return /uk/i.test(loc || "uk") ? c.uk : c.en; };
 const inCity = (j, id) => { const c = CITIES[id]; return !!c && Number.isFinite(j.lat) && Number.isFinite(j.lon) && j.lat >= c.s && j.lat <= c.n && j.lon >= c.w && j.lon <= c.e; };
 const viewFor = (id) => { const c = CITIES[id] || CITIES.kyiv; return { longitude: c.lon, latitude: c.lat, zoom: 11.0, pitch: 55, bearing: -18, minZoom: 10, maxZoom: 18 }; };
-const KYIV = CITIES.kyiv;   
+const KYIV = CITIES.kyiv;
 const readCity = () => { try { const c = localStorage.getItem("jobx.city"); return c && CITIES[c] ? c : "kyiv"; } catch { return "kyiv"; } };
 const $city = atom(readCity());
-$city.listen((c) => { try { localStorage.setItem("jobx.city", c); } catch {  } });
+$city.listen((c) => { try { localStorage.setItem("jobx.city", c); } catch { } });
 
 const DISTRICTS = {
   shevchenkivskyi: { uk: "Шевченківський", en: "Shevchenkivskyi", lat: 50.452, lon: 30.480 },
@@ -82,8 +82,8 @@ const LANDMARKS = {
   ],
 };
 const lmUrl = (id) => new URL(`assets/lm-${id}.webp`, import.meta.url).href;
-const LM_ZOOM = 12.5;   
-const LM_Z = 120;       
+const LM_ZOOM = 12.5;
+const LM_Z = 120;
 
 const DEV_HOST = typeof location !== "undefined" && /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1)/.test(location.hostname);
 const NOW = Date.now(), H = 3600_000;
@@ -145,7 +145,7 @@ function palette() {
   const base3 = themeRGB("--color-base-300", [22, 22, 26]);
   const accent = themeRGB("--app-accent", [242, 184, 75]);
   const accent2 = themeRGB("--app-accent-2", [92, 228, 220]);
-  const dark = (ink[0] + ink[1] + ink[2]) / 3 > 140;    
+  const dark = (ink[0] + ink[1] + ink[2]) / 3 > 140;
   const white = [255, 255, 255];
   return (_pal = {
     key, dark, bg: base2, ink, accent,
@@ -171,10 +171,10 @@ function shortSalary(s) {
   return nums.length >= 2 ? `${k(nums[0])}–${k(nums[1])} ${cur}` : `${k(nums[0])} ${cur}`;
 }
 
-const PILL_H = 34, PILL_GAP = 8;    
-const BLOCK_H = 40, PILL_Z = 120;   
-const BLD_ZOOM = 12.5;              
-const LABEL_ZOOM = 13.2;            
+const PILL_H = 34, PILL_GAP = 8;
+const BLOCK_H = 40, PILL_Z = 120;
+const BLD_ZOOM = 12.5;
+const LABEL_ZOOM = 13.2;
 const labelOf = (c) => (c.count > 1 ? String(c.count) : (shortSalary(c.jobs[0] && c.jobs[0].salary) || ""));
 const pillW = (lab) => (lab ? lab.length * 7.6 + 20 : 12);
 function clusterJobs(jobs, vp) {
@@ -187,7 +187,7 @@ function clusterJobs(jobs, vp) {
     for (const c of out) if (Math.abs(c.x - x) < (wj + pillW(labelOf(c))) / 2 + PILL_GAP && Math.abs(c.y - y) < PILL_H) { hit = c; break; }
     if (!hit) { out.push({ x, y, lon: j.lon, lat: j.lat, count: 1, jobs: [j] }); continue; }
     hit.jobs.push(j); hit.count++;
-    const k = 1 / hit.count;                                   
+    const k = 1 / hit.count;
     hit.x += (x - hit.x) * k; hit.y += (y - hit.y) * k; hit.lon += (j.lon - hit.lon) * k; hit.lat += (j.lat - hit.lat) * k;
   }
   return out.map((c) => ({ coordinates: [c.lon, c.lat], count: c.count, jobs: c.jobs, x: c.x, y: c.y }));
@@ -211,8 +211,8 @@ async function makeDeck(canvas, cityId) {
   let D; try { D = await import(DECK_URL); } catch { return null; }
   if (!D || !D.Deck) return null;
 
-  const VIEW = viewFor(cityId);                 
-  const gbase = `${GEO}/${cityId}`;             
+  const VIEW = viewFor(cityId);
+  const gbase = `${GEO}/${cityId}`;
   const geo = {};
   const grab = async (n) => { try { geo[n] = await (await fetch(`${gbase}/${n}.json`)).json(); } catch { geo[n] = null; } };
   const baseLayers = cityId === "kyiv" ? ["water", "roads", "districts", "metro"] : ["water", "roads"];
@@ -223,9 +223,9 @@ async function makeDeck(canvas, cityId) {
   let zoom = VIEW.zoom, cLng = VIEW.longitude, cLat = VIEW.latitude, cPitch = VIEW.pitch, cBearing = VIEW.bearing;
   let pal = palette(), jobs = [], onPick = () => {}, curClusters = [], camSig = "", loc = "uk", me = null, selected = null;
   let staticLayers = [], dead = false;
-  const landmarks = LANDMARKS[cityId] || [];   
+  const landmarks = LANDMARKS[cityId] || [];
   const viewportNow = () => new D.WebMercatorViewport({ width: canvas.clientWidth || 384, height: canvas.clientHeight || 832, longitude: cLng, latitude: cLat, zoom, pitch: cPitch, bearing: cBearing });
-  const OVER = { depthTest: false };            
+  const OVER = { depthTest: false };
   const hw = (f) => (f.properties && f.properties.hw) || "";
   const bldColor = (f) => { const h = (f.properties && f.properties.h) || 12; return mix(pal.building, pal.buildingHi, Math.max(0, Math.min(1, (h - 8) / 70))); };
 
@@ -349,9 +349,9 @@ async function makeDeck(canvas, cityId) {
     flyTo,
     zoom: () => zoom,
     still(v) { still = !!v; },
-    destroy() { dead = true; clearTimeout(pulseTimer); try { deck.finalize(); } catch {  } },
+    destroy() { dead = true; clearTimeout(pulseTimer); try { deck.finalize(); } catch { } },
   };
-  if (DEV_HOST) globalThis.__jobx = ctl;   
+  if (DEV_HOST) globalThis.__jobx = ctl;
   return ctl;
 }
 
@@ -436,6 +436,7 @@ function JobPage({ t, id, onBack }) {
       ${j.description ? html`<p class="text-[0.98rem] leading-relaxed whitespace-pre-line text-base-content/90">${j.description}</p>` : null}
       ${j.poster ? html`<div class="text-[0.82rem] text-muted">${T(t, "postedBy")}: ${j.poster}</div>` : null}
     </div>
+    ${""}
     <div class="fixed inset-x-0 z-20 flex justify-center px-3 pointer-events-none" style="bottom:calc(env(safe-area-inset-bottom) + 0.75rem)">
       <${Island} tone="glass" className=${`pointer-events-auto ${link ? "!p-1 rounded-full w-full max-w-md" : "!p-2 rounded-[var(--ms-r)] w-full max-w-md"}`}>
         ${link
@@ -456,7 +457,6 @@ function PostPage({ t, loc, onBack }) {
   const submit = async () => {
     if ($posting.get()) return;
     if (!f.title.trim() || !f.company.trim() || !f.description.trim() || !f.contact.trim()) { $err.set("errFields"); return; }
-    
     let lat, lon, address;
     if (city === "kyiv") { const d = DISTRICTS[f.district] || DISTRICTS.shevchenkivskyi; lat = d.lat; lon = d.lon; address = (loc === "en" ? d.en : d.uk); }
     else { const c = CITIES[city]; lat = c.lat; lon = c.lon; address = cityName(city, loc); }
@@ -501,7 +501,6 @@ function PostPage({ t, loc, onBack }) {
   <//>`;
 }
 
-
 function CityPage({ t, loc, onBack }) {
   const city = useStore($city);
   const jobs = useStore($jobs);
@@ -521,7 +520,6 @@ function CityPage({ t, loc, onBack }) {
   <//>`;
 }
 
-
 function Screens({ t, loc, screen, close }) {
   if (screen === "search") return null;
   if (screen === "post") return html`<${PostPage} t=${t} loc=${loc} onBack=${close} />`;
@@ -530,8 +528,7 @@ function Screens({ t, loc, screen, close }) {
   return null;
 }
 
-
-const $preview = atom(null);   
+const $preview = atom(null);
 export function mapView({ t, S, screen, openScreen, closeScreen }) {
   const jobs = useStore($jobs);
   const city = useStore($city);
@@ -545,7 +542,7 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
   const isDark = !/light/i.test(String(theme || ""));
   useEffect(() => { loadJobs(); }, []);
   useEffect(() => { $preview.set(null); setMe(null); }, [city]);
-  const cityJobs = jobs.filter((j) => inCity(j, city));   
+  const cityJobs = jobs.filter((j) => inCity(j, city));
   const onPick = (c, cam) => {
     if (!c) { $preview.set(null); return; }
     $preview.set({ coordinates: c.coordinates, jobs: c.jobs });
@@ -561,7 +558,6 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
   };
   const openJob = (j) => { $preview.set(null); openScreen(`job:${j.id}`); };
 
-  
   return html`<${Fragment}>
     <div data-stage class="fixed inset-0 z-0 overflow-hidden bg-base-200">
       ${showMap ? html`<${MapStage} isDark=${isDark} city=${city} jobs=${cityJobs} loc=${loc} me=${me} selected=${preview && preview.coordinates} ctlRef=${ctlRef} onPick=${onPick} />` : null}
@@ -607,7 +603,6 @@ export function mapView({ t, S, screen, openScreen, closeScreen }) {
   <//>`;
 }
 
-
 const PAGE = 40;
 const EMP_FILTERS = ["all", "remote", "full", "part"];
 export function listView({ t, S, screen, openScreen, closeScreen }) {
@@ -624,7 +619,7 @@ export function listView({ t, S, screen, openScreen, closeScreen }) {
   useEffect(() => { loadJobs(); }, []);
   useEffect(() => { if (!searching && !String(screen || "").startsWith("job:")) setQ(""); }, [screen]);
   useEffect(() => { if (searching && inputRef.current) inputRef.current.focus(); }, [searching]);
-  const cityJobs = jobs.filter((j) => inCity(j, city));   
+  const cityJobs = jobs.filter((j) => inCity(j, city));
   const ql = q.trim().toLowerCase();
   const list = cityJobs
     .filter((j) => emp === "all" || j.employment === emp)
@@ -633,7 +628,6 @@ export function listView({ t, S, screen, openScreen, closeScreen }) {
   useEffect(() => { setShown(PAGE); }, [city, emp, ql]);
   useEffect(() => {
     if (!sentinel || shown >= list.length || typeof IntersectionObserver === "undefined") return;
-    
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((n) => Math.min(n + PAGE, list.length)); }, { rootMargin: "600px" });
     io.observe(sentinel);
     return () => io.disconnect();

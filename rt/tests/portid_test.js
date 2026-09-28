@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { classify as pidClassify, httpInfo as pidHttpInfo, tlsRecord as pidTlsRecord, textOf as pidTextOf, portRange as pidPortRange, orderPorts as pidOrder, tallyPorts as pidTally } from "../portid.js";
 
@@ -87,7 +86,7 @@ Deno.test("portid: ranges are IANA's, and the order puts named services first", 
   assertEquals(pidPortRange(1023), "system");
   assertEquals(pidPortRange(1024), "user");
   assertEquals(pidPortRange(49151), "user");
-  assertEquals(pidPortRange(49152), "dynamic");     
+  assertEquals(pidPortRange(49152), "dynamic");
 
   const rows = [
     { port: 9000, confidence: "unknown" }, { port: 8080, confidence: "product" },

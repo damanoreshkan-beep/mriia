@@ -1,4 +1,3 @@
-
 import { mulberry32 } from "@microspec/core/runtime/groove.js";
 import { midiToFreq } from "@microspec/core/runtime/audio.js";
 
@@ -41,8 +40,8 @@ export const CHORDS = {
   quartal: [0, 5, 10, 15],
 };
 
-export const VOICE_FLOOR = 48;   
-export const VOICE_CEIL = 88;    
+export const VOICE_FLOOR = 48;
+export const VOICE_CEIL = 88;
 
 export function buildScale(rootMidi, modeKey, octaves = 3) {
   const steps = MODES[modeKey] || MODES.major;

@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -19,8 +18,8 @@ import {
 const JSON_CODEC = { encode: JSON.stringify, decode: (s) => { try { return JSON.parse(s); } catch { return null; } } };
 
 const $rate = persistentAtom("hoard:rate", { mode: "month", ...DEFAULTS.month, currency: "UAH" }, JSON_CODEC);
-const $startedAt = persistentAtom("hoard:startedAt", "0");     
-const $sessions = atom([]);                                     
+const $startedAt = persistentAtom("hoard:startedAt", "0");
+const $sessions = atom([]);
 
 const ledger = collection("hoard");
 const started = () => Number($startedAt.get()) || 0;
@@ -44,7 +43,7 @@ async function loadSessions() {
     }
     $sessions.set(byEnded(all));
   } catch {
-    $sessions.set(gate ? byEnded(FIXTURE_SESSIONS) : []);       
+    $sessions.set(gate ? byEnded(FIXTURE_SESSIONS) : []);
   }
 }
 if (gate && !started()) $startedAt.set(String(Date.now() - FIXTURE_STARTED));
@@ -53,7 +52,6 @@ const GOLD = [0.847, 0.643, 0.227];
 const env = { fill: 0.1, heat: 0, glint: 0, phase: 0, depth: 0 };
 const varyOf = () => [env.fill, env.heat, env.glint, env.phase];
 const inkOf = () => [GOLD[0], GOLD[1], GOLD[2], env.depth];
-
 
 export function flow({ t, S, toast }) {
   const loc = useStore(S.locale);
@@ -88,7 +86,7 @@ export function flow({ t, S, toast }) {
       env.fill += (Math.max(rest, running ? hoardFill(amount, perSec) : rest) - env.fill) * Math.min(1, dt * 1.2);
       env.glint *= Math.exp(-dt * 3.2);
       const unit = Math.floor(amount);
-      if (running && lastUnit >= 0 && unit > lastUnit) env.glint = 1;   
+      if (running && lastUnit >= 0 && unit > lastUnit) env.glint = 1;
       lastUnit = unit;
 
       if (now - lastDom > 100) {
@@ -136,6 +134,7 @@ export function flow({ t, S, toast }) {
     </div>
 
     <div class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]" data-running=${running ? "yes" : "no"}>
+      ${""}
       <div class="shrink-0 flex justify-center">
         <button data-rate type="button" aria-label=${T(t, "aRate")} onClick=${() => S.screen.set("rate")}
           class=${`btn btn-ghost btn-sm h-auto min-h-0 py-1.5 px-3 rounded-full font-mono uppercase tracking-wide text-[length:var(--ms-label)] max-w-full ${FROST}`}>
@@ -144,7 +143,7 @@ export function flow({ t, S, toast }) {
         </button>
       </div>
 
-      
+      ${""}
       <div class="shrink-0 text-center px-1">
         <div ref=${boxRef} data-amount-box class="w-full" style="height:var(--ms-hero)">
           <div ref=${amountRef} data-amount class="font-mono tabular-nums font-semibold"
@@ -157,9 +156,10 @@ export function flow({ t, S, toast }) {
         </div>
       </div>
 
-      
+      ${""}
       <div class="flex-1 min-h-0" aria-hidden="true"></div>
-      
+
+      ${""}
       <${Island} className="shrink-0" tone="frost">
         <button data-run type="button" onClick=${running ? bank : start}
           class="btn btn-primary btn-block h-[var(--ms-ctl)] min-h-0 rounded-[var(--ms-r-in)] gap-2">
@@ -173,15 +173,13 @@ export function flow({ t, S, toast }) {
   </${Fragment}>`;
 }
 
-
-
 function RateSheet({ t, loc, S, open, rate }) {
   const [draft, setDraft] = useState(rate);
-  
   useEffect(() => { if (open) setDraft(rate); }, [open]);
   const set = (k, v) => setDraft({ ...draft, [k]: v });
   const close = () => S.screen.set(null);
   const save = () => { $rate.set(normRate(draft)); close(); };
+
   const field = (label, key, extra) => html`<label class="flex flex-col gap-1 min-w-0 flex-1 basis-[7rem]">
     <span class="font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70 truncate">${label}</span>
     <input ...${extra} type="number" min="0" step="any" inputmode="decimal" value=${draft[key] ?? ""}
@@ -195,12 +193,13 @@ function RateSheet({ t, loc, S, open, rate }) {
       onChange=${(id) => setDraft({ ...normRate({ ...DEFAULTS[id], mode: id, currency: draft.currency }) })}
       items=${MODES.map((m) => ({ id: m, label: T(t, m === "month" ? "modeMonth" : m === "shift" ? "modeShift" : "modeDay") }))} />
 
-    
+    ${""}
     <div class="flex flex-wrap gap-[var(--ms-gap)] items-end">
       ${field(T(t, draft.mode === "month" ? "payMonth" : draft.mode === "shift" ? "payShift" : "payDay"), "pay", { "data-pay": "" })}
       ${draft.mode === "month" ? field(T(t, "rateDays"), "days", { "data-days": "" }) : null}
       ${field(T(t, draft.mode === "shift" ? "rateHoursShift" : "rateHoursDay"), "hours", { "data-hours": "" })}
     </div>
+
     <${Segmented} attr="data-cur" label=${T(t, "rateCurrency")} value=${draft.currency}
       onChange=${(id) => set("currency", id)}
       items=${CURRENCIES.map((c) => ({ id: c, label: c === "UAH" ? "₴" : "$" }))} />
@@ -209,8 +208,6 @@ function RateSheet({ t, loc, S, open, rate }) {
       class="btn btn-primary btn-block h-[var(--ms-ctl)] min-h-0 rounded-[var(--ms-r-in)]">${T(t, "rateDone")}</button>
   <//>`;
 }
-
-
 
 export function vault({ t, S, undo }) {
   const loc = useStore(S.locale);
@@ -222,8 +219,8 @@ export function vault({ t, S, undo }) {
 
   const remove = async (s) => {
     $sessions.set($sessions.get().filter((x) => x.id !== s.id));
-    try { await ledger.remove(s.id); } catch {  }
-    undo?.(async () => { try { await ledger.put(s.id, s); } catch {  } await loadSessions(); }, T(t, "removed"));
+    try { await ledger.remove(s.id); } catch { }
+    undo?.(async () => { try { await ledger.put(s.id, s); } catch { } await loadSessions(); }, T(t, "removed"));
   };
 
   if (!sessions.length) {

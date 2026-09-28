@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { Fragment } from "preact";
 import { useEffect, useRef, useState, useCallback } from "preact/hooks";
@@ -26,7 +25,6 @@ const $runs = persistentAtom(`${NS}runs`, "0");
 const $sound = persistentAtom(`${NS}sound`, "1");
 const $over = atom(false);
 
-
 function botInput(E) {
   const st = E.state(), { dl, n } = E.list();
   let az = st[S.NAZ] >= 0 ? st[S.NAZ] : 0, el = 0;
@@ -46,7 +44,7 @@ export function swarm(props) {
   const soundOn = useStore($sound) === "1";
   const over = useStore($over);
 
-  const [live, setLive] = useState(false);        
+  const [live, setLive] = useState(false);
   const [ready, setReady] = useState(false);
   const [engErr, setEngErr] = useState("");
 
@@ -59,20 +57,16 @@ export function swarm(props) {
 
   const arm = useCallback(() => { sound.current?.arm(); }, []);
 
-  
   useEffect(() => {
     if (gate || !live) return;
-    
     const stopC = compass.start((deg) => { headingT.current = deg * 10; }, { trueNorth: false, look: true });
     const stopT = tilt.start(({ beta }) => {
       if (beta == null) return;
-      
       pitchT.current = Math.max(-450, Math.min(450, (beta - 80) * 10));
     });
     return () => { stopC(); stopT(); };
   }, [live]);
 
-  
   useEffect(() => {
     const el = cv.current;
     if (!el) return;
@@ -86,7 +80,6 @@ export function swarm(props) {
     return () => { el.removeEventListener("pointerdown", dn); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
   }, []);
 
-  
   useEffect(() => {
     const dn = (e) => { if (e.code === "Space" || e.code === "KeyZ") { fire.current = 1; arm(); } };
     const up = (e) => { if (e.code === "Space" || e.code === "KeyZ") fire.current = 0; };
@@ -111,7 +104,6 @@ export function swarm(props) {
       const ctx = cv.current?.getContext("2d");
       if (!ctx) return;
 
-      
       if (gate) {
         const survives = (k) => {
           E.init(seed.current);
@@ -139,11 +131,6 @@ export function swarm(props) {
 
       const clock = makeClock(() => {
         let h = (((headingT.current + dragT.current) % 3600) + 3600) % 3600;
-        
-        
-        
-        
-        
         const manual = !!(fire.current || pulse.current > 0);
         if (pulse.current > 0) pulse.current--;
         let aimAz = h, aimEl = pitchT.current, f = manual;
@@ -180,12 +167,11 @@ export function swarm(props) {
         const hh = (((headingT.current + dragT.current) % 3600) + 3600) % 3600;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         let accent = "#F2B84B";
-        try { accent = getComputedStyle(cv.current).getPropertyValue("--app-accent").trim() || accent; } catch {  }
+        try { accent = getComputedStyle(cv.current).getPropertyValue("--app-accent").trim() || accent; } catch { }
         const locked = st[S.DEAD] ? -1 : lockOn(dl, n, hh, pitchT.current);
         renderFrame(ctx, dl, n, st, hh, pitchT.current, w, hgt, { muzzle, lockedIdx: locked, accent });
         if (muzzle > 0) muzzle--;
 
-        
         if (waveEl.current) waveEl.current.textContent = st[S.WAVE];
         if (scoreEl.current) scoreEl.current.textContent = st[S.SCORE];
         if (comboEl.current) {
@@ -200,12 +186,9 @@ export function swarm(props) {
           hd.dataset.frame = st[S.FRAME]; hd.dataset.wave = st[S.WAVE]; hd.dataset.score = st[S.SCORE];
           hd.dataset.hp = st[S.HP]; hd.dataset.alive = st[S.ALIVE]; hd.dataset.dead = st[S.DEAD] ? "1" : "0";
           hd.dataset.kills = st[S.KILLS]; hd.dataset.shots = st[S.SHOTS];
-          
-          
           hd.dataset.mshots = mshots.current;
           hd.dataset.heading = Math.round(hh / 10);
         }
-        
         if (st[S.DEAD]) {
           if (fell.current == null) {
             fell.current = st[S.FRAME];
@@ -216,6 +199,7 @@ export function swarm(props) {
           }
         }
       };
+
       const frame = (now) => {
         if (!live) return;
         if (!$over.get()) clock.tick(now);
@@ -240,17 +224,14 @@ export function swarm(props) {
   restartRef.current = restart;
 
   const chip = "flex items-baseline gap-1.5 rounded-full bg-black px-3 py-1 border border-white/15";
-  
-  
-  
   const chipBtn = "w-9 h-9 rounded-full grid place-items-center bg-black text-white border border-white/15 pointer-events-auto";
 
   return html`<${Fragment}>
     <div class="ms-stage z-20 bg-black overflow-hidden select-none" ref=${stage} data-swarm>
       ${gate ? html`<div class="absolute inset-0" aria-hidden="true"
         style="background:radial-gradient(130% 90% at 50% 18%, #141210, #000000 68%)"></div>` : null}
-      
-      
+      ${""}
+      ${""}
       <${CamStage} loc=${loc} reason=${T(t, "camReason")} onSettings=${() => A.screen.set("perms")}
           onEnable=${() => { compass.request().catch(() => {}); }}
           show=${true} fullscreen=${false} gestures=${false} onState=${(s) => setLive(s.ready)}>
@@ -258,7 +239,7 @@ export function swarm(props) {
         aria-label=${T(t, "screenAlt")} onPointerDown=${arm}></canvas>
 
       <div ref=${hud} data-readout class="absolute inset-0 z-[2] pointer-events-none p-3 text-white font-mono">
-        
+        ${""}
         <div class="flex flex-wrap items-start justify-between gap-2">
           <div class="flex items-center gap-2 min-w-0">
             <div class=${chip}>

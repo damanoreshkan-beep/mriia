@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import {
   MAGIC as esMAGIC, COMPANY as esCOMPANY, HEADER as esHEADER, MAX_PAYLOAD as esMAX_PAYLOAD,
@@ -41,7 +40,7 @@ Deno.test("earshot: trimming cuts on a code point, never mid-character", () => {
   assertEquals(fit.over, 1);
   assertEquals(fit.left, 0);
 
-  const pair = esFitText("aaaaaaaaaaaaaaaaaaaa\u{1F600}");   
+  const pair = esFitText("aaaaaaaaaaaaaaaaaaaa\u{1F600}");
   assertEquals(pair.text, "aaaaaaaaaaaaaaaaaaaa");
   assertEquals(pair.bytes, 20);
 
@@ -52,7 +51,7 @@ Deno.test("earshot: trimming cuts on a code point, never mid-character", () => {
 
 Deno.test("earshot: silence is not a message", () => {
   assertEquals(esEncodeVoice({ sender: 1, seq: 1, text: "" }), null);
-  assertEquals(esEncodeVoice({ sender: 1, seq: 1, text: "   " })?.length, esHEADER + 3);   
+  assertEquals(esEncodeVoice({ sender: 1, seq: 1, text: "   " })?.length, esHEADER + 3);
   assertEquals(esEncodeVoice(), null);
   assertEquals(esDecodeVoice(Uint8Array.from([esMAGIC, 0, 0, 1, 0])), null);
 });
@@ -60,7 +59,7 @@ Deno.test("earshot: silence is not a message", () => {
 Deno.test("earshot: another protocol's bytes are refused, not rendered", () => {
   assertEquals(esDecodeVoice(Uint8Array.from([0x42, 0, 0, 1, 0, 0x68, 0x69])), null);
   assertEquals(esDecodeVoice(Uint8Array.from([esMAGIC, 0, 0, 1, 0, 0xc3, 0x28])), null);
-  assertEquals(esDecodeVoice(Uint8Array.from([esMAGIC, 0, 0, 1, 0, 0xd0])), null);   
+  assertEquals(esDecodeVoice(Uint8Array.from([esMAGIC, 0, 0, 1, 0, 0xd0])), null);
   assertEquals(esDecodeVoice(null), null);
   assertEquals(esDecodeVoice(new Uint8Array(0)), null);
 });
@@ -103,7 +102,7 @@ Deno.test("earshot: a voice ages out on when it was LAST heard", () => {
   const born = esMergeVoices([], [{ sender: 9, seq: 1, text: "hi", rssi: -50 }], 0);
   const kept = esMergeVoices(born, [{ sender: 9, seq: 1, text: "hi", rssi: -50 }], 170_000);
   assertEquals(kept.length, 1);
-  assertEquals(esMergeVoices(kept, [], 170_000 + esTTL).length, 1);       
+  assertEquals(esMergeVoices(kept, [], 170_000 + esTTL).length, 1);
   assertEquals(esMergeVoices(kept, [], 170_001 + esTTL).length, 0);
   assertEquals(esMergeVoices(null, null, 1).length, 0);
   assertEquals(esMergeVoices([], [null, {}, { sender: 1 }], 1).length, 0);

@@ -1,4 +1,3 @@
-
 import { strike, filter as bqf, lfo, noiseSource } from "/_rt/audio.js";
 
 export function makeIR(ctx, seconds = 4, decay = 2.2) {
@@ -47,7 +46,7 @@ export const packById = (id) => PACKS.find((p) => p.id === id) || PACKS[0];
 
 export function padVoice(ctx, dest, freq, pack, style, peak, buffers) {
   const p = pack.pad, now = ctx.currentTime, atk = Math.max(0.01, style.atk), rel = Math.max(0.2, style.rel);
-  const kill = [];                                             
+  const kill = [];
   const vca = ctx.createGain(); vca.gain.setValueAtTime(0.0001, now);
   const lp = bqf(ctx, "lowpass", style.cutoff, p.lpQ ?? 0.7);
   let tail = vca;
@@ -62,7 +61,7 @@ export function padVoice(ctx, dest, freq, pack, style, peak, buffers) {
   p.oscs.forEach(([type, ratio, det, g], i) => {
     const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq * ratio; o.detune.value = det;
     const og = ctx.createGain(); og.gain.value = g; o.connect(og); og.connect(mix);
-    if (p.vibrato) kill.push(lfo(ctx, p.vibrato.rate, p.vibrato.cents, o.detune));   
+    if (p.vibrato) kill.push(lfo(ctx, p.vibrato.rate, p.vibrato.cents, o.detune));
     if (p.fm && i === 0) {
       const m = ctx.createOscillator(); m.type = "sine"; m.frequency.value = freq * p.fm.ratio;
       const mg = ctx.createGain(); mg.gain.setValueAtTime(freq * p.fm.index, now); mg.gain.setTargetAtTime(freq * 0.15, now, p.fm.decay / 3);
@@ -84,10 +83,10 @@ export function padVoice(ctx, dest, freq, pack, style, peak, buffers) {
   return {
     release(t) {
       const tt = Math.max(t, ctx.currentTime);
-      try { vca.gain.cancelScheduledValues(tt); vca.gain.setTargetAtTime(0.0001, tt, rel / 4); } catch {  }
+      try { vca.gain.cancelScheduledValues(tt); vca.gain.setTargetAtTime(0.0001, tt, rel / 4); } catch { }
       const end = tt + rel + 2;
-      for (const n of kill) { try { n.stop && n.stop(end); } catch {  } }
-      oscs[0] && (oscs[0].onended = () => { for (const n of kill) { try { n.disconnect(); } catch {  } } try { mix.disconnect(); lp.disconnect(); vca.disconnect(); tail.disconnect && tail.disconnect(); } catch {  } });
+      for (const n of kill) { try { n.stop && n.stop(end); } catch { } }
+      oscs[0] && (oscs[0].onended = () => { for (const n of kill) { try { n.disconnect(); } catch { } } try { mix.disconnect(); lp.disconnect(); vca.disconnect(); tail.disconnect && tail.disconnect(); } catch { } });
     },
   };
 }
@@ -101,7 +100,7 @@ export function textureVoice(ctx, dest, buffers, kind, gain) {
   s.connect(bp); bp.connect(g); g.connect(dest); s.start();
   g.gain.setTargetAtTime(gain, ctx.currentTime, 2);
   const sweep = kind === "sweep" ? lfo(ctx, 0.03, 1400, bp.frequency, 700) : null;
-  return { stop() { const t = ctx.currentTime; try { g.gain.setTargetAtTime(0.0001, t, 1.5); } catch {  } try { s.stop(t + 4); sweep && sweep.stop(t + 4); } catch {  } s.onended = () => { try { s.disconnect(); bp.disconnect(); g.disconnect(); sweep && sweep.disconnect(); } catch {  } }; } };
+  return { stop() { const t = ctx.currentTime; try { g.gain.setTargetAtTime(0.0001, t, 1.5); } catch { } try { s.stop(t + 4); sweep && sweep.stop(t + 4); } catch { } s.onended = () => { try { s.disconnect(); bp.disconnect(); g.disconnect(); sweep && sweep.disconnect(); } catch { } }; } };
 }
 
 export function droneVoice(ctx, dest, freq, gain) {
@@ -111,7 +110,7 @@ export function droneVoice(ctx, dest, freq, gain) {
   const bg = ctx.createGain(); bg.gain.value = 0.35; a.connect(g); b.connect(bg); bg.connect(g);
   a.start(now); b.start(now); g.gain.setTargetAtTime(gain, now, 3);
   return { setFreq(f) { const t = ctx.currentTime; a.frequency.setTargetAtTime(f, t, 0.5); b.frequency.setTargetAtTime(f * 2, t, 0.5); },
-    stop() { const t = ctx.currentTime; try { g.gain.setTargetAtTime(0.0001, t, 2); a.stop(t + 5); b.stop(t + 5); } catch {  } a.onended = () => { try { a.disconnect(); b.disconnect(); bg.disconnect(); g.disconnect(); } catch {  } }; } };
+    stop() { const t = ctx.currentTime; try { g.gain.setTargetAtTime(0.0001, t, 2); a.stop(t + 5); b.stop(t + 5); } catch { } a.onended = () => { try { a.disconnect(); b.disconnect(); bg.disconnect(); g.disconnect(); } catch { } }; } };
 }
 
 export function sparkle(ctx, dest, freq, pack, peak) {

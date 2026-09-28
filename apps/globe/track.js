@@ -11,8 +11,8 @@ import { subpoint, makeSat, FALLBACK_TLE } from "/_rt/orbit.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const TLE_URL = "https://tle.ivanstanojevic.me/api/tle/25544";
 const CACHE_KEY = "iss.tle.v1";
-const ME_KEY = "iss.me.v1";        
-const GATE_ME = { lat: 50.45, lon: 30.52 };   
+const ME_KEY = "iss.me.v1";
+const GATE_ME = { lat: 50.45, lon: 30.52 };
 const BACK_MIN = 25, AHEAD_MIN = 92, STEP_MS = 60e3;
 const ISS_COLOR = "#F5B94D", ME_COLOR = "#4ADE80";
 
@@ -28,11 +28,11 @@ function groundTrack(rec, at) {
   };
   return [arc(-BACK_MIN, 0), arc(0, AHEAD_MIN)];
 }
-const GATE_DATE = new Date("2026-07-20T02:10:00Z");   
+const GATE_DATE = new Date("2026-07-20T02:10:00Z");
 const fmt = (n) => n == null ? "—" : Math.round(Number(n)).toLocaleString("en-US").replace(/,/g, " ");
 
 function initialSat() {
-  try { if (typeof localStorage !== "undefined") { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c && c.line1 && c.line2) return makeSat(c.line1, c.line2); } } catch {  }
+  try { if (typeof localStorage !== "undefined") { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); if (c && c.line1 && c.line2) return makeSat(c.line1, c.line2); } } catch { }
   return makeSat(FALLBACK_TLE.line1, FALLBACK_TLE.line2);
 }
 
@@ -45,7 +45,7 @@ export function iss({ S }) {
     if (isGate || MOCK) return GATE_ME;
     try { const v = JSON.parse(localStorage.getItem(ME_KEY) || "null"); return v && v.lat != null ? v : null; } catch { return null; }
   });
-  const [rings, setRings] = useState([]);      
+  const [rings, setRings] = useState([]);
   const [track, setTrack] = useState(null);
   const [meErr, setMeErr] = useState(false);
 
@@ -71,7 +71,7 @@ export function iss({ S }) {
     const p = await place();
     if (!p) { setMeErr(true); return; }
     setMe(p);
-    try { localStorage.setItem(ME_KEY, JSON.stringify(p)); } catch {  }
+    try { localStorage.setItem(ME_KEY, JSON.stringify(p)); } catch { }
   };
 
   useEffect(() => {
@@ -88,9 +88,9 @@ export function iss({ S }) {
         const r = await fetch(TLE_URL); if (!r.ok) throw 0; const j = await r.json();
         if (!live || !j.line1 || !j.line2) return;
         recRef.current = makeSat(j.line1, j.line2);
-        try { if (typeof localStorage !== "undefined") localStorage.setItem(CACHE_KEY, JSON.stringify({ line1: j.line1, line2: j.line2, name: j.name, date: j.date })); } catch {  }
+        try { if (typeof localStorage !== "undefined") localStorage.setItem(CACHE_KEY, JSON.stringify({ line1: j.line1, line2: j.line2, name: j.name, date: j.date })); } catch { }
         const p = subpoint(recRef.current, new Date()); if (p) setPos(p);
-      } catch {  }
+      } catch { }
     };
     load();
     const id = setInterval(load, 3 * 3600 * 1000);
@@ -99,7 +99,7 @@ export function iss({ S }) {
 
   useEffect(() => { const id = setInterval(() => { tick((x) => x + 1); if (worldReady()) clearInterval(id); }, 1000); return () => clearInterval(id); }, []);
 
-  const ready = useReveal(!!pos);   
+  const ready = useReveal(!!pos);
   if (!ready) return html`<div class="flex flex-col gap-4 items-center">
     <${Globe} points=${[]} spin=${true} height=${320} />
     <div class="flex items-center gap-2 text-sm text-muted">${Icon("lucide:satellite", "text-base")}<span class="font-semibold"><${Scramble} len=${12} /></span></div>
@@ -143,6 +143,7 @@ export function iss({ S }) {
       ${stat("lucide:gauge", "velocity", fmt(velocityKmh), "kmh")}
     </div></div>
 
+    ${""}
     <div class="w-full max-w-[420px] rounded-2xl sf-raised px-4 flex flex-col divide-y divide-base-300/40">
       <div class="flex items-center justify-between py-2.5"><span class="text-base-content/70 flex items-center gap-2">${Icon("lucide:map-pin")}${T(t, "coords")}</span><span data-coords class="font-medium tabular-nums">${lat.toFixed(2)}°, ${lon.toFixed(2)}°</span></div>
       <div class="flex items-center justify-between py-2.5"><span class="text-base-content/70 flex items-center gap-2">${Icon("lucide:sun-moon")}${T(t, "visibility")}</span><span class="font-medium">${T(t, visKey)}</span></div>

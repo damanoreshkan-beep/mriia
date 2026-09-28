@@ -1,11 +1,10 @@
-
 const TAU = 2 * Math.PI;
 
 export function instantFreq(re, im) {
   const n = Math.min(re.length, im.length), out = new Float32Array(Math.max(0, n - 1));
   for (let i = 1; i < n; i++) {
-    const pr = re[i] * re[i - 1] + im[i] * im[i - 1];      
-    const pi = im[i] * re[i - 1] - re[i] * im[i - 1];      
+    const pr = re[i] * re[i - 1] + im[i] * im[i - 1];
+    const pi = im[i] * re[i - 1] - re[i] * im[i - 1];
     out[i - 1] = Math.atan2(pi, pr);
   }
   return out;
@@ -25,14 +24,14 @@ export function fmActivity(re, im, { floor = 0.25 } = {}) {
   const cut = peak * floor;
   const vals = [], wts = [];
   for (let i = 0; i < f.length; i++) {
-    const m = Math.min(mag[i], mag[i + 1]);                
+    const m = Math.min(mag[i], mag[i + 1]);
     if (m < cut) continue;
-    vals.push(f[i]); wts.push(m * m);                      
+    vals.push(f[i]); wts.push(m * m);
   }
   if (!vals.length) return 0;
   const med = weightedMedian(vals, wts);
   const mad = weightedMedian(vals.map((v) => Math.abs(v - med)), wts);
-  return 1.4826 * mad / TAU;                               
+  return 1.4826 * mad / TAU;
 }
 
 export function weightedMedian(values, weights) {

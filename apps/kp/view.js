@@ -46,16 +46,16 @@ export function kp({ S }) {
         const [kpR, wR] = await Promise.all([fetch(KP_URL), fetch(WIND_URL)]);
         if (!kpR.ok) throw 0;
         const entries = await kpR.json();
-        let wind = null; try { wind = (await wR.json())?.[0]?.proton_speed ?? null; } catch {  }
+        let wind = null; try { wind = (await wR.json())?.[0]?.proton_speed ?? null; } catch { }
         if (live) { setData({ entries, wind }); setErr(false); }
       } catch { if (live) setErr(true); }
     };
     load();
-    const id = setInterval(load, 120000); 
+    const id = setInterval(load, 120000);
     return () => { live = false; clearInterval(id); };
   }, []);
 
-  const ready = useReveal(!!data);   
+  const ready = useReveal(!!data);
   if (err && !data) return html`<div data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:cloud-off", "text-4xl")}<span class="font-medium">${T(t, "statusError")}</span></div>`;
   if (!ready) return html`<div class="flex flex-col gap-[var(--ms-gap)] items-center" data-loading>
     <div class="w-36 h-36 rounded-full border-[6px] border-base-300 flex items-center justify-center"><span class="text-4xl font-bold tabular-nums text-muted"><${Scramble} len=${3} /></span></div>
@@ -69,7 +69,7 @@ export function kp({ S }) {
   const cur = observed[observed.length - 1] || entries[entries.length - 1];
   const kpNow = Number(cur.kp), g = gLevel(kpNow);
   const ci = entries.indexOf(cur);
-  const win = entries.slice(Math.max(0, ci - 4)); 
+  const win = entries.slice(Math.max(0, ci - 4));
   const H = 92, yOf = (v) => H - (Math.min(9, v) / 9) * (H - 4), bw = 100 / win.length;
 
   const days = []; let last = "";

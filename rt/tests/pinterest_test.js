@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { parseInput as pinParse, ladder as pinLadder, readPins as pinRead, ratio as pinRatio } from "../pinterest.js";
 

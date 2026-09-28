@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { parseAd as rdParseAd, classify as rdClassify, addrKind as rdAddrKind, rotates as rdRotates, band as rdBand, bandFraction as rdBandFraction, smooth as rdSmooth, estimateDistance as rdEstimateDistance, guardScore as rdGuardScore, GUARD as rdGUARD, signalPercent as rdSignalPercent, orderDevices as rdOrderDevices, hexSpiral as rdHexSpiral, hexToXY as rdHexToXY, hexDistance as rdHexDistance, combSize as rdCombSize, unwrapDeg as rdUnwrapDeg, sightTrend as rdSightTrend } from "../radar.js";
 
@@ -14,10 +13,10 @@ Deno.test("radar: hot/cold needs 6 dB of median shift — noise and thin data bo
 });
 
 Deno.test("radar: an animated bearing takes the short arc across the wrap, both ways", () => {
-  assertEquals(rdUnwrapDeg(359, 1), 361);        
-  assertEquals(rdUnwrapDeg(1, 359), -1);         
-  assertEquals(rdUnwrapDeg(0, 180), 180);        
-  assertEquals(rdUnwrapDeg(90, 90), 90);         
+  assertEquals(rdUnwrapDeg(359, 1), 361);
+  assertEquals(rdUnwrapDeg(1, 359), -1);
+  assertEquals(rdUnwrapDeg(0, 180), 180);
+  assertEquals(rdUnwrapDeg(90, 90), 90);
   assertEquals(rdUnwrapDeg(725, 10), 730);
   assertEquals(rdUnwrapDeg(-350, 5), -355);
   const once = rdUnwrapDeg(178, -178);
@@ -68,9 +67,9 @@ Deno.test("radar: a vendor is not a device class, and a pairing protocol is not 
 });
 
 Deno.test("radar: an address says whether it can be followed at all", () => {
-  assertEquals(rdAddrKind("4C:11:22:33:44:55"), "resolvable");   
-  assertEquals(rdAddrKind("0A:11:22:33:44:55"), "nonResolvable"); 
-  assertEquals(rdAddrKind("C3:11:22:33:44:55"), "staticRandom");  
+  assertEquals(rdAddrKind("4C:11:22:33:44:55"), "resolvable");
+  assertEquals(rdAddrKind("0A:11:22:33:44:55"), "nonResolvable");
+  assertEquals(rdAddrKind("C3:11:22:33:44:55"), "staticRandom");
   assertEquals(rdAddrKind("8F:11:22:33:44:55"), "reserved");
   assertEquals(rdAddrKind("zz"), "unknown");
   assert(rdRotates("4C:11:22:33:44:55"), "a resolvable private address rotates, so a trail must end at it");
@@ -107,7 +106,7 @@ Deno.test("radar: smoothing is time-based, because advertising intervals are not
 
 Deno.test("radar: guard needs every criterion, and says which one is missing", () => {
   const near = { lat: 50.45, lon: 30.52 };
-  const far = { lat: 50.47, lon: 30.52 };          
+  const far = { lat: 50.47, lon: 30.52 };
   const t0 = 1_700_000_000_000;
   const sightings = [
     { at: t0, rssi: -60, fix: near },

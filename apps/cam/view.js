@@ -10,7 +10,7 @@ import { downloadBlob } from "/_rt/apk.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 
 const FX = [
   ["fxNone", ""],
@@ -35,15 +35,15 @@ export function cam({ S }) {
   const [grid, setGrid] = useState(false);
   const [mirror, setMirror] = useState(false);
   const [torch, setTorch] = useState(false);
-  const [timer, setTimer] = useState(0);          
+  const [timer, setTimer] = useState(0);
   const [aspect, setAspect] = useState("1:1");
-  const [caps, setCaps] = useState(null);         
-  const [ready, setReady] = useState(false);      
-  const [shot, setShot] = useState(null);         
-  const [count, setCount] = useState(0);          
-  const [flash, setFlash] = useState(false);      
-  const [frontFlash, setFrontFlash] = useState(false); 
-  const [lit, setLit] = useState(false);          
+  const [caps, setCaps] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [shot, setShot] = useState(null);
+  const [count, setCount] = useState(0);
+  const [flash, setFlash] = useState(false);
+  const [frontFlash, setFrontFlash] = useState(false);
+  const [lit, setLit] = useState(false);
 
   const videoRef = useRef(), timerRef = useRef(0);
   const filterStr = () => `${FX[fx][1]} brightness(${expo.toFixed(2)})`.trim();
@@ -57,12 +57,12 @@ export function cam({ S }) {
   const grab = () => {
     const v = videoRef.current; if (!v || !(v.videoWidth > 0)) return;
     try {
-      const vw = v.videoWidth, vh = v.videoHeight, src = Math.min(vw, vh) / zoom;   
+      const vw = v.videoWidth, vh = v.videoHeight, src = Math.min(vw, vh) / zoom;
       const sx = (vw - src) / 2, sy = (vh - src) / 2;
       const ar = arOf(aspect); let ow = 1200, oh = Math.round(1200 / ar); if (ar < 1) { oh = 1200; ow = Math.round(1200 * ar); }
       const out = document.createElement("canvas"); out.width = ow; out.height = oh;
       const ctx = out.getContext("2d"); ctx.filter = filterStr();
-      if (showMirror) { ctx.translate(ow, 0); ctx.scale(-1, 1); }   
+      if (showMirror) { ctx.translate(ow, 0); ctx.scale(-1, 1); }
       const scale = Math.max(ow / src, oh / src), dw = src * scale, dh = src * scale;
       ctx.drawImage(v, sx, sy, src, src, (ow - dw) / 2, (oh - dh) / 2, dw, dh);
       out.toBlob((blob) => {
@@ -71,7 +71,7 @@ export function cam({ S }) {
         if (navigator.canShare?.({ files: [file] })) { navigator.share({ files: [file] }).catch(() => {}); }
         else { downloadBlob(blob, file.name); S.toast?.(T(t, "aSaved")); }
       }, "image/jpeg", 0.92);
-    } catch {  }
+    } catch { }
     setFlash(true); setTimeout(() => setFlash(false), 160);
   };
   const fire = () => {
@@ -90,10 +90,11 @@ export function cam({ S }) {
   return html`<${Fragment}>
     <div class="ms-stage z-20 flex items-stretch justify-center p-[var(--ms-gap)]" data-facing=${facing} data-aspect=${aspect} data-timer=${timer} data-cam-fx=${FX[fx][0]} data-count=${count}>
       <!-- the console body -->
+      ${""}
       <${Panel} className="w-full max-w-sm mx-auto min-h-0">
         <div class="shrink-0 flex items-center justify-between px-0.5">
           <div class="flex items-center gap-1.5">
-            
+            ${""}
             <span class="w-1.5 h-1.5 rounded-full bg-[var(--app-accent)]" aria-hidden="true"></span>
             <span class=${LABEL}>${loc === "uk" ? "μКАМ" : "μCAM"}</span>
           </div>
@@ -103,11 +104,12 @@ export function cam({ S }) {
         </div>
 
         <!-- the square viewfinder screen, set in a well -->
-        
+        ${""}
         <div class="flex-1 min-h-0 flex items-center justify-center">
           <div data-screen class="relative aspect-square max-h-full max-w-full w-full rounded-[var(--ms-r-in)] overflow-hidden sf-inset">
+            ${""}
             ${gate ? html`<div class="absolute inset-0 bg-neutral" aria-hidden="true"></div>` : null}
-            
+            ${""}
             <div class="absolute inset-0" style=${ready ? `filter:${filterStr()};transform:scale(${zoom.toFixed(3)})` : null}>
               <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} primeFull
                 facing=${facing} torch=${torch} constraints=${CONSTRAINTS} still=${null} show=${true} fullscreen=${false} gestures=${false}
@@ -118,11 +120,12 @@ export function cam({ S }) {
               <div class="absolute top-1/3 left-0 right-0 h-px bg-white/25"></div><div class="absolute top-2/3 left-0 right-0 h-px bg-white/25"></div>
             </div>` : null}
             ${aspect !== "1:1" ? cropBars(aspect) : null}
+            ${""}
             ${frontFlash && facing === "user" && !lit ? html`<div class="absolute inset-0 rounded-[inherit] pointer-events-none border-[3px] border-white/90" aria-hidden="true"></div>` : null}
             <div class="absolute inset-3 pointer-events-none" aria-hidden="true">
               ${["top-0 left-0 border-t-2 border-l-2 rounded-tl-md", "top-0 right-0 border-t-2 border-r-2 rounded-tr-md", "bottom-0 left-0 border-b-2 border-l-2 rounded-bl-md", "bottom-0 right-0 border-b-2 border-r-2 rounded-br-md"].map((c, i) => html`<span key=${i} class=${`absolute w-5 h-5 border-white/30 ${c}`}></span>`)}
             </div>
-            
+            ${""}
             ${count > 0 ? html`<div class="absolute inset-0 flex items-center justify-center"><div class="text-[length:var(--ms-hero)] font-bold tabular-nums text-white drop-shadow-lg">${count}</div></div>` : null}
             <div class=${`absolute inset-0 bg-white pointer-events-none transition-opacity duration-150 ${flash ? "opacity-80" : "opacity-0"}`}></div>
           </div>
@@ -152,9 +155,9 @@ export function cam({ S }) {
           </div>
           <!-- shutter row -->
           <div class="flex items-center justify-between px-2 pt-0.5">
-            
+            ${""}
             <div class="w-11 h-11 rounded-[var(--ms-r-in)] sf-inset overflow-hidden shrink-0">${shot ? html`<img src=${shot} alt="" class="w-full h-full object-cover" />` : null}</div>
-            
+            ${""}
             <button data-shutter aria-label=${T(t, "aShutter")} onClick=${shoot} class="w-[4.6rem] h-[4.6rem] rounded-full sf-raised flex items-center justify-center active:scale-95 transition-transform sf-e3">
               <span class="w-[3.6rem] h-[3.6rem] rounded-full bg-primary border-4 border-base-100"></span>
             </button>
@@ -164,7 +167,7 @@ export function cam({ S }) {
       <//>
     </div>
 
-    
+    ${""}
     ${lit ? html`<div class="fixed inset-0 z-40 bg-white" aria-hidden="true"></div>` : null}
   </${Fragment}>`;
 }

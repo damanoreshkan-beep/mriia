@@ -1,13 +1,13 @@
 const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 const PRICE_URL = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT";
 const WHALE_BTC = 5;
-const CAP = 1000; 
+const CAP = 1000;
 const trunc = (a) => (a ? a.slice(0, 10) + "…" + a.slice(-6) : "—");
 
 export function stream(push) {
   let price = isLocal ? 62000 : 0;
   if (!isLocal) {
-    const loadPrice = async () => { try { price = +(await (await fetch(PRICE_URL)).json()).price || price; } catch {  } };
+    const loadPrice = async () => { try { price = +(await (await fetch(PRICE_URL)).json()).price || price; } catch { } };
     loadPrice(); setInterval(loadPrice, 60000);
   }
   const usd = (btc) => (price ? "$" + Math.round(btc * price).toLocaleString("en-US") : "");
@@ -63,8 +63,8 @@ export function stream(push) {
     if (!alive) return;
     ws = new WebSocket("wss://ws.blockchain.info/inv");
     ws.onopen = () => ws.send(JSON.stringify({ op: "unconfirmed_sub" }));
-    ws.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.op === "utx" && d.x) add(d.x); } catch {  } };
-    ws.onclose = () => { if (alive) retry = setTimeout(connect, 2000); }; 
+    ws.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.op === "utx" && d.x) add(d.x); } catch { } };
+    ws.onclose = () => { if (alive) retry = setTimeout(connect, 2000); };
     ws.onerror = () => ws.close();
   };
   connect();

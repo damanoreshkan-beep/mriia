@@ -1,4 +1,3 @@
-
 import { goertzelPower, firLowpass } from "./fmradio.js";
 
 export const CTCSS_TONES = [
@@ -8,7 +7,7 @@ export const CTCSS_TONES = [
   192.8, 203.5, 210.7, 218.1, 225.7, 233.6, 241.8, 250.3,
 ];
 
-export const VOICE_FLOOR_HZ = 300;      
+export const VOICE_FLOOR_HZ = 300;
 
 export function minToneGap(tones = CTCSS_TONES) {
   let min = Infinity;
@@ -33,7 +32,7 @@ function convolve(x, taps) {
 
 export function detectCtcss(audio, sampleRate, { tones = CTCSS_TONES, marginDb = 6, taps = 101 } = {}) {
   const need = windowSamples(sampleRate);
-  if (audio.length < need) return null;                    
+  if (audio.length < need) return null;
   const lp = convolve(audio, firLowpass(taps, VOICE_FLOOR_HZ, sampleRate));
   const powers = tones.map((hz) => goertzelPower(lp, 2 * Math.cos(2 * Math.PI * hz / sampleRate)));
   let best = 0;

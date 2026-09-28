@@ -15,7 +15,7 @@ const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart
 const shortName = (id) => { const n = String(id || "").split("/").pop(); return n.length > 20 ? n.slice(0, 19) + "…" : n; };
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider";
 const label = `${LABEL} text-base-content/70`;
-const frameLabel = `${LABEL} text-white/80`;   
+const frameLabel = `${LABEL} text-white/80`;
 
 export function rukh({ t, S, screen, closeScreen, toast, undo }) {
   const src = useStore($src), words = useStore($words), job = useStore($job), clip = useStore($clip), clips = useStore($clips), player = useStore($player);
@@ -46,6 +46,7 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
   return html`<div class="rk-root h-full min-h-0 flex flex-col ms-side" data-rk-phase=${job.phase} data-rk-mode=${src ? "picture" : "text"} data-rk-model=${modelSel}>
     <${Stage} className="flex items-center justify-center p-[var(--ms-gap)]">
       <div data-frame data-live=${clip ? "" : null} class="rk-frame relative h-full w-full max-w-[min(100%,26rem)] mx-auto rounded-[var(--ms-r)] overflow-hidden sf-inset">
+        ${""}
         <video ref=${videoRef} data-clip=${clip ? clip.id : null} playsinline loop muted preload="metadata" class=${`absolute inset-0 w-full h-full object-contain bg-black ${showClip ? "" : "hidden"}`}></video>
         ${cam ? html`<${Camera} loc=${loc} reason=${T(t, "camReason")} privacy=${T(t, "primePrivacy")}
             onCapture=${(d) => { setSrc(d); setCam(false); }} onClose=${() => setCam(false)} onSettings=${() => permRequest("camera")} />`
@@ -57,6 +58,7 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
               ${clip?.pic ? html`<button data-first-frame aria-label=${T(t, "picture")} title=${T(t, "picture")} class="rk-thumb absolute top-3 left-3 z-10 overflow-hidden" onClick=${() => setSrc(clip.pic)}>
                 <img src=${clip.pic} alt="" class="w-full h-full object-cover" />
               </button>` : null}
+              ${""}
               <div data-clip-meta class=${`absolute bottom-3 left-3 right-3 flex items-baseline justify-between gap-2 ${frameLabel} pointer-events-none`}>
                 <span class="truncate">${clip ? T(t, clip.pic ? "fromPicture" : "fromText") : (newest?.beat || "")}</span>
                 <span class="tabular-nums shrink-0 flex items-center gap-1.5">${player.muted ? Icon("lucide:volume-x", "text-[0.8rem]") : null}${clip?.res ? html`<span class="rk-res">${clip.res.replace("x", "×")} · </span>` : ""}${mmss((clip ? clip.dur : newest?.dur) || player.dur || 0)}</span>
@@ -66,16 +68,17 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
               <p class="text-white/80 text-[0.95rem] leading-snug max-w-[22ch]">${reelJob.phase === "writing" ? T(t, "scenario") : (reel.find((c) => c.i === reelJob.at)?.beat || "")}</p>
             </div>`
           : null}
-        
+        ${""}
         ${working ? html`<span data-progress aria-hidden="true" class="rk-light" style=${`--pct:${Math.max(4, job.pct || 4)}%`}></span>` : null}
-        
+        ${""}
+        ${""}
         ${!cam && !src && !reeling ? (showClip
           ? html`<div class="absolute top-0 inset-x-0 h-14"><${Chooser} loc=${loc} compact onPick=${setSrc} onCamera=${() => setCam(true)} /></div>`
           : html`<${Chooser} loc=${loc} onPick=${setSrc} onCamera=${() => setCam(true)} />`) : null}
       </div>
     <//>
 
-    
+    ${""}
     ${reel.length ? html`<div data-reel class="shrink-0 px-[var(--ms-pad)] pb-2">
       <div class=${`${label} flex items-baseline gap-2 mb-1.5`}>
         <span>${T(t, "storyboard")}</span>
@@ -104,7 +107,7 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
         <textarea data-words rows="2" value=${words} spellcheck="false" aria-label=${T(t, "wordsLabel")} placeholder=${T(t, "wordsPlaceholder")}
           onInput=${(e) => $words.set(e.currentTarget.value.slice(0, WORDS_MAX))}
           class="rk-words w-full min-w-0 resize-none bg-transparent border-0 outline-none text-[0.95rem] leading-snug focus:outline-none placeholder:text-base-content/45"></textarea>
-        
+        ${""}
         <div data-models class="flex items-center gap-2 min-w-0">
           <span class=${`${label} shrink-0`}>${T(t, "model")}</span>
           <div class="min-w-0 flex-1">
@@ -115,16 +118,17 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
         </div>
         ${job.error ? html`<div data-error class="text-sm text-error">${T(t, job.error)}</div>` : null}
         ${showClip && player.unplayable ? html`<div data-unplayable class="text-sm text-warning">${T(t, "eUnplayable")}</div>` : null}
-        
+        ${""}
         ${working && !(reeling && reelJob.phase === "writing") ? html`<div data-status class=${`${label} flex items-center gap-2`}>
           <span class="rk-st">${reeling ? T(t, reelJob.phase === "writing" ? "scenario" : "filming") : T(t, src ? "animating" : "filming")}<span class="rk-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
-          
+          ${""}
           ${reeling && reelJob.of ? html`<span data-reel-at class="ml-auto tabular-nums normal-case">${reelJob.at} ${T(t, "reelOf")} ${reelJob.of}</span>`
             : job.eta ? html`<span class="ml-auto tabular-nums normal-case">${Math.max(0, Math.round(job.eta - (job.elapsed || 0)))} s</span>` : null}
         </div>` : null}
         ${clip && showClip && !working ? html`<${Transport} locale=${loc} size="sm" playing=${player.playing && !player.muted} onToggle=${toggle} pos=${player.pos} dur=${player.dur} onSeek=${seek}
           title=${clip.words || T(t, "clip")} subtitle=${origin(clip)} actions=${actions} keep=${3}
           moreOpen=${screen === "more"} onMore=${() => S.screen.set("more")} onMoreClose=${closeScreen} />` : null}
+        ${""}
         <div data-lengths class="flex items-center gap-2 min-w-0">
           <span class=${`${label} shrink-0`}>${T(t, "length")}</span>
           <div class="min-w-0 flex-1">

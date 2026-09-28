@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { SPREADS, spreadById, hashSeed, draw } from "../tarot.js";
 

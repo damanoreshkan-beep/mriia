@@ -67,7 +67,7 @@ export default [
     name: "каст → танці: 36 кураторських + танці бібліотеки, «Ще +» відкриває решту, «Топ» повертає дефолт", run: async (h) => {
       await h.click('[data-tab="cast"]'); await h.wait(200);
       await h.click('[data-cast-section="moves"]'); await h.wait(300);
-      for (let i = 0; i < 30; i++) { if ((await h.count("[data-more]")) > 0) break; await h.wait(200); }   
+      for (let i = 0; i < 30; i++) { if ((await h.count("[data-more]")) > 0) break; await h.wait(200); }
       h.expect((await h.count("[data-move-list] [data-move]")) > 36, `танців має бути більше 36 (кураторські + бібліотека), є ${await h.count("[data-move-list] [data-move]")}`);
       h.expect((await h.count("[data-more-list]")) === 0, "інші рухи мають бути сховані за «Ще +»");
       const def = Number(await h.attr("[data-moves]", "data-moves"));

@@ -6,7 +6,7 @@ import { toEnglish } from "/_rt/translate.js";
 import { writeLastGen } from "/_rt/lastgen.js";
 import { notify, notifyAsk } from "/_rt/notify.js";
 import { holdBackground } from "/_rt/bghold.js";
-import { mockArt, toDataURL, sizeOf, extOf } from "/_rt/intake.js";   
+import { mockArt, toDataURL, sizeOf, extOf } from "/_rt/intake.js";
 import { startJob, follow, followOne, cancelJob } from "/_rt/imagejob.js";
 import { report } from "/_rt/telemetry.js";
 import { styleOf } from "./styles.js";
@@ -33,9 +33,9 @@ export const $style = atom({ prompt: "", phase: "ready", a: gate ? mockArt(15) :
   slides: [], idx: 0, more: false, error: null, live: null, t0: 0 });
 export const $read = atom({ question: "", phase: gate ? "ready" : "empty", src: gate ? mockArt(5) : null, text: "", error: null });
 const DEFAULT_OPTS = { quality: "2k", aspect: "screen", style: "none", model: { make: "auto", edit: "auto", read: "auto", blend: "auto", style: "auto" } };
-const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v?.quality && v?.aspect) return { ...DEFAULT_OPTS, ...v, model: { ...DEFAULT_OPTS.model, ...(v.model || {}) } }; } catch {  } return DEFAULT_OPTS; };
+const loadOpts = () => { try { const v = JSON.parse(localStorage.getItem(OPTS_KEY) || "null"); if (v?.quality && v?.aspect) return { ...DEFAULT_OPTS, ...v, model: { ...DEFAULT_OPTS.model, ...(v.model || {}) } }; } catch { } return DEFAULT_OPTS; };
 export const $opts = atom(loadOpts());
-export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch {  } };
+export const setOpts = (p) => { const v = { ...$opts.get(), ...p }; $opts.set(v); try { localStorage.setItem(OPTS_KEY, JSON.stringify(v)); } catch { } };
 export const setModel = (mode, id) => setOpts({ model: { ...$opts.get().model, [mode]: id || "auto" } });
 const modelFor = (mode) => { const m = $opts.get().model[mode]; if (!m || m === "auto") return null; const cat = $models.get(); return cat.at && !cat.error && !modelsFor(mode).some((x) => x.id === m) ? null : m; };
 
@@ -64,7 +64,7 @@ export const patch = (mode, p) => { const a = ATOM[mode]; a.set({ ...a.get(), ..
 
 const runs = { make: 0, edit: 0, read: 0, blend: 0, style: 0 }, jobs = { make: null, edit: null, blend: null, style: null }, holds = { make: null, edit: null, blend: null, style: null };
 
-const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch {  } } };
+const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch { } } };
 const freeSlides = (list, keep = []) => list.forEach((s) => { if (!keep.includes(s.url)) revoke(s.url); });
 const held = () => [$edit.get().src, $edit.get().original, $read.get().src, $blend.get().a, $blend.get().b, $style.get().a, $style.get().b];
 const stillHeld = (url) => [...held(), ...$make.get().slides.map((s) => s.url), ...$edit.get().slides.map((s) => s.url), ...$blend.get().slides.map((s) => s.url), ...$style.get().slides.map((s) => s.url)].includes(url);
@@ -77,7 +77,7 @@ async function race(mode, body, run, ctx, seed) {
   if (!alive()) { cancelJob(base, job); return; }
   jobs[mode] = job;
   const t0 = Date.now();
-  try { localStorage.setItem(JOB_KEY(mode), JSON.stringify({ job, prompt: body.prompt, seed, ts: t0, quality: body.quality })); } catch {  }
+  try { localStorage.setItem(JOB_KEY(mode), JSON.stringify({ job, prompt: body.prompt, seed, ts: t0, quality: body.quality })); } catch { }
   patch(mode, { t0 });
   await followJob(mode, job, run, ctx, seed);
 }
@@ -101,7 +101,7 @@ async function followJob(mode, job, run, ctx, seed) {
   });
   if (status === "stale") return;
   release(); holds[mode] = null; jobs[mode] = null;
-  try { localStorage.removeItem(JOB_KEY(mode)); } catch {  }
+  try { localStorage.removeItem(JOB_KEY(mode)); } catch { }
   patch(mode, { more: false, live: null });
   if (!mine.length) fail(mode, run, status === "timeout" ? "eTimeout" : status === "busy" ? "eBusy" : "eFailed");
 }
@@ -110,7 +110,7 @@ function fail(mode, run, code) {
   if (run !== runs[mode]) return;
   holds[mode]?.(); holds[mode] = null; jobs[mode] = null;
   patch(mode, { error: code, phase: "error", more: false, live: null });
-  report(`${mode}.fail`, { reason: code, model: modelFor(mode) || "auto" });   
+  report(`${mode}.fail`, { reason: code, model: modelFor(mode) || "auto" });
 }
 
 export async function conjure(ctx) {
@@ -142,7 +142,7 @@ export async function rework(ctx) {
   if (gate) { await sleep(120); if (run === runs.edit) patch("edit", { slides: [0, 1, 2, 3].map((n) => ({ url: mockArt(seed + n), seed: seed + n })), phase: "done" }); return; }
   notifyAsk();
   let image;
-  try { image = (await toDataURL(st.src)).data; } catch { return fail("edit", run, "eFailed"); }   
+  try { image = (await toDataURL(st.src)).data; } catch { return fail("edit", run, "eFailed"); }
   if (run !== runs.edit) return;
   if (image.length > 9_000_000) return fail("edit", run, "eBig");
   patch("edit", { live: { stage: "translate" } });
@@ -251,7 +251,7 @@ export async function enhance(mode) {
   try {
     const size = (await sizeOf(res.blob)) || { w: 0, h: 0 };
     land({ url: res.url, w: size.w, h: size.h, ext: extOf(res.blob), by: res.by });
-  } catch (e) { report("enhance.land", { msg: e?.message || String(e) }); fail("eFailed"); }   
+  } catch (e) { report("enhance.land", { msg: e?.message || String(e) }); fail("eFailed"); }
 }
 
 export function cancel(mode) {
@@ -262,7 +262,7 @@ export function cancel(mode) {
     const job = jobs[mode]; jobs[mode] = null;
     holds[mode]?.(); holds[mode] = null;
     if (job && !gate) cancelJob(BASE[mode], job);
-    try { localStorage.removeItem(JOB_KEY(mode)); } catch {  }
+    try { localStorage.removeItem(JOB_KEY(mode)); } catch { }
     patch(mode, { more: false, live: null, phase: st.slides.length ? "done" : mode === "make" ? "idle" : "ready" });
   } else patch("read", { phase: "ready" });
 }
@@ -293,10 +293,10 @@ export const readToEdit = () => { const r = $read.get(); toEdit(r.src, oneLine(r
 export function resume(ctx) {
   if (gate) return;
   for (const mode of ["make", "edit", "blend", "style"]) {
-    if (runs[mode]) continue;                                   
-    let j = null; try { j = JSON.parse(localStorage.getItem(JOB_KEY(mode)) || "null"); } catch {  }
-    if (!j?.job || Date.now() - j.ts > 240000) { try { localStorage.removeItem(JOB_KEY(mode)); } catch {  } continue; }
-    if ((mode === "edit" && !$edit.get().src) || (TWO_SLOT.includes(mode) && !(ATOM[mode].get().a && ATOM[mode].get().b))) { try { localStorage.removeItem(JOB_KEY(mode)); } catch {  } continue; }   
+    if (runs[mode]) continue;
+    let j = null; try { j = JSON.parse(localStorage.getItem(JOB_KEY(mode)) || "null"); } catch { }
+    if (!j?.job || Date.now() - j.ts > 240000) { try { localStorage.removeItem(JOB_KEY(mode)); } catch { } continue; }
+    if ((mode === "edit" && !$edit.get().src) || (TWO_SLOT.includes(mode) && !(ATOM[mode].get().a && ATOM[mode].get().b))) { try { localStorage.removeItem(JOB_KEY(mode)); } catch { } continue; }
     const run = ++runs[mode]; jobs[mode] = j.job;
     patch(mode, { phase: "working", prompt: j.prompt || "", t0: j.ts, error: null });
     followJob(mode, j.job, run, ctx, j.seed || 0);

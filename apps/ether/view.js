@@ -18,15 +18,15 @@ import { LISTEN_PRESETS } from "/_rt/bandplan.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const TILE = "w-20 h-20 rounded-[var(--ms-r)] grid place-items-center sf-raised sf-e3 text-[var(--app-accent)]";
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const presetOf = (id) => LISTEN_PRESETS.find((p) => p.id === id) || null;
 
-const $preset = atom(null);                                    
-const $listenState = atom("idle");                            
-const $signal = atom(0);                                      
+const $preset = atom(null);
+const $listenState = atom("idle");
+const $signal = atom(0);
 const $playing = atom(false);
-const $scanning = atom(false), $radar = atom([]);            
-const $wf = atom(null);                                       
+const $scanning = atom(false), $radar = atom([]);
+const $wf = atom(null);
 const $vol = persistentAtom("ether:vol", 0.8, { encode: String, decode: Number });
 const $squelch = persistentAtom("ether:sq", "1", { encode: String, decode: (s) => s === "1" });
 
@@ -59,7 +59,7 @@ const rf = createUsbSession({
   onMessage: (m) => {
     if (m.type === "audio") pushAudio(new Float32Array(m.buf));
     else if (m.type === "signal") $signal.set(Math.max(0, Math.min(1, m.level)));
-    else if (m.type === "channel") $listenState.set(m.state);            
+    else if (m.type === "channel") $listenState.set(m.state);
     else if (m.type === "scanProgress") $scanning.set(true);
     else if (m.type === "radar") { $radar.set(m.sources || []); $scanning.set(false); }
     else if (m.type === "waterfall") $wf.set(m.wf);
@@ -74,7 +74,7 @@ function listen(t, id) {
   buzz(12);
   const c = ensureAudio(); c?.resume?.();
   $preset.set(id); $listenState.set("searching"); $signal.set(0);
-  if (gate || !rf.running()) return;                                      
+  if (gate || !rf.running()) return;
   rf.post({ type: "listen", preset: presetOf(id) });
   if (!$playing.get()) play(t);
 }
@@ -93,7 +93,7 @@ function toggleSquelch() { $squelch.set(!$squelch.get()); rf.post({ type: "squel
 
 function scan() {
   buzz(12);
-  if (gate || !rf.running()) return;                                    
+  if (gate || !rf.running()) return;
   $scanning.set(true); $radar.set([]);
   rf.post({ type: "scan" });
 }
@@ -106,7 +106,7 @@ export function listenView({ S, screen, openScreen, closeScreen }) {
   const vol = useStore($vol), squelch = useStore($squelch);
   const demo = gate;
 
-  useEffect(() => {                                                       
+  useEffect(() => {
     if (!demo) return;
     $connected.set(true); $preset.set("air"); $listenState.set("live"); $signal.set(0.66); $playing.set(true);
   }, []);
@@ -118,6 +118,7 @@ export function listenView({ S, screen, openScreen, closeScreen }) {
     <!-- scrolling body (like fmradio): band tiles + the listening stage; the transport is a pinned island below -->
     <div class="flex flex-col gap-[var(--ms-gap)] max-w-[440px] mx-auto w-full pb-[9.5rem]"
       data-listen=${p ? state : "idle"} data-preset-sel=${preset || ""}>
+    ${""}
     <${Segmented} attr="data-preset" label=${T(t, "listenPick")}
       items=${LISTEN_PRESETS.map((b) => ({ id: b.id, label: T(t, b.key), icon: b.icon }))}
       value=${preset} onChange=${(id) => listen(t, id)} />
@@ -162,8 +163,6 @@ export function listenView({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
 function Equalizer({ level, searching = false }) {
   const bars = 5;
   return html`<div class="flex items-end gap-1.5 h-16" role="img" data-eq aria-hidden="true">
@@ -175,10 +174,9 @@ function Equalizer({ level, searching = false }) {
   </div>`;
 }
 
-
 function OptsSheet({ open, onClose, t, vol, squelch, demo }) {
   return html`<${Sheet} id="optsheet" open=${open} onClose=${onClose} title=${T(t, "volume")} icon="lucide:sliders-horizontal">
-    
+    ${""}
     <${Slider} attr="data-opt" id="vol" label=${T(t, "volume")} value=${vol} step=${0.01} onInput=${setVol} />
     <label class="flex items-center justify-between text-sm"><span class="flex items-center gap-2">${Icon("lucide:volume-1", "text-base text-muted")}${T(t, "squelch")}</span>
       <input type="checkbox" class="toggle toggle-primary toggle-sm" checked=${squelch} aria-label=${T(t, "squelch")} onChange=${toggleSquelch} /></label>
@@ -186,14 +184,13 @@ function OptsSheet({ open, onClose, t, vol, squelch, demo }) {
   </${Sheet}>`;
 }
 
-
 export function radarView({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t);
   const connected = useStore($connected), usbOk = useStore($usbOk);
   const scanning = useStore($scanning), radar = useStore($radar);
   const demo = gate;
 
-  useEffect(() => {                                                       
+  useEffect(() => {
     if (!demo) return;
     $connected.set(true);
     $radar.set([
@@ -210,7 +207,7 @@ export function radarView({ S, screen, openScreen, closeScreen }) {
   return html`<div class="flex flex-col gap-[var(--ms-gap)] max-w-[440px] mx-auto w-full pb-24"
     data-radar=${scanning ? "scanning" : radar.length ? "hits" : "empty"} data-hits=${radar.length}>
     <div class="flex items-center gap-2 pt-0.5">
-      
+      ${""}
       <button data-scan disabled=${scanning} onClick=${scan}
         class="btn btn-primary flex-1 gap-2 rounded-full">${Icon("lucide:radar", "text-lg")}${T(t, scanning ? "scanning" : "scan")}</button>
       <button data-engineer aria-label=${T(t, "engineer")} aria-expanded=${screen === "eng"} onClick=${() => { buzz(); openScreen("eng"); }}
@@ -218,7 +215,7 @@ export function radarView({ S, screen, openScreen, closeScreen }) {
     </div>
 
     ${scanning && !radar.length ? html`<div class="flex flex-col gap-[var(--ms-gap)]" data-skel>
-        
+        ${""}
         ${[0, 1, 2].map((i) => html`<div key=${i} class="h-[4.5rem] rounded-[var(--ms-r)] sf-inset overflow-hidden"><${Pixels} /></div>`)}
       </div>`
     : radar.length ? html`<div class="flex flex-col gap-[var(--ms-gap)]" data-live>
@@ -245,7 +242,6 @@ function StrengthBar({ level }) {
   </div>`;
 }
 
-
 function EngineerSheet({ open, onClose, t }) {
   const wf = useStore($wf), ref = useRef(null);
   useEffect(() => {
@@ -257,7 +253,6 @@ function EngineerSheet({ open, onClose, t }) {
     <canvas ref=${ref} data-canvas width="512" height="256" class="w-full rounded-[var(--ms-r)] sf-inset" style="image-rendering:pixelated;aspect-ratio:2/1"></canvas>
   </${Sheet}>`;
 }
-
 
 function ConnectPrime({ t, usbOk }) {
   const supported = usbSupported() && usbOk;
@@ -274,7 +269,6 @@ function ConnectPrime({ t, usbOk }) {
 const ICONS = { fm: "lucide:music", air: "lucide:plane", ham2m: "lucide:radio-tower", ham70: "lucide:radio-tower", marine: "lucide:anchor", pmr: "lucide:radio", ism433: "lucide:key-round", ism868: "lucide:gauge", gsmUp: "lucide:smartphone", gsmDn: "lucide:antenna", gps: "lucide:satellite", dect: "lucide:phone", ism24: "lucide:wifi", wifi5: "lucide:wifi", dab: "lucide:radio", unknown: "lucide:signal" };
 const iconFor = (id) => ICONS[id] || "lucide:signal";
 
-
 function seedWaterfall() {
   const rows = 48, cols = 128, data = new Float32Array(rows * cols);
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -289,7 +283,6 @@ function drawWaterfall(cv, { rows, cols, data }) {
   const img = ctx.createImageData(cols, rows);
   for (let i = 0; i < rows * cols; i++) {
     const v = Math.max(0, Math.min(1, data[i]));
-    
     const R = Math.round(20 + v * 36), G = Math.round(24 + v * 165), B = Math.round(30 + v * 220);
     img.data[i * 4] = R; img.data[i * 4 + 1] = G; img.data[i * 4 + 2] = B; img.data[i * 4 + 3] = 255;
   }

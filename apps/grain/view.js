@@ -18,11 +18,11 @@ import { MicPrime } from "/_rt/camprime.js";
 import { holdAudio } from "/_rt/mediasession.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const randSeed = () => (Math.random() * 0xffffffff) >>> 0;
 const N = 16, STEPS = [...Array(N).keys()];
-const LOOKAHEAD = 0.1, TICK = 25, LEAD = 0.08;              
+const LOOKAHEAD = 0.1, TICK = 25, LEAD = 0.08;
 const TAKE_SECONDS = 2;
 
 const SCALES = [
@@ -35,7 +35,7 @@ const scaleById = (id) => SCALES.find((s) => s.id === id) || SCALES[0];
 const PC = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
 const noteName = (hz) => { const m = Math.round(69 + 12 * Math.log2(hz / 440)); return PC[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1); };
 
-const $take = atom(null);                                   
+const $take = atom(null);
 const $grainMs = atom(70), $spray = atom(60), $density = atom(4), $pos = atom(0.25), $drift = atom(0.35);
 const $scale = atom("pent"), $tilted = atom(false), $tone = atom(1);
 const $playing = atom(false), $cur = atom(-1), $lit = atom(new Set()), $loop = atom(Array.from({ length: N }, () => -1));
@@ -45,7 +45,7 @@ const emptyLoop = () => Array.from({ length: N }, () => -1);
 
 let eng = null, busIn = null, toneFilter = null, buf = null, sched = null, raf = null;
 let nextT = 0, stepN = 0, q = [], voices = new Set(), wl = null, np = null, _dict = {};
-const HANN = hannCurve();                                   
+const HANN = hannCurve();
 const spb = () => 60 / $bpm.get() / 2;
 
 function ensure() {
@@ -53,14 +53,14 @@ function ensure() {
   if (!eng) {
     const e = createEngine({ master: 0.9, noise: false }); if (!e) return null;
     const ctx = e.ctx;
-    const comp = ctx.createDynamicsCompressor();            
+    const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.25;
     toneFilter = ctx.createBiquadFilter(); toneFilter.type = "lowpass"; toneFilter.frequency.value = 12000; toneFilter.Q.value = 0.6;
     busIn = ctx.createGain(); busIn.gain.value = 0.9;
     busIn.connect(toneFilter); toneFilter.connect(comp); comp.connect(e.master);
     eng = e;
   }
-  eng.resume();                                             
+  eng.resume();
   syncBuffer();
   return eng;
 }
@@ -80,7 +80,7 @@ function fireGrain(ctx, dest, srcBuf, g, when) {
   s.connect(gn); gn.connect(dest);
   s.start(when, g.offset, g.dur * g.rate + 0.02);
   s.stop(when + g.dur + 0.02);
-  s.onended = () => { try { s.disconnect(); gn.disconnect(); } catch {  } };
+  s.onended = () => { try { s.disconnect(); gn.disconnect(); } catch { } };
 }
 
 function makeVoice({ semis, vel = 1, seed, span = 8 }) {
@@ -99,15 +99,15 @@ function startVoice(v, when, vel = 1) {
 function releaseVoice(v) {
   if (!v || v.release) return;
   v.release = eng.ctx.currentTime + 0.05;
-  try { v.node?.gain.setTargetAtTime(0, v.release, 0.25); } catch {  }
-  setTimeout(() => { voices.delete(v); try { v.node?.disconnect(); } catch {  } }, 2200);
+  try { v.node?.gain.setTargetAtTime(0, v.release, 0.25); } catch { }
+  setTimeout(() => { voices.delete(v); try { v.node?.disconnect(); } catch { } }, 2200);
 }
 
 const tiltMacro = { size: 1, tone: 1 };
 function applyTone() {
   if (!toneFilter || !eng) return;
   const v = clamp($tone.get() * tiltMacro.tone, 0.05, 1.6);
-  try { toneFilter.frequency.setTargetAtTime(clamp(400 * Math.pow(30, v), 300, 16000), eng.ctx.currentTime, 0.08); } catch {  }
+  try { toneFilter.frequency.setTargetAtTime(clamp(400 * Math.pow(30, v), 300, 16000), eng.ctx.currentTime, 0.08); } catch { }
 }
 
 const flash = (i) => { const s = new Set($lit.get()); s.add(i); $lit.set(s); setTimeout(() => { const n = new Set($lit.get()); n.delete(i); $lit.set(n); }, 420); };
@@ -138,8 +138,8 @@ function tick() {
   }
   if (!$playing.get()) return;
   const dt = spb();
-  if (nextT < e.ctx.currentTime) nextT = e.ctx.currentTime;   
-  while (nextT < until) {                                     
+  if (nextT < e.ctx.currentTime) nextT = e.ctx.currentTime;
+  while (nextT < until) {
     const idx = $loop.get()[stepN];
     if (idx >= 0) { const v = strike(idx, { vel: 0.85, when: nextT }); if (v) setTimeout(() => releaseVoice(v), dt * 1400); }
     if (q.length < 128) q.push({ time: nextT, step: stepN });
@@ -195,7 +195,7 @@ async function capture(onDone) {
     const decoded = await ctx.decodeAudioData(await res.blob.arrayBuffer());
     const chans = []; for (let c = 0; c < decoded.numberOfChannels; c++) chans.push(decoded.getChannelData(c));
     adopt(chans, decoded.sampleRate, false, ctx);
-    try { ctx.close(); } catch {  }
+    try { ctx.close(); } catch { }
   } catch { $err.set("decode"); }
   $capture.set("idle"); onDone?.();
 }
@@ -215,9 +215,9 @@ function meter(stream) {
     const d = new Uint8Array(an.frequencyBinCount);
     const loop = () => { an.getByteFrequencyData(d); let s = 0; for (let i = 0; i < d.length; i++) s += d[i]; $level.set(clamp(s / d.length / 90, 0, 1)); meterRaf = requestAnimationFrame(loop); };
     meterRaf = requestAnimationFrame(loop);
-  } catch {  }
+  } catch { }
 }
-function stopMeter() { if (meterRaf) cancelAnimationFrame(meterRaf); meterRaf = 0; $level.set(0); try { meterCtx?.close(); } catch {  } meterCtx = null; }
+function stopMeter() { if (meterRaf) cancelAnimationFrame(meterRaf); meterRaf = 0; $level.set(0); try { meterCtx?.close(); } catch { } meterCtx = null; }
 
 async function renderWav(take, loopArr, bpm) {
   const OAC = typeof OfflineAudioContext !== "undefined" ? OfflineAudioContext : null;
@@ -247,8 +247,8 @@ async function shareWav(bytes, name, t) {
   const blob = new Blob([bytes], { type: "audio/wav" }), file = new File([blob], `${name}.wav`, { type: "audio/wav" });
   try {
     if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: name }); return "shared"; }
-  } catch { return "cancel"; }                                
-  downloadBlob(blob, `${name}.wav`);   
+  } catch { return "cancel"; }
+  downloadBlob(blob, `${name}.wav`);
   return "saved";
 }
 
@@ -298,7 +298,7 @@ export function grain({ S, screen, openScreen, closeScreen, toast }) {
   const fieldAt = (x, y) => { const el = document.elementFromPoint(x, y); const b = el && el.closest && el.closest("[data-field]"); return b ? Number(b.getAttribute("data-field")) : null; };
   const down = (e) => {
     const i = fieldAt(e.clientX, e.clientY); if (i == null || !take) return;
-    e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch {  }
+    e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { }
     const v = strike(i, { hold: true }); pump(); if (v) held.current.set(e.pointerId, v);
   };
   const up = (e) => { const v = held.current.get(e.pointerId); if (v) { releaseVoice(v); held.current.delete(e.pointerId); } };
@@ -326,26 +326,28 @@ export function grain({ S, screen, openScreen, closeScreen, toast }) {
       unavailable=${err === "unavailable" || err === "unsupported" || !mic.supported}
       onEnable=${rec} onSettings=${() => S.screen.set("perms")} />` : null}
 
+    ${""}
     <div class="flex flex-col flex-1 min-h-0 gap-[var(--ms-gap)]" style="padding:var(--ms-gap) var(--ms-pad)">
       <div class="shrink-0 flex items-center gap-[var(--ms-gap)]">
         <${Segmented} attr="data-scale" scroll variant="outline" label=${T(t, "scale")}
           items=${SCALES.map((s) => ({ id: s.id, label: T(t, s.name) }))} value=${scaleId} onChange=${(id) => { buzz(); $scale.set(id); }} />
       </div>
 
-      
+      ${""}
       <div class="shrink-0 relative rounded-[var(--ms-r)] sf-inset px-2 flex items-center h-[clamp(1.75rem,9vh,3.75rem)] overflow-hidden">
         <${Wave} take=${take} pos=${pos} onSeek=${(v) => $pos.set(v)} className="h-[70%]" />
         <span class="absolute right-2 top-0 bottom-0 flex items-center gap-1.5 pl-2 font-mono text-[length:var(--ms-label)] text-base-content/70 pointer-events-none">
           <span class="tabular-nums">${take ? `${take.dur.toFixed(1)}s` : "—"}</span>
           <span data-pitch class="font-semibold text-base-content">${take ? (take.pitched ? take.name : T(t, "unpitched")) : T(t, "noTake")}</span>
         </span>
-        
+        ${""}
         ${recording ? html`<span data-level class="absolute left-0 bottom-0 h-1 bg-error transition-[width] duration-100" style=${`width:${Math.round(level * 100)}%`}></span>` : null}
       </div>
 
-      
+      ${""}
       <div ref=${padRef} class="flex-1 min-h-0 grid grid-cols-2 auto-rows-fr gap-[var(--ms-gap)]" style="touch-action:none"
         onPointerDown=${down} onPointerUp=${up} onPointerCancel=${up} onPointerLeave=${up}>
+        ${""}
         ${offs.map((o, i) => html`<button key=${i} data-field=${i} disabled=${!take}
           aria-label=${take?.pitched ? noteName(take.hz * semisToRate(o)) : `${T(t, "field")} ${i + 1}`}
           class=${`relative min-h-0 overflow-hidden rounded-[var(--ms-r)] sf-raised flex flex-col justify-end items-start gap-0.5 p-[var(--ms-pad)] transition-transform duration-150 ${lit.has(i) ? "outline-2 outline-secondary scale-[1.02]" : ""} ${take ? "" : "opacity-40"}`}>
@@ -356,6 +358,7 @@ export function grain({ S, screen, openScreen, closeScreen, toast }) {
       </div>
 
       <div class="shrink-0 flex justify-center">
+        ${""}
         <${Island} className="w-full max-w-md">
           <${Transport} locale=${loc} stopIcon playing=${playing} disabled=${!take} onToggle=${toggle} keep=${2}
             moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
@@ -373,7 +376,6 @@ export function grain({ S, screen, openScreen, closeScreen, toast }) {
     </div>
   </div>`;
 }
-
 
 export function grainShape({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t); _dict = t;
@@ -403,11 +405,11 @@ export function grainShape({ S, screen, openScreen, closeScreen }) {
         <${Slider} id="gr-bpm" attr="data-bpm" label=${T(t, "tempo")} min=${52} max=${132} step=${1} value=${bpm} onInput=${(v) => $bpm.set(v)} />
       </div>
 
-      
+      ${""}
       ${tilt.supported ? html`<button data-tilt aria-pressed=${tilted} onClick=${() => { buzz(); $tilted.set(!tilted); }}
         class=${`btn btn-sm rounded-full gap-2 ${tilted ? "btn-primary" : "btn-ghost sf-raised"}`}>${Icon("lucide:orbit", "text-base")}${T(t, "tiltMacro")}</button>` : null}
 
-      
+      ${""}
       <div class="flex flex-col gap-[3px]">
         ${offs.map((o, i) => html`<div class="flex items-center gap-[3px]" key=${i}>
           <div class="w-8 shrink-0 text-center font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/70">${take?.pitched ? noteName(take.hz * semisToRate(o)) : `${o > 0 ? "+" : ""}${o}`}</div>
@@ -430,7 +432,7 @@ export function grainShape({ S, screen, openScreen, closeScreen }) {
 
     <${Sheet} id="presetsheet" open=${screen === "preset"} onClose=${closeScreen} title=${T(t, "preset")} icon="lucide:sliders-horizontal">
       <div class="grid grid-cols-1 gap-2">
-        
+        ${""}
         ${PRESETS.map((p) => html`<button key=${p.id} data-preset=${p.id} class="btn btn-ghost sf-raised sf-e2 h-auto min-h-[var(--ms-ctl)] py-2 justify-start gap-3 rounded-[var(--ms-r-in)]"
           onClick=${() => { buzz(); $grainMs.set(p.size); $spray.set(p.spray); $density.set(p.density); $drift.set(p.drift); closeScreen(); }}>
           ${Icon(p.icon, "text-[length:var(--ms-icon)]")}<span class="flex flex-col items-start"><span class="font-semibold">${T(t, p.name)}</span><span class="font-mono text-[length:var(--ms-label)] text-base-content/70 font-normal">${T(t, p.hint)}</span></span>
@@ -439,8 +441,6 @@ export function grainShape({ S, screen, openScreen, closeScreen }) {
     </${Sheet}>
   </${Fragment}>`;
 }
-
-
 
 const PRESETS = [
   { id: "tone", name: "psTone", hint: "psToneHint", icon: "lucide:audio-waveform", size: 60, spray: 20, density: 4, drift: 0.2 },
@@ -459,8 +459,6 @@ export function grainTakes({ S, undo, toast }) {
   const t = useStore(S.t); _dict = t;
   const [list, setList] = useState(null);
   const take = useStore($take), busy = useStore($busy);
-  
-  
   const load = () => TAKES.all().then((l) => setList(gate ? [gateTake(), ...l] : l)).catch(() => setList(gate ? [gateTake()] : []));
   useEffect(() => { load(); }, []);
 
@@ -475,9 +473,9 @@ export function grainTakes({ S, undo, toast }) {
   };
   const del = async (it) => {
     const { id, _ts, ...rec } = it;
-    try { await TAKES.remove(id); } catch {  }
+    try { await TAKES.remove(id); } catch { }
     load();
-    undo?.(async () => { try { await TAKES.put(id, rec); } catch {  } load(); }, it.name);
+    undo?.(async () => { try { await TAKES.put(id, rec); } catch { } load(); }, it.name);
   };
   const share = async (it) => {
     if (busy) return; $busy.set(true);
@@ -486,19 +484,15 @@ export function grainTakes({ S, undo, toast }) {
     $busy.set(false);
   };
 
-  
-  
-  
   if (!useReveal(list !== null)) {
     return html`<div data-takes data-ready="0" class="flex flex-col gap-[var(--ms-gap)]">${[0, 1, 2].map((i) => html`<${Panel} data-skel key=${i}><div class="flex items-center gap-[var(--ms-gap)] text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${10} /></div><div class="h-5"><${Scramble} len=${18} /></div></div></div><//>`)}</div>`;
   }
-  
   if (!list.length) return html`<div data-takes data-ready="1" data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:mic", "text-4xl")}<span class="font-medium">${T(t, "takesEmpty")}</span></div>`;
 
   return html`<div data-takes data-ready="1" class="flex flex-col gap-[var(--ms-gap)]">
     ${list.map((it) => html`<${Panel} data-take key=${it.id}>
       <div class="flex items-center gap-[var(--ms-gap)]">
-        
+        ${""}
         <button data-open aria-label=${T(t, "aPlay")} class=${`btn btn-circle btn-sm shrink-0 ${take?.name === it.name ? "btn-secondary" : "btn-primary"}`} onClick=${() => open(it)}>${Icon("lucide:play", "text-base")}</button>
         <button class="flex-1 min-w-0 text-left flex flex-col gap-1.5" onClick=${() => open(it)}>
           <span class="flex items-baseline justify-between gap-2"><span class="font-semibold truncate">${it.name}</span><span class="font-mono text-[length:var(--ms-label)] text-base-content/70 tabular-nums shrink-0">${(it.dur || 0).toFixed(1)} s</span></span>

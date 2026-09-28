@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { clampVol as syClampVol, packState as syPack, openState as syOpen, parseServer as syParse, syncDelay as syDelay, SYNC_URL as syUrl } from "../sync.js";
 

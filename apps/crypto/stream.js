@@ -32,11 +32,11 @@ export function stream(push) {
   const connect = () => {
     if (!alive) return;
     ws = new WebSocket(url);
-    ws.onmessage = (e) => { try { const d = JSON.parse(e.data).data; if (d?.s && META[d.s]) rows[d.s] = row(d.s, d.c, d.P, d.q); } catch {  } };
-    ws.onclose = () => { if (alive) retry = setTimeout(connect, 2000); }; 
+    ws.onmessage = (e) => { try { const d = JSON.parse(e.data).data; if (d?.s && META[d.s]) rows[d.s] = row(d.s, d.c, d.P, d.q); } catch { } };
+    ws.onclose = () => { if (alive) retry = setTimeout(connect, 2000); };
     ws.onerror = () => ws.close();
   };
   connect();
-  setInterval(emit, 400); 
+  setInterval(emit, 400);
   addEventListener("pagehide", () => { alive = false; clearTimeout(retry); ws?.close(); });
 }

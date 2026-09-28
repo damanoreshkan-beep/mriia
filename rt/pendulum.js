@@ -1,4 +1,3 @@
-
 export function phase(elapsedMs, periodMs) {
   if (!(periodMs > 0)) return 0;
   const p = (elapsedMs % periodMs) / periodMs;

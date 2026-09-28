@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { Fragment } from "preact";
 import { persistentAtom } from "@nanostores/persistent";
@@ -17,7 +16,7 @@ import { PACKS, packById, padVoice, textureVoice, droneVoice, sparkle, makeIR } 
 import { Field, bindAudio } from "./viz.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const randSeed = () => (Math.random() * 0xffffffff) >>> 0;
 
@@ -29,12 +28,12 @@ const JC = (initial) => ({ encode: JSON.stringify, decode: (s) => { try { return
 const persisted = (key, initial) => persistentAtom(NS + key, initial, JC(initial));
 const D0 = STYLES[0];
 const $style = persisted("style", D0.id);
-const $pack = persisted("pack", "");                              
+const $pack = persisted("pack", "");
 const $density = persisted("density", D0.density);
 const $tone = persisted("tone", cutoffToMacro(D0.cutoff));
 const $space = persisted("space", D0.reverb);
 const $playing = atom(false);
-const $tick = atom(0);                                            
+const $tick = atom(0);
 
 const curStyle = () => styleById($style.get());
 const curPack = () => packById($pack.get() || curStyle().pack);
@@ -44,7 +43,7 @@ let eng = null, busIn = null, toneFilter = null, revSend = null, delSend = null,
 let sched = null, wl = null, np = null;
 let padVoices = [], drone = null, texture = null, curVoicing = null, curRoot = 0, curIntervals = null;
 let chordIdx = 0, chordDueAt = 0, prevVoicing = null, loops = [], rng = mulberry32(1);
-let curT = {};                                                   
+let curT = {};
 
 const npTitle = () => `Drift · ${T(curT, curStyle().key)}`;
 const artUrl = () => { try { return new URL("icons/icon-512.png", location.href).href; } catch { return null; } };
@@ -55,9 +54,9 @@ function ensure() {
     const e = createEngine({ master: 0.9, noise: true }); if (!e) return null; const ctx = e.ctx;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.01; comp.release.value = 0.25; comp.connect(e.master);
     toneFilter = bqf(ctx, "lowpass", toneHz($tone.get()), 0.4); toneFilter.connect(comp);
-    lfo(ctx, 0.05, 300, toneFilter.frequency);                   
+    lfo(ctx, 0.05, 300, toneFilter.frequency);
     const sum = ctx.createGain(); sum.connect(toneFilter);
-    busIn = ctx.createGain(); busIn.connect(sum);                
+    busIn = ctx.createGain(); busIn.connect(sum);
     const rev = ctx.createConvolver(); rev.buffer = makeIR(ctx, 4.5, 2.2); revSend = ctx.createGain(); revSend.gain.value = 0; busIn.connect(revSend); revSend.connect(rev); rev.connect(sum);
     delSend = ctx.createGain(); delSend.gain.value = 0; delay = ctx.createDelay(1.5); delay.delayTime.value = curStyle().delayTime;
     const dfb = ctx.createGain(); dfb.gain.value = curStyle().delayFb; const dlp = bqf(ctx, "lowpass", 2600, 0.5);
@@ -78,7 +77,7 @@ function applyMix() {
     delay.delayTime.setTargetAtTime(st.delayTime, t, 0.1);
     eng._dfb.gain.setTargetAtTime(st.delayFb, t, 0.1);
     toneFilter.frequency.setTargetAtTime(toneHz($tone.get()), t, 0.1);
-  } catch {  }
+  } catch { }
 }
 
 function voicePad(voicing, t) {
@@ -99,7 +98,7 @@ function changeChord(t, init) {
 
 function fireSparkle(t) {
   if (!curIntervals) return;
-  if (rng() > 0.35 + curDensity() * 0.5) return;                 
+  if (rng() > 0.35 + curDensity() * 0.5) return;
   const m = sparkleNote(curRoot, curIntervals, curStyle().sparkleOct, rng);
   sparkle(eng.ctx, busIn, midiToFreq(m), curPack(), 0.1 + curDensity() * 0.07);
 }
@@ -155,15 +154,15 @@ function repack() {
   voicePad(curVoicing, eng.ctx.currentTime);
 }
 
-const applyAccent = (s) => { try { document.documentElement.style.setProperty("--app-accent", `hsl(${s.hue} 70% 58%)`); } catch {  } };
-applyAccent(curStyle());   
+const applyAccent = (s) => { try { document.documentElement.style.setProperty("--app-accent", `hsl(${s.hue} 70% 58%)`); } catch { } };
+applyAccent(curStyle());
 
 const setStyle = (id) => { buzz(); const s = styleById(id); $style.set(id); $pack.set(""); $density.set(s.density); $tone.set(cutoffToMacro(s.cutoff)); $space.set(s.reverb); applyAccent(s); restyle(); };
 const cycleStyle = (d) => { const i = STYLES.findIndex((s) => s.id === $style.get()); setStyle(STYLES[(i + d + STYLES.length) % STYLES.length].id); };
 const setPack = (id) => { buzz(); $pack.set(id); repack(); };
 const setDensity = (v) => { $density.set(v); };
-const setTone = (v) => { $tone.set(v); if (eng) try { toneFilter.frequency.setTargetAtTime(toneHz(v), eng.ctx.currentTime, 0.1); } catch {  } };
-const setSpace = (v) => { $space.set(v); if (eng) try { revSend.gain.setTargetAtTime(v, eng.ctx.currentTime, 0.1); } catch {  } };
+const setTone = (v) => { $tone.set(v); if (eng) try { toneFilter.frequency.setTargetAtTime(toneHz(v), eng.ctx.currentTime, 0.1); } catch { } };
+const setSpace = (v) => { $space.set(v); if (eng) try { revSend.gain.setTargetAtTime(v, eng.ctx.currentTime, 0.1); } catch { } };
 
 const Dot = (hue, cls = "w-2 h-2") => html`<span class=${`${cls} rounded-full shrink-0`} style=${`background:hsl(${hue} 70% 58%)`}></span>`;
 
@@ -183,19 +182,18 @@ export function drift({ S }) {
 
       <div class="flex-1 min-h-0"></div>
 
+      ${""}
       <${Island} className="shrink-0">
         <${Transport} locale=${loc} playing=${playing} onToggle=${toggle}
           title=${html`<span class="inline-flex items-center gap-2">${Dot(style.hue, "w-2.5 h-2.5")}${T(t, style.key)}</span>`}
           subtitle=${html`<span class="inline-flex items-center gap-1.5">${Icon(pack.icon, "text-base")}${T(t, pack.key)}${playing ? html`<span class="inline-block w-1.5 h-1.5 rounded-full bg-primary ml-1 animate-pulse"></span>` : null}</span>`}
           actions=${[{ id: "vary", icon: "lucide:shuffle", label: T(t, "aVary"), onClick: vary, disabled: !playing, haptic: "off" }]} />
       </${Island}>
-      
+      ${""}
       ${!audioSupported ? html`<div class="shrink-0 text-center text-muted">${T(t, "noAudio")}</div>` : null}
     </div>
   </${Fragment}>`;
 }
-
-
 
 export function driftShape({ S }) {
   const t = useStore(S.t);

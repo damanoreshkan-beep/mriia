@@ -1,4 +1,3 @@
-
 export const AQI_BANDS = ["good", "fair", "moderate", "poor", "veryPoor", "extreme"];
 
 export const eaqiBand = (v) =>
@@ -22,9 +21,9 @@ export const pollutantBand = (species, c) => {
 export const POLLEN_BANDS = ["none", "low", "moderate", "high", "veryHigh"];
 
 const POLLEN_BP = {
-  tree: [10, 50, 100], 
+  tree: [10, 50, 100],
   grass: [30, 50, 150],
-  weed: [10, 50, 100], 
+  weed: [10, 50, 100],
 };
 const POLLEN_CAT = { alder: "tree", birch: "tree", olive: "tree", grass: "grass", mugwort: "weed", ragweed: "weed" };
 

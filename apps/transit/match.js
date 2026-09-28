@@ -22,7 +22,7 @@ const $bo = persistentAtom("compat.bo", "0");
 
 const BAND_COLOR = ["var(--color-error)", "var(--color-warning)", "var(--color-secondary)", "var(--color-success)"];
 const ASPECT_KEY = { conjunction: "aspConjunction", sextile: "aspSextile", square: "aspSquare", trine: "aspTrine", opposition: "aspOpposition" };
-const STEP = 30, SPAN = 1440;   
+const STEP = 30, SPAN = 1440;
 const GATE_MATCH = { uk: "Найтісніший контакт тут — тригон Сонця партнера до твого Місяця, орб 2.1°: те, ким він є свідомо, лягає просто на те, як ти реагуєш, і саме тому ви домовляєтеся швидше, ніж встигаєте посперечатися. Тригон його Венери до твого Марса, орб 1.3°, тримає потяг у тому ж легкому руслі — тут ніхто нікого не здобуває. Секстиль його Місяця до твого Марса дає вихід, але тільки якщо ним скористатися: сам він нічого не зробить. Самі положення влаштовані по-різному — його Сонце в Овні починає прямо, твоє в Раку прихищає і памʼятає, — і ця різниця в темпі буде помітною раніше за все інше. Ціна тут одна й конкретна: легкість тригонів мало кому впадає в око, тож витримку цієї пари ви обидва схильні недооцінювати. Місяць рухається на понад тринадцять градусів за добу, тож точний час народження визначив би його знак.", en: "The closest contact here is your partner's Sun trine your Moon, orb 2.1°: who they consciously are lands straight on the way you react, which is why the two of you settle things before you get round to arguing about them. Their Venus trine your Mars, orb 1.3°, keeps the attraction in the same easy channel — nobody is winning anybody here. Their Moon sextile your Mars is an opening rather than an event: it helps only if it is taken. The placements themselves are built differently — their Aries Sun starts directly, your Cancer Sun shelters and remembers — and that difference in tempo shows up before anything else does. The cost is one and specific: a trine flows so readily that it goes unnoticed, so you both underrate how much this pair actually endures. The Moon moves over thirteen degrees a day, so a birth time would settle its sign." };
 
 const instant = (dateStr, offMin) => {
@@ -186,7 +186,7 @@ function Contacts({ list, t }) {
 }
 
 function Verdict({ people, settled, locale, t }) {
-  const { ao, bo } = settled;   
+  const { ao, bo } = settled;
   const pos = [chartAt(people[0].date, bo), chartAt(people[1].date, ao)];
   const stable = pos[0] && pos[1];
   const built = useMemo(() => {

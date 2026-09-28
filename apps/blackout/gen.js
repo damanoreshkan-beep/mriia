@@ -13,9 +13,9 @@ const gen = makeGenerator({
   $loading: $genLoading, $pct: $genPct, $error: $genError,
   onDone: (c) => { addMyChar(c); $skin.set(c.id); $newChar.set(c.id); wallet.refresh(); },
   onCharged: wallet.refresh,
-  onFail: () => setTimeout(wallet.refresh, 1500),   
+  onFail: () => setTimeout(wallet.refresh, 1500),
 });
-setTimeout(gen.resumeGeneration, 0);   
+setTimeout(gen.resumeGeneration, 0);
 
 const STAGE_KEY = { look: "gLook", picture: "gPicture", queued: "gQueued", mesh: "gMesh", rig: "gRig", store: "gStore" };
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -34,7 +34,7 @@ export function GenSheet({ t, loc, open, onClose }) {
   const go = async () => {
     if (!canGo || stage || gate) return;
     const w = $wallet.get();
-    if (w.signedIn && w.balance < GEN_PRICE) { $genError.set("ePoor"); return; }   
+    if (w.signedIn && w.balance < GEN_PRICE) { $genError.set("ePoor"); return; }
     let image = "";
     if (mode === "photo") { try { image = (await toDataURL(photo, 1024)).data; } catch { $genError.set("eFailed"); return; } }
     const nm = (name.trim() || (mode === "words" ? nameFrom(p) : "") || "—").slice(0, 40);

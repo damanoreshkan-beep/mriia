@@ -151,6 +151,7 @@ export function band({ t, S, toast }) {
               subtitle=${row.toneLabel || row.kindLabel}
               size="sm"
             />
+            ${""}
             <button data-pick class="btn btn-sm btn-ghost gap-1.5 self-center"
                     onClick=${() => pick(tuned)}>
               ${Icon("lucide:compass")}${T(t, "huntTitle")}

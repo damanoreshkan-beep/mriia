@@ -1,4 +1,3 @@
-
 export const asked = (t) => ({ r: "u", t: String(t || "").trim() });
 export const answered = (t) => ({ r: "a", t: String(t || "").trim() });
 

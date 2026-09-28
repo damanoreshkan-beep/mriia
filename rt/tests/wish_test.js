@@ -1,14 +1,12 @@
-
 import { assertEquals } from "jsr:@std/assert@1";
 import { parsePrice, parseWishMeta, toNumber, sortWishes, wishTotals, fmtMoney } from "../wish.js";
-
 
 Deno.test("toNumber: normalises grouped/decimal forms", () => {
   assertEquals(toNumber("1 299,00"), 1299);
   assertEquals(toNumber("1,299.00"), 1299);
   assertEquals(toNumber("14 200"), 14200);
   assertEquals(toNumber("199,90"), 199.9);
-  assertEquals(toNumber("14 200"), 14200);   
+  assertEquals(toNumber("14 200"), 14200);
   assertEquals(toNumber("nope"), null);
 });
 
@@ -49,9 +47,9 @@ Deno.test("sortWishes: most-wanted first, then newest; non-mutating", () => {
 Deno.test("wishTotals: groups non-granted by currency, skips granted/priceless", () => {
   const t = wishTotals([
     { price: 100, currency: "USD" },
-    { price: 50, currency: "USD", granted: true },   
+    { price: 50, currency: "USD", granted: true },
     { price: 14200, currency: "UAH" },
-    { price: null, currency: "UAH" },                 
+    { price: null, currency: "UAH" },
     { price: 200, currency: "USD" },
   ]);
   assertEquals(t, [{ currency: "UAH", sum: 14200, count: 1 }, { currency: "USD", sum: 300, count: 2 }]);

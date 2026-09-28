@@ -8,7 +8,7 @@ const BELIEVE = (abbrev) => {
   if (a === "Y" || a === "YEAR") return "year";
   if (a === "M" || a === "MO" || a === "MONTH") return "month";
   if (a === "DAY" || a === "D" || a === "WK" || a === "WEEK") return "day";
-  return "";   
+  return "";
 };
 
 const SOON_MS = 7 * 86400000;
@@ -87,6 +87,6 @@ export async function load(filters = {}) {
   if (gate) return { items: fixture(now).map((r) => toItem(r, now)), meta: {}, next: null };
   const url = filters.cursor || "https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=40&hide_recent_previous=true";
   const data = await fetchJson(url);
-  if (!Array.isArray(data.results)) throw new Error("unavailable"); 
+  if (!Array.isArray(data.results)) throw new Error("unavailable");
   return { items: data.results.map((r) => toItem(r, now)), meta: {}, next: data.next || null };
 }

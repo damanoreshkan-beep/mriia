@@ -13,7 +13,7 @@ import { usePromptHistory, HistorySheet } from "./history.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const ASK = {
   uk: { read: "Опиши це зображення українською: 2–3 речення про те, що на ньому і який настрій, потім окремим рядком до 5 ключових тегів через кому.", q: "Відповідай українською, коротко і по суті, спираючись лише на це зображення. Питання: " },
   en: { read: "Describe this image in English: 2–3 sentences on what is in it and its mood, then, on a separate line, up to 5 key tags separated by commas.", q: "Answer in English, briefly and to the point, from this image alone. Question: " },
@@ -33,7 +33,7 @@ export function describe({ S, toast }) {
   const [hist, remember] = usePromptHistory("read");
 
   const own = (url) => { if (url?.startsWith?.("blob:")) blobs.current.push(url); return url; };
-  useEffect(() => () => { blobs.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch {  } }); }, []);
+  useEffect(() => () => { blobs.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch { } }); }, []);
 
   const loadSource = (url) => { runRef.current++; setText(""); setError(null); setQuestion(""); setSrcUrl(own(url)); setPhase("ready"); };
   const backToChooser = () => { runRef.current++; setText(""); setError(null); setPhase("empty"); };
@@ -46,7 +46,7 @@ export function describe({ S, toast }) {
     if (q) remember(q);
     if (gate) { await sleep(120); if (run === runRef.current) { setText(q ? `${gateText.split("\n")[0]}` : gateText); setPhase("done"); } return; }
     let image;
-    try { image = (await toDataURL(srcUrl)).data; } catch { return fail(run, "dsFailed"); }   
+    try { image = (await toDataURL(srcUrl)).data; } catch { return fail(run, "dsFailed"); }
     if (run !== runRef.current) return;
     if (image.length > 9_000_000) return fail(run, "eBig");
     const ask = ASK[loc] || ASK.en;
@@ -75,6 +75,7 @@ export function describe({ S, toast }) {
   return html`<div class="ms-stage z-20 bg-base-100 flex flex-col" data-phase=${phase}>
     <${HistorySheet} id="hist-read" open=${screen === "hist"} onClose=${() => S.screen.set(null)} items=${hist} onPick=${setQuestion} t=${t} locale=${loc} />
 
+    ${""}
     <div class=${`relative flex-1 min-h-0 overflow-hidden flex items-center justify-center ${phase === "empty" ? "bg-base-100" : "bg-black"}`}>
       ${phase === "empty" ? html`<${Chooser} loc=${loc} onPick=${loadSource} onCamera=${() => { buzz(); setPhase("camera"); }} />` : null}
       ${phase === "camera" ? html`<${Camera} loc=${loc} reason=${T(t, "dsPrimeReason")} privacy=${T(t, "primePrivacy")}
@@ -86,7 +87,7 @@ export function describe({ S, toast }) {
       </${Fragment}>` : null}
     </div>
 
-    
+    ${""}
     ${phase === "reading" || phase === "done" ? html`<div class="shrink-0 p-[var(--ms-gap)] max-h-[45%] flex flex-col min-h-0">
     <${Panel} data-read className="w-full max-w-xl mx-auto min-h-0 overflow-y-auto">
       ${phase === "reading"

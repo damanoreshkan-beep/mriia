@@ -18,16 +18,16 @@ const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider 
 const COUNT = "font-mono text-[length:var(--ms-label)] text-base-content/70 ml-auto";
 
 const $levels = atom(load("arc:levels", { 1: 2, 2: 2, 3: 2, ask: 2 }));
-const $revealed = atom(load("arc:revealed", {}));   
-const $plot = atom({});                             
-const $chat = atom(load("arc:chat", {}));           
+const $revealed = atom(load("arc:revealed", {}));
+const $plot = atom({});
+const $chat = atom(load("arc:chat", {}));
 
 function load(key, fallback) {
   try { return { ...fallback, ...JSON.parse(localStorage.getItem(key) || "{}") }; } catch { return fallback; }
 }
 function save(key, atomRef, next) {
   atomRef.set(next);
-  try { localStorage.setItem(key, JSON.stringify(next)); } catch {  }
+  try { localStorage.setItem(key, JSON.stringify(next)); } catch { }
 }
 const setLevel = (slot, n) => save("arc:levels", $levels, { ...$levels.get(), [slot]: n });
 const reveal = (pageid) => save("arc:revealed", $revealed, { ...$revealed.get(), [pageid]: true });
@@ -36,7 +36,7 @@ export function reader({ item, t, loc, undo }) {
   const levels = useStore($levels);
   const plots = useStore($plot);
   const revealed = useStore($revealed);
-  useStore(aiTick);                                  
+  useStore(aiTick);
   const [failed, setFailed] = useState(false);
 
   const entry = plots[item.pageid];
@@ -91,7 +91,6 @@ export function reader({ item, t, loc, undo }) {
   </div>`;
 }
 
-
 function BlockHead({ n, labelKey, t, slot, level, aside }) {
   return html`<div class="flex flex-col gap-1.5">
     <div class="flex items-center gap-2 min-h-[1.25rem]">
@@ -133,7 +132,7 @@ const toTurns = (thread) => thread.flatMap((x) => (x.a ? [asked(x.q), answered(x
 
 function Chat({ item, t, loc, level, plot, locked, undo }) {
   const threads = useStore($chat);
-  const tick = useStore(aiTick);                       
+  const tick = useStore(aiTick);
   const [draft, setDraft] = useState("");
   const [stuck, setStuck] = useState(false);
   const [retryAt, setRetryAt] = useState(0);
@@ -205,6 +204,7 @@ function Chat({ item, t, loc, level, plot, locked, undo }) {
           class="sf-raised rounded-full px-3.5 py-2 text-left text-[0.85rem] leading-snug text-base-content/85 active:sf-pressed transition-transform">
           ${T(t, k)}</button>`)}
       </div>`}
+
     <form onSubmit=${(e) => { e.preventDefault(); send(draft); }} class="flex items-center gap-2">
       <input data-ask type="text" value=${draft} onInput=${(e) => setDraft(e.target.value)}
         placeholder=${T(t, "askPlaceholder")} aria-label=${T(t, "askTitle")}
@@ -216,7 +216,5 @@ function Chat({ item, t, loc, level, plot, locked, undo }) {
     </form>
   </${Panel}>`;
 }
-
-
 
 const SKEL = { 1: [30, 34, 28, 22], 2: [30, 34, 28, 32, 26, 20], 3: [30, 34, 28, 32, 26, 33, 29, 24, 18] };

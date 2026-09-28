@@ -1,9 +1,8 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { spectralFlux, createBeatState, stepBeat, estimateTempo, BPM_MIN, BPM_MAX, FR, NOV_LEN } from "../afterbeat.js";
 
 const frac = (x) => x - Math.floor(x);
-const circDist = (a, b) => { const d = frac(a - b); return Math.min(d, 1 - d); };   
+const circDist = (a, b) => { const d = frac(a - b); return Math.min(d, 1 - d); };
 
 function clickTrack({ bpm, seconds, fps = 60, jitter = 0.002, noise = 0, start = 0, state = null, t0 = 0 }) {
   const period = 60 / bpm;
@@ -26,7 +25,7 @@ Deno.test("spectralFlux: only positive bin increases count, empty/mismatched fra
   assertEquals(spectralFlux(new Float32Array(8), new Float32Array(4)), 0);
   const prev = new Float32Array(512), mag = new Float32Array(512);
   assertEquals(spectralFlux(mag, prev), 0, "no change → no flux");
-  mag[3] = 1;                                                           
+  mag[3] = 1;
   const kick = spectralFlux(mag, prev);
   assert(kick > 0, "a rising bin makes flux");
   assertEquals(spectralFlux(prev, mag), 0, "a FALLING bin does not (half-wave rectified)");
@@ -81,14 +80,14 @@ Deno.test("stepBeat: null state is safe, outputs bounded, a huge dt never leaps 
   const a = stepBeat(null, 0.5, 1);
   assert(a.beatPhase >= 0 && a.beatPhase < 1);
   assert(a.confidence >= 0 && a.confidence <= 1);
-  const b = stepBeat(a.state, 0, 100);                                   
+  const b = stepBeat(a.state, 0, 100);
   assert(b.beatIndex - a.beatIndex <= 1, "dt is clamped so a gap adds at most one beat");
   assert(Number.isFinite(b.nextBeatAt) && b.nextBeatAt > 100);
 });
 
 Deno.test(`novelty grid runs at ${FR} Hz: 1 s of frames fills ~${FR} samples regardless of fps`, () => {
   let s = null, t = 0, out = null;
-  out = stepBeat(s, 0, 0); s = out.state;                                
+  out = stepBeat(s, 0, 0); s = out.state;
   for (let i = 0; i < 30; i++) { t += 1 / 30; out = stepBeat(s, 0, t); s = out.state; }
   assert(Math.abs(s.count - FR) <= 2, `30 fps: ${s.count}`);
   s = null; t = 0; out = stepBeat(s, 0, 0); s = out.state;

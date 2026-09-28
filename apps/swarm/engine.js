@@ -1,4 +1,3 @@
-
 import { S, SFX } from "/_rt/swarm.js";
 import { createEngine } from "/_rt/audio.js";
 
@@ -37,7 +36,6 @@ export function makeClock(step) {
   };
 }
 
-
 export function makeSound() {
   let eng = null, on = true;
   const ensure = () => {
@@ -72,10 +70,10 @@ export function makeSound() {
     set enabled(v) { on = v; },
     play(bits) {
       if (!on || !eng) return;
-      if (bits & SFX.SHOOT) noise(0.07, 0.15, 3200);                              
+      if (bits & SFX.SHOOT) noise(0.07, 0.15, 3200);
       if (bits & SFX.HIT) tone(1240, 0.05, "square", 0.08);
       if (bits & SFX.KILL) { tone(880, 0.06, "triangle", 0.12); setTimeout(() => tone(1320, 0.09, "triangle", 0.1), 45); }
-      if (bits & SFX.WARN) tone(330, 0.08, "sawtooth", 0.06, 40);                 
+      if (bits & SFX.WARN) tone(330, 0.08, "sawtooth", 0.06, 40);
       if (bits & SFX.HURT) { tone(200, 0.2, "sawtooth", 0.16, -120); noise(0.12, 0.12, 420); }
       if (bits & SFX.WAVE) { tone(523, 0.09, "triangle", 0.12); setTimeout(() => tone(784, 0.12, "triangle", 0.11), 90); }
       if (bits & SFX.DEATH) { tone(392, 0.15, "triangle", 0.15); setTimeout(() => tone(165, 0.55, "triangle", 0.15, -70), 160); }

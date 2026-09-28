@@ -61,7 +61,7 @@ export default [
     name: "повторне питання: та сама відповідь і перекидання раз на день", run: async (h) => {
       await ready(h);
       await h.tap("[data-ask]"); await h.wait(300);
-      await h.type("#question", "  чи ВАРТО починати зараз ");   
+      await h.type("#question", "  чи ВАРТО починати зараз ");
       await h.tap("[data-cast]"); await h.wait(400);
       h.expect((await h.count("[data-answer-text]")) === 1, "відповідь не зʼявилась");
       h.expect((await h.text("[data-a-number]")).trim() === "63", "повтор не повернув гексаграму запису журналу");

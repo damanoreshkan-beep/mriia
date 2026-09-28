@@ -50,9 +50,9 @@ function makeKit(ctx, out) {
   return {
     ctx, out, nodes, timers,
     add: (...ns) => { nodes.push(...ns); return ns[0]; },
-    loop(min, span, fn) { const tick = () => { try { fn(); } catch {  } timers.push(setTimeout(tick, min + Math.random() * span)); }; timers.push(setTimeout(tick, min + Math.random() * span)); },
+    loop(min, span, fn) { const tick = () => { try { fn(); } catch { } timers.push(setTimeout(tick, min + Math.random() * span)); }; timers.push(setTimeout(tick, min + Math.random() * span)); },
     hit: (freq, opts) => strike(ctx, out, freq, opts),
-    stop() { for (const t of timers) clearTimeout(t); for (const n of nodes) { try { n.stop && n.stop(); } catch {  } try { n.disconnect && n.disconnect(); } catch {  } } },
+    stop() { for (const t of timers) clearTimeout(t); for (const n of nodes) { try { n.stop && n.stop(); } catch { } try { n.disconnect && n.disconnect(); } catch { } } },
   };
 }
 
@@ -95,7 +95,7 @@ function startLayer(eng, key) {
   const ctx = eng.ctx, vol = ctx.createGain(); vol.gain.value = 0; vol.connect(eng.master);
   const kit = makeKit(ctx, vol);
   BUILDERS[key](kit, eng.buffers);
-  eng.layers.set(key, { stop: () => { kit.stop(); try { vol.disconnect(); } catch {  } }, setVol: (v) => { try { vol.gain.setTargetAtTime(v * 0.9, ctx.currentTime, 0.08); } catch { vol.gain.value = v * 0.9; } } });
+  eng.layers.set(key, { stop: () => { kit.stop(); try { vol.disconnect(); } catch { } }, setVol: (v) => { try { vol.gain.setTargetAtTime(v * 0.9, ctx.currentTime, 0.08); } catch { vol.gain.value = v * 0.9; } } });
 }
 
 export function ambient({ S }) {
@@ -138,6 +138,7 @@ export function ambient({ S }) {
 
   return html`<div class="flex flex-col items-center gap-[var(--ms-gap)] pt-1"
     data-mix-state=${anyOn ? (paused ? "paused" : "playing") : "idle"} data-mix-on=${active.size} data-timer-min=${timerMin}>
+    ${""}
     <${Transport} locale=${loc} size="sm" playing=${anyOn && !paused} disabled=${!anyOn}
       onToggle=${() => { ensure(); setPaused((p) => !p); }}
       subtitle=${anyOn ? `${active.size} · ${paused ? T(t, "aResume") : T(t, "playing")}` : null} />
@@ -145,22 +146,25 @@ export function ambient({ S }) {
     <div class="flex flex-col gap-[var(--ms-gap)] w-full max-w-[420px]">
       ${GROUPS.map(({ cat, items }) => html`<div class="flex flex-col gap-2" key=${cat}>
         <div class=${`${LABEL} px-1`}>${T(t, cat)}</div>
-        
+        ${""}
         <div class="grid grid-cols-2 gap-2.5">
           ${items.map(({ key, name, icon }) => { const on = active.has(key); return html`<div data-layer=${key} data-on=${on ? "1" : null} class=${`rounded-[var(--ms-r)] p-[var(--ms-pad)] flex flex-col gap-2 transition-[box-shadow,background-color] ${on ? "bg-[var(--app-tint)] sf-e3" : "sf-raised sf-e2"}`} key=${key}>
             <button aria-pressed=${on} class="flex items-center gap-2.5 text-left w-full" onClick=${() => toggle(key)}>
+              ${""}
               <span class=${`flex items-center justify-center w-9 h-9 rounded-full shrink-0 ${on ? "sf-e2 text-primary" : "sf-inset text-muted"}`}>${Icon(icon, "text-xl")}</span>
               <span class="font-semibold flex-1 min-w-0 truncate">${T(t, name)}</span>
               ${on ? Icon("lucide:volume-2", "text-primary shrink-0") : null}
             </button>
+            ${""}
             ${on ? html`<${Slider} attr="data-vol" id=${key} label=${T(t, "volume")} value=${vols[key] ?? 0.55} onInput=${(v) => setVol(key, v)} />` : null}
           </div>`; })}
         </div>
       </div>`)}
     </div>
+
     <div class="flex items-center gap-[var(--ms-gap)] w-full max-w-[420px]">
       <span class="text-muted flex items-center gap-1.5 text-sm shrink-0">${Icon("lucide:moon")}${T(t, "sleep")}</span>
-      
+      ${""}
       <div class="flex-1 min-w-0"><${Segmented} size="sm" scroll attr="data-timer" label=${T(t, "sleep")}
         items=${TIMERS.map((m) => ({ id: String(m), label: `${m}${T(t, "min")}` }))}
         value=${String(timerMin)} onChange=${(id) => setTimerMin((c) => (c === Number(id) ? 0 : Number(id)))} /></div>

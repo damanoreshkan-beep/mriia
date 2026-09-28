@@ -21,7 +21,7 @@ export default [
     name: "глобус рендериться (canvas)", run: async (h) => {
       await seed(h);
       h.expect((await h.count("canvas")) === 1, "немає глобуса");
-      h.expect((await h.count("#country-search")) === 1, "немає пошуку країни");   
+      h.expect((await h.count("#country-search")) === 1, "немає пошуку країни");
     },
   },
   {
@@ -33,7 +33,7 @@ export default [
       const t = await h.bodyText();
       h.expect(/Ukraine/.test(t), "немає назви країни");
       h.expect(/Kyiv/.test(t), "немає столиці");
-      h.expect(/Столиця|Capital/i.test(t) && /Населення|Population/i.test(t), "немає полів фактів"); 
+      h.expect(/Столиця|Capital/i.test(t) && /Населення|Population/i.test(t), "немає полів фактів");
     },
   },
   {

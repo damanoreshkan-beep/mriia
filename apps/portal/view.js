@@ -17,7 +17,7 @@ const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 const thumb = (id) => new URL(`assets/style-${id}.webp`, import.meta.url).href;
 const texUrl = (id) => new URL(`assets/tex-${id}.webp`, import.meta.url).href;
 const mockURL = new URL("assets/mock.webp", import.meta.url).href;
-const packURL = new URL("assets/portal.pck", import.meta.url).href;   
+const packURL = new URL("assets/portal.pck", import.meta.url).href;
 const KEY = "portal:preset";
 const TUNE = (id) => `portal:tune:${id}`;
 const docMaterial = () => document.documentElement.getAttribute("data-material") || "lum";
@@ -27,23 +27,23 @@ const CSS = `.pt-scrim{height:calc(var(--hdr-h,3.5rem) * 1.9);background:linear-
 [data-fullscreen] .pt-scrim{display:none}
 .pt-swatch{background:radial-gradient(circle at 35% 35%,color-mix(in oklch,var(--app-accent) 55%,white) 0%,var(--app-accent) 45%,color-mix(in oklch,var(--app-accent) 40%,black) 100%)}`;
 
-const firstPreset = () => { try { const v = localStorage.getItem(KEY); if (v && PRESETS[v]) return v; } catch {  } return PRESETS[docMaterial()] ? docMaterial() : "lum"; };
+const firstPreset = () => { try { const v = localStorage.getItem(KEY); if (v && PRESETS[v]) return v; } catch { } return PRESETS[docMaterial()] ? docMaterial() : "lum"; };
 const loadTune = (id) => { try { const v = JSON.parse(localStorage.getItem(TUNE(id)) || "null"); return v && typeof v === "object" ? v : {}; } catch { return {}; } };
-const saveTune = (id, over) => { try { if (Object.keys(over).length) localStorage.setItem(TUNE(id), JSON.stringify(over)); else localStorage.removeItem(TUNE(id)); } catch {  } };
+const saveTune = (id, over) => { try { if (Object.keys(over).length) localStorage.setItem(TUNE(id), JSON.stringify(over)); else localStorage.removeItem(TUNE(id)); } catch { } };
 const fmt = (v, step) => (step >= 1 ? String(Math.round(v)) : v.toFixed(step >= 0.01 ? 2 : 3).replace(/\.?0+$/, ""));
 
 export function portal({ S, toast, screen, closeScreen }) {
   const t = useStore(S.t), loc = useStore(S.locale);
-  const engine = godotAvailable();                
-  const [ready, setReady] = useState(false);      
-  const [caps, setCaps] = useState(null);         
+  const engine = godotAvailable();
+  const [ready, setReady] = useState(false);
+  const [caps, setCaps] = useState(null);
   const [torch, setTorch] = useState(false);
   const [preset, setPreset] = useState(firstPreset);
   const [light, setLight] = useState(docLight);
   const [facing, setFacing] = useState("environment");
   const [busy, setBusy] = useState(false);
-  const [over, setOver] = useState(() => loadTune(firstPreset()));   
-  const [fps, setFps] = useState(0);              
+  const [over, setOver] = useState(() => loadTune(firstPreset()));
+  const [fps, setFps] = useState(0);
   const canvasRef = useRef();
   const px = useRef({ P: null, F: null, app: null, graph: null, filters: [], source: null, pending: null }).current;
 
@@ -88,9 +88,9 @@ export function portal({ S, toast, screen, closeScreen }) {
       px.P = P; px.F = F; px.app = app; px.graph = graph;
       canvasRef.current.dataset.render = "pixi";
       app.ticker.add((tk) => { const dt = tk.deltaMS / 1000; for (const f of px.filters) if (typeof f.time === "number") f.time += dt; graph.tick(dt); });
-      if (px.pending) onVideo(px.pending.el, px.pending);   
+      if (px.pending) onVideo(px.pending.el, px.pending);
     })();
-    return () => { alive = false; try { px.graph?.destroy(); px.app?.destroy(); } catch {  } px.app = null; px.graph = null; };
+    return () => { alive = false; try { px.graph?.destroy(); px.app?.destroy(); } catch { } px.app = null; px.graph = null; };
   }, [engine]);
 
   const params = { facing, preset, light, knobs: over, mark: gate };
@@ -105,7 +105,7 @@ export function portal({ S, toast, screen, closeScreen }) {
     }
   };
 
-  const pick = (id) => { setPreset(id); setOver(loadTune(id)); try { localStorage.setItem(KEY, id); } catch {  } };
+  const pick = (id) => { setPreset(id); setOver(loadTune(id)); try { localStorage.setItem(KEY, id); } catch { } };
   const turn = (path, v) => { const o = { ...overRef.current, [path]: v }; setOver(o); saveTune(preset, o); };
   const resetTune = () => { setOver({}); saveTune(preset, {}); };
   const flip = () => { setTorch(false); setFacing((f) => f === "user" ? "environment" : "user"); };
@@ -126,7 +126,7 @@ export function portal({ S, toast, screen, closeScreen }) {
     finally { setBusy(false); }
   };
 
-  const knobs = [...(KNOBS[preset] || KNOBS.plain), ...(engine ? ENGINE_KNOBS : [])];   
+  const knobs = [...(KNOBS[preset] || KNOBS.plain), ...(engine ? ENGINE_KNOBS : [])];
   return html`<${Fragment}>
     <style>${CSS}</style>
     <div data-live="1" data-preset=${preset} data-mode=${light ? "light" : "dark"} data-facing=${facing} data-stage=${engine ? "godot" : "web"} data-tuned=${Object.keys(over).length ? "1" : null} class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
@@ -144,6 +144,7 @@ export function portal({ S, toast, screen, closeScreen }) {
       <//>
       <div class="shrink-0 relative z-[2]">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
+        ${""}
         <div data-strip role="group" aria-label=${T(t, "material")} class="overflow-x-auto flex items-start gap-1 -mx-1 px-1">
           ${IDS.map((id) => { const p = PRESETS[id], active = preset === id; return html`<button key=${id} data-mat=${id} aria-pressed=${active} aria-label=${T(t, p.key)}
               class="shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => pick(id)}>
@@ -152,6 +153,7 @@ export function portal({ S, toast, screen, closeScreen }) {
             <span class=${`font-mono uppercase tracking-wide text-[0.58rem] leading-none truncate max-w-full ${active ? "text-base-content" : "text-base-content/70"}`}>${T(t, p.key)}</span>
           </button>`; })}
         </div>
+        ${""}
         <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 min-h-[3.9rem]">
           <div class="flex items-center justify-start gap-1">
             <button data-tune class=${`${tool} ${Object.keys(over).length ? "text-[var(--app-accent)]" : ""}`} aria-label=${T(t, "tune")} title=${T(t, "tune")} onClick=${() => S.screen.set("tune")}>${Icon("lucide:sliders-horizontal", "text-lg")}</button>
@@ -166,7 +168,7 @@ export function portal({ S, toast, screen, closeScreen }) {
       </div>
     </div>
 
-    
+    ${""}
     <${Sheet} id="tune" open=${screen === "tune"} onClose=${closeScreen} title=${T(t, "tune")} subtitle=${T(t, PRESETS[preset].key)} icon="lucide:sliders-horizontal" tone="frost" locale=${loc}>
       <div data-knobs class="flex flex-col gap-3">
         ${knobs.map((k) => { const v = knobValue(preset, light, over, k); return html`<label key=${k.path} class="flex flex-col gap-1">

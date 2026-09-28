@@ -1,10 +1,9 @@
-
-export const FR = 100;                        
-export const NOV_LEN = 600;                   
-export const BPM_MIN = 118, BPM_MAX = 150;    
-export const BPM_REF = 128;                   
-export const LAG_MIN = Math.round(60 * FR / BPM_MAX);   
-export const LAG_MAX = Math.round(60 * FR / BPM_MIN);   
+export const FR = 100;
+export const NOV_LEN = 600;
+export const BPM_MIN = 118, BPM_MAX = 150;
+export const BPM_REF = 128;
+export const LAG_MIN = Math.round(60 * FR / BPM_MAX);
+export const LAG_MAX = Math.round(60 * FR / BPM_MIN);
 const TAU = Math.PI * 2;
 const frac = (x) => x - Math.floor(x);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -25,9 +24,9 @@ export function spectralFlux(mag, prev) {
 
 export function createBeatState() {
   return {
-    nov: new Float32Array(NOV_LEN), head: -1, count: 0,   
-    binStart: 0, binPeak: 0, seeded: false,               
-    baseline: 0,                                           
+    nov: new Float32Array(NOV_LEN), head: -1, count: 0,
+    binStart: 0, binPeak: 0, seeded: false,
+    baseline: 0,
     bpm: BPM_REF, conf: 0, lastTempoAt: -1,
     phase: 0, beatIndex: 0, prevWrapPhase: 0, lastNow: 0,
   };
@@ -35,15 +34,15 @@ export function createBeatState() {
 
 export function estimateTempo(nov, head, count) {
   const N = Math.min(count, NOV_LEN);
-  if (N < LAG_MAX + 20) return null;                       
-  const at = (k) => nov[(head - k + NOV_LEN) % NOV_LEN];   
+  if (N < LAG_MAX + 20) return null;
+  const at = (k) => nov[(head - k + NOV_LEN) % NOV_LEN];
   const ac = new Float64Array(LAG_MAX + 1);
   let acSum = 0;
   for (let lag = LAG_MIN; lag <= LAG_MAX; lag++) {
     let s = 0;
     for (let k = 0; k + lag < N; k++) s += at(k) * at(k + lag);
     const bpm = 60 * FR / lag;
-    const w = Math.exp(-0.5 * Math.pow(Math.log2(bpm / BPM_REF) / 0.15, 2));   
+    const w = Math.exp(-0.5 * Math.pow(Math.log2(bpm / BPM_REF) / 0.15, 2));
     ac[lag] = s * w;
     acSum += ac[lag];
   }
@@ -64,7 +63,7 @@ export function plpPhase(nov, head, count, f, endT, windowSec = 2.5) {
   let re = 0, im = 0, wsum = 0, vsum = 0;
   for (let k = 0; k < W; k++) {
     const t = endT - k / FR;
-    const w = 0.5 - 0.5 * Math.cos(TAU * (W - 1 - k) / (W - 1));   
+    const w = 0.5 - 0.5 * Math.cos(TAU * (W - 1 - k) / (W - 1));
     const v = w * nov[(head - k + NOV_LEN) % NOV_LEN];
     re += v * Math.cos(TAU * f * t);
     im += v * Math.sin(TAU * f * t);

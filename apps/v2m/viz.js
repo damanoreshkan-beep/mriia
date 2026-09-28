@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { useRef, useEffect } from "preact/hooks";
 import { DEFAULTS, logBandEdges, bandLevels, splitBands, spectralCentroid, Envelope } from "/_rt/spectrum.js";
@@ -52,8 +51,8 @@ function pump() {
     live: !!live,
     progress: (_getProgress && _getProgress()) || 0,
   };
-  for (const fn of subs) { try { fn(st); } catch {  } }
-  if (!live) resting = true;                           
+  for (const fn of subs) { try { fn(st); } catch { } }
+  if (!live) resting = true;
   pumpRaf = requestAnimationFrame(pump);
 }
 function subscribe(fn) {
@@ -126,7 +125,7 @@ function makeScene(THREE) {
     frame(st) {
       sync();
       const lt = isLight();
-      if (lt !== light) {                              
+      if (lt !== light) {
         light = lt;
         const mode = lt ? THREE.NormalBlending : THREE.AdditiveBlending;
         matDone.blending = matTodo.blending = mode;
@@ -180,9 +179,9 @@ function drawFallback(canvas, st) {
   const g = ctx2d(canvas); if (!g) return;
   const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
   const R = Math.min(w, h) * 0.3 * (1 + st.bands.bass * 0.25);
-  const a = st.phase * 0.25, ca = Math.cos(a), sa = Math.sin(a);   
+  const a = st.phase * 0.25, ca = Math.cos(a), sa = Math.sin(a);
   g.clearRect(0, 0, w, h);
-  const hue = st.bands.treble * 1.6 > 0.5 ? H_HIGH : H_LOW;   
+  const hue = st.bands.treble * 1.6 > 0.5 ? H_HIGH : H_LOW;
   const lt = isLight();
   g.fillStyle = `hsl(${hue} 70% ${(lt ? 40 : 55) + st.bands.mid * 15}%)`;
   const r = Math.max(1, w * 0.0035);
@@ -208,7 +207,7 @@ export function ByteStage() {
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
       store.renderer?.setSize(canvas.width, canvas.height, false);
       store.scene?.resize(canvas.width, canvas.height);
-      invalidate();                                    
+      invalidate();
     };
     const webgl = hasWebGL();
     canvas.setAttribute("data-haswebgl", webgl ? "yes" : "no");
@@ -227,14 +226,14 @@ export function ByteStage() {
       size();
       store.unsub = subscribe((st) => {
         if (store.scene && store.renderer) {
-          try { store.scene.frame(st); store.renderer.render(store.scene.scene, store.scene.cam); } catch {  }
+          try { store.scene.frame(st); store.renderer.render(store.scene.scene, store.scene.cam); } catch { }
         } else drawFallback(canvas, st);
       });
       if (typeof ResizeObserver !== "undefined") { store.ro = new ResizeObserver(size); store.ro.observe(canvas); }
     })();
     return () => {
       dead = true; store.unsub?.(); store.ro?.disconnect();
-      try { store.scene?.dispose(); store.renderer?.renderLists?.dispose(); store.renderer?.dispose(); } catch {  }
+      try { store.scene?.dispose(); store.renderer?.renderLists?.dispose(); store.renderer?.dispose(); } catch { }
       store.scene = null; store.renderer = null;
     };
   }, []);

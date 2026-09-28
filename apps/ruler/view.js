@@ -26,11 +26,11 @@ const shoelace = (pts) => { const o = pts[0]; const q = pts.map((p) => proj(o, p
 function fitCanvas(cv) {
   const box = cv.parentElement; if (!box) return null;
   const r = box.getBoundingClientRect(), W = Math.round(r.width), H = Math.round(r.height);
-  if (!W || !H) return null;                                      
+  if (!W || !H) return null;
   const dpr = Math.min(3, (typeof devicePixelRatio !== "undefined" ? devicePixelRatio : 1) || 1);
   cv.style.display = "block"; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
   const ww = W * dpr, hh = H * dpr;
-  if (cv.width !== ww || cv.height !== hh) { cv.width = ww; cv.height = hh; }   
+  if (cv.width !== ww || cv.height !== hh) { cv.width = ww; cv.height = hh; }
   return { W, H, dpr };
 }
 
@@ -70,7 +70,7 @@ function draw(cv, pts, cur) {
   ctx.save(); ctx.translate(W - 20, 22); ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(0, 8); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(-4, -6); ctx.lineTo(4, -6); ctx.closePath(); ctx.fill(); ctx.font = `700 9px ${mono}`; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText("N", 0, 9); ctx.restore();
 }
 
-let _t;   
+let _t;
 const fmt = (m) => m < 1000 ? `${Math.round(m < 10 ? m * 10 : m) / (m < 10 ? 10 : 1)} ${T(_t, "uM")}` : `${(m / 1000).toFixed(2)} ${T(_t, "uKm")}`;
 const fmtArea = (a) => a < 10000 ? `${Math.round(a)} ${T(_t, "uM2")}` : `${(a / 10000).toFixed(2)} ${T(_t, "uHa")}`;
 const coordStr = (p) => `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
@@ -83,7 +83,7 @@ export function ruler({ S, toast }) {
   const [pts, setPts] = useState([]);
   const [cur, setCur] = useState(isGate || MOCK ? SAMPLE_CUR : null);
   const [err, setErr] = useState(null);
-  const [depth, setDepth] = useState(0);                  
+  const [depth, setDepth] = useState(0);
   const cv = useRef(), hydrated = useRef(false), buf = useRef([]);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function ruler({ S, toast }) {
     if (!geo.supported) { setErr("unsupported"); return; }
     return geo.watch((p) => {
       const fix = { ...p, t: p.t || Date.now() };
-      buf.current = [...buf.current, fix].slice(-180);     
+      buf.current = [...buf.current, fix].slice(-180);
       setDepth(stationaryTail(buf.current, { now: fix.t }).length);
       setCur(fix); setErr(null);
     }, (e) => setErr(e), { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
@@ -101,11 +101,11 @@ export function ruler({ S, toast }) {
     const seed = () => { if (ok && (isGate || MOCK)) setPts(SAMPLE.slice()); };
     CUR.get("walk")
       .then((v) => { if (!ok) return; const saved = (v?.pts || []).filter(okPt); saved.length ? setPts(saved) : seed(); })
-      .catch(seed)                                        
+      .catch(seed)
       .finally(() => { if (ok) hydrated.current = true; });
     return () => { ok = false; };
   }, []);
-  useEffect(() => { if (hydrated.current) CUR.put("walk", { pts }).catch(() => {  }); }, [pts]);
+  useEffect(() => { if (hydrated.current) CUR.put("walk", { pts }).catch(() => { }); }, [pts]);
   useEffect(() => { draw(cv.current, pts, cur); }, [pts, cur, t]);
   const last = useRef({ pts, cur });
   last.current = { pts, cur };
@@ -116,7 +116,7 @@ export function ruler({ S, toast }) {
     return () => ro && ro.disconnect();
   }, []);
 
-  const copyCoords = async () => { if (!cur) return; try { await navigator.clipboard.writeText(coordStr(cur)); toast?.(T(t, "copied")); } catch {  } };
+  const copyCoords = async () => { if (!cur) return; try { await navigator.clipboard.writeText(coordStr(cur)); toast?.(T(t, "copied")); } catch { } };
   const add = () => {
     if (!usableFix(cur)) return;
     const tail = stationaryTail(buf.current, { now: Date.now() });
@@ -135,9 +135,12 @@ export function ruler({ S, toast }) {
   const tErr = pts.length >= 2 ? totalErr(pts.slice(1).map((p, i) => segErr(pts[i], p))) : null;
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-points=${pts.length} data-ready=${ready} data-fixed=${canAdd}>
+      ${""}
+      ${""}
       <div class="rounded-[var(--ms-r)] sf-inset overflow-hidden" style="height:clamp(280px,52svh,460px)">
         <canvas ref=${cv} aria-hidden="true" class="w-full h-full block text-base-content"></canvas>
       </div>
+      ${""}
       <${Panel} data-readout>
       <div class="flex items-end justify-between gap-3">
         <div class="min-w-0">

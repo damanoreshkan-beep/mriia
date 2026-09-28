@@ -1,5 +1,4 @@
-
-const MAXQ = 1024; 
+const MAXQ = 1024;
 
 class V2MProcessor extends AudioWorkletProcessor {
   constructor(options) {
@@ -20,7 +19,7 @@ class V2MProcessor extends AudioWorkletProcessor {
     if (!wasm) return;
     WebAssembly.instantiate(wasm, {}).then(({ instance }) => {
       const X = (this.X = instance.exports);
-      X._initialize(); 
+      X._initialize();
       this.heapU8 = new Uint8Array(X.memory.buffer);
       this.heapF32 = new Float32Array(X.memory.buffer);
       this.bufPtr = X.malloc(MAXQ * 2 * 4);
@@ -73,7 +72,7 @@ class V2MProcessor extends AudioWorkletProcessor {
     const X = this.X;
     const F = this.heapF32;
     const base = this.bufPtr >> 2;
-    const still = X.v2m_render(this.bufPtr, n); 
+    const still = X.v2m_render(this.bufPtr, n);
     for (let i = 0, j = base; i < n; i++, j += 2) {
       const l = F[j], r = F[j + 1];
       L[i] = l >= -4 ? (l <= 4 ? l : 4) : (l >= -Infinity ? -4 : 0);

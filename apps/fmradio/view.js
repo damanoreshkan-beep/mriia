@@ -15,7 +15,7 @@ import { usbSupported, USB_FILTERS } from "/_rt/hackrf.js";
 import { createUsbSession } from "/_rt/usbsession.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 
 const FM_LO = 87.5, FM_HI = 108.0, STEP_HZ = 100_000;
@@ -28,8 +28,8 @@ const $playing = atom(false), $signal = atom(0);
 const $rds = atom({ ...EMPTY_RDS }), $stereo = atom(false), $scan = atom({ active: false, frac: 0 });
 const $freq = persistentAtom("fmradio:freq", 100e6, { encode: String, decode: Number });
 const $stations = persistentAtom("fmradio:stations", [], JC([]));
-const $known = persistentAtom("fmradio:known", {}, JC({}));   
-const $saved = persistentAtom("fmradio:saved", [], JC([]));   
+const $known = persistentAtom("fmradio:known", {}, JC({}));
+const $saved = persistentAtom("fmradio:saved", [], JC([]));
 const $vol = persistentAtom("fmradio:vol", 0.8, { encode: String, decode: Number });
 const $lna = persistentAtom("fmradio:lna", 16, { encode: String, decode: Number });
 const $vga = persistentAtom("fmradio:vga", 20, { encode: String, decode: Number });
@@ -145,8 +145,8 @@ export function fmradioView({ S, screen, openScreen, closeScreen, undo }) {
   }
 
   const genre = rds.ptyName && rds.pty ? rds.ptyName : "";
-  const name = rds.ps || known[freq]?.ps || "";        
-  const info = rds.rt || rds.scroll || "";             
+  const name = rds.ps || known[freq]?.ps || "";
+  const info = rds.rt || rds.scroll || "";
   const savedNow = savedList.some((x) => x.freq === freq);
   const actions = [
     { id: "save", icon: savedNow ? "lucide:bookmark-check" : "lucide:bookmark", label: T(t, "save"), onClick: () => toggleSave(undo), active: savedNow, pressed: savedNow, attr: { "data-save": true } },
@@ -160,12 +160,13 @@ export function fmradioView({ S, screen, openScreen, closeScreen, undo }) {
         <div class="flex-1 min-w-0">
           <${Slider} id="band" attr="data-band" label=${T(t, "band")} min=${FM_LO} max=${FM_HI} step=${0.1} value=${(freq / 1e6).toFixed(1)} onInput=${(v) => setFreq(v * 1e6)} />
         </div>
+        ${""}
         <button data-scan aria-label=${T(t, "scan")} aria-busy=${scanSt.active} disabled=${scanSt.active} onClick=${scan} class="btn btn-sm gap-1.5 shrink-0">${Icon("lucide:radar", "text-base")}${T(t, "scan")}</button>
       </div>
+      ${""}
       ${scanSt.active ? html`<div class="w-full h-1.5 rounded-full overflow-hidden" style="background:var(--sf-track-face)" data-scanbar><div class="h-full bg-primary transition-[width] duration-200" style=${`width:${Math.round((scanSt.frac || 0) * 100)}%`}></div></div>` : null}
       ${stations.length ? stations.slice().sort((a, b) => a.freq - b.freq).map((s) => {
     const on = Math.abs(s.freq - freq) < STEP_HZ / 2;
-    
     return html`<button key=${s.freq} data-station=${fmMhz(s.freq)} aria-current=${on} onClick=${() => setFreq(s.freq)}
         class=${`flex items-center gap-3 rounded-[var(--ms-r)] px-[var(--ms-pad)] py-2.5 text-left transition-colors ${on ? "bg-primary/10 sf-e3" : "sf-raised sf-e2"}`}>
         <span class="font-mono tabular-nums text-lg w-16 shrink-0 ${on ? "text-primary" : ""}">${fmMhz(s.freq)}</span>
@@ -184,7 +185,7 @@ export function fmradioView({ S, screen, openScreen, closeScreen, undo }) {
               <span class=${`${LABEL} shrink-0`}>${T(t, "unitMhz")}</span>
               <span class="truncate font-semibold text-sm ml-0.5">${name || html`<span class="text-muted">${T(t, "tuning")}</span>`}</span>
               <span data-stereo class=${`shrink-0 ${stereo ? "text-primary" : "text-muted"}`} title=${T(t, stereo ? "stereo" : "mono")}>${Icon("lucide:radio", "text-sm")}</span>
-              
+              ${""}
               ${genre ? html`<span class=${`shrink-0 badge badge-ghost badge-sm ${LABEL} truncate max-w-[6rem]`} data-genre>${genre}</span>` : null}
             </div>
             ${info ? html`<div class="text-sm text-muted leading-snug truncate mt-0.5" data-rt>${info}</div>` : null}
@@ -201,7 +202,6 @@ export function fmradioView({ S, screen, openScreen, closeScreen, undo }) {
   </${Fragment}>`;
 }
 
-
 function SignalBars({ level, label }) {
   const bars = 5, lit = Math.round(level * bars);
   return html`<div class="flex items-end gap-[3px] h-7" role="img" aria-label=${label} data-signal>
@@ -209,10 +209,8 @@ function SignalBars({ level, label }) {
   </div>`;
 }
 
-
 function SettingsSheet({ open, onClose, t, demo }) {
   const vol = useStore($vol), lna = useStore($lna), vga = useStore($vga), amp = useStore($amp), tc = useStore($tc);
-  
   return html`<${Sheet} id="rfsheet" open=${open} onClose=${onClose} title=${T(t, "settings")} icon="lucide:sliders-horizontal">
     <${Slider} id="vol" attr="data-rf" label=${T(t, "volume")} min=${0} max=${1} step=${0.01} value=${vol} onInput=${setVol} />
     <${Slider} id="lna" attr="data-rf" label=${`${T(t, "gainLna")} · ${lna} dB`} min=${0} max=${40} step=${8} value=${lna} onInput=${(v) => { $lna.set(v); pushGain(); }} />
@@ -229,12 +227,10 @@ function SettingsSheet({ open, onClose, t, demo }) {
   </${Sheet}>`;
 }
 
-
 export function savedView({ S, undo }) {
   const t = useStore(S.t), saved = useStore($saved), freq = useStore($freq), known = useStore($known);
   const open = (s) => { buzz(); setFreq(s.freq); S.tab.set("tune"); };
   const del = (i) => { buzz(); const removed = saved[i]; $saved.set(saved.filter((_, k) => k !== i)); undo?.(() => $saved.set([...$saved.get(), removed].sort((a, b) => a.freq - b.freq)), removed.ps || fmMhz(removed.freq)); };
-  
   if (!saved.length) return html`<div data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:bookmark", "text-4xl")}<span class="font-medium">${T(t, "savedEmpty")}</span></div>`;
   return html`<div class="flex flex-col gap-2 max-w-[440px] mx-auto w-full pb-6" data-saved-count=${saved.length}>
     ${saved.map((s, i) => {

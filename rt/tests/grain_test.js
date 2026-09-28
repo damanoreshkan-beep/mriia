@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { hannCurve as grHann, grainRate as grGrainRate, overlapOf as grOverlapOf, cloudGain as grCloudGain, planGrains as grPlan, conditionSample as grCondition, dcOffset as grDcOffset, clipRatio as grClipRatio, trimBounds as grTrim, detectPitch as grPitch, CENTS as grCENTS, encodeWav as grWav, syntheticSample as grSynth, MIN_KEEP as grMIN_KEEP } from "../grain.js";
 import { mulberry32 as grRng } from "@microspec/core/runtime/groove.js";
@@ -13,10 +12,10 @@ Deno.test("grain/hann: the envelope is zero at both ends — that is what stops 
 });
 
 Deno.test("grain/overlap: O = rate * duration, both directions", () => {
-  assertEquals(Math.round(grGrainRate(0.07, 4)), 57);            
+  assertEquals(Math.round(grGrainRate(0.07, 4)), 57);
   assert(Math.abs(grOverlapOf(0.07, grGrainRate(0.07, 4)) - 4) < 1e-9);
   assert(grCloudGain(1, 4) < grCloudGain(1, 1), "denser clouds must come down in level");
-  assert(Math.abs(grCloudGain(1, 4) - 0.5) < 1e-9);              
+  assert(Math.abs(grCloudGain(1, 4) - 0.5) < 1e-9);
 });
 
 Deno.test("grain/planGrains: deterministic in the seed — the export replays what was heard", () => {
@@ -43,7 +42,7 @@ Deno.test("grain/planGrains: pitch does not leak into the read head (the classic
 Deno.test("grain/conditioning: DC goes, a quiet take is boosted but capped, a clipped one is flagged", () => {
   const sr = 48000, n = sr;
   const quiet = new Float32Array(n);
-  for (let i = 0; i < n; i++) quiet[i] = 0.02 * Math.sin((2 * Math.PI * 220 * i) / sr) + 0.3;   
+  for (let i = 0; i < n; i++) quiet[i] = 0.02 * Math.sin((2 * Math.PI * 220 * i) / sr) + 0.3;
   assert(Math.abs(grDcOffset(quiet) - 0.3) < 0.01);
   const c = grCondition([quiet], sr);
   assert(Math.abs(grDcOffset(c.pcm)) < 0.01, "DC must be gone");

@@ -1,4 +1,3 @@
-
 export const CHAN_HZ = 200_000;
 export const BANDS = {
   gsm900: { key: "gsm900", label: "GSM 900", dlLo: 935.2e6, dlHi: 960.0e6, arfcnLo: 1, arfcnHi: 124 },
@@ -34,7 +33,7 @@ export function arfcnPowers(bandKey, spectrum) {
 export function activeArfcns(powers, delta = 8) {
   if (!powers.length) return [];
   const sorted = powers.map((p) => p.db).sort((a, b) => a - b);
-  const floor = sorted[sorted.length >> 1];                         
+  const floor = sorted[sorted.length >> 1];
   return powers.filter((p) => p.db > floor + delta).sort((a, b) => b.db - a.db);
 }
 
@@ -42,5 +41,5 @@ export function steadyScore(history) {
   const n = history.length; if (n < 3) return 0;
   const mean = history.reduce((a, b) => a + b, 0) / n;
   const varr = history.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n;
-  return 1 / (1 + varr);                                            
+  return 1 / (1 + varr);
 }

@@ -183,7 +183,7 @@ export function buildChain(F, id, light, over) {
   const p = PRESETS[id] || PRESETS.plain;
   const out = [];
   p.chain.forEach(([name, dark, lite], i) => {
-    if (light ? lite === null : dark === null) return;   
+    if (light ? lite === null : dark === null) return;
     const Cls = F[name];
     if (!Cls) { console.warn("portal: no filter", name); return; }
     const opts = light && lite ? { ...(dark || {}), ...lite } : { ...dark };

@@ -1,5 +1,3 @@
-
-
 export const LPD433 = { id: "lpd433", count: 69, firstHz: 433_075_000, stepHz: 25_000 };
 export const PMR446 = { id: "pmr446", count: 16, firstHz: 446_006_250, stepHz: 12_500 };
 
@@ -19,7 +17,6 @@ export function channelAt(plan, hz) {
   if (n < 1 || n > plan.count) return null;
   return n;
 }
-
 
 export function binOf(hz, { fftSize, sampleRate, centreHz }) {
   return (hz - centreHz) * fftSize / sampleRate + fftSize / 2;
@@ -45,7 +42,7 @@ export function integrateChannels(power, bins) {
     const first = Math.floor(lo), last = Math.ceil(hi) - 1;
     for (let b = first; b <= last; b++) {
       const left = Math.max(lo, b), right = Math.min(hi, b + 1);
-      const w = right - left;                       
+      const w = right - left;
       if (w > 0) acc += power[b] * w;
     }
     out[i] = acc / (hi - lo);

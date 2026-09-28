@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { useRef, useState, useEffect } from "preact/hooks";
 import { isGate } from "/_rt/gate.js";
@@ -6,21 +5,21 @@ import { DEFAULTS, logBandEdges, bandLevels, splitBands, spectralCentroid, Envel
 import { mulberry32 } from "/_rt/groove.js";
 import { compass, tilt } from "/_rt/sensors.js";
 
-const N = DEFAULTS.bars;                                        
+const N = DEFAULTS.bars;
 const TAU = Math.PI * 2;
-const DPR = () => Math.min(1.5, (typeof devicePixelRatio !== "undefined" && devicePixelRatio) || 1);   
+const DPR = () => Math.min(1.5, (typeof devicePixelRatio !== "undefined" && devicePixelRatio) || 1);
 const reducedMotion = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 function hasWebGL() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
 }
 
 const H_BASS = 42, H_TREB = 176;
-const bandHue = (frac, st) => (frac < 0.5 ? H_BASS : H_TREB) + (st.hue - 235) * 0.04;   
+const bandHue = (frac, st) => (frac < 0.5 ? H_BASS : H_TREB) + (st.hue - 235) * 0.04;
 
 const L = (light, v) => (light ? 0.66 - v * 0.5 : 0.26 + v * 0.52);
 const O = (light, v) => Math.min(1, light ? v * 2 : v);
 const BLEND = (THREE, light) => (light ? THREE.NormalBlending : THREE.AdditiveBlending);
-const FOG = (light) => (light ? 0xf6f4ee : 0x000000);   
+const FOG = (light) => (light ? 0xf6f4ee : 0x000000);
 export const isLightTheme = () => typeof document !== "undefined" && (document.documentElement.getAttribute("data-theme") || "").includes("light");
 
 function Rig(THREE, cam, box, lift = 0.1) {
@@ -65,8 +64,8 @@ let pumpRaf = null, phase = 0;
 function pump() {
   phase += 0.045;
   const live = _getBytes && !isGate ? _getBytes() : null;
-  const u8 = live || seedFrame(1024, phase);                   
-  const levels = env.update(bandLevels(u8, EDGES));            
+  const u8 = live || seedFrame(1024, phase);
+  const levels = env.update(bandLevels(u8, EDGES));
   const bands = splitBands(u8);
   const { hue } = spectralCentroid(u8);
   let target = 0;
@@ -76,7 +75,7 @@ function pump() {
   }
   immersion.turn += 0.05 * (target - immersion.turn);
   const st = { levels, bands, hue, phase, turn: immersion.turn };
-  for (const fn of subs) { try { fn(st); } catch {  } }
+  for (const fn of subs) { try { fn(st); } catch { } }
   pumpRaf = requestAnimationFrame(pump);
 }
 function subscribe(fn) {
@@ -84,7 +83,6 @@ function subscribe(fn) {
   if (!pumpRaf && typeof requestAnimationFrame !== "undefined") pumpRaf = requestAnimationFrame(pump);
   return () => { subs.delete(fn); if (!subs.size && pumpRaf) { cancelAnimationFrame(pumpRaf); pumpRaf = null; } };
 }
-
 
 const glowMat = (THREE, light, opacity = 0.14) => new THREE.MeshBasicMaterial({ transparent: true, opacity: O(light, opacity), blending: BLEND(THREE, light), depthWrite: false, toneMapped: false });
 
@@ -167,7 +165,7 @@ function makeNebula(THREE, light) {
       const breathe = (1 + st.bands.bass * 0.4) * idle(st.phase, 0.97, 0.03);
       for (let i = 0; i < COUNT * 3; i++) pos[i] = base[i] * breathe;
       geo.attributes.position.needsUpdate = true;
-      if ((recolor = (recolor + 1) % 3) === 0) {               
+      if ((recolor = (recolor + 1) % 3) === 0) {
         cIn.setHSL(((bandHue(0.55, st)) % 360) / 360, 0.5, L(light, 0.92)); cOut.setHSL((H_BASS % 360) / 360, 0.8, L(light, 0.46));
         const maxR = 4;
         for (let i = 0; i < COUNT; i++) { const t = Math.min(1, rad[i] / maxR); col[i * 3] = cIn.r + (cOut.r - cIn.r) * t; col[i * 3 + 1] = cIn.g + (cOut.g - cIn.g) * t; col[i * 3 + 2] = cIn.b + (cOut.b - cIn.b) * t; }
@@ -192,7 +190,7 @@ function makeTunnel(THREE, light) {
     const loop = new THREE.LineLoop(g, new THREE.LineBasicMaterial({ transparent: true, toneMapped: false }));
     loop.position.z = -k * DZ; loop.userData.age = k; scene.add(loop); rings.push(loop); colors.push(new THREE.Color(0x223));
   }
-  const stamp = (loop, st) => {                                 
+  const stamp = (loop, st) => {
     const arr = loop.geometry.attributes.position.array; let avg = 0;
     for (let s = 0; s <= SEG; s++) { const i = s % SEG, a = (i / SEG) * TAU, lv = st.levels[i] || 0; avg += lv; const r = 1.5 + lv * 1.3 + st.bands.bass * 0.4; arr[s * 3] = Math.cos(a) * r; arr[s * 3 + 1] = Math.sin(a) * r; arr[s * 3 + 2] = 0; }
     loop.geometry.attributes.position.needsUpdate = true;
@@ -237,7 +235,7 @@ function makeUrchin(THREE, light) {
         const band = sampleBand(st.levels, i / (K - 1)), len = (0.25 + band * 1.4 + st.bands.mid * 0.3) * br, hue = ((bandHue(i / (K - 1), st)) % 360) / 360;
         d.position.copy(dirs[i]); d.quaternion.setFromUnitVectors(UP, dirs[i]); d.scale.set(1, len, 1); d.updateMatrix();
         spikes.setMatrixAt(i, d.matrix); d.scale.set(1.5, len, 1.5); d.updateMatrix(); glow.setMatrixAt(i, d.matrix);
-        spikes.setColorAt(i, C.setHSL(hue, 0.8, L(light, 0.3 + band * 0.42))); glow.setColorAt(i, C.setHSL(hue, 0.85, L(light, 0.05)));   
+        spikes.setColorAt(i, C.setHSL(hue, 0.8, L(light, 0.3 + band * 0.42))); glow.setColorAt(i, C.setHSL(hue, 0.85, L(light, 0.05)));
       }
       spikes.instanceMatrix.needsUpdate = glow.instanceMatrix.needsUpdate = true; if (spikes.instanceColor) spikes.instanceColor.needsUpdate = true; if (glow.instanceColor) glow.instanceColor.needsUpdate = true;
       core.scale.setScalar((1 + st.bands.bass * 0.18) * br);
@@ -270,7 +268,7 @@ function makeHelix(THREE, light) {
           d.position.set(x, y, z); d.scale.setScalar(s); d.updateMatrix(); balls.setMatrixAt(idx, d.matrix);
           balls.setColorAt(idx, C.setHSL(((bandHue(t, st)) % 360) / 360, 0.5, L(light, 0.56 + band * 0.44)));
           rpos[idx * 3] = x; rpos[idx * 3 + 1] = y; rpos[idx * 3 + 2] = z;
-          const lit = band * band;                              
+          const lit = band * band;
           C.setHSL(((bandHue(t, st)) % 360) / 360, 0.8, L(light, 0.02 + lit * 0.86));
           rcol[idx * 3] = C.r; rcol[idx * 3 + 1] = C.g; rcol[idx * 3 + 2] = C.b;
         }
@@ -332,7 +330,7 @@ function makeVortex(THREE, light) {
         for (let i = 0; i < COUNT; i++) { const r = Math.hypot(base[i * 3], base[i * 3 + 2]), t = Math.min(1, r / maxR); col[i * 3] = cIn.r + (cOut.r - cIn.r) * t; col[i * 3 + 1] = cIn.g + (cOut.g - cIn.g) * t; col[i * 3 + 2] = cIn.b + (cOut.b - cIn.b) * t; }
         geo.attributes.color.needsUpdate = true;
       }
-      coreMesh.scale.setScalar(0.8 + st.bands.bass * 0.7); coreMesh.material.opacity = O(light, 0.3 + st.bands.bass * 0.3);   
+      coreMesh.scale.setScalar(0.8 + st.bands.bass * 0.7); coreMesh.material.opacity = O(light, 0.3 + st.bands.bass * 0.3);
       group.rotation.y += 0.0016 + st.turn * 0.5 + st.bands.treble * 0.004;
       rig.place(0, 6, 9, p.x, -p.y * 0.8);
     },
@@ -386,7 +384,7 @@ function makeBloom(THREE, light) {
     scene, cam,
     resize: rig.resize,
     frame(st, p) {
-      const target = st.bands.bass; explode += (target > explode ? 0.2 : 0.06) * (target - explode);   
+      const target = st.bands.bass; explode += (target > explode ? 0.2 : 0.06) * (target - explode);
       const e = Math.max(0, Math.min(1, explode));
       const br = idle(st.phase);
       core.scale.setScalar((1 + st.bands.mid * 0.4) * br); core.rotation.y += 0.006 + st.turn; core.rotation.x += 0.003;
@@ -398,7 +396,7 @@ function makeBloom(THREE, light) {
         shards.setColorAt(i, C.setHSL(((bandHue(i / SH, st)) % 360) / 360, 0.7, L(light, 0.2 + e * 0.55)));
       }
       shards.instanceMatrix.needsUpdate = true; if (shards.instanceColor) shards.instanceColor.needsUpdate = true; shards.material.opacity = Math.min(1, 0.2 + e);
-      debris.scale.setScalar(1 + st.bands.bass * 0.3); debris.rotation.y += 0.0015 + st.turn; debris.rotation.x = Math.sin(st.phase * 0.1) * 0.2;   
+      debris.scale.setScalar(1 + st.bands.bass * 0.3); debris.rotation.y += 0.0015 + st.turn; debris.rotation.x = Math.sin(st.phase * 0.1) * 0.2;
       group.rotation.y += st.turn * 0.2;
       rig.place(0, 0, 1, p.x, p.y * -0.5, 1 - e * 0.18);
     },
@@ -435,8 +433,8 @@ function drawFallback(canvas, st, light) {
 
 function disposeScene(store) {
   const sc = store.scene; if (!sc) return;
-  try { sc.dispose?.(); sc.scene?.traverse((o) => { o.geometry?.dispose?.(); const m = o.material; if (Array.isArray(m)) m.forEach((x) => x?.dispose?.()); else m?.dispose?.(); }); } catch {  }
-  store.scene = null; try { store.renderer?.renderLists?.dispose(); } catch {  } }
+  try { sc.dispose?.(); sc.scene?.traverse((o) => { o.geometry?.dispose?.(); const m = o.material; if (Array.isArray(m)) m.forEach((x) => x?.dispose?.()); else m?.dispose?.(); }); } catch { }
+  store.scene = null; try { store.renderer?.renderLists?.dispose(); } catch { } }
 
 export function SpectrumStage({ index = 0 }) {
   const ref = useRef();
@@ -465,12 +463,12 @@ export function SpectrumStage({ index = 0 }) {
       store.parallax = Parallax({ maxDeg: 22, gain: 1, reduced: immersion.reduced });
       store.unsub = subscribe((st) => {
         const p = immersion.on ? store.parallax.update(immersion.beta, immersion.gamma) : store.parallax.update(0, 0);
-        if (store.scene && store.renderer) { try { store.scene.frame(st, p); store.renderer.render(store.scene.scene, store.scene.cam); } catch {  } }
+        if (store.scene && store.renderer) { try { store.scene.frame(st, p); store.renderer.render(store.scene.scene, store.scene.cam); } catch { } }
         else drawFallback(canvas, st, store.light);
       });
       if (typeof ResizeObserver !== "undefined") { store.ro = new ResizeObserver(size); store.ro.observe(canvas); }
     })();
-    return () => { dead = true; store.unsub?.(); store.ro?.disconnect(); disposeScene(store); try { store.renderer?.dispose(); } catch {  } store.renderer = null; };
+    return () => { dead = true; store.unsub?.(); store.ro?.disconnect(); disposeScene(store); try { store.renderer?.dispose(); } catch { } store.renderer = null; };
   }, []);
   useEffect(() => { store.index = index; store.light = light; if (store.THREE && store.build) store.build(index); }, [index, light]);
   return html`<canvas ref=${ref} data-stage data-live aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>`;

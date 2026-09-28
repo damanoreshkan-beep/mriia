@@ -14,7 +14,7 @@ export function usePromptHistory(ns) {
     const line = String(text || "").trim(); if (!line) return;
     const next = [line, ...items.filter((x) => x !== line)].slice(0, MAX);
     setItems(next);
-    if (!gate) { try { localStorage.setItem(KEY(ns), JSON.stringify(next)); } catch {  } }
+    if (!gate) { try { localStorage.setItem(KEY(ns), JSON.stringify(next)); } catch { } }
   };
   return [items, remember];
 }

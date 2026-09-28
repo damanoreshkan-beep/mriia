@@ -117,7 +117,7 @@ function Launcher({ S, loc, t, toast }) {
   const keys = Object.keys(PERMISSIONS);
 
   const refresh = async () => {
-    await refreshHeld();          
+    await refreshHeld();
     const out = {};
     for (const k of keys) out[k] = (await permState(k)).state;
     setStates(out);
@@ -290,6 +290,7 @@ function Explorer({ S, t, loc, toast }) {
           </button>
         </div>
         <div class=${`${LABEL} text-muted`}>${p.mime || "?"} · ${size(p.bytes, loc)}</div>
+        ${""}
         ${p.src ? html`<img src=${p.src} alt=${p.name} class="w-full rounded-[var(--ms-r-in)] bg-base-200" />`
           : p.text != null ? html`<pre class="font-mono text-xs whitespace-pre-wrap break-all rounded-[var(--ms-r-in)] sf-inset p-3">${p.text}</pre>`
           : html`<div class="text-sm text-muted">${T(t, "fsNoPreview")}</div>`}
@@ -297,7 +298,6 @@ function Explorer({ S, t, loc, toast }) {
     <//>`;
   }
 
-  
   if (!fs.root) {
     return html`<${Panel} title=${T(t, "fsTitle")}>
       <div data-fs-roots class="flex flex-col gap-2 pt-1">
@@ -317,7 +317,6 @@ function Explorer({ S, t, loc, toast }) {
     <//>`;
   }
 
-  
   const trail = fs.trail.length <= 2
     ? fs.trail.map((f) => f.name).join(" / ")
     : `… / ${fs.trail.slice(-2).map((f) => f.name).join(" / ")}`;
@@ -345,7 +344,6 @@ function Explorer({ S, t, loc, toast }) {
     </div>
   <//>`;
 }
-
 
 function Row({ id, t, loc }) {
   const runs = useStore($runs);
@@ -376,7 +374,6 @@ function Row({ id, t, loc }) {
   </div>`;
 }
 
-
 function Console({ S, t, toast }) {
   const loc = useStore(S.locale);
   const runs = useStore($runs);
@@ -386,7 +383,6 @@ function Console({ S, t, toast }) {
   const done = ids.filter((id) => runs[id]).length;
   const failed = ids.filter((id) => runs[id] && !runs[id].ok).length;
 
-  
   const runAll = async () => {
     if (all) return;
     setAll(true);
@@ -396,7 +392,7 @@ function Console({ S, t, toast }) {
   };
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
-    
+    ${""}
     <${Panel} data-bridge>
       <div class="flex items-center gap-3">
         <span class=${`size-2.5 rounded-full shrink-0 ${present ? "bg-success" : "bg-base-content/25"}`} aria-hidden="true"></span>
@@ -428,7 +424,6 @@ function Console({ S, t, toast }) {
   </div>`;
 }
 
-
 const MINUTES = [1, 5, 15, 60];
 
 export function alarms({ S, t, toast }) {
@@ -451,7 +446,6 @@ export function alarms({ S, t, toast }) {
     try {
       const at = Date.now() + mins * 60_000;
       const r = await shell.call("alarm.set", { id: `os-${at}`, at, title: T(t, "probeAlarmTitle"), body: T(t, "probeAlarmBody") });
-      
       toast?.(r.exact ? T(t, "alExact") : T(t, "alInexact"));
       await refresh();
     } catch (e) { toast?.(e?.code || T(t, "alFailed")); } finally { setBusy(false); }
@@ -468,7 +462,7 @@ export function alarms({ S, t, toast }) {
         <span class="text-sm text-muted">${why === ERR.staleBridge ? T(t, "stStale") : T(t, "stNone")}</span>
       </div>
     <//>` : html`<${Panel} title=${T(t, "alNew")}>
-      
+      ${""}
       <${Segmented} attr="data-min" label=${T(t, "alNew")} value=${mins} onChange=${setMins}
         items=${MINUTES.map((m) => ({ id: m, label: `${m} ${T(t, "alMin")}` }))} />
       <button id="al-set" class="btn btn-sm btn-primary rounded-full w-full gap-2" disabled=${busy} onClick=${schedule}>
@@ -494,26 +488,22 @@ export function alarms({ S, t, toast }) {
   </div>`;
 }
 
-
-const SEEN_MS = 20_000;                       
+const SEEN_MS = 20_000;
 const WIFI_MS = 30_000;
 const band = (freq) => (!freq ? "" : freq >= 5925 ? "6 GHz" : freq >= 5000 ? "5 GHz" : "2.4 GHz");
-
 const cellRadius = (rssi) => {
   const clamped = Math.max(-125, Math.min(-55, rssi));
   return 12 + ((-55 - clamped) / 70) * 78;
 };
 const rssiRadius = (rssi) => {
   const clamped = Math.max(-100, Math.min(-30, rssi));
-  return 12 + ((-30 - clamped) / 70) * 78;    
+  return 12 + ((-30 - clamped) / 70) * 78;
 };
-
 const angleOf = (addr) => {
   let h = 2166136261;
   for (let i = 0; i < addr.length; i++) { h ^= addr.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (((Math.imul(h >>> 0, 2654435761) >>> 0) / 4294967296) * 360) * (Math.PI / 180);
 };
-
 
 const GATE_DEVICES = [
   { addr: "02:00:00:00:AA:01", name: "Gate Beacon", rssi: -52 },
@@ -531,19 +521,16 @@ export function radar({ S, t, toast }) {
   const [held, setHeld] = useState(null);
   const [events, setEvents] = useState(0);
   const stopRef = useRef(null);
-  
   const [nets, setNets] = useState([]);
   const [cells, setCells] = useState([]);
   const [throttled, setThrottled] = useState(false);
   const wifiRef = useRef(null);
-  
   const [hosts, setHosts] = useState([]);
-  const [sweep, setSweep] = useState(null);        
-  const [lanOn, setLanOn] = useState(false);       
+  const [sweep, setSweep] = useState(null);
+  const [lanOn, setLanOn] = useState(false);
   const [lanErr, setLanErr] = useState(null);
   const lanRef = useRef(null);
 
-  
   const [show, setShow] = useState({ ble: true, wifi: true, cell: true, lan: true });
   const toggle = (k) => setShow((s) => ({ ...s, [k]: !s[k] }));
 
@@ -551,11 +538,9 @@ export function radar({ S, t, toast }) {
     const n = (s) => s.split(".").reduce((v, o) => v * 256 + (parseInt(o, 10) || 0), 0);
     return n(a.ip) - n(b.ip);
   };
-  
   const upsertHost = (h) => {
     if (!h) return;
     if (h.done) { setSweep({ scanned: h.scanned, found: h.found, sources: h.sources, done: true }); return; }
-    
     if (h.progress) { setSweep((s) => (s?.done ? s : { scanned: h.scanned, total: h.total })); return; }
     if (h.started || h.ack || !h.ip) return;
     setHosts((prev) => {
@@ -569,41 +554,37 @@ export function radar({ S, t, toast }) {
       });
     });
   };
-  
   const [locOn, setLocOn] = useState(null);
   useEffect(() => {
     refreshHeld().then(() => setHeld(heldPermissions()));
-    
     if (shell.has("system.info")) shell.call("system.info", {}).then((i) => setLocOn(i.locationOn)).catch(() => {});
   }, []);
   const why = shell.whyCapability("ble");
   const L = permLabels(loc);
 
-  
   const [started, setStarted] = useState(false);
   const [ack, setAck] = useState(false);
   const upsert = (d) => {
-    if (d && d.ack) { setAck(true); return; }            
-    if (d && d.started) { setStarted(true); return; }    
+    if (d && d.ack) { setAck(true); return; }
+    if (d && d.started) { setStarted(true); return; }
     setEvents((n) => n + 1); setDevices((prev) => {
     const rest = prev.filter((x) => x.addr !== d.addr);
     return [...rest, { ...d, at: Date.now() }].sort((a, b) => b.rssi - a.rssi);
   }); };
 
-  
   const sweepRadios = async () => {
     if (shell.has("wifi.scan")) {
       try {
         const r = await shell.call("wifi.scan", {});
         setNets((r.networks || []).slice().sort((a, b) => b.rssi - a.rssi));
         setThrottled(!!r.throttled);
-      } catch {  }
+      } catch { }
     }
     if (shell.has("cell.info")) {
       try {
         const r = await shell.call("cell.info", {});
         setCells((r.cells || []).slice().sort((a, b) => (b.rssi || -999) - (a.rssi || -999)));
-      } catch {  }
+      } catch { }
     }
   };
 
@@ -616,11 +597,9 @@ export function radar({ S, t, toast }) {
     stopRef.current = shell.subscribe("ble.scan", {}, upsert, (e) => { setErr(e?.detail || e?.code || ERR.failed); setScanning(false); });
     sweepRadios();
     wifiRef.current = setInterval(sweepRadios, WIFI_MS);
-    
     setHosts([]); setSweep(null); setLanErr(null); setLanOn(false);
     if (shell.has("lan.scan")) {
       setLanOn(true);
-      
       lanRef.current = shell.subscribe("lan.scan", {}, upsertHost, (e) => {
         setLanErr(e?.detail || e?.code || ERR.failed);
         setLanOn(false);
@@ -629,29 +608,26 @@ export function radar({ S, t, toast }) {
   };
   const stop = () => {
     setScanning(false);
-    
-    try { stopRef.current?.(); } catch {  }
+    try { stopRef.current?.(); } catch { }
     stopRef.current = null;
     clearInterval(wifiRef.current);
     wifiRef.current = null;
-    try { lanRef.current?.(); } catch {  }
+    try { lanRef.current?.(); } catch { }
     lanRef.current = null;
   };
   useEffect(() => {
-    
     if (gate) {
       sweepRadios();
-      setLanOn(true);            
+      setLanOn(true);
       shell.subscribe("lan.scan", {}, upsertHost, () => {});
     }
     return () => {
-      try { stopRef.current?.(); } catch {  }
-      try { lanRef.current?.(); } catch {  }
+      try { stopRef.current?.(); } catch { }
+      try { lanRef.current?.(); } catch { }
       clearInterval(wifiRef.current);
     };
   }, []);
 
-  
   useEffect(() => {
     if (gate) return;
     const id = setInterval(() => setDevices((prev) => prev.filter((d) => Date.now() - d.at < SEEN_MS)), 2000);
@@ -776,7 +752,6 @@ export function radar({ S, t, toast }) {
           sub: [c.pci != null ? `PCI ${c.pci}` : "", c.cid != null ? `CID ${c.cid}` : "", c.arfcn != null ? `ARFCN ${c.arfcn}` : ""].filter(Boolean).join(" · "),
           rssi: c.rssi ?? -999,
         })),
-        
       ].sort((a, b) => b.rssi - a.rssi).map((e) => html`<div key=${e.key} data-dev=${e.key} data-kind=${e.kind}
           class="flex items-center gap-3 py-2 border-b border-base-content/10 last:border-0">
         ${Icon(e.kind === "wifi" ? "lucide:wifi" : e.kind === "cell" ? "lucide:radio-tower" : "lucide:bluetooth",
@@ -819,7 +794,6 @@ export function radar({ S, t, toast }) {
   </div>`;
 }
 
-
 function Report({ S, t, toast }) {
   const loc = useStore(S.locale);
   const runs = useStore($runs);
@@ -830,17 +804,14 @@ function Report({ S, t, toast }) {
   const load = async () => {
     try { setInfo(await shell.call("system.info", {})); setErr(null); }
     catch (e) { setErr(e?.code || ERR.failed); setInfo(null); }
-    
     try { setLogs((await shell.call("system.logs", {})).lines || []); } catch { setLogs([]); }
   };
-  
   useEffect(() => { load(); }, []);
 
   const lines = () => {
     const rows = [
       ["bridge", shell.present ? String(shell.version) : "—"],
       ["catalogue", `${shell.actions.length}`],
-      
       ["version", info ? `${info.version || "?"} (${info.build ?? "?"})` : "—"],
       ["installed", info?.installed ? new Date(info.installed).toLocaleString(loc) : "—"],
       ["granted", info?.caps || "—"],
@@ -877,12 +848,10 @@ function Report({ S, t, toast }) {
   </div>`;
 }
 
-
 function Perms({ S, t, toast }) {
   const loc = useStore(S.locale);
   return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1"><${Launcher} S=${S} loc=${loc} t=${t} toast=${toast} /></div>`;
 }
-
 
 function Station({ S, t, toast }) {
   const [st, setSt] = useState(null);
@@ -898,7 +867,6 @@ function Station({ S, t, toast }) {
       if (st?.running) { await shell.call("server.stop", {}); }
       else {
         await shell.call("server.start", { port: 8080 });
-        
         const page = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">`
           + `<title>${T(t, "title")}</title><body style="font:16px system-ui;padding:2rem"><h1>${T(t, "title")}</h1>`;
         await shell.call("server.put", { path: "/", contentType: "text/html; charset=utf-8", base64: btoa(unescape(encodeURIComponent(page))) });
@@ -928,30 +896,24 @@ function Station({ S, t, toast }) {
   </div>`;
 }
 
-
 const SERVICE_ICON = {
   http: "lucide:globe", tls: "lucide:lock", ssh: "lucide:terminal",
-  
   redis: "lucide:database", pop3: "lucide:mail", imap: "lucide:mail", "smtp-or-ftp": "lucide:split",
   gone: "lucide:circle-slash", unknown: "lucide:circle-help",
 };
-
 const CONF_TONE = { product: "text-success", protocol: "text-success", ambiguous: "text-warning" };
 const SERVICE_NAME = { http: "HTTP", tls: "TLS", ssh: "SSH", redis: "Redis", pop3: "POP3", imap: "IMAP", "smtp-or-ftp": "SMTP / FTP" };
-
 
 const GATE_PORTS = [
   { port: 22, family: "4", probe: "passive", hex: "5353482d322e302d4f70656e5353485f392e362044656269616e2d322b6465623132753300", ms: 2 },
   { port: 443, family: "4", probe: "tls", hex: "160303004a020000460303", tls: "handshake_ok", cert: "CN=localhost, O=microspec gate, C=UA", proto: "TLSv1.3", ms: 31 },
   { port: 5432, family: "6", probe: "silent", hex: "", ms: 1 },
-  
   { port: 21, family: "4", probe: "passive", hex: "323230205365727669636520726561647920666f72206e657720757365720d0a", ms: 4 },
   { port: 41642, family: "4", gone: true, ms: 0 },
 ];
 
 function Ports({ S, t, toast }) {
   const [rows, setRows] = useState(() => (gate ? GATE_PORTS : []));
-  
   const [sweep, setSweep] = useState(() => (gate
     ? { scanned: 131070, total: 131070, found: 6, elapsed: 2841, addrs: "127.0.0.1,::1", done: true }
     : null));
@@ -963,7 +925,6 @@ function Ports({ S, t, toast }) {
   const upsert = (o) => {
     if (!o || o.ack || o.started) return;
     if (o.done) { setSweep({ scanned: o.scanned, total: o.total, found: o.found, elapsed: o.elapsed, addrs: o.addrs, done: true }); setRunning(false); return; }
-    
     if (o.progress) { setSweep((s) => (s?.done ? s : { scanned: o.scanned, total: o.total, found: o.found })); return; }
     if (!o.port) return;
     setRows((prev) => [...prev.filter((r) => key(r) !== key(o)), o]);
@@ -979,25 +940,22 @@ function Ports({ S, t, toast }) {
   };
   const stop = () => {
     setRunning(false);
-    try { stopRef.current?.(); } catch {  }
+    try { stopRef.current?.(); } catch { }
     stopRef.current = null;
   };
   useEffect(() => {
-    
     if (gate) shell.subscribe("lan.ports", {}, upsert, () => {});
-    return () => { try { stopRef.current?.(); } catch {  } };
+    return () => { try { stopRef.current?.(); } catch { } };
   }, []);
 
   const why = shell.whyCapability("lan");
   const seen = orderPorts(rows.map((o) => ({ ...o, ...classify(o) })));
   const tally = tallyPorts(seen);
 
-  
   const evidence = (r) => {
     if (r.confidence === "gone") return T(t, "portGone");
     if (r.detail) return r.detail;
     if (r.confidence === "protocol" || r.confidence === "ambiguous") return T(t, "portProto");
-    
     return [T(t, r.probe === "silent" || !r.hex ? "portSilent" : "portNoise"), r.hint ? `${r.hint}?` : ""].filter(Boolean).join(" · ");
   };
 
@@ -1058,7 +1016,6 @@ function Ports({ S, t, toast }) {
   </div>`;
 }
 
-
 const TONE = { ok: "text-success", warn: "text-warning", bad: "text-error" };
 function Field({ label, value, sub, mono, tone, wrap }) {
   return html`<div class="flex items-baseline gap-3 py-2 border-b border-base-content/10 last:border-0">
@@ -1073,9 +1030,9 @@ function Field({ label, value, sub, mono, tone, wrap }) {
   </div>`;
 }
 
+const $home = atom(null);
+const HOME_MS = 30_000;
 
-const $home = atom(null);        
-const HOME_MS = 30_000;          
 export function home({ S, t, toast }) {
   const loc = useStore(S.locale);
   const screen = useStore($home);
@@ -1083,7 +1040,6 @@ export function home({ S, t, toast }) {
   const [batt, setBatt] = useState(null);
   const [net, setNet] = useState(null);
   const [roots, setRoots] = useState(null);
-  
   const [ble, setBle] = useState(null);
   const [usb, setUsb] = useState(null);
   const [alarms, setAlarms] = useState(null);
@@ -1091,8 +1047,7 @@ export function home({ S, t, toast }) {
   const [upd, setUpd] = useState(false);
 
   const read = async () => {
-    
-    if (shell.has("system.info")) { try { setInfo(await shell.call("system.info", {})); } catch {  } }
+    if (shell.has("system.info")) { try { setInfo(await shell.call("system.info", {})); } catch { } }
     if (shell.has("system.battery")) { try { setBatt(await shell.call("system.battery", {})); } catch { setBatt(null); } }
     if (shell.has("wifi.info")) { try { setNet(await shell.call("wifi.info", {})); } catch { setNet(null); } }
     if (shell.has("files.roots")) { try { setRoots((await shell.call("files.roots", {})).roots || []); } catch { setRoots(null); } }
@@ -1103,20 +1058,17 @@ export function home({ S, t, toast }) {
   };
   useEffect(() => {
     read();
-    
     if (gate) {
       const want = new URLSearchParams(location.search).get("home");
       if (want && ["perms", "console", "station", "ports"].includes(want)) { $home.set(want); S.stack.set([want]); }
     }
     const id = setInterval(read, HOME_MS);
-    
     return () => { clearInterval(id); $home.set(null); if (S.stack.get().length) S.stack.set([]); };
   }, []);
 
   useEffect(() => S.stack.listen((v) => { if (!(v?.length) && $home.get()) $home.set(null); }), []);
   const open = (id) => { $home.set(id); S.stack.set([id]); };
 
-  
   const update = async () => {
     if (upd) return;
     setUpd(true);
@@ -1125,11 +1077,10 @@ export function home({ S, t, toast }) {
       const blob = await buildApk({ url, name: T(t, "title") });
       const b64 = await new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(String(f.result).split(",")[1]); f.onerror = rej; f.readAsDataURL(blob); });
       await shell.call("system.update", { name: apkFilename(T(t, "title")), base64: b64 });
-      toast?.(T(t, "updStarted"));   
+      toast?.(T(t, "updStarted"));
     } catch (e) { toast?.(e?.code || T(t, "updFailed")); } finally { setUpd(false); }
   };
 
-  
   const sub = (body) => html`<div data-home data-screen=${screen}>${body}</div>`;
   if (screen === "perms") return sub(html`<${Perms} S=${S} t=${t} toast=${toast} />`);
   if (screen === "console") return sub(html`<${Console} S=${S} t=${t} toast=${toast} />`);
@@ -1150,7 +1101,6 @@ export function home({ S, t, toast }) {
   const TILES = [
     ["store", "lucide:layout-grid", T(t, "storeTile"), null],
     ["station", "lucide:server", T(t, "tileStation"), () => open("station")],
-    
     ["ports", "lucide:plug", T(t, "tilePorts"), () => open("ports")],
     ["perms", "lucide:shield-check", T(t, "tilePerms"), () => open("perms")],
     ["console", "lucide:terminal", T(t, "tileConsole"), () => open("console")],
@@ -1218,16 +1168,14 @@ export function home({ S, t, toast }) {
   <//>`;
 }
 
-
 export function files({ S, t, toast }) {
   const loc = useStore(S.locale);
   useEffect(() => {
     setFs({ open: true });
     syncStack(S);
-    return () => { if (S.stack.get().length) S.stack.set([]); };   
+    return () => { if (S.stack.get().length) S.stack.set([]); };
   }, []);
 
-  
   useEffect(() => S.stack.listen((v) => {
     const cur = $fs.get();
     const now = v?.length || 0;

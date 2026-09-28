@@ -49,12 +49,12 @@ export function code({ S }) {
     const fb = feedback(secret, cur);
     const next = [...rows, { guess: cur, fb }];
     setRows(next); setCur([]);
-    if (solved(fb, SLOTS) || next.length >= MAX) S.screen.set("over"); 
+    if (solved(fb, SLOTS) || next.length >= MAX) S.screen.set("over");
   };
   const newGame = () => { const s = rand(); setSeed(s); setRows([]); setCur([]); S.screen.set(null); };
   const share = async () => {
     const url = `${location.origin}${location.pathname}?g=${seed}`;
-    try { await navigator.clipboard.writeText(url); S.toast?.(T(t, "linkCopied")); } catch {  }
+    try { await navigator.clipboard.writeText(url); S.toast?.(T(t, "linkCopied")); } catch { }
   };
 
   const disc = (ci, big, onRemove) => {
@@ -108,6 +108,7 @@ export function code({ S }) {
             : disc(cur[i], true, () => removePeg(i)))}
         </div>
         <div class="flex items-center justify-center gap-2">
+          ${""}
           ${PEGS.map((p, ci) => html`<button data-peg=${ci} aria-label=${T(t, p.key)} disabled=${over || cur.length >= SLOTS} onClick=${() => addPeg(ci)}
             class="w-11 h-11 rounded-full sf-e2 inline-flex items-center justify-center font-bold text-lg shrink-0 active:scale-90 transition-transform disabled:opacity-30" style=${`background:${p.c};color:${p.ink}`} key=${ci}>${p.sym}</button>`)}
         </div>

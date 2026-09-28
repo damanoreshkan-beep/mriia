@@ -20,29 +20,29 @@ import { holdBackground } from "/_rt/bghold.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const randSeed = () => Math.floor(Math.random() * 1e9);
 const SPARKS = ["turn it into an oil painting", "cinematic golden-hour lighting", "vintage film photograph", "soft watercolour illustration", "add dramatic shadows", "make it a snowy winter scene", "cyberpunk neon aesthetic", "dreamy pastel tones", "black-and-white film noir", "warm autumn colours", "add a glowing sunset sky", "studio portrait lighting", "misty morning atmosphere", "retro 80s synthwave look", "add gentle falling rain", "turn day into night", "pencil sketch style", "vibrant pop-art colours", "soft cinematic bloom", "add a shallow depth of field"];
-const gateDream = "перетвори на олійний живопис";                                  
-const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;    
-const EST = 40;                                                                   
+const gateDream = "перетвори на олійний живопис";
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+const EST = 40;
 const BASE = `${VPS_PROXY}/image/edit`;
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 
 export function retouch({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
   const [phase, setPhase] = useKept("edit.phase", gate ? "ready" : "empty");
-  const [srcUrl, setSrcUrl] = useKept("edit.src", gate ? mockArt(3) : null);                 
-  const [original, setOriginal] = useKept("edit.original", gate ? mockArt(3) : null);            
-  const [slides, setSlides] = useKept("edit.slides", []);                                       
+  const [srcUrl, setSrcUrl] = useKept("edit.src", gate ? mockArt(3) : null);
+  const [original, setOriginal] = useKept("edit.original", gate ? mockArt(3) : null);
+  const [slides, setSlides] = useKept("edit.slides", []);
   const [idx, setIdx] = useKept("edit.idx", 0);
-  const [more, setMore] = useKept("edit.more", false);                                        
+  const [more, setMore] = useKept("edit.more", false);
   const cur = slides[idx] || slides[0] || null;
   const [prompt, setPrompt] = useKept("edit.prompt", gate ? "add falling snow, cinematic" : "");
   const [error, setError] = useState(null);
   const [t0, setT0] = useState(0);
-  const [live, setLive] = useState(null);                                          
-  const [suggesting, setSuggesting] = useState(false);                            
+  const [live, setLive] = useState(null);
+  const [suggesting, setSuggesting] = useState(false);
 
   const runRef = useRef(0), blobs = useRef([]), jobRef = useRef(null), holdRef = useRef(null);
   const [hist, remember] = usePromptHistory("edit");
@@ -51,7 +51,7 @@ export function retouch({ S, toast }) {
   const elapsed = phase === "editing" && t0 ? Math.round((Date.now() - t0) / 1000) : 0;
 
   const own = (url) => { if (url?.startsWith?.("blob:")) blobs.current.push(url); return url; };
-  const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch {  } blobs.current = blobs.current.filter((u) => u !== url); } };
+  const revoke = (url) => { if (url?.startsWith?.("blob:")) { try { URL.revokeObjectURL(url); } catch { } blobs.current = blobs.current.filter((u) => u !== url); } };
 
   useEffect(() => {
     if (phase === "editing" && !jobRef.current) setPhase(slides.length ? "done" : (srcUrl ? "ready" : "empty"));
@@ -88,15 +88,15 @@ export function retouch({ S, toast }) {
     if (gate) { await sleep(120); if (run === runRef.current) { setSlides([0, 1, 2, 3].map((n) => ({ url: mockArt(seed + n) }))); setPhase("done"); } return; }
     notifyAsk();
     let image;
-    try { image = (await toDataURL(srcUrl)).data; } catch { return fail(run, "edFailed"); }   
+    try { image = (await toDataURL(srcUrl)).data; } catch { return fail(run, "edFailed"); }
     if (run !== runRef.current) return;
-    if (image.length > 9_000_000) return fail(run, "eBig");                       
-    let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(run, e.code || "eTranslate"); }   
+    if (image.length > 9_000_000) return fail(run, "eBig");
+    let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(run, e.code || "eTranslate"); }
     if (run !== runRef.current) return;
     let job; try { job = await startJob(BASE, { image, prompt: pEn, seed, k: 4 }); } catch (e) { return fail(run, e.code === "eFailed" ? "edFailed" : (e.code || "eNetwork")); }
     if (run !== runRef.current) { cancelJob(BASE, job); return; }
     jobRef.current = job;
-    const release = holdBackground({ title: T(t, "title"), body: T(t, "eEditing") }); holdRef.current = release;   
+    const release = holdBackground({ title: T(t, "title"), body: T(t, "eEditing") }); holdRef.current = release;
     const mine = [];
     const status = await followJob({
       base: BASE, job, alive: () => run === runRef.current,
@@ -145,6 +145,7 @@ export function retouch({ S, toast }) {
     <${Lightbox} open=${screen === "view" && !!(isDone ? cur?.url : srcUrl)} slides=${isDone ? slides : null} src=${isDone ? null : srcUrl} index=${idx} onIndex=${setIdx} alt=${prompt} onClose=${() => S.screen.set(null)} />
     <${HistorySheet} id="hist-edit" open=${screen === "hist"} onClose=${() => S.screen.set(null)} items=${hist} onPick=${setPrompt} t=${t} locale=${loc} />
 
+    ${""}
     <div class=${`relative flex-1 min-h-0 overflow-hidden flex items-center justify-center ${phase === "empty" ? "bg-base-100" : "bg-black"}`}>
       ${phase === "empty" ? html`<${Chooser} loc=${loc} onPick=${loadSource} onCamera=${() => { buzz(); setPhase("camera"); }} />` : null}
       ${phase === "camera" ? html`<${Camera} loc=${loc} reason=${T(t, "primeReason")} privacy=${T(t, "primePrivacy")}
@@ -162,14 +163,14 @@ export function retouch({ S, toast }) {
         ${isDone ? html`<button data-new aria-label=${T(t, "newImg")} class="absolute top-3 left-3 btn btn-circle btn-sm im-chip border-0" onClick=${() => { revert(); setPhase("empty"); }}>${Icon("lucide:x", "text-base")}</button>` : null}
       </${Fragment}>` : null}
 
-      
+      ${""}
       ${phase === "editing" ? html`<${Fragment}>
         <div data-working data-gen class="relative z-10 im-chip rounded-full px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums">${T(t, "eEditing")} ${fmt(elapsed)}${live?.steps ? html` · ${live.step}/${live.steps}` : null}</div>
         <div class="im-light" style=${`--pct:${Math.max(4, pct)}%`}></div>
       </${Fragment}>` : null}
     </div>
 
-    
+    ${""}
     ${phase === "ready" || phase === "editing" || phase === "error" || isDone ? html`<div class="shrink-0 p-[var(--ms-gap)]">
     <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
       ${isDone ? html`<div data-actions class="@container flex items-center gap-1.5">

@@ -35,7 +35,7 @@ export default [
   {
     name: "фінал: зіркове поле з підтриманими девами з табу «Зірки», Back закриває", run: async (h) => {
       await ready(h);
-      await h.click("[data-dev] [data-star]"); await h.wait(500);   
+      await h.click("[data-dev] [data-star]"); await h.wait(500);
       await h.click('[data-tab="lifted"]'); await h.wait(300);
       h.expect((await h.count("#reveal")) === 1, "немає кнопки фіналу в табі «Зірки»");
       await h.click("#reveal"); await h.wait(600);

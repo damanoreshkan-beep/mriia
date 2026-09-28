@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { isBook as actsIsBook, findPlotSection as actsFindPlot, cleanPlotText as actsClean, foldPlot as actsFold, parseActs as actsParse, countSentences as actsCount, actSignature as actsSig, plotUpToClimax as actsUpToClimax } from "../acts.js";
-
 
 Deno.test("isBook: the type allowlist covers what the P31 census actually found", () => {
   assert(actsIsBook({ p31: ["Q7725634"] }), "literary work is the common case (34/39)");

@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { phase as penPhase, swing as penSwing, state as penState } from "../pendulum.js";
 

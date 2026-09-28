@@ -4,12 +4,12 @@ import { gate } from "/_rt/gate.js";
 import { permAndroid, refreshHeld, heldPermissions } from "/_rt/permissions.js";
 
 export const $state = atom({ running: false, peerCount: 0, myPeerID: "", nick: "" });
-export const $peers = atom([]);          
-export const $room = atom([]);           
-export const $threads = map({});         
-export const $queued = atom(false);      
-export const $fault = atom(null);        
-export const $log = atom([]);            
+export const $peers = atom([]);
+export const $room = atom([]);
+export const $threads = map({});
+export const $queued = atom(false);
+export const $fault = atom(null);
+export const $log = atom([]);
 
 const RING = 200;
 export function note(kind, text) {
@@ -27,9 +27,9 @@ const env = { scan: 0, presence: 0, pulse: 0, alone: 1, last: 0 };
 export function siteOf(peerID) {
   let h = 2166136261;
   for (let i = 0; i < peerID.length; i++) { h ^= peerID.charCodeAt(i); h = Math.imul(h, 16777619); }
-  const a = ((h >>> 0) % 3600) / 3600 * Math.PI * 2;        
-  const rad = 0.55 + (((h >>> 11) & 255) / 255) * 0.45;      
-  const ph = ((h >>> 19) & 255) / 255;                       
+  const a = ((h >>> 0) % 3600) / 3600 * Math.PI * 2;
+  const rad = 0.55 + (((h >>> 11) & 255) / 255) * 0.45;
+  const ph = ((h >>> 19) & 255) / 255;
   return [Math.cos(a) * rad, Math.sin(a) * rad, ph];
 }
 
@@ -54,7 +54,7 @@ const toUv = (px, py) => {
 export function sites() {
   if (!fieldBox.w) return [];
   const { cx, cy } = fieldGeom();
-  const out = [...toUv(cx, cy), 0, 0];                       
+  const out = [...toUv(cx, cy), 0, 0];
   for (const p of $peers.get().slice(0, 7)) {
     const id = p.peerID || "";
     const { px, py } = placeOf(id);
@@ -145,11 +145,11 @@ export async function start() {
 export function stop() { cancels.forEach((c) => c && c()); cancels = []; }
 
 export async function rescan() {
-  if (rescanning) return;                    
+  if (rescanning) return;
   rescanning = true;
   try {
     note("rescan", "manual restart of the mesh transport");
-    stop();                                  
+    stop();
     if (live()) {
       note("call", "mesh.stop");
       try { const r = await shell.call("mesh.stop", {}); note("ok", `mesh.stop → running ${r?.running}`); }
@@ -181,7 +181,7 @@ export async function sendPublic(text) {
   text = text.trim(); if (!text) return;
   const msg = { id: rid(), from: $state.get().myPeerID, nick: $state.get().nick, text, ts: Date.now(), mine: true };
   $room.set([...$room.get(), msg]);
-  $queued.set($state.get().peerCount === 0);       
+  $queued.set($state.get().peerCount === 0);
   if (!live()) return;
   note("out", `public: ${text}`);
   try { await shell.call("mesh.sendPublic", { text }); }
@@ -280,8 +280,8 @@ function startMock() {
       { id: "d2", text: "привіт, шифровано", ts: Date.now() - 25000, mine: true, status: "read" },
     ] });
   };
-  if (gate) { seed(); return; }        
-  setTimeout(seed, 900);               
+  if (gate) { seed(); return; }
+  setTimeout(seed, 900);
 }
 function mockAck(peerID, id) {
   const bump = (status, d) => setTimeout(() => {

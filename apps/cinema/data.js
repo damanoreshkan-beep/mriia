@@ -10,11 +10,11 @@ const LANGS = {
 };
 
 const ERAS = {
-  silent: "[* TO 1929]",      
-  golden: "[1930 TO 1949]",   
-  mid: "[1950 TO 1969]",      
-  late: "[1970 TO 1999]",     
-  modern: "[2000 TO *]",      
+  silent: "[* TO 1929]",
+  golden: "[1930 TO 1949]",
+  mid: "[1950 TO 1969]",
+  late: "[1970 TO 1999]",
+  modern: "[2000 TO *]",
 };
 
 const query = (f = {}) => {
@@ -63,7 +63,7 @@ export async function load(filters = {}) {
   const u = new URL(API);
   u.searchParams.set("q", query(filters));
   for (const f of FIELDS) u.searchParams.append("fl[]", f);
-  u.searchParams.append("sort[]", "downloads desc");     
+  u.searchParams.append("sort[]", "downloads desc");
   u.searchParams.set("rows", "60");
   u.searchParams.set("page", "1");
   u.searchParams.set("output", "json");

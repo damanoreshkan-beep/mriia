@@ -16,7 +16,7 @@ const clock = (ts, loc) => Number.isFinite(ts) ? new Date(ts).toLocaleTimeString
 const near = (t, n) => n === 0 ? T(t, "nearNone") : n === 1 ? T(t, "nearOne") : T(t, "nearMany", { n });
 const RCPT = { sent: "rcptSent", delivered: "rcptDelivered", read: "rcptRead", queued: "rcptQueued" };
 
-const $peer = atom(null);   
+const $peer = atom(null);
 
 const $nick = persistentAtom("poholos:nick", "", { encode: String, decode: String });
 const JC = (init) => ({ encode: JSON.stringify, decode: (s) => { try { return JSON.parse(s); } catch { return init; } } });
@@ -39,7 +39,7 @@ function accent() {
     }
     const m = getComputedStyle(acc.probe).color.match(/[\d.]+/g);
     if (m && m.length >= 3) acc.rgb = [+m[0] / 255, +m[1] / 255, +m[2] / 255, 1];
-  } catch {  }
+  } catch { }
   return acc.rgb;
 }
 
@@ -114,6 +114,7 @@ function Field({ t, peers, onPeer }) {
         </span>
       </div>
     </div>
+    ${""}
     ${s.peerCount === 0 && html`<p class="ph-field-note">${T(t, "fieldSearching")}</p>`}
   </div>`;
 }
@@ -157,6 +158,7 @@ export function room({ S }) {
 
   return html`<${Fragment}>
     <div class="ph-wrap h-full" data-near data-peers=${s.peerCount}>
+      ${""}
       <${GlStage} shader=${new URL("near.frag", import.meta.url)} zClass="z-0"
         seed=${0.37} ink=${accent} vary=${field} points=${sites} />
       <${Presence} t=${t} tone="frost" />
@@ -165,7 +167,6 @@ export function room({ S }) {
     </div>
   <//>`;
 }
-
 
 export function pub({ S }) {
   const t = useStore(S.t);
@@ -177,7 +178,6 @@ export function pub({ S }) {
   useEffect(() => { start().then(ensureNick); }, []);
   const feed = autoscroll(msgs.length);
 
-  
   if (msgs.length === 0) return html`<${Fragment}>
     <div class="ph-wrap h-full">
       ${Hero("lucide:megaphone", T(t, s.peerCount === 0 ? "roomEmptyAlone" : "roomEmptyPeers", { n: s.peerCount }))}
@@ -204,7 +204,6 @@ export function pub({ S }) {
     </div>
   <//>`;
 }
-
 
 export function dm({ S }) {
   const t = useStore(S.t);
@@ -239,12 +238,10 @@ export function dm({ S }) {
   <//>`;
 }
 
-
-
 const VERDICT = { Ok: "ok", Perm: "err", Location: "warn", BtOff: "warn", BtNone: "err", NeedsApp: "warn", Stale: "warn", WrongApk: "err", Fault: "err" };
 
-
 const apkLacksMesh = (d) => typeof d.caps === "string" && !d.caps.split(",").map((c) => c.trim()).includes("mesh");
+
 function verdictOf(d) {
   if (!d) return null;
   if (!shell.present) return { key: "NeedsApp" };
@@ -261,7 +258,7 @@ function verdictOf(d) {
 export function logs({ S }) {
   const t = useStore(S.t);
   const lines = useStore($log);
-  useStore($fault);                                  
+  useStore($fault);
   const [d, setD] = useState(null);
   const [copied, setCopied] = useState(false);
   const refresh = () => diagnose().then(setD);
@@ -271,7 +268,7 @@ export function logs({ S }) {
   const tone = v ? VERDICT[v.key] : "warn";
   const copy = async () => {
     try { await navigator.clipboard.writeText(report(d)); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch {  }
+    catch { }
   };
   const held = d && d.held && typeof d.held === "object";
 

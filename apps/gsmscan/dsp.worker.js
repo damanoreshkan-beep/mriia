@@ -7,7 +7,7 @@ const DISP_BINS = 360, ACTIVE_DELTA = 9;
 const post = (m, transfer) => self.postMessage(m, transfer || []);
 
 let rx = null, running = false, band = "gsm900", cfg = null;
-const hist = {};                                       
+const hist = {};
 
 async function run(c) {
   cfg = c; band = c.band || "gsm900";
@@ -34,10 +34,10 @@ async function sweep() {
       try { await rx.setFreq(fc); await rx.read(); bytes = await rx.read(); } catch { break; }
       if (!bytes || !bytes.length) continue;
       const { i, q } = iqFromBytes(bytes);
-      const spec = powerSpectrum(i, q, FFT, 0);         
+      const spec = powerSpectrum(i, q, FFT, 0);
       for (let k = 0; k < FFT; k++) {
         const off = (k - FFT / 2) * binHz;
-        if (Math.abs(off) > USABLE / 2 || Math.abs(off) < 60e3) continue;   
+        if (Math.abs(off) > USABLE / 2 || Math.abs(off) < 60e3) continue;
         const gi = Math.round((fc + off - f0) / GRID);
         if (gi >= 0 && gi < N && spec[k] > prof[gi]) prof[gi] = spec[k];
       }
@@ -51,12 +51,12 @@ async function sweep() {
       (hist[a.arfcn] = hist[a.arfcn] || []).push(a.db); if (hist[a.arfcn].length > 6) hist[a.arfcn].shift();
       a.bcch = hist[a.arfcn].length >= 3 && steadyScore(hist[a.arfcn]) > 0.05;
     }
-    for (const k of Object.keys(hist)) if (!seen.has(+k)) delete hist[k];   
+    for (const k of Object.keys(hist)) if (!seen.has(+k)) delete hist[k];
     const disp = new Float32Array(DISP_BINS), step = N / DISP_BINS;
     for (let d = 0; d < DISP_BINS; d++) { let pk = -Infinity; const s0 = Math.floor(d * step), s1 = Math.floor((d + 1) * step); for (let s = s0; s < s1; s++) if (prof[s] > pk) pk = prof[s]; disp[d] = pk; }
     post({ type: "sweep", band, floorLo: b.dlLo, floorHi: b.dlHi, spectrum: disp.buffer, arfcns: active.slice(0, 24).map((a) => ({ arfcn: a.arfcn, freq: a.freq, db: Math.round(a.db), bcch: !!a.bcch })) }, [disp.buffer]);
   }
-  try { await rx.stop(); } catch {  }
+  try { await rx.stop(); } catch { }
   post({ type: "stopped" });
 }
 
@@ -64,6 +64,6 @@ self.onmessage = async (e) => {
   const m = e.data;
   if (m.type === "start") run(m);
   else if (m.type === "band") { band = m.band; for (const k of Object.keys(hist)) delete hist[k]; }
-  else if (m.type === "gain") { if (rx) try { await rx.setLnaGain(m.lna); await rx.setVgaGain(m.vga); } catch {  } }
+  else if (m.type === "gain") { if (rx) try { await rx.setLnaGain(m.lna); await rx.setVgaGain(m.vga); } catch { } }
   else if (m.type === "stop") running = false;
 };

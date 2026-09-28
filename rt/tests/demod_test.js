@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { fft, IN_RATE, OUT_RATE, OFFSET_HZ } from "../fmradio.js";
 import { Demodulator, squelchOpen, MODE_PARAMS } from "../demod.js";
@@ -37,8 +36,8 @@ Deno.test("Demodulator AM: an amplitude-modulated carrier recovers the audio ton
   for (let b = 0; b < blocks; b++) {
     const bytes = new Uint8Array(per * 2);
     for (let n = 0; n < per; n++, nAll++) {
-      const env = 1 + m * Math.sin(2 * Math.PI * fAudio * nAll / IN_RATE);   
-      phase += 2 * Math.PI * OFFSET_HZ / IN_RATE;                            
+      const env = 1 + m * Math.sin(2 * Math.PI * fAudio * nAll / IN_RATE);
+      phase += 2 * Math.PI * OFFSET_HZ / IN_RATE;
       const amp = 90 * env / (1 + m);
       bytes[2 * n] = (Math.max(-127, Math.min(127, Math.round(Math.cos(phase) * amp))) + 256) & 0xff;
       bytes[2 * n + 1] = (Math.max(-127, Math.min(127, Math.round(Math.sin(phase) * amp))) + 256) & 0xff;
@@ -50,8 +49,8 @@ Deno.test("Demodulator AM: an amplitude-modulated carrier recovers the audio ton
 });
 
 Deno.test("squelchOpen: opens above threshold, hysteresis holds it open until it drops well below", () => {
-  assertEquals(squelchOpen(-40, -50, false), true);    
-  assertEquals(squelchOpen(-60, -50, false), false);   
-  assertEquals(squelchOpen(-52, -50, true, 3), true);  
-  assertEquals(squelchOpen(-54, -50, true, 3), false); 
+  assertEquals(squelchOpen(-40, -50, false), true);
+  assertEquals(squelchOpen(-60, -50, false), false);
+  assertEquals(squelchOpen(-52, -50, true, 3), true);
+  assertEquals(squelchOpen(-54, -50, true, 3), false);
 });

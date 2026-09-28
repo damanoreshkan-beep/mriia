@@ -1,4 +1,3 @@
-
 const mapReady = async (h) => { for (let i = 0; i < 25; i++) { if ((await h.count('[data-me]')) > 0) break; await h.wait(200); } };
 const nodesReady = async (h) => { for (let i = 0; i < 25; i++) { if ((await h.count('[data-node]')) > 0) break; await h.wait(200); } };
 const feedReady = async (h) => { for (let i = 0; i < 25; i++) { if ((await h.count('[data-mine]')) > 0) break; await h.wait(200); } };

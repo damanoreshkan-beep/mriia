@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { CTCSS_TONES, minToneGap, windowSamples, detectCtcss } from "../ctcss.js";
-
 
 Deno.test("CTCSS: the tightest tone pair sets the integration window — it is not a taste choice", () => {
   assertEquals(CTCSS_TONES.length, 38);
@@ -19,7 +17,7 @@ Deno.test("CTCSS: finds a weak tone buried under much louder speech, and refuses
     for (let i = 0; i < n; i++) {
       seed = (seed * 1664525 + 1013904223) >>> 0;
       const noise = (seed / 0xffffffff - 0.5) * 0.04;
-      const voice = Math.sin(2 * Math.PI * 1200 * i / fs);              
+      const voice = Math.sin(2 * Math.PI * 1200 * i / fs);
       a[i] = (toneHz ? 0.15 * Math.sin(2 * Math.PI * toneHz * i / fs) : 0) + voice + noise;
     }
     return a;
@@ -27,7 +25,7 @@ Deno.test("CTCSS: finds a weak tone buried under much louder speech, and refuses
   const got = detectCtcss(mk(100.0), fs);
   assert(got, "a 100.0 Hz tone under speech must be found — that is what the low-pass is for");
   assertEquals(got.toneHz, 100.0);
-  const adj = detectCtcss(mk(103.5), fs);                                
+  const adj = detectCtcss(mk(103.5), fs);
   assertEquals(adj?.toneHz, 103.5, "adjacent tones must not be confused with each other");
   assertEquals(detectCtcss(mk(null), fs), null, "speech with no tone must return null, not a nearest guess");
   assertEquals(detectCtcss(mk(100.0).slice(0, 1000), fs), null, "too short to resolve → null, never a guess");

@@ -5,14 +5,14 @@ import { bandAt, RADAR_SPAN } from "/_rt/bandplan.js";
 import { IN_RATE, OFFSET_HZ, rssiFromBytes } from "/_rt/fmradio.js";
 
 const post = (m, transfer) => self.postMessage(m, transfer || []);
-const SWEEP_FFT = 64;          
-const FIND_FFT = 256;          
+const SWEEP_FFT = 64;
+const FIND_FFT = 256;
 const WF_COLS = 128, WF_ROWS = 48;
 
 let rx = null, mode = "idle";
 let demod = null, preset = null, squelch = true;
 let targets = [], targetIdx = 0;
-const wfBuf = [];              
+const wfBuf = [];
 
 async function ensureOpen() {
   if (rx) return true;
@@ -20,7 +20,7 @@ async function ensureOpen() {
   if (!rx) { post({ type: "error" }); return false; }
   try { await rx.open(); return true; } catch { post({ type: "error" }); rx = null; return false; }
 }
-async function halt() { try { await rx?.setMode(MODE.OFF); } catch {  } }
+async function halt() { try { await rx?.setMode(MODE.OFF); } catch { } }
 async function configureSweep(gains = { lna: 24, vga: 20, amp: false }) {
   await rx.setSampleRate(DEFAULT_SAMPLE_RATE);
   await rx.setBasebandFilter(DEFAULT_BB_FILTER);
@@ -40,13 +40,13 @@ async function sweepOnce(ranges, fftSize, maxTransfers) {
       if (iq.length < 2 * fftSize) continue;
       const { hz, db } = blockSpectrum(iq, fftSize, { sampleRate: DEFAULT_SAMPLE_RATE });
       for (let i = 0; i < db.length; i++) {
-        const bucket = Math.round((headerHz + hz[i]) / 1e5);           
+        const bucket = Math.round((headerHz + hz[i]) / 1e5);
         const prev = acc.get(bucket);
         if (prev == null || db[i] > prev) acc.set(bucket, db[i]);
       }
       if (Math.abs(headerHz - startHz) < DEFAULT_SAMPLE_RATE) sawStart++;
     }
-    if (sawStart >= 2) break;                                          
+    if (sawStart >= 2) break;
   }
   await halt();
   const keys = [...acc.keys()].sort((a, b) => a - b);
@@ -106,7 +106,7 @@ async function tuneListen(hz) {
   await rx.setSampleRate(IN_RATE);
   await rx.setBasebandFilter(1_750_000);
   await rx.setLnaGain(32); await rx.setVgaGain(30); await rx.setAmp(false);
-  await rx.setFreq(hz - OFFSET_HZ);                                    
+  await rx.setFreq(hz - OFFSET_HZ);
   await rx.startRx();
   demod = new Demodulator({ mode: preset.mode });
   mode = "listen"; post({ type: "channel", state: "live" });
@@ -143,6 +143,6 @@ self.onmessage = async (e) => {
     else if (m.type === "next") { if (mode === "listen") { mode = "find"; await nextChannel(); } }
     else if (m.type === "scan") { if (mode === "listen") mode = "find"; await radar(); }
     else if (m.type === "squelch") { squelch = !!m.on; }
-    else if (m.type === "stop") { mode = "stopReq"; try { await rx?.stop(); } catch {  } rx = null; mode = "idle"; }
+    else if (m.type === "stop") { mode = "stopReq"; try { await rx?.stop(); } catch { } rx = null; mode = "idle"; }
   } catch (err) { post({ type: "error", message: String(err && err.message || err) }); }
 };

@@ -28,13 +28,13 @@ export async function removeMyChar(id) {
   const c = getCast().filter((x) => x !== id); if (c.length) setCast(c);
   if (gate) return;
   try { await fetch(`${VPS_PROXY}/character/mine/remove`, { method: "POST", headers: JSON_H, body: JSON.stringify({ id: id.replace(/^my-/, "") }) }); }
-  catch {  }
+  catch { }
 }
 /** The list from the edge for the current session (a no-op when nobody is signed in, or under the gate). */
 export async function loadMyChars() {
   if (gate || !sidNow()) return;
-  let r; try { r = await fetch(`${VPS_PROXY}/character/mine`); } catch { return; }   
-  if (r.status === 401) { setMyChars([]); return; }                                   
+  let r; try { r = await fetch(`${VPS_PROXY}/character/mine`); } catch { return; }
+  if (r.status === 401) { setMyChars([]); return; }
   if (!r.ok) return;
   const j = await r.json().catch(() => null);
   if (Array.isArray(j?.characters)) setMyChars(j.characters.map(charOf));

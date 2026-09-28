@@ -35,7 +35,7 @@ export default [
   {
     name: "тайли часу: стрибок на схід/захід і ресет на «зараз»", run: async (h) => {
       await ready(h);
-      await h.click("#now-tile"); await h.wait(150); 
+      await h.click("#now-tile"); await h.wait(150);
       const nowB = await h.text("[data-bearing]");
       await h.click('[data-tile="sunset"]'); await h.wait(200);
       const setB = await h.text("[data-bearing]");
@@ -61,7 +61,7 @@ export default [
       h.expect((await h.prop("#globesheet", "open")) !== true, "пікер не закрився");
       h.expect((await h.count("#clear-pick")) === 1 && /Tokyo/.test(await h.text("#clear-pick")), "немає індикатора обраної точки");
       h.expect(kyiv !== (await h.text("[data-bearing]")), "азимут сонця не перерахувався для іншої точки");
-      await h.click("#clear-pick"); await h.wait(200); 
+      await h.click("#clear-pick"); await h.wait(200);
     },
   },
   {

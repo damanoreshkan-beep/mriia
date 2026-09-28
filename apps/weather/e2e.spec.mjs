@@ -16,7 +16,7 @@ export default [
       h.expect(/відчуття|feels/i.test(t), "немає «відчуття»");
       h.expect(/вітер|wind/i.test(t), "немає вітру");
       h.expect(/опади|rain/i.test(t), "немає опадів");
-      h.expect(/сніг|snow/i.test(t), "немає словесного опису погоди");   
+      h.expect(/сніг|snow/i.test(t), "немає словесного опису погоди");
     },
   },
   {
@@ -33,7 +33,7 @@ export default [
   {
     name: "живе небо змонтоване", run: async (h) => {
       await load(h);
-      await h.wait(400);                                    
+      await h.wait(400);
       h.expect(await h.count("[data-stage]") === 1, "сцена не змонтувалась");
     },
   },

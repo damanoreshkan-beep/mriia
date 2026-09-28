@@ -11,10 +11,10 @@ export function SkyDial({ marks = [], radial = altRadius, opacityFor = altOpacit
   const ms = marks.map((m) => ({ ...m })).sort((a, b) => a.angle - b.angle);
   for (let i = 0; i < ms.length;) {
     let j = i + 1;
-    while (j < ms.length && ms[j].angle - ms[j - 1].angle < within) j++; 
+    while (j < ms.length && ms[j].angle - ms[j - 1].angle < within) j++;
     const group = ms.slice(i, j);
     if (group.length === 1) group[0].r = radial(group[0].value);
-    else { group.sort((a, b) => a.value - b.value); group.forEach((mk, k) => { mk.r = Math.max(min, rimR - k * step); }); } 
+    else { group.sort((a, b) => a.value - b.value); group.forEach((mk, k) => { mk.r = Math.max(min, rimR - k * step); }); }
     i = j;
   }
   return html`<div class="relative w-full mx-auto overflow-visible" style=${`max-width:${size}px;aspect-ratio:1`}>

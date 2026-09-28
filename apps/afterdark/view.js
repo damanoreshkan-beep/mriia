@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
@@ -26,39 +25,39 @@ const LIVE = VPS_PROXY + "/live/master.m3u8";
 const IOS = typeof navigator !== "undefined" && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 const HLS_CFG = {
   xhrSetup: (xhr, url) => { xhr.open("GET", url, true); xhr.setRequestHeader("Range", "bytes=0-"); },
-  lowLatencyMode: false,                        
-  liveSyncDuration: 300,                        
-  liveSyncMode: "edge",                         
-  liveSyncOnStallIncrease: 0,                   
-  maxLiveSyncPlaybackRate: 1,                   
-  maxBufferLength: 330, maxMaxBufferLength: 900, maxBufferSize: 120 * 1024 * 1024,   
+  lowLatencyMode: false,
+  liveSyncDuration: 300,
+  liveSyncMode: "edge",
+  liveSyncOnStallIncrease: 0,
+  maxLiveSyncPlaybackRate: 1,
+  maxBufferLength: 330, maxMaxBufferLength: 900, maxBufferSize: 120 * 1024 * 1024,
   backBufferLength: 120,
   fragLoadPolicy: { default: { maxTimeToFirstByteMs: 12000, maxLoadTimeMs: 30000, timeoutRetry: { maxNumRetry: 12, retryDelayMs: 1000, maxRetryDelayMs: 8000 }, errorRetry: { maxNumRetry: 12, retryDelayMs: 1000, maxRetryDelayMs: 8000 } } },
-  playlistLoadPolicy: { default: { maxTimeToFirstByteMs: 8000, maxLoadTimeMs: 12000, timeoutRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 4000 }, errorRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 4000 } } },   
+  playlistLoadPolicy: { default: { maxTimeToFirstByteMs: 8000, maxLoadTimeMs: 12000, timeoutRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 4000 }, errorRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 4000 } } },
 };
 const AC = typeof AudioContext !== "undefined" ? AudioContext : (typeof globalThis !== "undefined" && globalThis.webkitAudioContext) || null;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const frac = (x) => x - Math.floor(x);
-const IDLE_BPM = 126;                                               
+const IDLE_BPM = 126;
 
 const $muted = persistentAtom("afterdark:muted", "0");
-const $dock = persistentAtom("afterdark:dock", "1");             
+const $dock = persistentAtom("afterdark:dock", "1");
 const $entered = atom(gate);
 const $playing = atom(false);
-const $state = atom("idle");                                     
-const $buffer = atom(0);                                         
-const $stage3d = atom(gate ? "skipped" : "loading");             
+const $state = atom("idle");
+const $buffer = atom(0);
+const $stage3d = atom(gate ? "skipped" : "loading");
 const $stage3dWhy = atom("");
-const $bpm = atom(0);                                            
-const $fs = atom(false);                                         
+const $bpm = atom(0);
+const $fs = atom(false);
 const muted = () => $muted.get() === "1";
 
 let el = null, ctx = null, src = null, analyser = null, freq = null, np = null, wl = null;
-let beatAn = null, fdb = null, mag = null, magPrev = null;      
+let beatAn = null, fdb = null, mag = null, magPrev = null;
 let attempt = 0, retryTimer = null, stallTimer = null, connectTimer = null, liveTimer = null, mark = null;
-let hls = null, hlsMod = null, dvrDead = false;                  
+let hls = null, hlsMod = null, dvrDead = false;
 async function loadHls() { if (hlsMod !== null) return hlsMod; try { hlsMod = (await import("hls.js")).default || false; } catch { hlsMod = false; } return hlsMod; }
-function killHls() { if (hls) { try { hls.destroy(); } catch {  } hls = null; } }
+function killHls() { if (hls) { try { hls.destroy(); } catch { } hls = null; } }
 function attachHls(a, H) {
   let manifestFails = 0;
   const h = new H(HLS_CFG);
@@ -77,7 +76,7 @@ function attachHls(a, H) {
 }
 
 function attach(a) {
-  if (src) { try { src.disconnect(); } catch {  } src = null; }
+  if (src) { try { src.disconnect(); } catch { } src = null; }
   if (!AC) return;
   try {
     ctx ||= new AC();
@@ -101,10 +100,10 @@ async function play({ reconnect = false } = {}) {
   clearTimeout(retryTimer); clearTimeout(stallTimer); clearTimeout(connectTimer);
   const old = el;
   killHls();
-  if (old) { try { old.pause(); old.removeAttribute("src"); old.load(); } catch {  } }
+  if (old) { try { old.pause(); old.removeAttribute("src"); old.load(); } catch { } }
   const a = document.createElement("audio");
   a.preload = "none";
-  a.crossOrigin = "anonymous";                                   
+  a.crossOrigin = "anonymous";
   a.volume = muted() ? 0 : 1;
   el = a;
 
@@ -117,7 +116,7 @@ async function play({ reconnect = false } = {}) {
   connectTimer = setTimeout(() => { if (el === a && $state.get() !== "live") lost(a); }, 12000);
   attach(a);
   const H = (!IOS && !dvrDead) ? await loadHls() : false;
-  if (el !== a) return;                                          
+  if (el !== a) return;
   const dvr = !!(H && H.isSupported());
   if (dvr) {
     a.onstalled = null;
@@ -141,14 +140,14 @@ function lost(a) {
   if (el !== a || !$playing.get()) return;
   const online = typeof navigator === "undefined" || navigator.onLine !== false;
   $state.set(online ? "reconnecting" : "offline");
-  el = null; killHls(); try { a.pause(); a.removeAttribute("src"); a.load(); } catch {  }
+  el = null; killHls(); try { a.pause(); a.removeAttribute("src"); a.load(); } catch { }
   clearTimeout(connectTimer); clearTimeout(stallTimer); clearTimeout(retryTimer);
   const wait = retryDelay(attempt); attempt += 1;
   retryTimer = setTimeout(() => { retryTimer = null; if ($playing.get()) play({ reconnect: true }); }, wait);
 }
 function probe() {
   if (gate || !$playing.get() || !el) return;
-  try { const b = el.buffered; let ahead = 0; for (let i = 0; i < b.length; i++) if (b.start(i) <= el.currentTime + 0.5 && b.end(i) > el.currentTime) ahead = Math.max(ahead, b.end(i) - el.currentTime); const s = Math.floor(ahead); if (s !== $buffer.get()) $buffer.set(s); } catch {  }
+  try { const b = el.buffered; let ahead = 0; for (let i = 0; i < b.length; i++) if (b.start(i) <= el.currentTime + 0.5 && b.end(i) > el.currentTime) ahead = Math.max(ahead, b.end(i) - el.currentTime); const s = Math.floor(ahead); if (s !== $buffer.get()) $buffer.set(s); } catch { }
   if (mark && el.dvr) { const wall = (performance.now() - mark.at) / 1000, moved = el.currentTime - mark.time; if (moved > wall + 15 || moved < -15) report("dvr.jump", { moved: Math.round(moved), wall: Math.round(wall) }); }
   if ($state.get() !== "live") return;
   const r = progressCheck({ time: el.currentTime, mark, now: performance.now(), budget: el.dvr ? 120000 : 8000 });
@@ -162,7 +161,7 @@ function relink() {
 }
 if (typeof addEventListener !== "undefined") {
   addEventListener("online", relink);
-  try { navigator.connection?.addEventListener?.("change", relink); } catch {  }
+  try { navigator.connection?.addEventListener?.("change", relink); } catch { }
 }
 
 function stop() {
@@ -170,7 +169,7 @@ function stop() {
   clearTimeout(connectTimer); clearTimeout(retryTimer); clearTimeout(stallTimer);
   attempt = 0;
   killHls();
-  if (el) { const o = el; el = null; try { o.pause(); o.removeAttribute("src"); o.load(); } catch {  } }
+  if (el) { const o = el; el = null; try { o.pause(); o.removeAttribute("src"); o.load(); } catch { } }
   if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
   mark = null; $buffer.set(0);
   if (wl) { wl.release(); wl = null; }
@@ -178,7 +177,7 @@ function stop() {
 }
 const start = () => play({});
 const toggle = () => { $playing.get() ? stop() : start(); };
-function setMuted(m) { $muted.set(m ? "1" : "0"); if (el) { try { el.volume = m ? 0 : 1; } catch {  } } }
+function setMuted(m) { $muted.set(m ? "1" : "0"); if (el) { try { el.volume = m ? 0 : 1; } catch { } } }
 
 const env = {
   last: 0, tick: 0, pulseState: { pulse: 0, baseline: 0 }, pulse: 0, energy: 0, dph: 0, sph: 0, tiltX: 0, tiltY: 0, ttx: 0, tty: 0, mode: "auto",
@@ -186,12 +185,12 @@ const env = {
   pal: null, palTarget: null, day: 0, themeKey: "", frame: 0,
   cam: { yaw: 0, pitch: 0, zoom: 1 }, camT: { yaw: 0, pitch: 0, zoom: 1 },
 };
-const CAM = { pitchMin: -0.12, pitchMax: 0.62, zoomMin: 0.55, zoomMax: 1.8 };   
-const ptrs = new Map();                                            
+const CAM = { pitchMin: -0.12, pitchMax: 0.62, zoomMin: 0.55, zoomMax: 1.8 };
+const ptrs = new Map();
 let pinchDist = 0, lastTapAt = 0;
 function camDown(e) {
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  try { e.currentTarget.setPointerCapture(e.pointerId); } catch {  }
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch { }
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchDist = Math.hypot(a.x - b.x, a.y - b.y); }
   if (ptrs.size === 1) { const now = performance.now(); if (now - lastTapAt < 300) { env.camT = { yaw: 0, pitch: 0, zoom: 1 }; } lastTapAt = now; }
 }
@@ -211,7 +210,7 @@ function camUp(e) { ptrs.delete(e.pointerId); pinchDist = 0; }
 function camWheel(e) { env.camT.zoom = clamp(env.camT.zoom * (1 + e.deltaY * 0.0012), CAM.zoomMin, CAM.zoomMax); e.preventDefault(); }
 const camHandlers = { onPointerDown: camDown, onPointerMove: camMove, onPointerUp: camUp, onPointerCancel: camUp, onWheel: camWheel };
 function retheme() { env.palTarget = readPalette(); if (!env.pal) env.pal = new Float32Array(env.palTarget); }
-if (typeof globalThis !== "undefined") globalThis.__afterdark = env;   
+if (typeof globalThis !== "undefined") globalThis.__afterdark = env;
 function themeKey() {
   try { const r = document.documentElement, cs = getComputedStyle(r); return `${r.getAttribute("data-theme")}|${r.getAttribute("data-material")}|${cs.getPropertyValue("--color-base-100")}|${cs.getPropertyValue("--app-accent")}|${cs.getPropertyValue("--color-accent")}`; } catch { return ""; }
 }
@@ -249,8 +248,8 @@ function vary() {
   const shown = env.confidence > 0.35 ? Math.round(env.bpm) : 0;
   if (shown !== $bpm.get()) $bpm.set(shown);
   env.pulse = pulse; env.energy = energy;
-  env.playing = $playing.get();                                 
-  env.dph += dt * env.bpm / 60;                                  
+  env.playing = $playing.get();
+  env.dph += dt * env.bpm / 60;
   env.sph = integratePhase(env.sph, dt, pulse);
   env.drive += (clamp((energy - 0.14) / 0.3, 0, 1) - env.drive) * clamp(dt * 2, 0, 1);
   return [pulse, env.dph, env.sph, env.confidence * env.drive];
@@ -280,12 +279,12 @@ function toggleFullscreen() {
     const el = document.documentElement;
     const r = el.requestFullscreen?.({ navigationUI: "hide" }) || el.webkitRequestFullscreen?.();
     r?.catch?.(() => {});
-  } catch {  }
+  } catch { }
 }
 if (typeof document !== "undefined") document.addEventListener("fullscreenchange", () => $fs.set(!!document.fullscreenElement));
 async function enter() {
   $entered.set(true);
-  try { if (AC) { ctx ||= new AC(); await ctx.resume(); } } catch {  }
+  try { if (AC) { ctx ||= new AC(); await ctx.resume(); } } catch { }
   requestTilt();
   start();
 }
@@ -335,11 +334,10 @@ const CSS = `
 
 :root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity .5s ease}
 @media(prefers-reduced-motion:reduce){[data-enter] .dk-enter-ring{animation:none!important}:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
-
 export function afterdark({ S }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
-  useStore($cast);                                                
+  useStore($cast);
   useStore($moves);
   const cast = getCast();
   const moves = getMoves();
@@ -355,14 +353,12 @@ export function afterdark({ S }) {
   const stageRef = useRef();
   const engineRef = useRef(null);
 
-  
   useEffect(() => {
     if (typeof document === "undefined") return () => {};
     if (fs) document.documentElement.dataset.immersive = ""; else delete document.documentElement.dataset.immersive;
     return () => { delete document.documentElement.dataset.immersive; };
   }, [fs]);
 
-  
   useEffect(() => {
     if (gate) { start(); return () => {}; }
     let engine = null;
@@ -379,29 +375,29 @@ export function afterdark({ S }) {
   }, []);
 
   const onToggle = () => (entered ? toggle() : enter());
-  
-  
   useEffect(() => { engineRef.current?.setCast?.(cast); }, [cast.join()]);
   useEffect(() => {
     if (moves.some((id) => !MOVE_IDS.includes(id))) loadCatalog().then(() => engineRef.current?.setMoves?.(getMoves()));
     else engineRef.current?.setMoves?.(moves);
   }, [moves.join()]);
   const onPointer = (e) => { if (env.mode === "orient" || ptrs.size) return; env.mode = "pointer"; const r = e.currentTarget.getBoundingClientRect(); env.ttx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); env.tty = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1); };
+
   return html`<${Fragment}>
     <style>${CSS}</style>
-    
+    ${""}
     <div class="dk-bg fixed inset-0 z-0"></div>
     <${GlStage} shader=${new URL("afterdark.frag", import.meta.url)} seed=${((cast[0] || "a").charCodeAt(0) % 13) / 13}
       vary=${vary} ink=${ink} points=${() => env.pal} zClass="z-0" />
-    
+    ${""}
     <canvas ref=${stageRef} data-dancers aria-hidden="true" class="fixed inset-0 z-0 w-full h-full pointer-events-none"></canvas>
 
     <div data-rave data-state=${state} data-cast=${cast.length} data-entered=${entered ? "yes" : "no"} data-3d=${stage3d} data-3d-why=${stage3dWhy}
       data-fs=${fs ? "yes" : "no"} data-bpm=${bpm || ""} data-buffer=${buffer}
       class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)]">
-      
+      ${""}
+      ${""}
       <div class="dk-void flex-1 min-h-0 relative" onPointerMove=${onPointer} ...${camHandlers}>
-        
+        ${""}
         ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-start pt-[6%] gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
             class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
@@ -412,6 +408,8 @@ export function afterdark({ S }) {
           </button>
         </div>` : null}
       </div>
+
+      ${""}
       <${Island} tone="dark" className="dk-isle dk-dock shrink-0 flex flex-col gap-[var(--ms-gap)] w-full mx-auto" data-dock=${dockOpen ? "open" : "folded"}>
         <div class="dk-fold"><div class="dk-fold-in flex flex-col gap-[var(--ms-gap)]">
         <${Transport} locale=${loc} playing=${playing} onToggle=${onToggle} stopIcon=${true}

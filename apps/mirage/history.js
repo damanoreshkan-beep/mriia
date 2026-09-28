@@ -10,12 +10,12 @@ const read = (ns) => { if (gate) return []; try { const v = JSON.parse(localStor
 
 export function usePromptHistory(ns) {
   const [items, setItems] = useState(() => read(ns));
-  useEffect(() => { setItems(read(ns)); }, [ns]);   
+  useEffect(() => { setItems(read(ns)); }, [ns]);
   const remember = (text) => {
     const line = String(text || "").trim(); if (!line) return;
     const next = [line, ...items.filter((x) => x !== line)].slice(0, MAX);
     setItems(next);
-    if (!gate) { try { localStorage.setItem(KEY(ns), JSON.stringify(next)); } catch {  } }
+    if (!gate) { try { localStorage.setItem(KEY(ns), JSON.stringify(next)); } catch { } }
   };
   return [items, remember];
 }

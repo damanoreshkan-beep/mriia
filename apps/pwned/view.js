@@ -10,7 +10,7 @@ import { Panel } from "/_rt/ui.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const RANGE = "https://api.pwnedpasswords.com/range/";
-const SAMPLE_HEX = "5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8";   
+const SAMPLE_HEX = "5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8";
 const SAMPLE_COUNT = 3861493;
 const NODES = [["lucide:fingerprint", "step1"], ["lucide:scissors", "step2"], ["lucide:cloud-upload", "step3"], ["lucide:list-checks", "step4"]];
 
@@ -82,9 +82,10 @@ export function check({ S }) {
     </div>
 
     <!-- the hash, split: the 5 that leave vs the 35 that stay -->
+    ${""}
     ${hex ? html`<${Panel} className="min-w-0" title=${html`<span class="inline-flex items-center gap-1.5">${Icon("lucide:hash", "text-sm")}SHA-1</span>`}>
       <div data-hash class="font-mono text-sm break-all leading-relaxed min-w-0">
-        
+        ${""}
         <span class="inline-flex items-center rounded-full bg-primary/15 text-primary font-bold px-1.5 py-0.5 mr-0.5 sf-e2">${prefix}</span><span class="text-muted tracking-tight">${suffix}</span>
       </div>
       <div class="flex flex-wrap gap-x-4 gap-y-1 min-w-0">
@@ -98,7 +99,7 @@ export function check({ S }) {
     </button>
 
     <!-- the k-anonymity pipeline (the motion hero) -->
-    
+    ${""}
     <${Panel} className="relative min-w-0 overflow-hidden">
       <div class="absolute top-6 bottom-6 w-px bg-base-content/12" style="left:calc(var(--ms-pad) + 1.125rem)"></div>
       <div ref=${beamRef} class="absolute -translate-x-1/2 w-1 h-10 rounded-full bg-gradient-to-b from-transparent via-[var(--app-accent)] to-transparent blur-[1px] pointer-events-none" style="top:4%;left:calc(var(--ms-pad) + 1.125rem)"></div>
@@ -111,7 +112,7 @@ export function check({ S }) {
     <//>
 
     <!-- verdict -->
-    
+    ${""}
     ${res && status === "done" ? html`<div ref=${verdictRef} data-verdict data-pwned=${String(res.pwned)} class="min-w-0">
       <${Panel} className="relative items-center gap-1.5 min-w-0 overflow-hidden sf-e3">
       <div ref=${glowRef} class=${`absolute -z-0 w-40 h-40 rounded-full blur-3xl ${res.pwned ? "bg-error/25" : "bg-success/25"}`} style="opacity:.35"></div>

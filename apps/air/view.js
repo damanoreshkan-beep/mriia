@@ -8,7 +8,7 @@ import { geo } from "/_rt/sensors.js";
 import { isGate, MOCK, gate } from "/_rt/gate.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const KYIV = { lat: 50.45, lng: 30.52, place: null, located: false }; 
+const KYIV = { lat: 50.45, lng: 30.52, place: null, located: false };
 const urlFor = (lat, lng) =>
   `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}` +
   "&current=european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen,olive_pollen" +
@@ -43,7 +43,7 @@ const hhmm = (iso) => String(iso).slice(11, 16);
 
 function makeSample() {
   const base = "2026-07-17T";
-  const wave = [72, 68, 61, 55, 58, 66, 79, 88, 92, 86, 78, 70]; 
+  const wave = [72, 68, 61, 55, 58, 66, 79, 88, 92, 86, 78, 70];
   const hours = Array.from({ length: 24 }, (_, i) => ({
     time: `${base}${String(i).padStart(2, "0")}:00`,
     aqi: wave[Math.floor(i / 2)] ?? 70,
@@ -84,7 +84,7 @@ export function air({ S }) {
           .then((g) => { const name = g.city || g.locality || g.principalSubdivision; if (name) setLoc((l) => ({ ...l, place: name })); })
           .catch(() => {});
       },
-      () => {}, 
+      () => {},
     );
     return () => stop();
   }, []);
@@ -105,7 +105,7 @@ export function air({ S }) {
       } catch { if (live) setErr(true); }
     };
     load();
-    const id = setInterval(load, 300000); 
+    const id = setInterval(load, 300000);
     return () => { live = false; clearInterval(id); };
   }, [loc.lat, loc.lng]);
 

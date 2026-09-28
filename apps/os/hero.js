@@ -8,16 +8,16 @@ const _probe = (() => { try { return document.createElement("canvas").getContext
 function toRgb(raw, fallback) {
   const v = (raw || "").trim();
   if (!v) return fallback;
-  try { _probe.fillStyle = "#000"; _probe.fillStyle = v; const n = _probe.fillStyle; 
+  try { _probe.fillStyle = "#000"; _probe.fillStyle = v; const n = _probe.fillStyle;
     if (n[0] === "#") { const h = n.length === 4 ? n.replace(/#(.)(.)(.)/, "#$1$1$2$2$3$3") : n;
       return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
     const m = n.match(/(\d+(?:\.\d+)?)/g); if (m && m.length >= 3) return [+m[0], +m[1], +m[2]];
-  } catch {  }
+  } catch { }
   return fallback;
 }
 const FALLBACK = { accent: [216, 180, 74], accent2: [98, 201, 126], ink: [235, 236, 240], bad: [240, 115, 111] };
 function readTokens() {
-  if (typeof getComputedStyle !== "function") return FALLBACK;      
+  if (typeof getComputedStyle !== "function") return FALLBACK;
   try {
     const cs = getComputedStyle(document.documentElement);
     return {
@@ -35,10 +35,10 @@ export function HeroAura({ alive = 0.6 } = {}) {
   useEffect(() => {
     const read = () => { acc.current = readTokens().accent.map((c) => c / 255); };
     read();
-    if (typeof MutationObserver !== "function") return;              
+    if (typeof MutationObserver !== "function") return;
     const mo = new MutationObserver(read);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
-    const id = setInterval(read, 1000);            
+    const id = setInterval(read, 1000);
     return () => { mo.disconnect(); clearInterval(id); };
   }, []);
   const ink = () => [acc.current[0], acc.current[1], acc.current[2], 1];
@@ -58,7 +58,7 @@ export function DeviceConstellation({ devices, t }) {
     const canvas = cv.current, box = wrap.current;
     if (!canvas || !box) return;
     const ctx = canvas.getContext && canvas.getContext("2d");
-    if (!ctx) return;                               
+    if (!ctx) return;
     let g0; try { g0 = ctx.createLinearGradient ? ctx.createLinearGradient(0, 0, 1, 1) : null; } catch { g0 = null; }
     if (!g0 || typeof g0.addColorStop !== "function") return;
     st.dead = false; st.tok = readTokens();
@@ -85,7 +85,7 @@ export function DeviceConstellation({ devices, t }) {
       const R = Math.min(w, h) * 0.34;
       const items = list();
       const n = items.length;
-      const spin = still ? -Math.PI / 2 : -Math.PI / 2 + T0 * 0.12;   
+      const spin = still ? -Math.PI / 2 : -Math.PI / 2 + T0 * 0.12;
       const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(T0 * (2 * Math.PI) / 5);
 
       items.forEach((d, i) => {
@@ -125,7 +125,7 @@ export function DeviceConstellation({ devices, t }) {
         const pres = d.state === STATE.PRESENT;
         const col = err ? bad : on ? accent2 : accent;
         const alpha = on ? 1 : pres ? 0.65 : 0.3;
-        if (on) { 
+        if (on) {
           const gg = ctx.createRadialGradient(x, y, 1, x, y, 12);
           gg.addColorStop(0, rgba(accent2, 0.5)); gg.addColorStop(1, rgba(accent2, 0));
           ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fill();

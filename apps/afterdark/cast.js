@@ -13,7 +13,7 @@ import { generateCharacter, cancelGenerate, genElapsed } from "./genchar.js";
 
 const $section = persistentAtom("afterdark:castTab", "chars");
 const TIER_TINT = { light: "#8B5CF6", groove: "#39FF6A", drive: "#FF3EB5" };
-const SHOW_MAX = 400;                          
+const SHOW_MAX = 400;
 const norm = (s) => String(s || "").toLowerCase();
 const chip = (on) => `btn btn-sm rounded-full h-auto min-h-0 py-1.5 gap-1.5 normal-case font-normal ${on ? "btn-primary" : "btn-ghost border border-base-content/15"}`;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -28,7 +28,7 @@ function GenSheet({ t, loc, open, onClose, onTopUp }) {
   useEffect(() => { if (!stage) return; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [stage]);
   const go = () => {
     const p = prompt.trim(); if (!p || stage || gate) return;
-    if (w.signedIn && w.balance < GEN_PRICE) { $genCharError.set("ePoor"); return; }   
+    if (w.signedIn && w.balance < GEN_PRICE) { $genCharError.set("ePoor"); return; }
     const nm = name.trim() || p.split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
     generateCharacter({ prompt: p, name: nm.slice(0, 40), kind }).then((c) => { if (c) onClose(); });
   };
@@ -83,7 +83,7 @@ export function castView({ S }) {
   useEffect(() => { if (!capHint) return; const id = setTimeout(() => setCapHint(false), 2200); return () => clearTimeout(id); }, [capHint]);
 
   const byKind = (g) => kind === "all" || (kind === "creature" ? g.kind === "creature" : g.kind !== "creature");
-  const chars = [...mine.filter(byKind), ...CHARACTERS.filter(byKind)];   
+  const chars = [...mine.filter(byKind), ...CHARACTERS.filter(byKind)];
   const tap = (id) => { if (!toggleChar(id)) setCapHint(true); };
   const isTopCast = cast.length === DEFAULT_CAST.length && DEFAULT_CAST.every((id) => onStage.has(id));
 
@@ -99,6 +99,7 @@ export function castView({ S }) {
   const allDancesOn = allDanceIds.length > 0 && allDanceIds.every((id) => onFloor.has(id));
 
   return html`<div data-cast-tab class="pb-[calc(var(--dock-h)+env(safe-area-inset-bottom)+1rem)] overflow-x-clip">
+    ${""}
     <div class="py-2">
       <${Segmented} attr="data-cast-section" size="sm" label=${T(t, "tabCast")} value=${section} onChange=${(v) => $section.set(v)}
         items=${[{ id: "chars", label: T(t, "dancers"), icon: "lucide:users", meta: String(cast.length) }, { id: "moves", label: T(t, "moves"), icon: "lucide:footprints", meta: String(moves.length) }]} />

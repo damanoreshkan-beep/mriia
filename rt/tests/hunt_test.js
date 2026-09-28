@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 
 const HUNT_WASM = new URL("../../../apps/hunt/assets/hunt.wasm", import.meta.url);
@@ -33,7 +32,7 @@ etest("hunt engine · the quiver is finite and refuses to go negative", async ()
   E.game_init(0xA17C);
   const start = st()[HUNT_S.AMMO];
   assert(start > 0, "the game starts with nothing to throw");
-  for (let f = 0; f < 900; f++) E.game_step(HUNT_IN.SHOOT);     
+  for (let f = 0; f < 900; f++) E.game_step(HUNT_IN.SHOOT);
   const s = st();
   assert(s[HUNT_S.AMMO] >= 0, `ammo went negative (${s[HUNT_S.AMMO]})`);
   assert((s[HUNT_S.SFX] & 512) !== 0 || s[HUNT_S.AMMO] === 0,
@@ -43,7 +42,7 @@ etest("hunt engine · the quiver is finite and refuses to go negative", async ()
 etest("hunt engine · the collision box it reports IS the one it stands on", async () => {
   const { E, st } = await huntEngine();
   E.game_init(0xA17C);
-  for (let f = 0; f < 90; f++) E.game_step(0);                 
+  for (let f = 0; f < 90; f++) E.game_step(0);
   const s = st();
   const packed = E.game_box(0);
   const boxH = packed & 0xffff;

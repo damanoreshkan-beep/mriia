@@ -6,7 +6,7 @@ import { gate } from "@microspec/core/runtime/gate.js";
 
 const IMG = `${VPS_PROXY}/image`, CHAR = `${VPS_PROXY}/character`, VISION = `${VPS_PROXY}/vision`;
 export const LOOK = ", full body head to toe, single character, standing A-pose with arms slightly out, facing camera, centered, plain white background, studio lighting, 3d game character render, no text";
-const POLL = 3000, BUDGET = 20 * 60_000;              
+const POLL = 3000, BUDGET = 20 * 60_000;
 const JOB_TTL = 60 * 60_000;
 const TINTS = ["#FF3EB5", "#39FF6A", "#F5B942", "#7C5CFF", "#22D3EE", "#FF6AD5", "#4ADE80", "#FB7185", "#FBBF24", "#38BDF8", "#F472B6", "#A3E635", "#F97316", "#2DD4BF", "#C084FC", "#FACC15"];
 const HOST = VPS_PROXY.replace(/\/feed$/, "");
@@ -42,7 +42,7 @@ function headShot(url) {
  */
 export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onCharged, onFail }) {
   const jobGet = () => { try { const j = JSON.parse(localStorage.getItem(jobKey) || "null"); return j && typeof j.id === "string" && Date.now() - j.ts < JOB_TTL ? j : null; } catch { return null; } };
-  const jobSet = (j) => { try { j ? localStorage.setItem(jobKey, JSON.stringify(j)) : localStorage.removeItem(jobKey); } catch {  } };
+  const jobSet = (j) => { try { j ? localStorage.setItem(jobKey, JSON.stringify(j)) : localStorage.removeItem(jobKey); } catch { } };
   const whoNow = () => session.get()?.user?.login || "";
   let run = 0, t0 = 0;
   const genElapsed = () => (t0 ? (Date.now() - t0) / 1000 | 0 : 0);
@@ -89,7 +89,7 @@ export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onC
         const r = await fetch(VISION, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image: photo, prompt: LOOK_ASK }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.text) throw { code: statusCode(r), why: j.error || r.status };
-        if (!looksLikeLook(j.text)) throw { code: "eFailed", why: "vision: " + String(j.text).slice(0, 80) };   
+        if (!looksLikeLook(j.text)) throw { code: "eFailed", why: "vision: " + String(j.text).slice(0, 80) };
         en = j.text;
         if (!alive()) return;
         $loading.set("picture");
@@ -106,7 +106,7 @@ export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onC
       $loading.set("queued"); $pct.set(0);
       const r = await fetch(CHAR, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ app, image, name, kind, avatar }) });
       const j0 = await r.json().catch(() => ({}));
-      if (!(r.status === 202 || r.status === 409) || !j0.job) throw { code: statusCode(r) };   
+      if (!(r.status === 202 || r.status === 409) || !j0.job) throw { code: statusCode(r) };
       if (r.status === 202) onCharged?.();
       const began = Date.now();
       jobSet({ id: j0.job, ts: began, user: whoNow() });
@@ -120,7 +120,7 @@ export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onC
     const saved = jobGet();
     if (!saved) { jobSet(null); return; }
     const who = whoNow();
-    if (saved.user && who && saved.user !== who) { jobSet(null); return; }   
+    if (saved.user && who && saved.user !== who) { jobSet(null); return; }
     const my = ++run; t0 = saved.ts;
     const alive = () => my === run;
     $error.set(""); $pct.set(0); $loading.set("queued");
@@ -144,5 +144,5 @@ export async function fetchMyChars() {
 /** Forget a character on the edge (the .glb stays, immutable and unlisted). */
 export async function removeChar(id) {
   try { await fetch(`${CHAR}/mine/remove`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: String(id).replace(/^my-/, "") }) }); }
-  catch {  }
+  catch { }
 }

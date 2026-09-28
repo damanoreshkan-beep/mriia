@@ -17,7 +17,7 @@ async function one(pod, name, prompt, seconds = 5) {
 }
 async function attempt(pod, name, prompt, seconds, round) {
   const base = `http://${pod}:8765`;
-  for (const row of POOL.slice(round % 2, round % 2 + 2)) {   
+  for (const row of POOL.slice(round % 2, round % 2 + 2)) {
     let job;
     const fields = row.fields(seconds);
     try {

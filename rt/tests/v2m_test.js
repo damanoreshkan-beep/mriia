@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { MIRRORS as v2mMIRRORS, parseAuthors as v2mParseAuthors, parseListing as v2mParseListing, titleOf as v2mTitleOf, trackId as v2mTrackId, trackURL as v2mTrackURL, mp3Ratio as v2mMp3Ratio, normGain as v2mNormGain, byteCloud as v2mByteCloud, helixStrand as v2mHelixStrand, helixAt as v2mHelixAt, seedBytes as v2mSeedBytes } from "../v2m.js";
 
@@ -56,7 +55,7 @@ Deno.test("v2m byteCloud — the point count IS the file size", () => {
   }
   assertEquals([...v2mByteCloud(v2mSeedBytes(90))], [...v2mByteCloud(v2mSeedBytes(90))]);
 
-  const flat = new Uint8Array(4000);            
+  const flat = new Uint8Array(4000);
   const cloud = v2mByteCloud(flat);
   const distinct = new Set();
   for (let i = 0; i < cloud.length; i += 3) distinct.add(cloud[i].toFixed(4) + "," + cloud[i + 1].toFixed(4));

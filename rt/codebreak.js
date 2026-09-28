@@ -1,8 +1,7 @@
-
 export function feedback(secret, guess) {
   const n = secret.length;
   let exact = 0;
-  const sLeft = {}, gLeft = {}; 
+  const sLeft = {}, gLeft = {};
   for (let i = 0; i < n; i++) {
     if (secret[i] === guess[i]) { exact++; continue; }
     sLeft[secret[i]] = (sLeft[secret[i]] || 0) + 1;

@@ -1,9 +1,9 @@
 import { ASPECTS } from "./aspects.js";
 
-export const signOf = (lon) => Math.floor((((lon % 360) + 360) % 360) / 30);   
+export const signOf = (lon) => Math.floor((((lon % 360) + 360) % 360) / 30);
 const wrap = (s) => (((s % 12) + 12) % 12);
-export const ELEMENT = (s) => wrap(s) % 4;    
-export const MODALITY = (s) => wrap(s) % 3;   
+export const ELEMENT = (s) => wrap(s) % 4;
+export const MODALITY = (s) => wrap(s) % 3;
 
 export const MOIETY = { sun: 7.5, moon: 6, mercury: 3.5, venus: 3.5, mars: 4, jupiter: 4.5, saturn: 4.5 };
 
@@ -20,14 +20,14 @@ export function contacts(A, B) {
     for (const q of B) {
       if (p.lon == null || q.lon == null) continue;
       const limit = (MOIETY[p.key] || 0) + (MOIETY[q.key] || 0);
-      if (!limit) continue;                                  
+      if (!limit) continue;
       const s = sep(p.lon, q.lon);
       for (const asp of PTOLEMAIC) {
         const delta = Math.abs(s - asp.angle);
         if (delta > limit) continue;
         out.push({ a: p.key, b: q.key, type: asp.type, nature: asp.nature, angle: asp.angle,
           orb: +delta.toFixed(2), limit, strength: +(1 - delta / limit).toFixed(3) });
-        break;   
+        break;
       }
     }
   }
@@ -53,7 +53,7 @@ export function score(list) {
     let weight = 0, sum = 0;
     for (const [a, b] of pairs) {
       const c = at.get(a + "-" + b);
-      if (!c) continue;                                      
+      if (!c) continue;
       weight += c.strength;
       sum += pull(c) * c.strength;
     }

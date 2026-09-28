@@ -19,10 +19,10 @@ const HOLD_MS = 60_000;
 const $voices = atom([]);
 const $listening = atom(false);
 const $err = atom(null);
-const $blocked = atom(null);       
-const $mine = atom([]);            
+const $blocked = atom(null);
+const $mine = atom([]);
 const $now = atom(Date.now());
-const $packets = atom(0);          
+const $packets = atom(0);
 const $needPerm = atom(null);
 
 const PERM_RE = /denied:([A-Z_]+)/;
@@ -42,8 +42,8 @@ async function grant() {
   try {
     const r = await shell.call("system.grant", { permission: p });
     if (r?.state === "granted") { $needPerm.set(null); $err.set(null); hush(); listen(); return; }
-  } catch {  }
-  try { await shell.call("system.settings", { page: "app" }); } catch {  }
+  } catch { }
+  try { await shell.call("system.settings", { page: "app" }); } catch { }
 }
 
 const SENDER_KEY = "earshot.sender";
@@ -51,9 +51,9 @@ function loadSender() {
   try {
     const kept = Number(localStorage.getItem(SENDER_KEY));
     if (Number.isFinite(kept) && kept > 0) return kept;
-  } catch {  }
+  } catch { }
   const made = newSender();
-  try { localStorage.setItem(SENDER_KEY, String(made)); } catch {  }
+  try { localStorage.setItem(SENDER_KEY, String(made)); } catch { }
   return made;
 }
 let sender = null;
@@ -73,7 +73,7 @@ let ageTimer = null;
 function heard(frame) {
   if (frame && frame.raw) $packets.set($packets.get() + 1);
   const v = readFrame(frame);
-  if (!v || v.sender === senderId()) return;   
+  if (!v || v.sender === senderId()) return;
   $voices.set(mergeVoices($voices.get(), [v], Date.now()));
 }
 
@@ -89,12 +89,12 @@ async function diagnose() {
   try {
     const info = await shell.call("system.info", {});
     if (info && info.locationOn === false) { $blocked.set("locationOff"); return; }
-  } catch {  }
+  } catch { }
   try {
     const st = await shell.call("ble.state", {});
     if (st && st.supported === false) { $blocked.set("noBle"); return; }
     if (st && st.on === false) { $blocked.set("bleOff"); return; }
-  } catch {  }
+  } catch { }
   $blocked.set(null);
 }
 
@@ -110,7 +110,7 @@ function listen() {
 
 function hush() {
   $listening.set(false);
-  try { stopScan?.(); } catch {  }
+  try { stopScan?.(); } catch { }
   stopScan = null;
   clearInterval(ageTimer); ageTimer = null;
 }
@@ -161,10 +161,11 @@ function Line({ row, loc }) {
   return html`<div data-voice=${row.sender.toString(16)} data-mine=${row.mine ? "1" : "0"}
       class=${`flex flex-col gap-0.5 max-w-[85%] ${row.mine ? "ml-auto items-end" : "items-start"}`}>
     <div class="flex items-center gap-1.5 px-1">
+      ${ ""}
       <span class="w-2 h-2 rounded-full shrink-0" style=${row.mine ? "background:var(--app-accent)" : `background:hsl(${hue} 70% 55%)`}></span>
       <span class=${LABEL}>${name}</span>
     </div>
-    
+    ${ ""}
     <div class=${`min-w-0 rounded-[var(--ms-r)] px-3 py-2 ${row.mine ? "sf-inset es-mine" : "sf-raised sf-e2"}`}>
       <div class="break-words text-base-content">
         ${row.mine ? row.text : html`<${Scramble} text=${row.text} minMs=${420} />`}
@@ -185,8 +186,6 @@ export function airView({ S, t }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef(null);
 
-  
-  
   useEffect(() => {
     listen();
     return () => { if (!gate) hush(); };
@@ -199,7 +198,7 @@ export function airView({ S, t }) {
   return html`<div data-earshot data-listening=${listening ? "1" : "0"} data-lines=${rows.length} data-blocked=${blocked || err ? "1" : "0"}
       class="flex flex-col gap-[var(--ms-gap)] px-[var(--ms-pad)] pb-[calc(var(--dock-h)+11rem)]">
     <div data-scanner class="flex items-center gap-2 pt-1 text-base-content/70">
-      
+      ${ ""}
       <span class=${`w-1.5 h-1.5 rounded-full ${listening ? "bg-[var(--app-accent)]" : "bg-base-content/30"} ${listening && !gate ? "es-live" : ""}`}></span>
       <span class=${`${LABEL} tabular-nums`}>${packets}</span>
       <span class=${LABEL}>${T(t, "packets")}</span>
@@ -210,8 +209,6 @@ export function airView({ S, t }) {
           ${rows.map((row) => html`<${Line} key=${row.key} row=${row} loc=${loc} />`)}
           <div ref=${endRef}></div>
         </div>`
-      
-      
       : html`<div data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:radio", "text-4xl")}<span class="font-medium">${T(t, "quiet")}</span></div>`}
 
     <${Island} pinned=${true} className="w-full max-w-[36rem] flex flex-col gap-[var(--ms-gap)]">
@@ -242,7 +239,7 @@ export function airView({ S, t }) {
           class="input input-ghost flex-1 min-w-0 px-3 focus:outline-none"
           aria-label=${T(t, "say")} placeholder=${T(t, "say")}
           value=${draft} onInput=${(e) => setDraft(e.currentTarget.value)} />
-        
+        ${ ""}
         <span data-left class=${`font-mono text-sm tabular-nums shrink-0 ${fit.left ? "text-base-content/70" : "text-warning"}`}>${fit.left}</span>
         <button data-throw type="submit" disabled=${fit.bytes === 0}
                 class="btn btn-sm btn-primary btn-circle shrink-0" aria-label=${T(t, "send")}>

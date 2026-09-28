@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
@@ -28,45 +27,45 @@ const AC = typeof AudioContext !== "undefined" ? AudioContext : (typeof globalTh
 const $cat = persistentAtom("tide:cat", CATEGORIES[0].id);
 const $station = persistentAtom("tide:station", stationsIn(CATEGORIES[0].id)[0].id);
 const $favs = persistentAtom("tide:favs", gate ? ["dronezone", "groovesalad", "defcon"] : [], { encode: JSON.stringify, decode: (v) => { try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; } } });
-const $vol = persistentAtom("tide:vol", "1");                    
+const $vol = persistentAtom("tide:vol", "1");
 const $playing = atom(false);
-const $state = atom("idle");                                     
-const $now = atom(null);                                         
-const $listeners = atom(gate ? FIXTURE_LISTENERS : {});          
-const $fs = atom(false);                                         
-const $bg = atom(false);                                         
+const $state = atom("idle");
+const $now = atom(null);
+const $listeners = atom(gate ? FIXTURE_LISTENERS : {});
+const $fs = atom(false);
+const $bg = atom(false);
 
 const curCat = () => categoryById($cat.get());
 const curStation = () => stationById($station.get()) || stationsIn($cat.get())[0];
 const vol = () => clampVol($vol.get());
 
 let el = null, ctx = null, src = null, analyser = null, freq = null, np = null, wl = null, nowTimer = null;
-let fails = 0, connectTimer = null;                              
-let attempt = 0, retryTimer = null, stallTimer = null;          
-let mark = null, liveTimer = null;                               
+let fails = 0, connectTimer = null;
+let attempt = 0, retryTimer = null, stallTimer = null;
+let mark = null, liveTimer = null;
 let curT = {};
 const npTitle = () => curStation().name;
 const artUrl = () => { try { return new URL("icons/icon-512.png", location.href).href; } catch { return null; } };
 
 function ramp(a, from, to, ms, done) {
-  const finish = () => { try { a.volume = to; } catch {  } done?.(); };
+  const finish = () => { try { a.volume = to; } catch { } done?.(); };
   const hidden = () => typeof document !== "undefined" && document.visibilityState === "hidden";
   if (hidden()) { finish(); return; }
   const t0 = performance.now();
   const step = () => {
     if (hidden()) { finish(); return; }
     const k = Math.min(1, (performance.now() - t0) / ms);
-    try { a.volume = from + (to - from) * k; } catch {  }
+    try { a.volume = from + (to - from) * k; } catch { }
     if (k < 1) setTimeout(step, 16); else done?.();
   };
   step();
 }
 function teardown(a) {
-  try { a.pause(); a.removeAttribute("src"); a.load(); } catch {  }
+  try { a.pause(); a.removeAttribute("src"); a.load(); } catch { }
 }
 
 function attach(a, cors) {
-  if (src) { try { src.disconnect(); } catch {  } src = null; }
+  if (src) { try { src.disconnect(); } catch { } src = null; }
   if (!cors || !AC) return;
   try {
     ctx ||= new AC();
@@ -98,7 +97,7 @@ function play(station, { retryPlain = false, reconnect = false } = {}) {
   el = a;
   const waitState = reconnect ? (exhausted() ? "error" : "reconnecting") : "connecting";
   $state.set(waitState);
-  let hadAudio = false;                                          
+  let hadAudio = false;
   const armStall = () => { if (stallTimer) clearTimeout(stallTimer); stallTimer = setTimeout(() => { if (el === a && $state.get() !== "live") lost(a, station, hadAudio); }, 8000); };
   a.onplaying = () => { if (el !== a) return; fails = 0; attempt = 0; hadAudio = true; if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } $state.set("live"); if (!reconnect) ramp(a, 0, vol(), 500); };
   a.onwaiting = a.onstalled = () => { if (el !== a) return; if (hadAudio) { $state.set("reconnecting"); armStall(); } else $state.set(waitState); };
@@ -112,7 +111,7 @@ function play(station, { retryPlain = false, reconnect = false } = {}) {
   $playing.set(true);
   if (!wl) wl = wakeLock.acquire();
   hold();
-  mark = null;                                                   
+  mark = null;
   if (!liveTimer) liveTimer = setInterval(probe, 4000);
   pollNow(station);
 }
@@ -134,16 +133,16 @@ function probe() {
   if (gate || !$playing.get() || !el || $state.get() !== "live") return;
   const r = progressCheck({ time: el.currentTime, mark, now: performance.now() });
   mark = r.mark;
-  if (r.dead) lost(el, curStation(), true);                      
+  if (r.dead) lost(el, curStation(), true);
 }
 function relink() {
   if (!$playing.get() || gate) return;
   if ($state.get() !== "live") { if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; } play(curStation(), { reconnect: true }); return; }
-  probe();                                                       
+  probe();
 }
 if (typeof addEventListener !== "undefined") {
   addEventListener("online", relink);
-  try { navigator.connection?.addEventListener?.("change", relink); } catch {  }
+  try { navigator.connection?.addEventListener?.("change", relink); } catch { }
 }
 
 function fail() {
@@ -200,7 +199,7 @@ async function fetchNow(station) {
   try {
     const j = await fetchJson(`https://somafm.com/songs/${station.soma}.json`);
     if (curStation().id === station.id) $now.set(somaNow(j));
-  } catch {  }
+  } catch { }
 }
 function pollNow(station) {
   if (nowTimer) clearInterval(nowTimer);
@@ -211,22 +210,22 @@ let listenersAt = 0;
 async function fetchListeners() {
   if (gate || performance.now() - listenersAt < 60000) return;
   listenersAt = performance.now();
-  try { const m = somaChannels(await fetchJson("https://somafm.com/channels.json")); const out = {}; for (const k in m) out[k] = m[k].listeners; $listeners.set(out); } catch {  }
+  try { const m = somaChannels(await fetchJson("https://somafm.com/channels.json")); const out = {}; for (const k in m) out[k] = m[k].listeners; $listeners.set(out); } catch { }
 }
 
 const cycleCat = (d) => { const i = CATEGORIES.findIndex((c) => c.id === $cat.get()); setCat(CATEGORIES[(i + d + CATEGORIES.length) % CATEGORIES.length].id); };
 
 let syncApi = null, volSend = null;
-const $sync = atom("off");                                       
-const $peers = atom(1);                                          
-const $peer = atom(null);                                        
+const $sync = atom("off");
+const $peers = atom(1);
+const $peer = atom(null);
 const announce = () => syncApi?.sendState({ playing: $playing.get(), station: $station.get(), vol: vol() });
 $playing.listen(announce);
 $station.listen(announce);
 function setVol(v, remote) {
   const x = clampVol(v);
   $vol.set(String(x));
-  if (el) { try { el.volume = x; } catch {  } }
+  if (el) { try { el.volume = x; } catch { } }
   if (!remote && syncApi) {
     if (volSend) clearTimeout(volSend);
     volSend = setTimeout(() => { volSend = null; syncApi?.sendCmd("vol", vol()); announce(); }, 200);
@@ -256,7 +255,7 @@ function toggleFs(elm) {
     const r = elm.requestFullscreen?.({ navigationUI: "hide" }) || elm.webkitRequestFullscreen?.();
     if (r && r.catch) r.catch(() => {});
     if (!wl) wl = wakeLock.acquire();
-  } catch {  }
+  } catch { }
 }
 if (typeof document !== "undefined") document.addEventListener("fullscreenchange", () => { $fs.set(!!document.fullscreenElement); if (!document.fullscreenElement && wl && !$playing.get()) { wl.release(); wl = null; } });
 
@@ -276,7 +275,7 @@ function bands() {
   }
   env.bass = settle(env.bass, target.bass); env.mid = settle(env.mid, target.mid); env.treble = settle(env.treble, target.treble);
   env.phase += phaseStep(dt, (env.bass + env.mid) * 0.5);
-  env.ready = settle(env.ready, env.readyTo, 0.04, 0.08);       
+  env.ready = settle(env.ready, env.readyTo, 0.04, 0.08);
   return [env.bass, env.mid, env.treble, env.phase];
 }
 const inkFor = () => { const [r, g, b] = hslRgb(curCat().hue, 45, 52); return [r, g, b, env.ready]; };
@@ -318,8 +317,9 @@ export function tide({ S }) {
       <div class="shrink-0"><${Segmented} attr="data-current" scroll variant="outline" tone="frost" label=${T(t, "tabListen")}
         items=${currents} value=${catId} onChange=${setCat} /></div>
 
+      ${""}
       <div class="flex-1 min-h-0 flex flex-col justify-end px-1 gap-0.5 touch-none" data-now=${now ? "yes" : "no"} data-void ...${surface}>
-        
+        ${""}
         ${!playing && favItems.length ? html`<div class="shrink-0 self-start max-w-full mb-1" data-favs><${Segmented} attr="data-fav" scroll variant="outline" tone="frost" size="sm" label=${T(t, "favs")}
           items=${favItems} value=${station.id} onChange=${(id) => { const f = stationById(id); if (f && f.cat !== catId) setCat(f.cat); select(id); start(); }} /></div>` : null}
         ${(now || stateLine) ? html`<div class=${`font-mono uppercase tracking-wider text-[length:var(--ms-label)] truncate ${state === "error" ? "text-error" : "text-base-content/70"}`}>${[now?.artist, stateLine].filter(Boolean).join(" · ")}</div>` : null}
@@ -333,8 +333,6 @@ export function tide({ S }) {
           subtitle=${html`<span class="inline-flex items-center gap-1.5"><span class="tide-dot inline-block w-1.5 h-1.5 rounded-full shrink-0"></span>${T(t, cat.key)} · ${T(t, station.genre)}</span>`}
           actions=${[
             { id: "fav", icon: "lucide:heart", label: T(t, isFav ? "aUnfav" : "aFav"), active: isFav, pressed: isFav, onClick: () => toggleFav(station.id), attr: { "data-fav-btn": "" } },
-            
-            
             { id: "soundbtn", icon: "lucide:volume-2", label: T(t, "aSound"), onClick: () => S.screen.set("sound"), attr: { "data-sound": "" } },
             { id: "list", icon: "lucide:list-music", label: T(t, "aStations"), onClick: () => S.screen.set("stations"), attr: { "data-stations": "" } },
             ...(fsSupported ? [{ id: "fs", icon: fs ? "lucide:minimize" : "lucide:maximize", label: T(t, fs ? "aFsExit" : "aFs"), onClick: () => toggleFs(fieldRef.current), attr: { "data-fs-btn": "" } }] : []),
@@ -347,15 +345,11 @@ export function tide({ S }) {
   </${Fragment}>`;
 }
 
-
-
-
 function SoundSheet({ S, t, loc, open }) {
   const sess = useStore(session);
   const sync = useStore($sync), peers = useStore($peers), peer = useStore($peer);
   const v = clampVol(useStore($vol));
   const peerStation = peer && stationById(peer.station);
-  
   const label = "font-mono uppercase tracking-wider font-semibold text-[length:var(--ms-label)] text-base-content/70";
   const meta = "font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/70";
   return html`<${Sheet} id="sound" open=${open} onClose=${() => S.screen.set(null)} title=${T(t, "aSound")} icon="lucide:volume-2" tone="frost">
@@ -388,8 +382,6 @@ function SoundSheet({ S, t, loc, open }) {
     </div>
   <//>`;
 }
-
-
 
 function StationSheet({ S, t, open, cat, stId, playing }) {
   const listeners = useStore($listeners);

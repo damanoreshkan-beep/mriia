@@ -17,7 +17,7 @@ export default [
   },
   {
     name: "list: rows carry a percentage, and a vendor only where the address has one", run: async (h) => {
-      await h.click('[data-tab="list"]'); await h.wait(900);   
+      await h.click('[data-tab="list"]'); await h.wait(900);
       const rows = await h.count("[data-dev]");
       h.expect(rows >= 8, `очікував усі три радіо у списку, знайшов ${rows}`);
       for (const k of ["ble", "wifi", "lte"]) {

@@ -18,29 +18,29 @@ const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}><
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const META = "font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/70";
 const CARRIERS = [18000, 19000, 20000];
-const VOL_MAX = 0.1;                       
-const AUTO_STOP_MS = 5 * 60 * 1000;        
-const CAL_FRAMES = 30;                     
-const ROWS = 200;                          
+const VOL_MAX = 0.1;
+const AUTO_STOP_MS = 5 * 60 * 1000;
+const CAL_FRAMES = 30;
+const ROWS = 200;
 const EVENTS = collection("sonarEvents");
 
 const num = (v, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : "—");
 const kHz = (hz) => `${(hz / 1000).toFixed(1)} kHz`;
 
-const $status = atom("idle");              
+const $status = atom("idle");
 const $primed = persistentAtom("sonar:primed", "0");
-const $reading = atom(null);               
+const $reading = atom(null);
 const $active = atom(false);
 const $cal = atom({ frames: 0, ready: false });
 const $diag = atom({ ctxRate: 0, micRate: 0, emitted: 0, settings: null });
 const $carrier = persistentAtom("sonar:carrier", "19000");
 const $volume = persistentAtom("sonar:vol", "0.02");
-const $logv = atom(0);                     
+const $logv = atom(0);
 
 let eng = null, analyser = null, stream = null, srcNode = null, osc = null, oscGain = null;
 let raf = 0, buf = null, cal = null, det = null, lastT = 0, startedAt = 0, burst = null, frameN = 0;
-let paint = null;                          
-let gen = 0, wl = null;                    
+let paint = null;
+let gen = 0, wl = null;
 
 const carrierHz = () => Number($carrier.get()) || DEFAULTS.carrierHz;
 const volume = () => Math.min(VOL_MAX, Math.max(0, Number($volume.get()) || 0));
@@ -50,7 +50,7 @@ function gateFrame(i) {
   const base = { sampleRate: GATE_RATE, fftSize: DEFAULTS.fftSize, seed: (i % 11) + 1 };
   if (i < GATE_STILL) return synthSpectrum(base);
   const p = ((i - GATE_STILL) % 96) / 96;
-  if (p > 0.72) return synthSpectrum(base);                        
+  if (p > 0.72) return synthSpectrum(base);
   const swing = Math.sin((Math.PI * p) / 0.72);
   const hz = dopplerHz(0.06 + 0.42 * swing, carrierHz()) * (p < 0.36 ? 1 : -1);
   return synthSpectrum({ ...base, moves: [{ hz, db: -76 + 10 * swing }] });
@@ -101,7 +101,7 @@ function pump() {
   consume(buf, dt, eng.ctx.sampleRate);
 }
 
-const GATE_END = GATE_STILL + 96 * 2 + 25; 
+const GATE_END = GATE_STILL + 96 * 2 + 25;
 function gateWarmup() {
   reset();
   $diag.set({
@@ -115,17 +115,17 @@ function gateWarmup() {
 function teardown() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0; lastT = 0;
-  try { osc?.stop(); } catch {  }
-  try { osc?.disconnect(); oscGain?.disconnect(); srcNode?.disconnect(); } catch {  }
+  try { osc?.stop(); } catch { }
+  try { osc?.disconnect(); oscGain?.disconnect(); srcNode?.disconnect(); } catch { }
   osc = null; oscGain = null; srcNode = null; analyser = null; buf = null;
-  try { stream?.getTracks().forEach((tr) => tr.stop()); } catch {  }
+  try { stream?.getTracks().forEach((tr) => tr.stop()); } catch { }
   stream = null;
-  try { wl?.release(); } catch {  }
+  try { wl?.release(); } catch { }
   wl = null;
 }
 
 function stop() {
-  gen++;                                   
+  gen++;
   teardown();
   burst = null;
   $active.set(false);
@@ -156,13 +156,13 @@ async function start() {
 
   eng = eng || createEngine({ master: 1, noise: false });
   if (!eng) { teardown(); $status.set("unsupported"); return; }
-  eng.resume();                                             
+  eng.resume();
 
   const ctx = eng.ctx;
   analyser = ctx.createAnalyser();
   analyser.fftSize = DEFAULTS.fftSize;
-  analyser.smoothingTimeConstant = 0;                       
-  buf = new Float32Array(analyser.frequencyBinCount);       
+  analyser.smoothingTimeConstant = 0;
+  buf = new Float32Array(analyser.frequencyBinCount);
   srcNode = ctx.createMediaStreamSource(stream);
   srcNode.connect(analyser);
 
@@ -174,7 +174,7 @@ async function start() {
   oscGain.gain.setTargetAtTime(volume(), ctx.currentTime, 0.05);
 
   let settings = null;
-  try { settings = stream.getAudioTracks()[0]?.getSettings?.() || null; } catch {  }
+  try { settings = stream.getAudioTracks()[0]?.getSettings?.() || null; } catch { }
   $diag.set({ ctxRate: ctx.sampleRate, micRate: settings?.sampleRate || 0, emitted, settings });
 
   wl = wakeLock.acquire();
@@ -233,31 +233,30 @@ function Waterfall({ t }) {
           tmp.width = el.width || w; tmp.height = el.height || ROWS;
           tmp.getContext("2d")?.drawImage(el, 0, 0);
           keep = tmp;
-        } catch {  }
+        } catch { }
         el.width = w; el.height = ROWS;
-        try { if (keep) el.getContext("2d")?.drawImage(keep, 0, 0, w, ROWS); } catch {  }
+        try { if (keep) el.getContext("2d")?.drawImage(keep, 0, 0, w, ROWS); } catch { }
       }
       paint = makePainter(el, accent);
     };
     size();
     if (gate && $status.get() === "listening") gateWarmup();
     let ro = null;
-    try { ro = new ResizeObserver(size); ro.observe(wrap); } catch {  }
-    return () => { try { ro?.disconnect(); } catch {  } paint = null; };
+    try { ro = new ResizeObserver(size); ro.observe(wrap); } catch { }
+    return () => { try { ro?.disconnect(); } catch { } paint = null; };
   }, []);
   return html`<div ref=${box} class="relative flex-1 min-h-0 rounded-[var(--ms-r)] sf-inset overflow-hidden">
     <canvas ref=${canvas} class="absolute inset-0 w-full h-full"></canvas>
+    ${ ""}
     <div class="absolute inset-0 pointer-events-none text-base-content opacity-[0.08]"
       style="background-image:repeating-linear-gradient(to right,currentColor 0 1px,transparent 1px 20%),repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 25%)"></div>
-    
+    ${ ""}
     <div class="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-base-content/40"></div>
     <div class="absolute inset-x-0 bottom-0 flex justify-between px-2 py-1 font-mono text-[length:var(--ms-label)] uppercase tracking-wide text-base-content/70">
       <span>${T(t, "axisFar")}</span><span>${T(t, "axisNear")}</span>
     </div>
   </div>`;
 }
-
-
 
 export function sonar({ t, toast, S }) {
   const loc = useStore(S.locale);
@@ -319,7 +318,6 @@ const Metric = ({ label, value, unit, live }) => html`<div class="rounded-[var(-
   <div ...${live ? { "data-live": "1" } : {}} class="truncate"><span class="text-[length:var(--ms-title)] font-semibold">${value}</span><span class=${META}> ${unit}</span></div>
 </div>`;
 
-
 const GATE_LOG = [
   { id: "g3", t: 1754600000000, dur: 4.2, peak: 19.4, dir: 0.91 },
   { id: "g2", t: 1754599400000, dur: 1.1, peak: 12.8, dir: -0.44 },
@@ -342,18 +340,18 @@ export function sonarLog({ t, S, toast, confirm, undo }) {
 
   const del = async (it) => {
     const { id, _ts, ...rec } = it;
-    setList((rows) => (rows || []).filter((r) => r.id !== id));   
-    try { await EVENTS.remove(id); } catch {  }
+    setList((rows) => (rows || []).filter((r) => r.id !== id));
+    try { await EVENTS.remove(id); } catch { }
     $logv.set($logv.get() + 1);
-    undo?.(async () => { try { await EVENTS.put(id, rec); } catch {  } $logv.set($logv.get() + 1); }, T(t, "logDeleted"));
+    undo?.(async () => { try { await EVENTS.put(id, rec); } catch { } $logv.set($logv.get() + 1); }, T(t, "logDeleted"));
   };
   const clear = () => confirm?.({
     title: T(t, "logClearTitle"),
     body: T(t, "logClearBody", { n: (list || []).length }),
     verb: T(t, "logClear"),
-    onConfirm: async () => { try { await EVENTS.clear(); } catch {  } $logv.set($logv.get() + 1); toast?.(T(t, "logCleared")); },
+    onConfirm: async () => { try { await EVENTS.clear(); } catch { } $logv.set($logv.get() + 1); toast?.(T(t, "logCleared")); },
   });
-  
+
   if (!list) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel key=${i} class="card bg-base-100 rounded-[var(--ms-r)]"><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1"><div class="font-mono font-semibold"><${Scramble} len=${5} /></div><div class=${META}><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
   if (!list.length) {
     return html`<div class="flex flex-col items-center text-center gap-2 px-6 py-20 text-base-content/70">
@@ -381,7 +379,6 @@ export function sonarLog({ t, S, toast, confirm, undo }) {
     <button data-clear data-haptic="bump" class="btn btn-ghost btn-sm self-center mt-2 text-base-content/70" onClick=${clear}>${Icon("lucide:eraser")}${T(t, "logClear")}</button>
   </div>`;
 }
-
 
 export function sonarSignal({ t }) {
   const carrier = useStore($carrier), vol = useStore($volume), diag = useStore($diag), reading = useStore($reading);

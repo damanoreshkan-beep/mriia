@@ -16,9 +16,9 @@ const AppArt = (a, size) => a.icon
   ? html`<svg viewBox="0 0 24 24" style=${`width:${size};height:${size};color:var(--color-base-content)`} fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: a.art }}></svg>`
   : Icon(a.glyph, "", `font-size:${size};color:var(--color-base-content)`);
 const Tile = (a, cls) => html`<div class=${`relative shrink-0 rounded-[22%] overflow-hidden bg-black sf-raised sf-e2 flex items-center justify-center ${cls}`}>${AppArt(a, a.icon ? "100%" : "46%")}</div>`;
-const SEEN = collection("seen");      
+const SEEN = collection("seen");
 const CATALOG = collection("catalog");
-const appUrl = (id, install = false) => `../${id}/${install ? "?install=1" : ""}`;   
+const appUrl = (id, install = false) => `../${id}/${install ? "?install=1" : ""}`;
 const shotUrl = (a, tab, light) => `./assets/shot-${a.id}--${tab}${light ? "--light" : ""}.webp`;
 const CATS = ["science", "feeds", "tools", "sound", "hackrf", "creative", "money", "wellness", "play", "esoterica"];
 const catKey = (c) => "cat" + c[0].toUpperCase() + c.slice(1);
@@ -48,9 +48,9 @@ export function store({ S, openScreen, closeScreen }) {
   const searchOpen = useStore(S.searchOpen);
   const fieldRef = useRef(null);
   useEffect(() => { if (searchOpen) fieldRef.current?.focus?.(); else setQ(""); }, [searchOpen]);
-  const [seen, setSeen] = useState(null);   
-  const [fresh, setFresh] = useState(null); 
-  const [more, setMore] = useState(false);  
+  const [seen, setSeen] = useState(null);
+  const [fresh, setFresh] = useState(null);
+  const [more, setMore] = useState(false);
   useEffect(() => {
     Promise.all([SEEN.all(), CATALOG.all()]).then(([s, c]) => {
       setSeen(Object.fromEntries(s.map((x) => [x.id, x.v])));
@@ -63,7 +63,7 @@ export function store({ S, openScreen, closeScreen }) {
   }, []);
   useEffect(() => { setMore(false); }, [screen]);
   const badgeOf = (a) => (!seen || !fresh ? null : fresh.has(a.id) && !(a.id in seen) ? "new" : (a.id in seen) && seen[a.id] !== a.version ? "upd" : null);
-  const installed = (a) => !!seen && a.id in seen;   
+  const installed = (a) => !!seen && a.id in seen;
   const remember = (a) => { SEEN.put(a.id, { v: a.version }).catch(() => {}); setSeen((s) => ({ ...(s || {}), [a.id]: a.version })); };
   const launch = (a, install = false) => { remember(a); try { window.open(appUrl(a.id, install), "_blank", "noopener"); } catch { location.assign(appUrl(a.id, install)); } };
   const tag = (b) => b === "new" ? html`<span class=${`${LABEL} inline-flex items-center gap-1 shrink-0`}>${DOT()}${T(t, "newBadge")}</span>` : b === "upd" ? html`<span class=${`${LABEL} inline-flex items-center gap-1 shrink-0`}>${DOT(true)}${T(t, "updBadge")}</span>` : null;
@@ -74,6 +74,7 @@ export function store({ S, openScreen, closeScreen }) {
   const sel = screen ? apps.find((a) => a.id === screen) : null;
   const page = html`<${Sheet} id="appsheet" size="lg" open=${!!sel} onClose=${closeScreen} title=${sel ? nameOf(sel) : ""}>
     ${sel ? (() => { const b = badgeOf(sel), scr = screensOf(sel), shots = sel.shots || [], desc = taglineOf(sel), long = desc.length > 180; return html`<div class="flex flex-col gap-6 pb-2">
+      ${""}
       <div class="flex items-start gap-4">
         ${Tile(sel, "w-28 h-28")}
         <div class="min-w-0 flex-1 flex flex-col gap-1 pt-0.5">
@@ -85,14 +86,16 @@ export function store({ S, openScreen, closeScreen }) {
           </div>
         </div>
       </div>
+      ${""}
       <div class="grid grid-cols-4 divide-x divide-base-300/60 sf-inset rounded-[var(--ms-r-in)] py-3 text-center">
         ${[[T(t, "version"), `v${sel.version || "1.0"}`], [T(t, "category"), T(t, catKey(sel.category))], [T(t, "offline"), T(t, "yes")], [T(t, "screens"), String(scr.length || 1)]].map(([k, v]) => html`<div class="px-1 min-w-0 flex flex-col gap-1" key=${k}>
           <div class=${`${LABEL} truncate`}>${k}</div>
           <div class="text-sm font-semibold truncate">${v}</div>
         </div>`)}
       </div>
-      
+      ${""}
       ${needsUsb(sel) ? html`<div data-needs-device class="flex items-center gap-2 text-sm text-base-content sf-inset rounded-[var(--ms-r-in)] px-3 py-2">${Icon("lucide:usb", "shrink-0 text-[length:var(--ms-icon)]", "color:var(--app-accent)")}<span>${T(t, sel.deviceNote || "needsDeviceHackrf")}</span></div>` : null}
+      ${""}
       ${shots.length ? html`<div class="flex flex-col gap-2">
         <div class="font-bold text-lg px-0.5">${T(t, "screenshots")}</div>
         <div class="flex gap-3 overflow-x-auto snap-x [overscroll-behavior-x:contain] [scrollbar-width:none] -mx-[var(--ms-pad)] px-[var(--ms-pad)] pb-1">
@@ -101,7 +104,7 @@ export function store({ S, openScreen, closeScreen }) {
           </figure>`)}
         </div>
       </div>` : null}
-      
+      ${""}
       <div class="flex flex-col gap-1">
         <p class=${`text-[0.95rem] leading-relaxed text-base-content/85 break-words ${more || !long ? "" : "line-clamp-3"}`}>${desc}</p>
         ${long ? html`<button class="self-end text-sm font-semibold text-base-content" onClick=${() => setMore(!more)}>${more ? T(t, "less") : T(t, "more")}</button>` : null}
@@ -119,14 +122,9 @@ export function store({ S, openScreen, closeScreen }) {
     </div>`; })() : null}
   <//>`;
 
-  
-  
-  
-  
   const sloganOf = (a) => t?.["slogan_" + a.id] || "";
   const rtf = new Intl.RelativeTimeFormat(locale === "uk" ? "uk" : "en", { numeric: "auto" });
   const whenOf = (a) => { const d = ageDays(a); return d < 7 ? rtf.format(-d, "day") : rtf.format(-Math.round(d / 7), "week"); };
-  
   const eyebrowOf = (a) => `${isNewborn(a) ? whenOf(a) : T(t, "premium")} · ${T(t, catKey(a.category))}`;
   const Featured = (a) => { const tab = a.shots?.[0]; const slogan = sloganOf(a); return html`<article key=${a.id} class="st-hero relative rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
     <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
@@ -147,16 +145,13 @@ export function store({ S, openScreen, closeScreen }) {
       </div>` : null}
     </div>
   </article>`; };
-  
-  
-  
   const FeaturedTall = (a) => { const shot = firstShot(a); return html`<article key=${a.id} class="relative h-full rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
     <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
     <div class="relative h-full flex items-stretch gap-2.5 p-3 pointer-events-none">
       ${shot ? html`<div class="shrink-0 self-center w-14 aspect-[384/832] rounded-[var(--ms-r-in)] overflow-hidden bg-black sf-raised sf-e2"><img src=${shot} alt="" loading="lazy" decoding="async" class="w-full h-full block" /></div>` : null}
       <div class="min-w-0 flex-1 flex flex-col gap-1 py-0.5">
         <div class=${`${LABEL} flex items-center gap-1.5 min-w-0`}>${isNewborn(a) ? DOT() : null}<span class="truncate">${isNewborn(a) ? whenOf(a) : T(t, catKey(a.category))}</span></div>
-        
+        ${""}
         <span class="font-bold text-[0.88rem] leading-tight line-clamp-2 break-words">${nameOf(a)}</span>
         <div class="mt-auto pt-1">${pill(a, "pointer-events-auto")}</div>
       </div>
@@ -172,10 +167,7 @@ export function store({ S, openScreen, closeScreen }) {
     </button>
     ${pill(a)}
   </div>`; };
-  
-  
   const rows = (items) => html`<div class="flex flex-col [&>div+div]:border-t [&>div+div]:border-base-300/40">${items.map(Row)}</div>`;
-  
   const CAT_GLYPH = { science: "lucide:orbit", feeds: "lucide:rss", tools: "lucide:wrench", sound: "lucide:music-4", hackrf: "lucide:radio", creative: "lucide:sparkles", money: "lucide:coins", wellness: "lucide:leaf", play: "lucide:gamepad-2", esoterica: "lucide:moon-star" };
   const sectionHead = (label, count, cat) => html`<div class="flex items-baseline justify-between gap-3 px-0.5">
     <span class="font-bold text-[1.15rem] leading-tight tracking-tight inline-flex items-center gap-2">${cat && CAT_GLYPH[cat] ? Icon(CAT_GLYPH[cat], "st-cat-glyph") : null}${label}</span>
@@ -183,12 +175,8 @@ export function store({ S, openScreen, closeScreen }) {
   </div>`;
   const noResults = html`<div class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6">${Icon("lucide:search-x", "text-4xl")}<span>${T(t, "noResults")}</span></div>`;
   const dateLine = new Intl.DateTimeFormat(locale === "uk" ? "uk-UA" : "en-GB", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
-  
   const query = q.trim().toLowerCase();
   const found = query ? apps.filter((a) => (nameOf(a) + " " + taglineOf(a)).toLowerCase().includes(query)).sort(byName) : null;
-  
-  
-  
   const onType = (e) => { setQ(e.target.value); if (e.target.value && !S.searchOpen.get()) S.searchOpen.set(true); };
   const headRow = searchOpen
     ? html`<div data-search-open class="flex items-center gap-2 h-[var(--ms-ctl)] px-0.5">
@@ -207,18 +195,10 @@ export function store({ S, openScreen, closeScreen }) {
         <button id="search-btn" class="btn btn-ghost btn-sm btn-circle shrink-0 mb-0.5" aria-label=${T(t, "search")} onClick=${() => S.searchOpen.set(true)}>${Icon("lucide:search", "text-xl")}</button>
       </div>`;
 
-  
-  
-  
-  
   const railRef = useRef(null);
   const [slide, setSlide] = useState(0);
   const onRail = () => { const el = railRef.current; if (!el || el.children.length < 2) return; const step = el.children[1].offsetLeft - el.children[0].offsetLeft; setSlide(Math.max(0, Math.min(SLIDES.length - 1, Math.round(el.scrollLeft / step)))); };
   const goSlide = (i) => { const el = railRef.current; if (!el?.children[i]) return; el.scrollTo({ left: el.children[i].offsetLeft - el.children[0].offsetLeft, behavior: "smooth" }); };
-  
-  
-  
-  
   const Fresh = (a, i) => { const life = Math.max(0.12, 1 - ageDays(a) / FRESH_DAYS); return html`<button key=${a.id} data-app=${a.id} data-fresh-card aria-label=${nameOf(a)} onClick=${() => tap(a)} style=${`--life:${life.toFixed(2)};--i:${i}`} class="st-fresh relative w-full text-left rounded-[calc(var(--ms-r)*.8)] sf-raised sf-e2 overflow-hidden flex items-center gap-3 p-2.5 pl-3.5">
     <span aria-hidden="true" class="st-fresh-life"></span>
     ${Tile(a, "w-11 h-11")}
@@ -250,9 +230,6 @@ export function store({ S, openScreen, closeScreen }) {
     </div>`;
   }
 
-  
-  
-  
   return html`<div class="flex flex-col gap-7" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-featured=${FEATURED.length} data-store-newborn=${NEWBORN.length} data-store-page=${sel ? sel.id : null}>
     ${headRow}
     ${FEATURED.length ? html`<div class="ms-stagger grid grid-cols-2 md:grid-cols-3 gap-3">${FEATURED.map((a, i) => html`<div style=${`--i:${i}`} key=${a.id} class=${i === 0 ? "col-span-2 md:col-span-3" : "min-h-0"}>${i === 0 ? Featured(a) : FeaturedTall(a)}</div>`)}</div>` : null}

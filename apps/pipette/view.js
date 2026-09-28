@@ -23,7 +23,7 @@ export function pipette({ S }) {
   const [picked, setPicked] = useState(seed ? seed.picked : null);
   const [pal, setPal] = useState(seed ? seed.pal : []);
   const [ready, setReady] = useState(false);
-  const [vid, setVid] = useState(null);           
+  const [vid, setVid] = useState(null);
   const [frozen, setFrozen] = useState(false);
   const canvasRef = useRef(), frozenRef = useRef(false);
   frozenRef.current = frozen;
@@ -41,7 +41,7 @@ export function pipette({ S }) {
         const cx = (W >> 1) - 3, cy = (H >> 1) - 3;
         setPicked(avgColor(ctx.getImageData(cx, cy, 6, 6).data));
         setPal(palette(ctx.getImageData(0, 0, W, H).data, 5));
-      } catch {  }
+      } catch { }
     };
     const timer = setInterval(sample, 150);
     return () => clearInterval(timer);
@@ -49,7 +49,7 @@ export function pipette({ S }) {
 
   const copy = async (rgb) => {
     const hex = rgbToHex(rgb);
-    try { await navigator.clipboard.writeText(hex); S.toast?.(T(t, "copied", { v: hex })); } catch {  }
+    try { await navigator.clipboard.writeText(hex); S.toast?.(T(t, "copied", { v: hex })); } catch { }
   };
 
   const hex = picked ? rgbToHex(picked) : "—";
@@ -60,10 +60,12 @@ export function pipette({ S }) {
   return html`<div class="ms-stage z-20 bg-base-200 flex flex-col">
     <!-- preview -->
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
+      ${""}
       <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")}
           still=${null} show=${true} fullscreen=${false} gestures=${true} primeFull=${true}
           onVideo=${(el) => setVid(el)} onState=${(s) => setReady(!!s.ready)}>
         ${gate ? html`<div class="absolute inset-0 z-[2]" style=${`background:${grad}`}></div>` : null}
+        ${""}
         ${ready ? html`<div class="absolute inset-0 z-[2] flex items-center justify-center pointer-events-none">
           <div class="w-16 h-16 rounded-full border-2 border-white/90" style="box-shadow:0 0 0 2px rgba(0,0,0,.45),inset 0 0 0 1px rgba(0,0,0,.35)">
             <div class="w-full h-full rounded-full flex items-center justify-center">
@@ -75,14 +77,14 @@ export function pipette({ S }) {
       <canvas ref=${canvasRef} class="hidden"></canvas>
     </div>
 
-    
+    ${""}
     <div class="shrink-0 p-3">
       <${Panel} className="max-w-md w-full mx-auto">
         <div class="flex items-center gap-3">
-          
+          ${""}
           <button aria-label=${hex} onClick=${() => picked && copy(picked)} class="w-14 h-14 rounded-2xl shrink-0 sf-raised active:scale-95 transition" style=${picked ? `background:${hex}` : ""}></button>
           <div class="flex-1 min-w-0">
-            
+            ${""}
             <div data-readout class="text-2xl font-bold font-mono tabular-nums leading-tight">${hex}</div>
             <div class="text-[0.7rem] text-muted font-mono leading-snug truncate">${rgbStr}</div>
             ${hslStr ? html`<div class="text-[0.7rem] text-muted font-mono leading-snug truncate">${hslStr}</div>` : null}
@@ -90,6 +92,7 @@ export function pipette({ S }) {
           <button data-freeze aria-label=${T(t, frozen ? "live" : "freeze")} aria-pressed=${frozen} onClick=${() => setFrozen((f) => !f)} class=${`btn btn-circle btn-sm ${frozen ? "btn-primary" : "btn-ghost"}`}>${Icon(frozen ? "lucide:play" : "lucide:snowflake", "text-lg")}</button>
         </div>
         <div class="flex gap-2">
+          ${""}
           ${(pal.length ? pal : Array(5).fill(null)).map((c, i) => c
             ? html`<button data-swatch aria-label=${rgbToHex(c)} onClick=${() => copy(c)} class="flex-1 h-9 rounded-lg sf-e2 active:scale-95 transition" style=${`background:${rgbToHex(c)}`} key=${i}></button>`
             : html`<div class="flex-1 h-9 rounded-lg sf-inset" key=${i}></div>`)}

@@ -17,7 +17,7 @@ const COUNTRIES = [
   ["in", "India"], ["tr", "Türkiye"], ["jp", "Japan"], ["kr", "South Korea"],
   ["au", "Australia"], ["ae", "UAE"], ["sa", "Saudi Arabia"],
 ];
-const CAP = 120;   
+const CAP = 120;
 
 const $country = atom("us"), $channels = atom([]), $loading = atom(true), $err = atom(false);
 const $cat = atom(""), $query = atom(""), $sel = atom(null);
@@ -48,6 +48,7 @@ async function loadCountry(code) {
 }
 
 const Tile = ({ ch, onPlay }) => html`<button data-ch class="flex flex-col gap-1 min-w-0 active:scale-95 transition-transform" aria-label=${ch.name} onClick=${() => onPlay(ch)}>
+  ${""}
   <div class="aspect-video rounded-lg sf-inset overflow-hidden relative flex items-center justify-center">
     ${Icon("lucide:tv", "text-2xl text-base-content/25 absolute")}
     ${ch.logo ? html`<img src=${ch.logo} alt="" loading="lazy" class="relative w-full h-full object-contain p-1" onError=${(e) => e.currentTarget.remove()} />` : null}
@@ -79,10 +80,11 @@ export function iptv({ S }) {
         </label>
       </div></div>
 
-      
+      ${""}
       ${cats.length > 1 ? html`<${Segmented} scroll size="sm" attr="data-cat" label=${T(t, "aCats")}
         items=${[{ id: "", label: T(t, "allCats") }, ...cats.map((c) => ({ id: c, label: c }))]}
         value=${cat} onChange=${(id) => $cat.set(id === cat ? "" : id)} />` : null}
+
       ${loading ? html`<div class="grid grid-cols-3 gap-2.5">${Array.from({ length: 12 }).map((_, i) => html`<div key=${i} class="flex flex-col gap-1"><div class="aspect-video rounded-lg overflow-hidden"><${Pixels} cls="w-full h-full" /></div></div>`)}</div>`
         : err ? html`<div class="flex flex-col items-center gap-2 py-16 text-muted">${Icon("lucide:cloud-off", "text-4xl")}<div>${T(t, "loadErr")}</div><button class="btn btn-sm btn-outline rounded-2xl" onClick=${() => loadCountry(country)}>${T(t, "retry")}</button></div>`
         : !filtered.length ? html`<div class="flex flex-col items-center gap-2 py-16 text-muted">${Icon("lucide:tv-minimal", "text-4xl")}<div>${T(t, "noChannels")}</div></div>`

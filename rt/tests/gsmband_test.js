@@ -1,7 +1,5 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { BANDS, arfcnToFreq, freqToArfcn, arfcnPowers, activeArfcns, steadyScore } from "../gsmband.js";
-
 
 Deno.test("arfcn↔freq per TS 45.005, round-trips", () => {
   assertEquals(arfcnToFreq("gsm900", 1), 935.2e6);

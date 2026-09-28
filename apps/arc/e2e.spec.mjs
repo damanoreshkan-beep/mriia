@@ -48,7 +48,7 @@ export default [
   {
     name: "КОЖЕН блок має власний повзунок на три дискретні позиції", run: async (h) => {
       h.expect(await openBook(h), "читач не відкрився з картки");
-      await h.tap("[data-reveal]"); await h.wait(400);       
+      await h.tap("[data-reveal]"); await h.wait(400);
       for (const slot of ["1", "2", "3", "ask"]) {
         const sel = `[data-level-${slot}] input`;
         h.expect((await h.count(sel)) === 1, `блок «${slot}» без власного повзунка`);

@@ -1,4 +1,3 @@
-
 import { parseAd, adSummary, smooth } from "./radar.js";
 
 /** The SIG's internal / interoperability-test space. The shell fixes it so a page cannot wear a vendor id. */
@@ -6,9 +5,9 @@ export const COMPANY = 0xffff;
 
 export const MAGIC = 0xe1;
 
-export const HEADER = 5;        
+export const HEADER = 5;
 export const MAX_PAYLOAD = 27;
-export const MAX_TEXT = MAX_PAYLOAD - HEADER;   
+export const MAX_TEXT = MAX_PAYLOAD - HEADER;
 
 export const VOICE_TTL_MS = 180_000;
 

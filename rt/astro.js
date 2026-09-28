@@ -51,7 +51,7 @@ export function skyPositions(lat, lng, date, keys = BODY_KEYS, { aboveHorizon = 
       const h = Astro.Horizon(time, obs, eq.ra, eq.dec, "normal");
       out.push({ key: k, az: h.azimuth, alt: h.altitude });
     }
-  } catch {  }
+  } catch { }
   return aboveHorizon ? out.filter((m) => m.key === "sun" || m.alt > 0) : out;
 }
 
@@ -64,14 +64,13 @@ export function eclipticPositions(date, keys = BODY_KEYS) {
       const ecl = Astro.Ecliptic(Astro.GeoVector(BODIES[k].name, time, true));
       out.push({ key: k, lon: (ecl.elon + 360) % 360 });
     }
-  } catch {  }
+  } catch { }
   return out;
 }
 
 export const sunTimes = (lat, lng, date) => SunCalc.getTimes(date, lat, lng);
 
 export { ASPECTS, aspects } from "./aspects.js";
-
 
 export function chartFrame(date, lng) {
   const t = new Astro.AstroTime(date);

@@ -1,4 +1,3 @@
-
 /** Line values. 6 and 9 move; 7 and 8 are static. */
 export const OLD_YIN = 6, YOUNG_YANG = 7, YOUNG_YIN = 8, OLD_YANG = 9;
 
@@ -13,7 +12,6 @@ export const METHODS = {
   yarrow: { id: "yarrow", weights: { 6: 1, 7: 5, 8: 7, 9: 3 }, total: 16 },
 };
 
-
 /** Draw one line value from a method, given a random source in [0,1). */
 export function castLine(method = "yarrow", rnd = Math.random) {
   const m = METHODS[method];
@@ -23,7 +21,7 @@ export function castLine(method = "yarrow", rnd = Math.random) {
     n -= m.weights[v];
     if (n < 0) return Number(v);
   }
-  return YOUNG_YIN;                       
+  return YOUNG_YIN;
 }
 
 /** Six line values, BOTTOM FIRST. `lines[0]` is the bottom line (line 1). */
@@ -102,12 +100,12 @@ export function reading(lines) {
   const moving = movingLines(lines);
   const toBits = transform(lines);
   return {
-    lines,                                   
+    lines,
     bits,
     number: hexagramNumber(bits),
     lower: lowerTrigram(bits),
     upper: upperTrigram(bits),
-    moving,                                  
+    moving,
     changing: moving.length > 0,
     toBits: moving.length ? toBits : null,
     toNumber: moving.length ? hexagramNumber(toBits) : null,

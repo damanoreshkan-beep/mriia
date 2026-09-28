@@ -12,7 +12,7 @@ import { SKINS, WEAPONS, GEN_PRICE, skinById, weaponById, avatarUrl, myChars, pi
 import { GenSheet } from "./gen.js";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const SWIPE_PX = 40;   
+const SWIPE_PX = 40;
 const KEYS = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "jump", KeyW: "jump", ArrowDown: "slide", KeyS: "slide" };
 const WEAPON_ICON = { pistol: "lucide:crosshair", shotgun: "lucide:flame", smg: "lucide:zap" };
 const armUrl = (id) => new URL(`assets/arm-${id}.webp`, import.meta.url).href;
@@ -41,7 +41,7 @@ export function blackout({ S, openScreen, closeScreen }) {
   const [acts, setActs] = useState(0), [shots, setShots] = useState(0), [moodNow, setMood] = useState("");
   const canvasRef = useRef(null), hud = useRef(null);
   const engine = useRef(null);
-  const touch = useRef(null);   
+  const touch = useRef(null);
   const moodTimer = useRef(0);
 
   const act = useCallback((what) => {
@@ -131,6 +131,7 @@ export function blackout({ S, openScreen, closeScreen }) {
     <div ref=${hud} data-game data-state=${state} data-phys=${phys} data-why=${why} data-dist=${m} data-coins=${run.coins} data-lane=${run.lane}
       data-near=${near.toFixed(2)} data-frame=${run.frame} data-best=${best} data-skin=${skin} data-acts=${acts} data-shots=${shots} data-ammo=${run.ammo} data-boost=${boost} data-weapon=${weapon} data-kills=${run.kills || 0}
       class="relative z-10 h-full min-h-0 flex flex-col select-none">
+      ${""}
       ${state !== "idle" ? html`<div class="flex items-start justify-between px-1 pt-1 pointer-events-none">
         <div class="bo-chip flex flex-col items-start leading-none">
           <span class="font-mono tabular-nums text-3xl font-bold">${m}<span class="text-base font-normal opacity-70 ml-1">${T(t, "unitM")}</span></span>
@@ -148,11 +149,14 @@ export function blackout({ S, openScreen, closeScreen }) {
           <iconify-icon icon=${WEAPON_ICON[W.id] || "lucide:crosshair"}></iconify-icon><span class=${run.reload ? "opacity-50" : ""}>${run.reload ? "···" : `${run.ammo}/${W.mag}`}</span>
         </div>
       </div>` : null}
+      ${""}
       ${state === "run" && !gate ? html`<div data-face data-mood=${moodNow} class="bo-face" aria-hidden="true"></div>` : null}
 
+      ${""}
       <div class="flex-1 min-h-0 relative">
         <div data-swipe class="absolute inset-0 touch-none" onPointerDown=${swDown} onPointerMove=${swMove} onPointerUp=${swUp} onPointerCancel=${swUp} aria-hidden="true"></div>
 
+        ${""}
         ${state === "idle" ? html`<div data-cover class="absolute inset-0 flex flex-col justify-between px-4 pt-3 pb-3 bo-menu">
           <div class="flex items-start justify-between">
             <div class="flex flex-col leading-none">
@@ -202,6 +206,7 @@ export function blackout({ S, openScreen, closeScreen }) {
         </div>` : null}
       </div>
     </div>
+    ${""}
     ${screen === "topup" ? html`<${CoinSheet} t=${t} loc=${loc} open=${true} onClose=${closeScreen} wallet=${wallet} coinClass="bo-gold" />` : null}
     ${screen === "sound" ? html`<${SoundSheet} t=${t} loc=${loc} onClose=${closeScreen} preview=${(bus) => engine.current?.preview(bus)} />` : null}
   </${Fragment}>`;

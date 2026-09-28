@@ -13,7 +13,7 @@ import { createUsbSession } from "/_rt/usbsession.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const fMhz = (hz) => (hz / 1e6).toFixed(1);
 const NORM_LO = -118, NORM_HI = -48;
 const norm = (db) => Math.max(0, Math.min(1, (db - NORM_LO) / (NORM_HI - NORM_LO)));
@@ -52,7 +52,7 @@ function rgbTriplet(cv, prop) {
     if (hex) return [1, 3, 5].map((i) => parseInt(hex[1].slice(i, i + 2), 16)).join(",");
     const rgb = v.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
     if (rgb) return `${rgb[1]},${rgb[2]},${rgb[3]}`;
-  } catch {  }
+  } catch { }
   return "128,128,128";
 }
 function drawSpectrum(cv, bins) {
@@ -76,11 +76,11 @@ function useCanvas(draw, deps) {
   const fit = (cv) => {
     const box = cv.parentElement; if (!box) return false;
     const r = box.getBoundingClientRect(), w = Math.round(r.width), h = Math.round(r.height);
-    if (!w || !h) return false;                                    
+    if (!w || !h) return false;
     cv.style.display = "block"; cv.style.width = `${w}px`; cv.style.height = `${h}px`;
     const dpr = Math.min(2, (typeof devicePixelRatio !== "undefined" && devicePixelRatio) || 1);
     const ww = w * dpr, hh = h * dpr;
-    if (cv.width !== ww || cv.height !== hh) { cv.width = ww; cv.height = hh; }   
+    if (cv.width !== ww || cv.height !== hh) { cv.width = ww; cv.height = hh; }
     return true;
   };
   useEffect(() => {
@@ -123,6 +123,7 @@ export function gsmscanView({ S, screen, openScreen, closeScreen }) {
   if (!connected) {
     const supported = usbSupported() && usbOk;
     return html`<div class="flex flex-col items-center justify-center text-center gap-5 pt-10 px-2 max-w-sm mx-auto" data-connect-state=${supported ? "ready" : "unsupported"}>
+      ${""}
       <div class="w-20 h-20 rounded-[var(--ms-r)] grid place-items-center sf-raised sf-e3 text-[var(--app-accent)]">${Icon("lucide:antenna", "text-4xl")}</div>
       <h2 class="text-2xl font-semibold">${T(t, "connectTitle")}</h2>
       <p class="text-base-content/70 leading-relaxed">${T(t, "connectBody")}</p>
@@ -142,7 +143,9 @@ export function gsmscanView({ S, screen, openScreen, closeScreen }) {
       </div>
 
       <!-- band spectrum -->
+      ${""}
       <div class="w-full rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
+        ${""}
         <div style="height:6rem">
           <canvas ref=${useCanvas((cv) => drawSpectrum(cv, $spectrum.get()), [spectrum, theme])} class="block w-full h-full text-base-content" role="img" aria-label=${T(t, "spectrum")} data-spectrum></canvas>
         </div>
@@ -161,7 +164,7 @@ export function gsmscanView({ S, screen, openScreen, closeScreen }) {
           <span class="font-mono tabular-nums text-lg w-14 shrink-0">${a.arfcn}</span>
           <div class="flex-1 min-w-0 flex flex-col">
             <span class="font-mono tabular-nums text-sm truncate">${fMhz(a.freq)}<span class="text-muted"> MHz</span></span>
-            
+            ${""}
             ${a.bcch ? html`<span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-info" data-bcch>BCCH · C0</span>` : null}
           </div>
           <${Bars} level=${norm(a.db)} label=${T(t, "sigLabel")} />
@@ -172,7 +175,7 @@ export function gsmscanView({ S, screen, openScreen, closeScreen }) {
     </div>
 
     <!-- floating control island: sweep status + settings + power -->
-    
+    ${""}
     <${Island} pinned data-player className="w-full max-w-[440px] flex items-center gap-2.5">
         ${Icon("lucide:radar", `text-lg shrink-0 ${sweep.active ? "text-[var(--app-accent)]" : "text-muted"}`)}
         <span class="flex-1 min-w-0 text-sm font-medium truncate">${T(t, "scanning")} <span class="font-mono text-[length:var(--ms-label)] text-base-content/70">${BANDS[band].label}</span></span>
@@ -184,10 +187,6 @@ export function gsmscanView({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
-
-
-
-
 function Bars({ level, label }) {
   const bars = 4, lit = Math.round(level * bars);
   return html`<div class="flex items-end gap-[3px] h-6 shrink-0" role="img" aria-label=${label} data-signal>
@@ -197,8 +196,6 @@ function Bars({ level, label }) {
 
 function SettingsSheet({ open, onClose, t, demo }) {
   const lna = useStore($lna), vga = useStore($vga);
-  
-  
   return html`<${Sheet} id="rfsheet" open=${open} onClose=${onClose} title=${T(t, "settings")} icon="lucide:sliders-horizontal">
     <${Slider} attr="data-gain" id="lna" label=${T(t, "gainLna")} value=${lna} min=${0} max=${40} step=${8} onInput=${(v) => { $lna.set(v); pushGain(); }} />
     <${Slider} attr="data-gain" id="vga" label=${T(t, "gainVga")} value=${vga} min=${0} max=${62} step=${2} onInput=${(v) => { $vga.set(v); pushGain(); }} />

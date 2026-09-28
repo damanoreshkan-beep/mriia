@@ -91,13 +91,14 @@ export function vidlunnia({ t, S, screen, closeScreen, toast, undo }) {
         <textarea data-words rows="2" value=${words} spellcheck="false" aria-label=${T(t, "wordsLabel")} placeholder=${T(t, "wordsPlaceholder")}
           onInput=${(e) => $words.set(e.currentTarget.value.slice(0, 400))}
           class="vd-words w-full min-w-0 resize-none bg-transparent text-[0.95rem] leading-snug focus:outline-none placeholder:text-base-content/45"></textarea>
+        ${""}
         <button data-voice-pick class="flex items-center gap-2 w-full min-w-0 text-left h-[var(--ms-ctl)]" onClick=${() => S.screen.set("voices")}>
           <span class=${`${label} shrink-0`}>${T(t, "voice")}</span>
           <span data-voice-name class="truncate text-sm">${voiceName(t, voice)}</span>
           ${named ? html`<span class=${`${label} shrink-0`}>${T(t, LANG_KEY[named.lang] || "lUk")}</span>` : null}
           ${Icon("lucide:chevron-right", "ml-auto text-base shrink-0 text-base-content/70")}
         </button>
-        
+        ${""}
         ${clone ? html`<div data-styles class="vd-cards flex gap-2 overflow-x-auto min-w-0 -mx-1 px-1 pb-1" role="group" aria-label=${T(t, "style")}>
           <button data-style="" aria-pressed=${!style} class=${`vd-card shrink-0 ${!style ? "vd-card-on" : ""}`} onClick=${() => selectStyle("")}>
             <span class="vd-card-pic grid place-items-center">${Icon("lucide:user-round", "text-xl")}</span>

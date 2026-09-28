@@ -1,4 +1,3 @@
-
 export const RIPPLE_DEFAULTS = { speed: 4.6, width: 0.95, wavelength: 1.7, life: 1.6, spread: 0.13, max: 14 };
 
 export function ring(u, width, k) {
@@ -16,7 +15,7 @@ export function RippleField(opts = {}) {
 
     strike(x, y, { amp = 1, hue = 260, t = 0 } = {}) {
       src.push({ x, y, amp, hue, t0: t });
-      if (src.length > o.max) src.shift();           
+      if (src.length > o.max) src.shift();
       return src.length;
     },
 
@@ -26,7 +25,7 @@ export function RippleField(opts = {}) {
         const s = src[i], age = t - s.t0;
         if (age < 0) continue;
         const env = s.amp * decayAt(age);
-        if (env < 0.004) continue;                   
+        if (env < 0.004) continue;
         const front = o.speed * age;
         const dx = x - s.x, dy = y - s.y, d = Math.sqrt(dx * dx + dy * dy);
         const contrib = (env / (1 + o.spread * front)) * ring(d - front, o.width, k);

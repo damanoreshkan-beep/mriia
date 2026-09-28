@@ -11,7 +11,7 @@ async function run(cfg) {
   if (!rx) { post({ type: "error", message: "device-gone" }); return; }
   const decim = Math.max(1, Math.round(SR / cfg.bw)), bwRate = SR / decim;
   const taps = firLowpass(33, cfg.bw * 0.5, SR);
-  const RING = Math.round(bwRate * 1.5);                  
+  const RING = Math.round(bwRate * 1.5);
   try {
     await rx.open(); await rx.setSampleRate(SR); await rx.setBasebandFilter(1_750_000);
     await rx.setAmp(false); await rx.setLnaGain(32); await rx.setVgaGain(30);
@@ -49,20 +49,20 @@ async function run(cfg) {
     if (++blk % DECODE_EVERY === 0 && filled >= WF_FFT) {
       const lin = new Float32Array(filled), liq = new Float32Array(filled), start = (wr - filled + RING) % RING;
       for (let n = 0; n < filled; n++) { const idx = (start + n) % RING; lin[n] = ri[idx]; liq[n] = rq[idx]; }
-      let res = null; try { res = decodeLoraSignal(lin, liq, { sf: cfg.sf, hasHeader: true }); } catch {  }
+      let res = null; try { res = decodeLoraSignal(lin, liq, { sf: cfg.sf, hasHeader: true }); } catch { }
       const found = !!(res && res.found);
       post({ type: "level", active: found });
       if (found) post({ type: "detect", sf: cfg.sf, bw: cfg.bw, count: packets });
       if (found && res.bytes && res.bytes.length) {
         const hex = Array.from(res.bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-        if (hex !== lastHex || blk - lastAt > 24) {       
+        if (hex !== lastHex || blk - lastAt > 24) {
           lastHex = hex; lastAt = blk; packets++;
           post({ type: "packet", bytes: Array.from(res.bytes), crcOk: !!res.crcOk, sf: cfg.sf, cfo: res.cfo, count: packets });
         }
       }
     }
   }
-  try { await rx.stop(); } catch {  }
+  try { await rx.stop(); } catch { }
   post({ type: "stopped" });
 }
 

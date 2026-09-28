@@ -11,7 +11,7 @@ const TECHS = {
   calm: { name: "tCalm", sub: "sCalm", in: 4, h1: 0, out: 6, h2: 0 },
 };
 const ORDER = ["box", "478", "coherent", "calm"];
-const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2); 
+const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
 const readTech = () => { try { const k = localStorage.getItem("breathe.tech"); return TECHS[k] ? k : "box"; } catch { return "box"; } };
 
 export function breathe({ S }) {
@@ -21,7 +21,7 @@ export function breathe({ S }) {
   const [playing, setPlaying] = useState(true);
   const orbRef = useRef(), phaseRef = useRef(), countRef = useRef();
 
-  const choose = (k) => { setTech(k); try { localStorage.setItem("breathe.tech", k); } catch {  } };
+  const choose = (k) => { setTech(k); try { localStorage.setItem("breathe.tech", k); } catch { } };
 
   useEffect(() => {
     if (!playing) return;
@@ -47,13 +47,16 @@ export function breathe({ S }) {
 
   return html`<div data-breathe data-tech-sel=${tech} data-playing=${playing ? "1" : "0"} class="flex flex-col items-center gap-[calc(var(--ms-gap)*1.5)] pt-2">
     <div class="flex flex-col gap-1 self-stretch min-w-0 px-[var(--ms-pad)]">
+      ${""}
       <${Segmented} attr="data-tech" scroll label=${T(t, "tabBreathe")}
         items=${ORDER.map((k) => ({ id: k, label: T(t, TECHS[k].name), title: T(t, TECHS[k].sub) }))} value=${tech} onChange=${choose} />
     </div>
-    
+
+    ${""}
     <div class="w-full flex justify-center py-3">
       <div ref=${orbRef} data-orb class="br-orb w-full max-w-[210px] aspect-square rounded-full" style="will-change:transform"></div>
     </div>
+
     <div class="flex flex-col items-center gap-[var(--ms-gap)] -mt-4 self-stretch">
       <div ref=${phaseRef} data-phase class="text-xl font-semibold text-base-content/80 h-7"></div>
       <div ref=${countRef} class="text-6xl font-bold tabular-nums leading-none h-14"></div>

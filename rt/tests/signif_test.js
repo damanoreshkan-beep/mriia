@@ -1,8 +1,6 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { BODY as sgBODY, SIGN as sgSIGN, HOUSE as sgHOUSE, ASPECT as sgASPECT, ANGLE as sgANGLE, DIGNITY as sgDIGNITY, dignityOf as sgDignity, chartRuler as sgChartRuler, balance as sgBalance, CORPUS as sgCORPUS, groundSky as sgGroundSky, groundTransit as sgGroundTransit, groundPlacement as sgGroundPlacement, groundPortrait as sgGroundPortrait, groundCusp as sgGroundCusp, rulerOf as sgRulerOf, spanLabel as sgSpan, QUESTIONS as sgQUESTIONS, questionById as sgQuestionById, groundQuestion as sgGroundQuestion } from "../signif.js";
 import { TRANSIT_ASPECTS } from "../natal.js";
-
 
 Deno.test("signif/corpus: every leaf is an [en, uk] pair, and neither half is missing", () => {
   const seen = { n: 0 };
@@ -195,8 +193,8 @@ Deno.test("signif/spanLabel: days, months or years — the unit the reader would
   const d = (n) => n * 86400000;
   assertEquals(sgSpan(0, d(12)), "12 days");
   assertEquals(sgSpan(0, d(44)), "44 days");
-  assertEquals(sgSpan(0, d(45)), "about 1 month");      
-  assertEquals(sgSpan(0, d(273)), "about 9 months");    
+  assertEquals(sgSpan(0, d(45)), "about 1 month");
+  assertEquals(sgSpan(0, d(273)), "about 9 months");
   assertEquals(sgSpan(0, d(547)), "about 1.5 years");
   assertEquals(sgSpan(0, d(365)), "about 12 months");
   assertEquals(sgSpan(0, d(2557)), "about 7 years");

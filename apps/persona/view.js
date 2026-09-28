@@ -27,7 +27,7 @@ async function loadThread(characterId) {
   if (threadOf(characterId).loaded) return;
   try {
     const list = await chats();
-    const mine = list.filter((c) => c.character_id === characterId);   
+    const mine = list.filter((c) => c.character_id === characterId);
     patch(characterId, (th) => ({ ...th, history: mine }));
     if (!mine.length) { patch(characterId, (th) => ({ ...th, loaded: true })); return; }
     const got = await loadChat(mine[0].id);
@@ -44,7 +44,7 @@ const presence = { think: 0, speak: 0, listen: 0, ready: 0, energy: 0, tThink: 0
 const presenceVary = () => {
   presence.think += (presence.tThink - presence.think) * 0.06;
   presence.listen += (presence.tListen - presence.listen) * 0.08;
-  presence.ready += (presence.tReady - presence.ready) * 0.035;      
+  presence.ready += (presence.tReady - presence.ready) * 0.035;
   presence.energy *= 0.965;
   presence.speak += (presence.energy - presence.speak) * 0.2;
   return [presence.think, presence.speak, presence.listen, presence.ready];
@@ -233,12 +233,13 @@ export function chat({ item, t, loc, S, undo, confirm }) {
           </div>`)}
           <span ref=${tail} aria-hidden="true" style="scroll-margin-bottom:calc(var(--composer-h, 4rem) + var(--kb, 0px) + 1rem)"></span>
         </div>`}
+    ${""}
     ${empty ? html`<div class="flex flex-wrap gap-2 pt-1 ms-reveal">
         ${["openerWho", "openerDay", "openerAdvice"].map((k) => html`<button data-opener=${k} key=${k} type="button" onClick=${() => submit(T(t, k))} data-haptic="tap"
           class="sf-raised rounded-full px-3.5 py-2 text-left text-[0.85rem] leading-snug text-base-content/85 active:sf-pressed transition-transform">${T(t, k)}</button>`)}
       </div>` : null}
 
-    
+    ${""}
     <div class="fixed inset-x-0 z-20 flex justify-center px-3 pointer-events-none" style="bottom:calc(env(safe-area-inset-bottom) + var(--kb, 0px) + 0.75rem)">
       <${Island} className="pointer-events-auto w-full max-w-xl" tag="section" aria-label=${T(t, "composer")}>
         <form ref=${composer} data-composer onSubmit=${(e) => { e.preventDefault(); submit(draft); input.current?.focus?.(); }} class="flex items-center gap-2">
@@ -254,7 +255,7 @@ export function chat({ item, t, loc, S, undo, confirm }) {
       <//>
     </div>
 
-    
+    ${""}
     <${Sheet} id="persona-history" open=${screen === "history"} onClose=${() => S.screen.set(null)} title=${T(t, "history")} subtitle=${item.title} icon="lucide:history" locale=${loc}>
       ${screen === "history" ? html`<ul data-history-list class="flex flex-col divide-y divide-base-300/60 -mx-1">
         ${history.map((c) => html`<li key=${c.id} class="flex items-center gap-2">

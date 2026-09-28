@@ -16,10 +16,10 @@ const buyOutcome = (status) => (status === 200 ? "ok" : status === 402 ? "poor" 
  */
 export function makeWallet(app, { gateBalance = 0 } = {}) {
   const $wallet = atom({ ready: gate, signedIn: gate, balance: gate ? gateBalance : 0, owned: [] });
-  const $bought = atom(0);   
+  const $bought = atom(0);
   const set = (patch) => $wallet.set({ ...$wallet.get(), ...patch });
   const call = (route, body = {}) => fetch(`${VPS_PROXY}/wallet/${route}`, { method: "POST", headers: H, body: JSON.stringify({ app, ...body }) });
-  let awaitingPurchase = 0;   
+  let awaitingPurchase = 0;
 
   async function refresh() {
     if (gate) return;
@@ -32,7 +32,7 @@ export function makeWallet(app, { gateBalance = 0 } = {}) {
       const was = $wallet.get(), balance = Math.max(0, Number(j.balance) || 0);
       if (was.ready && was.signedIn && balance > was.balance && Date.now() < awaitingPurchase) { $bought.set(balance - was.balance); awaitingPurchase = 0; }
       set({ ready: true, signedIn: true, balance, owned: Array.isArray(j.owned) ? j.owned.map(String) : [] });
-    } catch {  }
+    } catch { }
   }
 
   /** Does the viewer own `item` (or is it free — `price` 0)? */
@@ -84,7 +84,7 @@ export function makeWallet(app, { gateBalance = 0 } = {}) {
   }
 
   if (!gate && typeof document !== "undefined") {
-    setTimeout(refresh, 0);   
+    setTimeout(refresh, 0);
     let seen = sidNow();
     session.listen((s) => { const sid = s ? s.sid : ""; if (sid === seen) return; seen = sid; refresh(); });
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });

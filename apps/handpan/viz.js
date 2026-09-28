@@ -1,4 +1,3 @@
-
 import { html } from "htm/preact";
 import { useRef, useState, useEffect } from "preact/hooks";
 import { isGate, gate } from "/_rt/gate.js";
@@ -12,17 +11,17 @@ function hasWebGL() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
 }
 
-const COLS = 28, ROWS = 28, SP = 0.34;                         
+const COLS = 28, ROWS = 28, SP = 0.34;
 const HX = ((COLS - 1) * SP) / 2, HZ = ((ROWS - 1) * SP) / 2;
-const R_IN = 0.4 * Math.min(HX, HZ);                           
-const MAXH = 0.4, DOT = 0.044;                                 
+const R_IN = 0.4 * Math.min(HX, HZ);
+const MAXH = 0.4, DOT = 0.044;
 const field = RippleField({ speed: 2.4, wavelength: 1.2, width: 0.6, life: 0.9, spread: 0.55, max: 10 });
 
 let _getBytes = null;
 export function bindAudio(fn) { _getBytes = fn; }
 const meanByte = (u8) => { let s = 0; for (let i = 0; i < u8.length; i++) s += u8[i]; return u8.length ? s / u8.length / 255 : 0; };
 
-let clock = 0;                                                 
+let clock = 0;
 export function strikeRipple(nx, nz, amp = 1, hue = 260) {
   field.strike(nx * R_IN, nz * R_IN, { amp: 0.5 + amp * 0.8, hue, t: clock });
 }
@@ -41,17 +40,17 @@ export async function enableImmersion() {
 }
 export function disableImmersion() { immersion._t?.(); immersion._c?.(); immersion.on = false; immersion._t = immersion._c = null; immersion.beta = immersion.gamma = null; immersion.heading0 = null; }
 
-const TURN_MAX = 0.34;                                         
+const TURN_MAX = 0.34;
 let pumpRaf = null, ambient = 0, seedT = -1;
 function pump() {
-  clock += 1 / 60;                                             
+  clock += 1 / 60;
   const live = _getBytes && !gate ? _getBytes() : null;
   if (!live && clock - seedT > (gate ? 1.1 : 1.5)) {
     seedT = clock;
-    if (gate) {                                                
+    if (gate) {
       const k = Math.floor(clock / 1.1) % 8, a = -Math.PI / 2 + (k / 8) * Math.PI * 2;
       field.strike(Math.cos(a) * R_IN, Math.sin(a) * R_IN, { amp: 1, hue: 260 - k * 7, t: clock });
-    } else {                                                   
+    } else {
       const a = clock * 0.7;
       field.strike(Math.cos(a) * R_IN * 0.35, Math.sin(a * 1.3) * R_IN * 0.35, { amp: 0.55, hue: 252 + 30 * Math.sin(a * 0.8), t: clock });
     }
@@ -66,7 +65,7 @@ function pump() {
   }
   immersion.turn += 0.05 * (tgt - immersion.turn);
   const st = { clock, amb: ambient, hue: field.hue(clock), turn: immersion.turn };
-  for (const fn of subs) { try { fn(st); } catch {  } }
+  for (const fn of subs) { try { fn(st); } catch { } }
   pumpRaf = requestAnimationFrame(pump);
 }
 const subs = new Set();
@@ -76,7 +75,7 @@ function subscribe(fn) {
   return () => { subs.delete(fn); if (!subs.size && pumpRaf) { cancelAnimationFrame(pumpRaf); pumpRaf = null; } };
 }
 
-const CAM_Y = 9.2, CAM_Z = 4.2, MAXD = Math.sqrt(HX * HX + HZ * HZ);   
+const CAM_Y = 9.2, CAM_Z = 4.2, MAXD = Math.sqrt(HX * HX + HZ * HZ);
 function makeField(canvas, THREE) {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(DPR());
@@ -84,7 +83,7 @@ function makeField(canvas, THREE) {
   const cam = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
   const group = new THREE.Group(); scene.add(group);
 
-  const geo = new THREE.IcosahedronGeometry(DOT, 0);           
+  const geo = new THREE.IcosahedronGeometry(DOT, 0);
   const mat = new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false });
   const mesh = new THREE.InstancedMesh(geo, mat, ROWS * COLS);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -104,17 +103,17 @@ function makeField(canvas, THREE) {
       const t = st.clock;
       for (let i = 0; i < ROWS * COLS; i++) {
         const s = field.sample(px[i], pz[i], t), glow = field.glow(px[i], pz[i], t, 0.9, 0.8);
-        const energy = Math.min(1.4, Math.max(Math.abs(s.h) * 0.5, glow));   
+        const energy = Math.min(1.4, Math.max(Math.abs(s.h) * 0.5, glow));
         const lift = Math.min(1, energy * 2.0);
         dummy.position.set(px[i], (s.h * 0.5 + glow * 0.55) * MAXH, pz[i]);
-        dummy.scale.setScalar(0.5 + energy * 0.9);            
+        dummy.scale.setScalar(0.5 + energy * 0.9);
         dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix);
         col.setHSL(((s.hue % 360) + 360) % 360 / 360, 0.62 - lift * 0.16, (0.045 + lift * 0.66 + st.amb * 0.04) * fade[i]);
-        mesh.setColorAt(i, col);                              
+        mesh.setColorAt(i, col);
       }
       mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       group.rotation.y = st.turn * 0.35 + p.x * 0.04;
-      group.position.y = st.amb * 0.06;                       
+      group.position.y = st.amb * 0.06;
       cam.position.set(p.x * 0.5, CAM_Y - p.y * 0.3, CAM_Z);
       cam.lookAt(0, 0, 0);
       renderer.render(scene, cam);
@@ -151,7 +150,7 @@ function useViz(ref, make, fallback) {
     (async () => {
       if (hasWebGL()) {
         try { const THREE = await import("three"); if (dead) return; scene = make(canvas, THREE); setWebgl(true); }
-        catch { scene = null; }                               
+        catch { scene = null; }
       }
       size();
       const parallax = Parallax({ maxDeg: 20, gain: 1, reduced: immersion.reduced });
@@ -162,7 +161,7 @@ function useViz(ref, make, fallback) {
       });
       if (typeof ResizeObserver !== "undefined") { ro = new ResizeObserver(size); ro.observe(canvas); }
     })();
-    return () => { dead = true; unsub?.(); ro?.disconnect(); try { scene?.dispose(); } catch {  } };
+    return () => { dead = true; unsub?.(); ro?.disconnect(); try { scene?.dispose(); } catch { } };
   }, []);
   return webgl;
 }

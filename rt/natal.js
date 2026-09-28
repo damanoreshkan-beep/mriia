@@ -1,9 +1,7 @@
-
 const D2R = Math.PI / 180, R2D = 180 / Math.PI;
 export const norm360 = (d) => (((d % 360) + 360) % 360);
 export const wrap180 = (d) => { const x = norm360(d); return x > 180 ? x - 360 : x; };
 const sin = (d) => Math.sin(d * D2R), cos = (d) => Math.cos(d * D2R), tan = (d) => Math.tan(d * D2R);
-
 
 const _dtf = new Map();
 export function zoneOffset(ts, zone) {
@@ -21,7 +19,7 @@ export function zoneOffset(ts, zone) {
   return (asUTC + fix) - Math.floor(ts / 1000) * 1000;
 }
 
-export const lmtOffset = (lng) => Math.round(lng * 240000);          
+export const lmtOffset = (lng) => Math.round(lng * 240000);
 
 export function knownZone(zone) {
   try { new Intl.DateTimeFormat("en-US", { timeZone: zone }); return true; } catch { return false; }
@@ -30,7 +28,7 @@ export function knownZone(zone) {
 export function zonedToUTC(wall, zone) {
   const { y, mo = 1, d = 1, h = 0, mi = 0, s = 0, ms = 0 } = wall;
   let base = Date.UTC(y, mo - 1, d, h, mi, s, ms);
-  if (y >= 0 && y <= 99) base += Date.UTC(y, 0, 1) - Date.UTC(y + 1900, 0, 1);   
+  if (y >= 0 && y <= 99) base += Date.UTC(y, 0, 1) - Date.UTC(y + 1900, 0, 1);
   if (zone && typeof zone === "object" && Number.isFinite(zone.offsetMs)) {
     return { ms: base - zone.offsetMs, offset: zone.offsetMs, ambiguous: false, nonexistent: false, zone: null };
   }
@@ -43,7 +41,7 @@ export function zonedToUTC(wall, zone) {
     ts = next;
   }
   const off = zoneOffset(ts, zone);
-  const nonexistent = base - off !== ts;                    
+  const nonexistent = base - off !== ts;
   let ambiguous = false;
   const earlyOff = zoneOffset(ts - 7200000, zone);
   if (!nonexistent && earlyOff !== off && base - earlyOff < ts && zoneOffset(base - earlyOff, zone) === earlyOff) {
@@ -73,7 +71,6 @@ export function formatOffset(ms) {
   return `${sign}${p(a / 3600)}:${p((a % 3600) / 60)}${ss ? ":" + p(ss) : ""}`;
 }
 
-
 export const lonAtRA = (ra, eps) => norm360(Math.atan2(sin(ra), cos(ra) * cos(eps)) * R2D);
 
 export const midheaven = (ramc, eps) => lonAtRA(ramc, eps);
@@ -88,10 +85,10 @@ export const placidusDefined = (eps, phi) => Math.abs(tan(phi) * tan(eps)) < 1;
 
 function placidusCusp(ramc, eps, phi, offset, f, diurnal) {
   const k = tan(phi) * tan(eps);
-  let ra = norm360(ramc + offset + (diurnal ? f * 90 : -f * 90));    
+  let ra = norm360(ramc + offset + (diurnal ? f * 90 : -f * 90));
   for (let i = 0; i < 200; i++) {
     const x = -sin(ra) * k;
-    if (Math.abs(x) > 1) return null;                                
+    if (Math.abs(x) > 1) return null;
     const dsa = Math.acos(x) * R2D;
     const sa = diurnal ? dsa : 180 - dsa;
     const next = norm360(ramc + offset + (diurnal ? f * sa : -f * sa));
@@ -99,13 +96,13 @@ function placidusCusp(ramc, eps, phi, offset, f, diurnal) {
     ra = next;
     if (step < 1e-11) return lonAtRA(ra, eps);
   }
-  return null;                                                       
+  return null;
 }
 
 function porphyryCusps(asc, mc) {
   const c = new Array(12);
-  const q1 = norm360(asc - mc) / 3;                  
-  const q2 = norm360(norm360(mc + 180) - asc) / 3;   
+  const q1 = norm360(asc - mc) / 3;
+  const q2 = norm360(norm360(mc + 180) - asc) / 3;
   c[0] = asc; c[1] = norm360(asc + q2); c[2] = norm360(asc + 2 * q2);
   c[9] = mc; c[10] = norm360(mc + q1); c[11] = norm360(mc + 2 * q1);
   c[3] = norm360(c[9] + 180); c[4] = norm360(c[10] + 180); c[5] = norm360(c[11] + 180);
@@ -150,7 +147,6 @@ export function houseOf(lon, cusps) {
   }
   return 12;
 }
-
 
 export const TRANSIT_ORB = { exact: 1, range: 3 };
 

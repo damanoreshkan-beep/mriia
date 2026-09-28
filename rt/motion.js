@@ -1,4 +1,3 @@
-
 export function motionCells(prev, cur, W, H, threshold = 24) {
   const cells = [];
   if (!prev || !cur || prev.length !== cur.length) return cells;

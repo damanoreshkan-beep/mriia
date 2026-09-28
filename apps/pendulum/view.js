@@ -7,7 +7,7 @@ import { T } from "/_rt/i18n.js";
 import { state as pstate } from "/_rt/pendulum.js";
 import { gate } from "/_rt/gate.js";
 
-const buzz = () => { try { navigator.vibrate?.(10); } catch {  } };
+const buzz = () => { try { navigator.vibrate?.(10); } catch { } };
 const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
@@ -23,13 +23,13 @@ const DUALITIES = [
 ];
 const N = DUALITIES.length;
 
-const PERIOD = 8000;   
-const AMP = 15;        
-const ADVANCE = 6;     
-const PULSE_MS = 700;  
-const GATE_PH = 0.12;  
-const PIVOT = "9vh";   
-const ARM = "47vh";    
+const PERIOD = 8000;
+const AMP = 15;
+const ADVANCE = 6;
+const PULSE_MS = 700;
+const GATE_PH = 0.12;
+const PIVOT = "9vh";
+const ARM = "47vh";
 
 const poleInk = (w) => (0.7 + 0.3 * w).toFixed(3);
 

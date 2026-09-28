@@ -9,18 +9,18 @@ import { STATIONS, LAYERS, station, reactorVoices, faderGain, semiToRatio } from
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
-const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {  } };
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const NAME = { reactor: "stReactor", bridge: "stBridge", observation: "stObservation", cryo: "stCryo", derelict: "stDerelict", relay: "stRelay" };
 const LMETA = { hull: "lucide:box", vent: "lucide:wind", reactor: "lucide:atom", servo: "lucide:cog", tele: "lucide:activity", deep: "lucide:radio" };
 const TIMERS = [15, 30, 60, 90];
-const TELE_SCALE = [0, 3, 5, 7, 10, 12];   
+const TELE_SCALE = [0, 3, 5, 7, 10, 12];
 
 function buildEngine(st) {
   const eng = createEngine({ master: 0.0001, noise: true });
   if (!eng) return null;
   const ctx = eng.ctx, b = eng.buffers, nodes = [], timers = [];
   const keep = (...ns) => { nodes.push(...ns); return ns[0]; };
-  const loop = (getMin, span, fn) => { const tick = () => { try { fn(); } catch {  } timers.push(setTimeout(tick, getMin() + Math.random() * span)); }; timers.push(setTimeout(tick, getMin() + Math.random() * span)); };
+  const loop = (getMin, span, fn) => { const tick = () => { try { fn(); } catch { } timers.push(setTimeout(tick, getMin() + Math.random() * span)); }; timers.push(setTimeout(tick, getMin() + Math.random() * span)); };
   const gains = {}; for (const L of LAYERS) { const g = ctx.createGain(); g.gain.value = 0; g.connect(eng.master); gains[L] = g; }
   const p = { teleGap: st.teleGap };
 
@@ -46,23 +46,23 @@ function buildEngine(st) {
   return {
     ctx, master: eng.master,
     setFader: (L, v) => { try { gains[L].gain.setTargetAtTime(faderGain(v), ctx.currentTime, RT); } catch { gains[L].gain.value = faderGain(v); } },
-    applyFaders: (f) => { for (const L of LAYERS) { try { gains[L].gain.setTargetAtTime(faderGain(f[L] ?? 0), ctx.currentTime, RT); } catch {  } } },
-    retune: (s2) => { const t = ctx.currentTime, v = reactorVoices(s2); oscs.forEach((o, i) => o.frequency.setTargetAtTime(v[i], t, 2.5)); try { sub.frequency.setTargetAtTime((noteFreq(s2.root) || 65) / 2, t, 2.5); ventBp.frequency.setTargetAtTime(s2.air, t, 3); } catch {  } p.teleGap = s2.teleGap; },
-    setMaster: (on) => { const t = ctx.currentTime; try { eng.master.gain.cancelScheduledValues(t); eng.master.gain.setTargetAtTime(on ? 0.8 : 0.0001, t, on ? 0.5 : 0.4); } catch {  } },
-    stop: () => { for (const tm of timers) clearTimeout(tm); for (const n of nodes) { try { n.stop && n.stop(); } catch {  } try { n.disconnect && n.disconnect(); } catch {  } } try { ctx.close(); } catch {  } },
+    applyFaders: (f) => { for (const L of LAYERS) { try { gains[L].gain.setTargetAtTime(faderGain(f[L] ?? 0), ctx.currentTime, RT); } catch { } } },
+    retune: (s2) => { const t = ctx.currentTime, v = reactorVoices(s2); oscs.forEach((o, i) => o.frequency.setTargetAtTime(v[i], t, 2.5)); try { sub.frequency.setTargetAtTime((noteFreq(s2.root) || 65) / 2, t, 2.5); ventBp.frequency.setTargetAtTime(s2.air, t, 3); } catch { } p.teleGap = s2.teleGap; },
+    setMaster: (on) => { const t = ctx.currentTime; try { eng.master.gain.cancelScheduledValues(t); eng.master.gain.setTargetAtTime(on ? 0.8 : 0.0001, t, on ? 0.5 : 0.4); } catch { } },
+    stop: () => { for (const tm of timers) clearTimeout(tm); for (const n of nodes) { try { n.stop && n.stop(); } catch { } try { n.disconnect && n.disconnect(); } catch { } } try { ctx.close(); } catch { } },
   };
 }
 
 export function outpost({ S }) {
   const t = useStore(S.t);
   const loc = useStore(S.locale);
-  const [stId, setStId] = useState("bridge");           
+  const [stId, setStId] = useState("bridge");
   const [faders, setFaders] = useState(() => ({ ...station("bridge").levels }));
   const [playing, setPlaying] = useState(false);
   const [timerMin, setTimerMin] = useState(0);
   const eng = useRef(null), timerRef = useRef(null), tweaked = useRef(false);
 
-  const ensure = () => { if (!audioSupported) return null; if (!eng.current) { eng.current = buildEngine(station(stId)); if (eng.current) eng.current.applyFaders(station(stId).levels); } try { eng.current?.ctx.resume(); } catch {  } return eng.current; };
+  const ensure = () => { if (!audioSupported) return null; if (!eng.current) { eng.current = buildEngine(station(stId)); if (eng.current) eng.current.applyFaders(station(stId).levels); } try { eng.current?.ctx.resume(); } catch { } return eng.current; };
 
   useEffect(() => { if (eng.current) eng.current.applyFaders(faders); }, [faders]);
   useEffect(() => { const e = eng.current; if (e) { e.retune(station(stId)); e.ctx.resume?.(); } }, [stId]);
@@ -100,13 +100,16 @@ export function outpost({ S }) {
 
       <!-- the core: transport + live cue -->
       <div class="relative grid place-items-center py-1">
+        ${""}
         <div class="op-glow absolute w-44 h-44 rounded-full" data-on=${playing ? "" : null} aria-hidden="true"></div>
+        ${""}
         <div class="absolute w-40 h-40 rounded-full sf-e2"></div>
         <div class="absolute w-32 h-32 rounded-full sf-e2"></div>
+        ${""}
         <${Transport} locale=${loc} size="hero" playing=${playing} onToggle=${toggle} disabled=${!audioSupported} />
       </div>
       <div class=${`-mt-3 flex items-center gap-2 ${LABEL} tracking-[0.2em]`} data-status>
-        
+        ${""}
         <span class="op-led w-1.5 h-1.5 rounded-full" data-on=${playing ? "" : null} style=${playing ? "" : "background:var(--sf-track-face)"}></span>
         ${T(t, NAME[stId])} · ${T(t, playing ? "online" : "offline")}
       </div>
@@ -114,20 +117,25 @@ export function outpost({ S }) {
       <!-- fader bank -->
       <div class="w-full max-w-[440px] flex flex-col gap-2.5">
         <div class="flex items-center justify-end">
+          ${""}
           <button data-reset onClick=${resetMix} class="btn btn-ghost btn-sm rounded-full gap-1.5 text-sm text-muted">${Icon("lucide:rotate-ccw", "text-sm")}${T(t, "aReset")}</button>
         </div>
-        
+        ${""}
         ${LAYERS.map((L) => html`<div data-fader=${L} key=${L} class="flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 px-[var(--ms-pad)] py-2.5">
           <span class="flex items-center justify-center w-8 h-8 rounded-full shrink-0 sf-inset text-base-content/70">${Icon(LMETA[L], "text-lg")}</span>
           <div class="flex-1 min-w-0"><${Slider} attr="data-level" id=${L} label=${T(t, "l" + L[0].toUpperCase() + L.slice(1))} value=${faders[L]} onInput=${(v) => setFader(L, v)} /></div>
         </div>`)}
       </div>
+
+      ${""}
       <div class="w-full max-w-[440px] flex items-center gap-[var(--ms-gap)]">
         <span class="text-muted flex items-center gap-1.5 text-sm shrink-0">${Icon("lucide:moon")}${T(t, "sleep")}</span>
+        ${""}
         <div class="flex-1 min-w-0"><${Segmented} size="sm" scroll attr="data-timer" label=${T(t, "sleep")}
           items=${TIMERS.map((m) => ({ id: String(m), label: `${m}${T(t, "min")}` }))}
           value=${String(timerMin)} onChange=${(id) => { buzz(); setTimerMin((c) => (c === Number(id) ? 0 : Number(id))); }} /></div>
       </div>
+
       ${!audioSupported ? html`<div class="text-sm text-muted">${T(t, "noAudio")}</div>` : null}
     </div>
   </${Fragment}>`;

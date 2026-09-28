@@ -22,14 +22,14 @@ async function decode(video, canvas) {
   ctx.drawImage(video, 0, 0, w, h);
   if (!_noBD && "BarcodeDetector" in window) {
     try { _detector ||= new window.BarcodeDetector({ formats: ["qr_code"] }); const c = await _detector.detect(canvas); return c[0]?.rawValue || null; }
-    catch { _noBD = true; }                                            
+    catch { _noBD = true; }
   }
   if (!_jsQR) _jsQR = (await import("./jsqr.js")).default;
   const res = _jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "attemptBoth" });
   return res?.data || null;
 }
 
-const OPENABLE = new Set(["url", "scheme", "tel", "mailto", "sms", "geo"]);   
+const OPENABLE = new Set(["url", "scheme", "tel", "mailto", "sms", "geo"]);
 const KIND_KEY = { wifi: "kWifi", tel: "kTel", mailto: "kMailto", sms: "kSms", geo: "kGeo", contact: "kContact", text: "kText", code: "kCode", scheme: "kScheme" };
 const FLAG_KEY = { insecure: "fInsecure", shortener: "fShortener", "mixed-script": "fMixed", userinfo: "fUserinfo", "code-scheme": "fCode", punycode: "fPunycode", "ip-host": "fIp", "no-scheme": "fNoScheme", "non-web-scheme": "fNonWeb", "otp-secret": "fOtp" };
 const EDGE_IDLE = "#fff";
@@ -43,10 +43,10 @@ const VERDICT = {
 export function qr({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale);
   const [result, setResult] = useState(gate ? analyzeQR(seedRaw) : null);
-  const [source, setSource] = useState(null);                        
+  const [source, setSource] = useState(null);
   const [ready, setReady] = useState(false);
   const canvasRef = useRef(), scanRef = useRef(!gate);
-  useEffect(() => { scanRef.current = !result; }, [result]);          
+  useEffect(() => { scanRef.current = !result; }, [result]);
 
   useEffect(() => {
     if (!source) return;
@@ -56,14 +56,14 @@ export function qr({ S, toast }) {
       if (!cv || source.readyState < 2 || !scanRef.current || busy) return;
       busy = true;
       try { const raw = await decode(source, cv); if (raw && live && scanRef.current) { scanRef.current = false; setResult(analyzeQR(raw)); haptic.bump?.(); } }
-      catch {  } finally { busy = false; }
+      catch { } finally { busy = false; }
     };
     const timer = setInterval(tick, 250);
     return () => { live = false; clearInterval(timer); };
   }, [source]);
 
-  const openIt = () => { if (!result) return; try { if (result.kind === "url") window.open(result.url, "_blank", "noopener,noreferrer"); else location.href = result.raw; } catch {  } };
-  const copyIt = async () => { const v = result?.url || result?.value || result?.raw || ""; try { await navigator.clipboard.writeText(v); toast?.(T(t, "copied")); } catch {  } };
+  const openIt = () => { if (!result) return; try { if (result.kind === "url") window.open(result.url, "_blank", "noopener,noreferrer"); else location.href = result.raw; } catch { } };
+  const copyIt = async () => { const v = result?.url || result?.value || result?.raw || ""; try { await navigator.clipboard.writeText(v); toast?.(T(t, "copied")); } catch { } };
   const again = () => setResult(null);
 
   const V = result ? VERDICT[result.verdict] : null;
@@ -74,12 +74,13 @@ export function qr({ S, toast }) {
 
   return html`<div class="ms-stage z-20 flex flex-col" data-verdict=${result ? result.verdict : "idle"} data-kind=${result ? result.kind : ""}>
     <!-- camera aperture -->
+    ${""}
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
       <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")}
           show=${true} fullscreen=${false} gestures=${false} pinch=${true} primeFull=${true}
           onVideo=${(el) => setSource(el)} onState=${(s) => setReady(s.ready)}
           className="flex items-center justify-center">
-        
+        ${""}
         ${gate ? html`<div class="absolute inset-0 bg-neutral" aria-hidden="true"></div>` : null}
         ${ready ? html`<div class="relative z-[2]" data-aperture style="width:min(64vw,15rem);aspect-ratio:1">
           <div class="absolute inset-0 rounded-[var(--ms-r)]" style=${`box-shadow:0 0 0 100vmax rgba(0,0,0,.5)`}></div>

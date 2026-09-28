@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { mulberry32 } from "@microspec/core/runtime/groove.js";
 import { feedback, solved, makeSecret } from "../codebreak.js";

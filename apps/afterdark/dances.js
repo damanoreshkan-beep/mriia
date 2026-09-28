@@ -43,7 +43,7 @@ export const moveById = (id) => MOVES.find((m) => m.id === id) || null;
 export const LIB_URL = "https://dreamstudio.mooo.com/geo/mx";
 const BUNDLED = new Set(MOVE_IDS);
 export const isMoveId = (id) => /^\d{6,}$/.test(String(id));
-export const moveUrl = (id) => (BUNDLED.has(id) ? new URL(`assets/move-${id}.glb`, import.meta.url).href : (isMoveId(id) ? `${LIB_URL}/move/${id}.glb` : null));   
+export const moveUrl = (id) => (BUNDLED.has(id) ? new URL(`assets/move-${id}.glb`, import.meta.url).href : (isMoveId(id) ? `${LIB_URL}/move/${id}.glb` : null));
 let catalog = null, catalogP = null;
 const libTier = new Map();
 export function loadCatalog() {

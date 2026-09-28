@@ -35,8 +35,8 @@ export function flux({ S }) {
   const [ghost, setGhost] = useState(true);
   const [sound, setSound] = useState(false);
   const [err, setErr] = useState(null);
-  const [ready, setReady] = useState(false);      
-  const [cam, setCam] = useState(null);           
+  const [ready, setReady] = useState(false);
+  const [cam, setCam] = useState(null);
   const sampleRef = useRef(), paintRef = useRef(), prevRef = useRef(null), rafRef = useRef(0);
   const engRef = useRef(null), oscRef = useRef(null), filtRef = useRef(null), sgainRef = useRef(null), soundRef = useRef(false);
   soundRef.current = sound;
@@ -46,7 +46,7 @@ export function flux({ S }) {
   useEffect(() => {
     if (!gate) return;
     fit();
-    try { const c = paintRef.current, ctx = c?.getContext?.("2d"); if (ctx) paintSeed(ctx, c.width || 360, c.height || 480); } catch {  }
+    try { const c = paintRef.current, ctx = c?.getContext?.("2d"); if (ctx) paintSeed(ctx, c.width || 360, c.height || 480); } catch { }
   }, []);
 
   useEffect(() => {
@@ -68,9 +68,9 @@ export function flux({ S }) {
           setEnergy(en);
           prevRef.current = cur.slice(0);
           const pw = pc.width, ph = pc.height;
-          pctx.globalCompositeOperation = "destination-out";           
+          pctx.globalCompositeOperation = "destination-out";
           pctx.fillStyle = "rgba(0,0,0,0.055)"; pctx.fillRect(0, 0, pw, ph);
-          pctx.globalCompositeOperation = "lighter";                   
+          pctx.globalCompositeOperation = "lighter";
           const stepN = Math.max(1, Math.floor(cells.length / 240));
           for (let i = 0; i < cells.length; i += stepN) {
             const c = cells[i], x = c.x * pw, y = c.y * ph, rad = 3 + c.m * 13;
@@ -86,9 +86,9 @@ export function flux({ S }) {
               oscRef.current.frequency.setTargetAtTime(midiToFreq(note), now, 0.08);
               filtRef.current.frequency.setTargetAtTime(400 + en * 3200, now, 0.1);
               sgainRef.current.gain.setTargetAtTime(Math.min(0.18, en * 0.5), now, 0.12);
-            } catch {  }
+            } catch { }
           }
-        } catch {  }
+        } catch { }
       }
       rafRef.current = requestAnimationFrame(step);
     };
@@ -104,10 +104,10 @@ export function flux({ S }) {
       const o = out.getContext("2d"); o.fillStyle = "#000000"; o.fillRect(0, 0, out.width, out.height); o.drawImage(c, 0, 0);
       downloadUrl(out.toDataURL("image/png"), "flux.png");
       S.toast?.(T(t, "toastSaved"));
-    } catch {  }
+    } catch { }
   };
   const toggleSound = () => {
-    if (sound) { try { sgainRef.current?.gain.setTargetAtTime(0, engRef.current.ctx.currentTime, 0.2); } catch {  } setSound(false); return; }
+    if (sound) { try { sgainRef.current?.gain.setTargetAtTime(0, engRef.current.ctx.currentTime, 0.2); } catch { } setSound(false); return; }
     try {
       if (!engRef.current) {
         const eng = createEngine({ noise: false }); if (!eng) return;
@@ -118,11 +118,12 @@ export function flux({ S }) {
         engRef.current = eng; oscRef.current = osc; filtRef.current = f; sgainRef.current = g;
       }
       engRef.current.resume(); setSound(true);
-    } catch {  }
+    } catch { }
   };
-  useEffect(() => () => { try { oscRef.current?.stop(); engRef.current?.close(); } catch {  } }, []);
+  useEffect(() => () => { try { oscRef.current?.stop(); engRef.current?.close(); } catch { } }, []);
 
   return html`<div class="ms-stage z-20 bg-base-100 flex flex-col" data-flux=${err ? "error" : ready ? "live" : "prime"} data-energy=${Math.round(energy * 100)}>
+    ${""}
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
       <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} primeFull
           facing="environment" still=${null} show=${true} fullscreen=${false} gestures=${false}
@@ -136,9 +137,9 @@ export function flux({ S }) {
       <//>
     </div>
 
-    
+    ${""}
     <${Island} pinned className="flex items-center justify-center gap-[var(--ms-gap)]">
-      
+      ${""}
       <button data-ghost aria-label=${T(t, "ghost")} aria-pressed=${ghost} onClick=${() => setGhost((g) => !g)} class=${`btn btn-circle btn-sm ${ghost ? "btn-primary" : "btn-ghost"}`}>${Icon(ghost ? "lucide:eye" : "lucide:eye-off", "text-lg")}</button>
       <button data-sound aria-label=${T(t, "sound")} aria-pressed=${sound} onClick=${toggleSound} class=${`btn btn-circle btn-sm ${sound ? "btn-primary" : "btn-ghost"}`}>${Icon(sound ? "lucide:volume-2" : "lucide:volume-x", "text-lg")}</button>
       <button data-clear aria-label=${T(t, "clear")} data-haptic="bump" onClick=${clear} class="btn btn-ghost btn-sm btn-circle">${Icon("lucide:trash-2", "text-lg")}</button>

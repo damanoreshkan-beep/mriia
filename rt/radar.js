@@ -1,4 +1,3 @@
-
 export function parseAd(hex) {
   const out = { structures: [], truncated: false, error: null };
   if (typeof hex !== "string" || !hex.length) return out;
@@ -8,7 +7,7 @@ export function parseAd(hex) {
   let i = 0;
   while (i < b.length) {
     const len = b[i];
-    if (len === 0) break;                       
+    if (len === 0) break;
     if (i + len >= b.length) { out.truncated = true; break; }
     out.structures.push({ type: b[i + 1], value: b.slice(i + 2, i + 1 + len) });
     i += 1 + len;
@@ -30,8 +29,8 @@ export function adSummary(parsed) {
   for (const { type, value } of parsed.structures) {
     if (type === AD.flags && value.length) s.flags = value[0];
     else if ((type === AD.name || type === AD.nameShort) && value.length) {
-      try { s.name = new TextDecoder().decode(value); } catch {  }
-    } else if (type === AD.txPower && value.length) s.txPower = (value[0] << 24) >> 24;   
+      try { s.name = new TextDecoder().decode(value); } catch { }
+    } else if (type === AD.txPower && value.length) s.txPower = (value[0] << 24) >> 24;
     else if (type === AD.appearance && value.length >= 2) s.appearance = u16le(value, 0);
     else if ((type === AD.uuid16 || type === AD.uuid16Partial)) {
       for (let o = 0; o + 1 < value.length; o += 2) s.uuids16.push(u16le(value, o));
@@ -49,7 +48,7 @@ export function addrKind(addr) {
   const first = addr.split(":")[0];
   if (!/^[0-9a-fA-F]{2}$/.test(first)) return "unknown";
   switch (parseInt(first, 16) >>> 6) {
-    case 0b01: return "resolvable";      
+    case 0b01: return "resolvable";
     case 0b00: return "nonResolvable";
     case 0b11: return "staticRandom";
     default: return "reserved";
@@ -101,11 +100,11 @@ export function estimateDistance({ rssi, referenceRssi, pathLossExponent } = {})
 
 export const COMPANY = { 0x004c: "Apple", 0x0075: "Samsung", 0x00e0: "Google", 0x0006: "Microsoft" };
 export const SERVICE = {
-  0xfcb2: "dult",        
+  0xfcb2: "dult",
   0xfeed: "tile",
   0xfd5a: "samsungFind",
-  0xfe2c: "fastPair",    
-  0xfeaa: "eddystone",   
+  0xfe2c: "fastPair",
+  0xfeaa: "eddystone",
 };
 
 /**
@@ -154,10 +153,10 @@ export function classify(frame = {}) {
 }
 
 export const GUARD = {
-  minSightings: 5,          
-  minSpanMs: 20 * 60_000,   
-  minDisplacementM: 500,    
-  minSegments: 2,           
+  minSightings: 5,
+  minSpanMs: 20 * 60_000,
+  minDisplacementM: 500,
+  minSegments: 2,
 };
 
 /** Great-circle metres. Guard's displacement test is the difference between "followed me" and "we were
@@ -224,7 +223,7 @@ export function orderDevices(list, sort = "seen") {
     return arr.sort((a, b) =>
       (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9) || bandRank(a) - bandRank(b) || byFirst(a, b));
   }
-  return arr.sort(byFirst);                     
+  return arr.sort(byFirst);
 }
 
 const HEX_DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
@@ -234,7 +233,7 @@ export function hexSpiral(n) {
   if (n <= 0) return out;
   out.push({ q: 0, r: 0 });
   for (let ring = 1; out.length < n; ring++) {
-    let q = -ring, r = ring;                                   
+    let q = -ring, r = ring;
     for (let side = 0; side < 6 && out.length < n; side++) {
       for (let step = 0; step < ring && out.length < n; step++) {
         out.push({ q, r });
@@ -274,8 +273,8 @@ export function combSize(n) {
  * design; feed it back in as `prev` on the next reading.
  */
 export function unwrapDeg(prev, next) {
-  const d = (((next - prev) % 360) + 360) % 360;      
-  return prev + (d > 180 ? d - 360 : d);              
+  const d = (((next - prev) % 360) + 360) % 360;
+  return prev + (d > 180 ? d - 360 : d);
 }
 
 /**

@@ -1,4 +1,3 @@
-
 import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   METHODS, castLine, cast, bitOf, isMoving, bitsOf, transform, movingLines,
@@ -6,7 +5,7 @@ import {
   KING_WEN, kingWenOf, hexagramNumber, invert, complement, reading,
 } from "../iching.js";
 
-const bits = (s) => [...s].map(Number);          
+const bits = (s) => [...s].map(Number);
 const eq = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 Deno.test("the two methods are DIFFERENT distributions", () => {
@@ -49,10 +48,10 @@ Deno.test("6 and 8 are yin, 7 and 9 are yang; only 6 and 9 move", () => {
 });
 
 Deno.test("transformation flips ONLY the moving lines, simultaneously", () => {
-  const lines = [6, 7, 8, 9, 7, 8];                   
+  const lines = [6, 7, 8, 9, 7, 8];
   assertEquals(bitsOf(lines), [0, 1, 0, 1, 1, 0]);
-  assertEquals(transform(lines), [1, 1, 0, 0, 1, 0]); 
-  assertEquals(movingLines(lines), [1, 4]);           
+  assertEquals(transform(lines), [1, 1, 0, 0, 1, 0]);
+  assertEquals(movingLines(lines), [1, 4]);
 });
 
 Deno.test("no moving lines means ONE hexagram, not an identical second one", () => {
@@ -86,7 +85,7 @@ Deno.test("eight trigrams, bottom-first bits, no duplicates", () => {
 });
 
 Deno.test("lines 1-3 are the lower trigram, 4-6 the upper", () => {
-  const b = bits("111000");                     
+  const b = bits("111000");
   assertEquals(lowerTrigram(b).cn, "乾", "Heaven below");
   assertEquals(upperTrigram(b).cn, "坤", "Earth above");
 });
@@ -133,7 +132,7 @@ Deno.test("King Wen: anchors — the pair rule cannot detect a permutation of wh
 });
 
 Deno.test("a full reading reports both hexagrams and the moving lines", () => {
-  const r = reading([9, 8, 8, 8, 8, 8]);         
+  const r = reading([9, 8, 8, 8, 8, 8]);
   assertEquals(r.number, hexagramNumber(bits("100000")));
   assertEquals(r.moving, [1]);
   assertEquals(r.changing, true);

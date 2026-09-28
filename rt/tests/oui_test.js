@@ -1,9 +1,8 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { parseOui as ouiParse, vendorOf as ouiVendorOf, prefixOf as ouiPrefixOf, locallyAdministered as ouiLocallyAdministered } from "../oui.js";
 
 Deno.test("oui: a vendor is named only where the address actually has one", () => {
-  const a = 0xac_de_48, b = 0x24_0a_c4;                    
+  const a = 0xac_de_48, b = 0x24_0a_c4;
   const lo = Math.min(a, b), hi = Math.max(a, b);
   const names = lo === a ? "Apple\nEspressif" : "Espressif\nApple";
   const table = ouiParse(`${lo.toString(36)},${(hi - lo).toString(36)}\n0,1\n${names}`);

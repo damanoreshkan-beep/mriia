@@ -23,7 +23,7 @@ export default [
     name: "фільтр мови/проєкту звужує потік", run: async (h) => {
       await seed(h);
       h.expect((await h.count("#scope")) === 1, "немає селекта мови");
-      await h.select("#scope", "uk"); await h.wait(1400); 
+      await h.select("#scope", "uk"); await h.wait(1400);
       h.expect((await h.attr("#scope", "value")) === "uk" || (await h.prop("#scope", "value")) === "uk", "scope не uk");
       h.expect(/Українська/.test(await h.bodyText()), "немає підпису обраної мови");
     },

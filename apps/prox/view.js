@@ -33,22 +33,22 @@ const CARD_KEYS = new Set(CARDS.map((c) => c.key));
 /** Which grid card a decoded signature belongs to — Continuity fans out by message, the rest are 1:1. */
 function cardKeyOf(sig) {
   if (sig.protocol === "continuity") {
-    return CARD_KEYS.has(sig.msg) ? sig.msg : null;   
+    return CARD_KEYS.has(sig.msg) ? sig.msg : null;
   }
   if (sig.protocol === "fastPair") return "fastPair";
   if (sig.protocol === "eddystone") return "eddystone";
-  return sig.protocol;                                
+  return sig.protocol;
 }
 
-const $seen = atom({});        
+const $seen = atom({});
 const $packets = atom(0);
 const $listening = atom(false);
 const $now = atom(Date.now());
 const $err = atom(null);
 const $blocked = atom(null);
 const $needPerm = atom(null);
-const $sel = atom(null);       
-const $selEntry = atom(null);  
+const $sel = atom(null);
+const $selEntry = atom(null);
 
 const PERM_RE = /denied:([A-Z_]+)/;
 function noteError(e) {
@@ -65,8 +65,8 @@ async function grant() {
   try {
     const r = await shell.call("system.grant", { permission: p });
     if (r?.state === "granted") { $needPerm.set(null); $err.set(null); hush(); listen(); return; }
-  } catch {  }
-  try { await shell.call("system.settings", { page: "app" }); } catch {  }
+  } catch { }
+  try { await shell.call("system.settings", { page: "app" }); } catch { }
 }
 
 const GATE_SEEN = {
@@ -106,12 +106,12 @@ async function diagnose() {
   try {
     const info = await shell.call("system.info", {});
     if (info && info.locationOn === false) { $blocked.set("locationOff"); return; }
-  } catch {  }
+  } catch { }
   try {
     const st = await shell.call("ble.state", {});
     if (st && st.supported === false) { $blocked.set("noBle"); return; }
     if (st && st.on === false) { $blocked.set("bleOff"); return; }
-  } catch {  }
+  } catch { }
   $blocked.set(null);
 }
 
@@ -127,7 +127,7 @@ function listen() {
 
 function hush() {
   $listening.set(false);
-  try { stopScan?.(); } catch {  }
+  try { stopScan?.(); } catch { }
   stopScan = null;
   clearInterval(ageTimer); ageTimer = null;
 }
@@ -199,6 +199,7 @@ function CardSheet({ card, entry, t, open, onClose }) {
         <${KindBadge} kind=${card.textKind} t=${t} />
       </div>
 
+      ${""}
       <div data-custom class="rounded-[var(--ms-r-in)] p-3 sf-inset flex items-start gap-2">
         ${Icon(card.textKind === "free" ? "lucide:pencil" : "lucide:lock", "text-[1.1em] shrink-0 mt-0.5 text-base-content/70")}
         <div class="min-w-0">
@@ -207,6 +208,7 @@ function CardSheet({ card, entry, t, open, onClose }) {
         </div>
       </div>
 
+      ${""}
       ${live
         ? html`<div data-decode class="flex flex-col gap-2">
             <div class=${`${LABEL} text-muted`}>${T(t, "decoded")}</div>
@@ -251,7 +253,7 @@ export function proxView({ S, t, openScreen, closeScreen }) {
 
   const open = (key) => {
     const e = $seen.get()[key];
-    $selEntry.set(e ? { ...e } : null);   
+    $selEntry.set(e ? { ...e } : null);
     $sel.set(key);
     openScreen("card");
   };
@@ -292,17 +294,14 @@ export function proxView({ S, t, openScreen, closeScreen }) {
   </div>`;
 }
 
-
-
 const LAB_KEY = "prox.lab.ok";
 const readLab = () => { try { return localStorage.getItem(LAB_KEY) === "1"; } catch { return false; } };
 const $labOk = atom(readLab());
-function enableLab() { try { localStorage.setItem(LAB_KEY, "1"); } catch {  } $labOk.set(true); }
+function enableLab() { try { localStorage.setItem(LAB_KEY, "1"); } catch { } $labOk.set(true); }
 
 const $fields = atom({ swiftPair: "тук тук", eddystone: "https://example.com", fastPair: "cd8256" });
-
 const FIELD_LABEL = { name: "fieldName", url: "fieldUrl", model: "fieldModel" };
-const $active = atom(null);     
+const $active = atom(null);
 const $sErr = atom(null);
 const $sNeedPerm = atom(null);
 
@@ -319,10 +318,9 @@ async function grantSend() {
   try {
     const r = await shell.call("system.grant", { permission: p });
     if (r?.state === "granted") { $sNeedPerm.set(null); $sErr.set(null); return; }
-  } catch {  }
-  try { await shell.call("system.settings", { page: "app" }); } catch {  }
+  } catch { }
+  try { await shell.call("system.settings", { page: "app" }); } catch { }
 }
-
 
 const rnd = (n) => crypto.getRandomValues(new Uint8Array(n));
 let reemit = null;
@@ -338,8 +336,6 @@ async function emit(preset) {
     const r = await shell.call("ble.advertiseRaw", { structures, ms: 0, connectable: !!preset.connectable });
     $active.set({ id: preset.id, bytes, out: r?.bytes });
     $sErr.set(null);
-    
-    
     if (preset.dynamic) {
       reemit = setInterval(async () => {
         try {
@@ -355,8 +351,9 @@ async function stopEmit() {
   stopReemit();
   $active.set(null);
   if (gate) return;
-  try { await shell.call("ble.silence", {}); } catch {  }
+  try { await shell.call("ble.silence", {}); } catch { }
 }
+
 function PresetCard({ preset, active, t }) {
   const fields = useStore($fields);
   const on = active?.id === preset.id;
@@ -390,8 +387,9 @@ export function sendView({ t }) {
 
   useEffect(() => {
     if (gate && !$active.get()) $active.set({ id: "swiftPair", bytes: assemble(PRESETS.find((p) => p.id === "swiftPair").build("тук тук")) });
-    return () => { if (!gate) { stopReemit(); $active.set(null); try { shell.call("ble.silence", {}); } catch {  } } };
+    return () => { if (!gate) { stopReemit(); $active.set(null); try { shell.call("ble.silence", {}); } catch { } } };
   }, []);
+
   if (!labOk) {
     return html`<div class="flex flex-col gap-4 px-[var(--ms-pad)] pt-6 pb-[calc(var(--dock-h)+2rem)]">
       <div data-prime class="rounded-[var(--ms-r)] p-[var(--ms-pad)] sf-raised sf-e2 flex flex-col gap-3">

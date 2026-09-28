@@ -28,7 +28,7 @@ export default [
     name: "seek змінює частоту", run: async (h) => {
       await ready(h);
       const before = await h.bodyText();
-      await h.tap("#next"); await h.wait(150);   
+      await h.tap("#next"); await h.wait(150);
       h.expect((await h.bodyText()) !== before, "seek не змінив частоту");
     },
   },
@@ -74,7 +74,7 @@ export default [
       const before = await h.attr("[data-save]", "aria-pressed");
       await h.tap("[data-save]"); await h.wait(200);
       h.expect((await h.attr("[data-save]", "aria-pressed")) !== before, "зірка не перемкнулась");
-      await h.tap("[data-save]"); await h.wait(150);   
+      await h.tap("[data-save]"); await h.wait(150);
     },
   },
   {

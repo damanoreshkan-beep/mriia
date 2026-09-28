@@ -1,4 +1,3 @@
-
 const ORIGIN = "https://dreamstudio.mooo.com";
 const CERT_SHA256 =
   "54:34:F0:62:9F:97:41:CD:53:82:DB:25:4C:42:1E:CB:5F:45:0A:ED:43:8A:9B:DA:62:F0:26:C2:8E:73:4F:77";
@@ -15,7 +14,7 @@ for await (const e of Deno.readDir(DIST)) {
   if (!e.isDirectory || e.name === "_rt" || e.name.startsWith(".")) continue;
   try {
     if ((await Deno.stat(`${DIST}/${e.name}/index.html`)).isFile) ids.push(e.name);
-  } catch {  }
+  } catch { }
 }
 ids.sort();
 

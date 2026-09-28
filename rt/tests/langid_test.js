@@ -1,18 +1,16 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { detect, scoreAs, LANGS, MIN_GAP } from "../langid.js";
 
-
 Deno.test("langid: script alone separates English from the two Cyrillic languages", () => {
   assert(scoreAs("hello there how are you", "en") > 0.9);
-  assertEquals(scoreAs("привіт як справи", "en"), 0);          
-  assertEquals(scoreAs("hello", "uk"), 0);                     
+  assertEquals(scoreAs("привіт як справи", "en"), 0);
+  assertEquals(scoreAs("hello", "uk"), 0);
 });
 
 Deno.test("langid: uk vs ru is decided by the letters exactly one language uses", () => {
-  const uk = "це наш кіт і його їжа є смачною";               
+  const uk = "це наш кіт і його їжа є смачною";
   assert(scoreAs(uk, "uk") > scoreAs(uk, "ru"), "uk-only letters must make uk win its own text");
-  const ru = "это мы были рады это большэ";                   
+  const ru = "это мы были рады это большэ";
   assert(scoreAs(ru, "ru") > scoreAs(ru, "uk"), "ru-only letters must make ru win its own text");
 });
 
@@ -20,7 +18,7 @@ Deno.test("langid: the English model's Latin gibberish does NOT win a Cyrillic c
   const candidates = {
     uk: "привіт мої рідні я їду до києва і буду там увечері",
     ru: "привет мои родные я еду до киева и буду там вечером",
-    en: "pryvit moyi ridni",                                   
+    en: "pryvit moyi ridni",
   };
   const r = detect(candidates);
   assertEquals(r.lang, "uk");
@@ -42,7 +40,7 @@ Deno.test("langid: a Russian clip is detected as ru over uk despite shared Cyril
 
 Deno.test("langid: a clean English clip is detected as en, with uk/ru zeroed", () => {
   const r = detect({
-    uk: "сенк ю вері мач фор",                                 
+    uk: "сенк ю вері мач фор",
     ru: "сэнк ю вери мач фор",
     en: "thank you very much for the help today",
   });

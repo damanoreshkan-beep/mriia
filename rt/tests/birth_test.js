@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { resolve, isComplete, parseDate, parseTime, EMPTY } from "../birth.js";
 

@@ -12,10 +12,10 @@ import { referenceWav, wavDataUrl, decodeWav, mockVoice, envelope, REF_RATE } fr
 import { CHARACTERS, characterOf } from "./characters.js";
 
 const BASE = `${VPS_PROXY}/voice`;
-export const TAKE_MAX = 10;     
-const TAKE_MIN = 1.2;           
+export const TAKE_MAX = 10;
+const TAKE_MIN = 1.2;
 export const BARS = 48;
-const CAP = 40;                 
+const CAP = 40;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export const CLONES = [
@@ -24,7 +24,7 @@ export const CLONES = [
   { id: "mine", key: "vMine" },
 ];
 export const isClone = (id) => CLONES.some((v) => v.id === id);
-const presets = new Map();   
+const presets = new Map();
 async function preset(id) {
   const v = CLONES.find((x) => x.id === id && x.asset); if (!v) return null;
   if (!presets.has(id)) {
@@ -73,20 +73,20 @@ const MOCK_CATALOG = { langs: ["uk", "en"], voices: [
 ] };
 async function loadCatalog() {
   if (gate) { $catalog.set(MOCK_CATALOG); return; }
-  try { const r = await fetch(`${BASE}/voices`); if (r.ok) { const j = await r.json(); if (Array.isArray(j?.voices)) $catalog.set(j); } } catch {  }
+  try { const r = await fetch(`${BASE}/voices`); if (r.ok) { const j = await r.json(); if (Array.isArray(j?.voices)) $catalog.set(j); } } catch { }
 }
 
 const takeStore = collection("vidlunnia-take");
 const echoStore = collection("vidlunnia");
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const revoke = (u) => { if (u?.startsWith?.("blob:")) { try { URL.revokeObjectURL(u); } catch {  } } };
+const revoke = (u) => { if (u?.startsWith?.("blob:")) { try { URL.revokeObjectURL(u); } catch { } } };
 const wavBlob = (pcm, sr) => new Blob([encodeWav([pcm], sr)], { type: "audio/wav" });
 
 function setTake(t, persist = true) {
   revoke($take.get()?.url);
   const take = { ...t, bars: Array.from(envelope(t.pcm, BARS)), url: URL.createObjectURL(wavBlob(t.pcm, t.sr)) };
   $take.set(take);
-  $voice.set("mine"); $presetView.set(null);   
+  $voice.set("mine"); $presetView.set(null);
   if (persist && idbSupported && !gate) takeStore.put("take", { pcm: t.pcm, sr: t.sr, dur: t.dur, quiet: t.quiet, clipped: t.clipped }).catch(() => {});
 }
 function seedTake() { const pcm = mockVoice(2.4, REF_RATE, 7); setTake({ pcm, sr: REF_RATE, dur: 2.4, quiet: false, clipped: false, seeded: true }, false); }
@@ -103,7 +103,7 @@ function startMeter(stream) {
     bars.push(Math.min(1, Math.sqrt(s / buf.length) * 3.2)); if (bars.length > BARS) bars.shift();
     $rec.set({ ...$rec.get(), bars: [...bars] });
   }, 50);
-  return () => { clearInterval(id); try { src.disconnect(); ctx.close(); } catch {  } };
+  return () => { clearInterval(id); try { src.disconnect(); ctx.close(); } catch { } };
 }
 const stopMeter = () => { meter?.(); meter = null; };
 
@@ -142,7 +142,7 @@ async function adopt(blob) {
     const ctx = new AC();
     const dec = await ctx.decodeAudioData(await blob.arrayBuffer());
     const chans = []; for (let c = 0; c < dec.numberOfChannels; c++) chans.push(dec.getChannelData(c));
-    try { ctx.close(); } catch {  }
+    try { ctx.close(); } catch { }
     const c = conditionSample(chans, dec.sampleRate);
     if (c.dur < TAKE_MIN) { $rec.set({ state: "idle", bars: [], since: 0, err: "short" }); return; }
     setTake({ pcm: c.pcm, sr: c.sr, dur: c.dur, quiet: c.quiet, clipped: c.clipped });
@@ -248,7 +248,7 @@ export async function boot(locale) {
     try {
       const t = await takeStore.get("take");
       if (t?.pcm?.length) setTake({ pcm: t.pcm, sr: t.sr, dur: t.dur, quiet: !!t.quiet, clipped: !!t.clipped }, false);
-    } catch {  }
+    } catch { }
   }
   const ok = wanted === "mine" ? !!$take.get() : (isClone(wanted) || !!namedOf(wanted));
   await selectVoice(ok ? wanted : CLONES[0].id);
@@ -256,6 +256,6 @@ export async function boot(locale) {
   try {
     const rows = await echoStore.all();
     $echoes.set(rows.slice(0, CAP).map((r) => ({ id: r.id, url: URL.createObjectURL(r.blob), blob: r.blob, words: r.words, voice: r.voice || r.manner || "", style: r.style || "", by: r.by || "", ts: r._ts })));
-  } catch {  }
+  } catch { }
 }
 export { CHARACTERS, characterOf };

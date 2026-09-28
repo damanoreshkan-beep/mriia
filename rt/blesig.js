@@ -1,4 +1,3 @@
-
 import { parseAd, adSummary } from "./radar.js";
 
 const APPLE = 0x004c, MICROSOFT = 0x0006, SAMSUNG = 0x0075;
@@ -41,7 +40,7 @@ export function decodeContinuity(v) {
   while (i + 1 < v.length) {
     const type = v[i], len = v[i + 1];
     const payload = v.slice(i + 2, i + 2 + len);
-    if (payload.length < len) break;               
+    if (payload.length < len) break;
     out.push(decodeContinuityMsg(type, payload));
     i += 2 + len;
     if (len === 0) break;
@@ -52,7 +51,7 @@ export function decodeContinuity(v) {
 function decodeContinuityMsg(type, p) {
   const msg = CONTINUITY[type] || "unknown";
   const base = { vendor: "apple", protocol: "continuity", msg, type, raw: hex(p), text: null, detail: {} };
-  if (type === 0x0f) {                             
+  if (type === 0x0f) {
     const actionType = p.length >= 2 ? p[1] : null;
     const action = actionType != null ? (NEARBY_ACTION[actionType] || "unknown") : null;
     return {
@@ -61,16 +60,16 @@ function decodeContinuityMsg(type, p) {
       text: action ? FIXED(`na_${action}`) : null,
     };
   }
-  if (type === 0x07) {                             
-    const model = p.length >= 3 ? (p[1] << 8) | p[2] : null;   
+  if (type === 0x07) {
+    const model = p.length >= 3 ? (p[1] << 8) | p[2] : null;
     return { ...base, detail: { model, modelName: model != null ? (APPLE_MODELS[model] || null) : null } };
   }
-  if (type === 0x10) {                             
+  if (type === 0x10) {
     const status = p.length ? (p[0] >> 4) & 0x0f : null;
     const activity = p.length ? p[0] & 0x0f : null;
     return { ...base, detail: { status, activity } };
   }
-  return base;                                     
+  return base;
 }
 
 /** Microsoft Swift Pair: beaconId · subScenario · reservedRSSI(0x80) · Display Name (free-form UTF-8). */
@@ -92,12 +91,12 @@ export function decodeFastPair(v) {
     return {
       vendor: "google", protocol: "fastPair", msg: "fastPairModel", raw: id,
       detail: { mode: "discoverable", modelId: id },
-      text: DB(id),                                
+      text: DB(id),
     };
   }
   return {
     vendor: "google", protocol: "fastPair", msg: "fastPairAccount", raw: hex(v),
-    detail: { mode: "account" }, text: null,       
+    detail: { mode: "account" }, text: null,
   };
 }
 
@@ -119,12 +118,12 @@ export function decodeEddystone(v) {
   if (!v.length) return null;
   const frame = EDDYSTONE_FRAME[v[0]] || "unknown";
   const base = { vendor: "eddystone", protocol: "eddystone", msg: `eddystone_${frame}`, raw: hex(v), detail: { frame }, text: null };
-  if (v[0] === 0x10 && v.length >= 3) {            
+  if (v[0] === 0x10 && v.length >= 3) {
     let url = EDDYSTONE_SCHEME[v[2]] ?? "";
     for (let i = 3; i < v.length; i++) url += v[i] < EDDYSTONE_TLD.length ? EDDYSTONE_TLD[v[i]] : String.fromCharCode(v[i]);
     return { ...base, detail: { frame, url }, text: FREE(url) };
   }
-  if (v[0] === 0x00 && v.length >= 18) {           
+  if (v[0] === 0x00 && v.length >= 18) {
     return { ...base, detail: { frame, namespace: hex(v.slice(2, 12)), instance: hex(v.slice(12, 18)) } };
   }
   return base;

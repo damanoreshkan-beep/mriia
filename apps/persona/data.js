@@ -45,7 +45,7 @@ export async function load(filters) {
   const ql = q.toLowerCase();
   const own = list.filter((c) => [c.name, c.name_uk, c.tagline, c.tagline_uk].some((s) => (s || "").toLowerCase().includes(ql)));
   let found = [];
-  try { found = await lookup(q); } catch {  }
+  try { found = await lookup(q); } catch { }
   const have = new Set(list.map((c) => c.slug));
   const items = [...own.map((c) => toItem(c, loc)), ...found.filter((k) => !have.has(k.key)).map(candidateItem)];
   return { items, meta: { found: items.length } };

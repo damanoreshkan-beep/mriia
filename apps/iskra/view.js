@@ -10,26 +10,26 @@ import { report } from "/_rt/telemetry.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
-const FW_URL = VPS_PROXY + "/m5fw";   
-const FLASH_ADDR = 0x0;     
+const FW_URL = VPS_PROXY + "/m5fw";
+const FLASH_ADDR = 0x0;
 
-const R = 54, C = 2 * Math.PI * R;   
+const R = 54, C = 2 * Math.PI * R;
 const inApk = () => shell.has("flash.run");
 
 export function iskra({ S, toast }) {
   const t = useStore(S.t);
   const [phase, setPhase] = useState("idle");
   const [pct, setPct] = useState(0);
-  const [msg, setMsg] = useState(null);   
+  const [msg, setMsg] = useState(null);
   const busyRef = useRef(false);
-  const [apkBusy, setApkBusy] = useState(false);   
+  const [apkBusy, setApkBusy] = useState(false);
 
   useEffect(() => {
     if (gate || !inApk()) return;
     return shell.subscribe("flash.progress", {}, (f) => {
       if (typeof f?.pct === "number") setPct(f.pct / 100);
       if (f?.line) setMsg(String(f.line));
-    }, () => {  });
+    }, () => { });
   }, []);
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function iskra({ S, toast }) {
 
   const busy = phase === "flashing", done = phase === "done", err = phase === "error";
   const devCls = `isk-dev ${busy ? "is-busy" : done ? "is-done" : err ? "is-err" : ""}`.trim();
-  const showPct = busy;   
+  const showPct = busy;
   const glyph = done ? "lucide:check" : err ? "lucide:zap-off" : "lucide:zap";
   const btnLabel = busy ? T(t, "flashing", { p: Math.round(pct * 100) })
     : done ? T(t, "flashAgain") : err ? T(t, "retry") : T(t, "flash");

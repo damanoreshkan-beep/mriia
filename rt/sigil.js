@@ -1,4 +1,3 @@
-
 export const PLANETS = [
   { key: "saturn", order: 3 },
   { key: "jupiter", order: 4 },
@@ -10,14 +9,14 @@ export const PLANETS = [
 ];
 
 const VOWELS = new Set([..."AEIOU", ..."АЕЄИІЇОУЮЯ"]);
-const UA = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ";           
+const UA = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ";
 const isLetter = (ch) => /\p{L}/u.test(ch);
-function rank(ch) {                                        
+function rank(ch) {
   const code = ch.codePointAt(0);
-  if (code >= 65 && code <= 90) return code - 65;          
+  if (code >= 65 && code <= 90) return code - 65;
   const ui = UA.indexOf(ch);
-  if (ui >= 0) return ui;                                  
-  return code % 97;                                        
+  if (ui >= 0) return ui;
+  return code % 97;
 }
 
 export function hash32(str) {
@@ -41,7 +40,7 @@ export function distill(intent) {
 
 export const magicConstant = (n) => (n * (n * n + 1)) / 2;
 
-function siamese(n) {                                      
+function siamese(n) {
   const sq = Array.from({ length: n }, () => Array(n).fill(0));
   let r = 0, c = (n / 2) | 0;
   for (let k = 1; k <= n * n; k++) {
@@ -52,7 +51,7 @@ function siamese(n) {
   }
   return sq;
 }
-function doublyEven(n) {                                   
+function doublyEven(n) {
   const sq = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => i * n + j + 1));
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
     const a = i % 4, b = j % 4;
@@ -89,7 +88,7 @@ export function isMagic(sq) {
   }
   if (d1 !== want || d2 !== want) return false;
   if (cols.some((c) => c !== want)) return false;
-  return seen.size === n * n;                              
+  return seen.size === n * n;
 }
 
 const letterValue = (ch, order) => (((rank(ch) % (order * order)) + order * order) % (order * order)) + 1;
@@ -131,7 +130,7 @@ export function sigilPath(intent) {
     const [r, c] = at.get(letterValue(ch, order));
     const p = centre(r, c);
     const prev = raw[raw.length - 1];
-    if (prev && prev.x === p.x && prev.y === p.y) continue;  
+    if (prev && prev.x === p.x && prev.y === p.y) continue;
     cells.push([r, c]); raw.push(p);
   }
   if (raw.length < 2) { raw.push({ x: 0, y: 0 }); cells.push([(order / 2) | 0, (order / 2) | 0]); }
@@ -144,7 +143,7 @@ export function sigilPath(intent) {
   for (const p of raw) { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); }
   const cX = (minX + maxX) / 2, cY = (minY + maxY) / 2;
   const half = Math.max(0.18, (maxX - minX) / 2, (maxY - minY) / 2);
-  const scale = Math.min(1.7, 0.82 / half);                 
+  const scale = Math.min(1.7, 0.82 / half);
   const fit = (p) => ({ ...p, x: (p.x - cX) * scale, y: (p.y - cY) * scale });
   const fRaw = raw.map(fit), fNodes = nodes.map(fit);
   const fCell = cell * scale;

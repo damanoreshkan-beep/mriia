@@ -1,10 +1,9 @@
-
 import { fft, firLowpass } from "./fmradio.js";
 import { LPD433, TUNE_HZ, channelBins, integrateChannels } from "./chan433.js";
 import { fmActivity, envelopeTransitions, magnitude, classifyEvent } from "./burst.js";
 
 const TAU = 2 * Math.PI;
-const s8 = (b) => (b > 127 ? b - 256 : b);          
+const s8 = (b) => (b > 127 ? b - 256 : b);
 
 export const DEFAULT_GEOM = { fftSize: 2048, sampleRate: 2_400_000, centreHz: TUNE_HZ, hop: 1024 };
 
@@ -25,7 +24,7 @@ export function powerFrame(bytes, start, geom, scratch) {
     im[i] = s8(bytes[j + 1]) * win[i] / 128;
   }
   fft(re, im);
-  for (let i = 0; i < N; i++) pw[(i + N / 2) % N] = re[i] * re[i] + im[i] * im[i];   
+  for (let i = 0; i < N; i++) pw[(i + N / 2) % N] = re[i] * re[i] + im[i] * im[i];
   return pw;
 }
 
@@ -76,7 +75,7 @@ export function extractChannel(bytes, { deltaHz, sampleRate = 2_400_000, decim =
     mr[i] = xr * cr - xi * ci;
     mi[i] = xr * ci + xi * cr;
     const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
-    if ((i & 1023) === 1023) { const m = Math.hypot(cr, ci) || 1; cr /= m; ci /= m; }   
+    if ((i & 1023) === 1023) { const m = Math.hypot(cr, ci) || 1; cr /= m; ci /= m; }
   }
   const outN = Math.max(0, Math.floor((n - taps) / decim));
   const re = new Float32Array(outN), im = new Float32Array(outN);

@@ -12,15 +12,15 @@ const CLIPS = {
   idle: { url: new URL("assets/clip-idle.glb", import.meta.url).href, loop: true },
   run: { url: new URL("assets/clip-run.glb", import.meta.url).href, loop: true, inPlace: true },
   jump: { url: new URL("assets/clip-jump.glb", import.meta.url).href, inPlace: true, fitTo: 0.7 },
-  vault: { url: new URL("assets/clip-vault.glb", import.meta.url).href, inPlace: true, fitTo: 1.1 },   
+  vault: { url: new URL("assets/clip-vault.glb", import.meta.url).href, inPlace: true, fitTo: 1.1 },
   slide: { url: new URL("assets/clip-slide.glb", import.meta.url).href, inPlace: true, fitTo: 0.85 },
   stumble: { url: new URL("assets/clip-stumble.glb", import.meta.url).href, inPlace: true, fitTo: 0.9 },
   death: { url: new URL("assets/clip-death.glb", import.meta.url).href, inPlace: true, hold: true },
 };
-const TARGET_H = 1.7, GRAVITY = -22, JUMP_V = 7.4, VAULT_V = 8.4, JUMP_SAFE_Y = 0.35, BIN_SAFE_Y = 0.85, SLIDE_S = 0.75, LANE_LERP = 13;   
-const BASE_SPEED = 6.5, MAX_SPEED = 15, RAMP_M = 1500, RUN_CLIP_MS = 4.4;   
-const BOOST_S = 6, BOOST_K = 2;                                              
-const FACE_PX = 132;                                                         
+const TARGET_H = 1.7, GRAVITY = -22, JUMP_V = 7.4, VAULT_V = 8.4, JUMP_SAFE_Y = 0.35, BIN_SAFE_Y = 0.85, SLIDE_S = 0.75, LANE_LERP = 13;
+const BASE_SPEED = 6.5, MAX_SPEED = 15, RAMP_M = 1500, RUN_CLIP_MS = 4.4;
+const BOOST_S = 6, BOOST_K = 2;
+const FACE_PX = 132;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 export async function createStage(canvas, { getInput, onStatus, onStat, onEvent }, skinId) {
@@ -37,7 +37,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
   const hemi = new THREE.HemisphereLight(0x3a4a58, 0x141816, 0.55); scene.add(hemi);
   const moon = new THREE.DirectionalLight(0x8090b0, 0.55); moon.position.set(-3, 10, -6); scene.add(moon);
   const fill = new THREE.DirectionalLight(0x8a8478, 0.9); fill.position.set(2, 7, 6); scene.add(fill);
-  const key = new THREE.PointLight(0xffe2b0, 60, 9, 1.6); key.position.set(0.6, 2.6, 1.4);   
+  const key = new THREE.PointLight(0xffe2b0, 60, 9, 1.6); key.position.set(0.6, 2.6, 1.4);
 
   const street = createWorld(scene);
 
@@ -56,7 +56,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
     for (const [cid, c] of Object.entries(CLIPS)) {
       const a = mixer.clipAction(retarget(raw[cid].clip, raw[cid].rig, rig, !!c.inPlace));
       if (c.loop) a.setLoop(THREE.LoopRepeat, Infinity); else { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
-      if (c.fitTo) a.setEffectiveTimeScale(a.getClip().duration / c.fitTo);   
+      if (c.fitTo) a.setEffectiveTimeScale(a.getClip().duration / c.fitTo);
       actions[cid] = a;
     }
     mixer.addEventListener("finished", (e) => { if (e.action === actions.death) return; oneShot = null; });
@@ -93,7 +93,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
 
   let state = "idle", lane = 1, x = laneX(1), y = 0, vy = 0, z = 2, slideT = 0, stumbleT = 0, dist = 0, coins = 0, seed = 1, speedK = 1, boostT = 0, boostK = 1, kills = 0;
   const camPos = new THREE.Vector3(0, 4, 9.8), look = new THREE.Vector3(), want = new THREE.Vector3();
-  const face = { shake: 0, zoom: 0, mood: "" };   
+  const face = { shake: 0, zoom: 0, mood: "" };
   const clock = new THREE.Clock();
   let raf = 0, dead = false, frame = 0, fpsN = 0, fpsT = 0, fps = 0, reported = false, airborne = false;
   const speedAt = (d) => BASE_SPEED + Math.min(1, d / RAMP_M) * (MAX_SPEED - BASE_SPEED);
@@ -115,12 +115,12 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
     const floor = street.floorAt(lane, z);
     if (airborne) {
       vy += GRAVITY * dt; y += vy * dt;
-      if (y <= floor && vy < 0) { y = floor; vy = 0; airborne = false; if (running) { sfx("land"); mood("land", 0.5); if (current !== "vault") { oneShot = null; play("run", 0.12); } } }   
+      if (y <= floor && vy < 0) { y = floor; vy = 0; airborne = false; if (running) { sfx("land"); mood("land", 0.5); if (current !== "vault") { oneShot = null; play("run", 0.12); } } }
     } else if (floor - y > 0.6) {
       if (boostT > 0) { vy = JUMP_V; airborne = true; play("jump", 0.06, true); }
       else if (running) { sfx("hit-metal"); caught(now); }
       else y = floor;
-    } else if (y > floor + 0.05 && vy <= 0) { airborne = true; vy = 0; }   
+    } else if (y > floor + 0.05 && vy <= 0) { airborne = true; vy = 0; }
     else y = floor;
     if (slideT > 0 && (slideT -= dt) <= 0) { slideT = 0; oneShot = null; }
     if (running) {
@@ -129,15 +129,15 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
       if (street.drink(x, y, z)) { boostT = BOOST_S; sfx("can"); mood("boost", 0.4, 1); onEvent("boost", BOOST_S); }
       const o = street.hit(lane, z);
       if (o) {
-        const safe = o.kind === "jump" ? y - floor > JUMP_SAFE_Y : o.kind === "bin" || o.kind === "car" ? y - floor > BIN_SAFE_Y : o.kind === "slide" ? slideT > 0 : false;   
+        const safe = o.kind === "jump" ? y - floor > JUMP_SAFE_Y : o.kind === "bin" || o.kind === "car" ? y - floor > BIN_SAFE_Y : o.kind === "slide" ? slideT > 0 : false;
         if (!safe) {
-          if (boostT > 0) {   
+          if (boostT > 0) {
             if (o.walker) { street.fell(o.walker); kills++; coins += 5; sfx("zombie-die"); onEvent("kill"); } else sfx(o.kind === "jump" ? "hit-wood" : o.kind === "slide" ? "hit-metal" : "hit-car");
             mood("smash", 0.6);
           } else {
             sfx(o.kind === "jump" ? "hit-wood" : o.kind === "slide" || o.kind === "bin" ? "hit-metal" : o.kind === "walker" ? "zombie-hit" : "hit-car");
-            if (o.walker) street.fell(o.walker);   
-            if (o.kind === "dodge" || street.stumble()) caught(now);   
+            if (o.walker) street.fell(o.walker);
+            if (o.kind === "dodge" || street.stumble()) caught(now);
             else { stumbleT = 1.1; slideT = 0; play("stumble", 0.06, true); sfx("stumble"); sfx(Math.random() < 0.5 ? "zombie-growl-1" : "zombie-growl-2"); mood("hit", 1); onEvent("stumble"); }
           }
         }
@@ -241,7 +241,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
     dispose() {
       dead = true; cancelAnimationFrame(raf); removeEventListener("resize", resize);
       sound?.dispose(); street.dispose(); tracerGeo.dispose(); tracerMat.dispose(); gunMat.dispose(); muzzleMat.dispose();
-      try { renderer.dispose(); renderer.forceContextLoss?.(); } catch {  }
+      try { renderer.dispose(); renderer.forceContextLoss?.(); } catch { }
     },
   };
 }

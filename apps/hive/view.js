@@ -18,7 +18,7 @@ import { parseOui, vendorOf } from "/_rt/oui.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
 const SEEN_MS = 20_000;
-const RADIO_MS = 30_000;                   
+const RADIO_MS = 30_000;
 
 const KIND_ICON = { ble: "lucide:bluetooth", wifi: "lucide:wifi", lte: "lucide:radio-tower" };
 const KINDS = ["ble", "wifi", "lte"];
@@ -84,7 +84,7 @@ function loadOui() {
   fetch(new URL("./assets/oui.txt", import.meta.url).href)
     .then((r) => (r.ok ? r.text() : ""))
     .then((txt) => { if (txt) $oui.set(parseOui(txt)); })
-    .catch(() => {  });
+    .catch(() => { });
 }
 
 const HUNT_TAU = 30_000;
@@ -143,7 +143,7 @@ async function sweepRadios() {
       for (const n of r.networks || []) {
         if (n.bssid) upsert({ addr: n.bssid, name: n.ssid || "", rssi: n.rssi, kind: "wifi", ftm: n.ftm, freq: n.freq });
       }
-    } catch {  }
+    } catch { }
   }
   if (shell.has("cell.info")) {
     try {
@@ -157,7 +157,7 @@ async function sweepRadios() {
           mcc: cellNum(c.mcc), mnc: cellNum(c.mnc), radio: (c.type || "lte").toLowerCase(),
         });
       }
-    } catch {  }
+    } catch { }
   }
 }
 
@@ -190,13 +190,13 @@ function startScan() {
 
 function endScan() {
   $scanning.set(false);
-  try { stopScan?.(); } catch {  }
+  try { stopScan?.(); } catch { }
   stopScan = null;
   clearInterval(radioTimer); radioTimer = null;
   clearInterval(ageTimer); ageTimer = null;
-  try { stopCompass?.(); } catch {  }
-  try { stopGeo?.(); } catch {  }
-  try { lock?.release(); } catch {  }
+  try { stopCompass?.(); } catch { }
+  try { stopGeo?.(); } catch { }
+  try { lock?.release(); } catch { }
   stopCompass = stopGeo = lock = null;
 }
 
@@ -255,16 +255,16 @@ function Legend({ t, field }) {
   </div>`;
 }
 
-const HEX = 10;                       
-const CORNERS = Array.from({ length: 6 }, (_, i) => ((60 * i + 30) * Math.PI) / 180);   
+const HEX = 10;
+const CORNERS = Array.from({ length: 6 }, (_, i) => ((60 * i + 30) * Math.PI) / 180);
 const hexPath = (cx, cy, r) =>
   CORNERS.map((a, i) => `${i ? "L" : "M"}${(cx + Math.cos(a) * r).toFixed(2)} ${(cy + Math.sin(a) * r).toFixed(2)}`).join("") + "Z";
 const CELL = hexPath(0, 0, HEX * 0.92);
 
 const chain = (r, idx) =>
   idx.map((ci, j) => `${j ? "L" : "M"}${(Math.cos(CORNERS[ci]) * r).toFixed(2)} ${(Math.sin(CORNERS[ci]) * r).toFixed(2)}`).join("");
-const CELL_UP = chain(HEX * 0.92, [2, 3, 4, 5]);      
-const CELL_DOWN = chain(HEX * 0.92, [5, 0, 1, 2]);    
+const CELL_UP = chain(HEX * 0.92, [2, 3, 4, 5]);
+const CELL_DOWN = chain(HEX * 0.92, [5, 0, 1, 2]);
 function Bevel({ raised }) {
   return html`
     <path d=${CELL_UP} style=${`stroke:var(${raised ? "--nm-light" : "--nm-dark"})`} fill="none"
@@ -290,10 +290,13 @@ export function hiveView({ S, t }) {
   return html`<div class="h-full min-h-0 flex flex-col gap-[var(--ms-gap)] ms-side">
     <${Stage}>
       <div class="absolute inset-0 flex items-center justify-center p-1">
+        ${""}
+        ${""}
         <svg data-mark viewBox="0 0 200 200"
           class="w-full h-full max-h-full text-base-content" role="img"
           aria-label=${`${field.length} ${T(t, "cells")}`}>
           <defs>
+            ${""}
             <pattern id="hvHatch" patternUnits="userSpaceOnUse" width="2.6" height="2.6" patternTransform="rotate(45)">
               <line x1="0" y1="0" x2="0" y2="2.6" stroke="currentColor" stroke-width="0.9" />
             </pattern>
@@ -308,8 +311,6 @@ export function hiveView({ S, t }) {
                   <${Bevel} raised=${false} />
                 </g>`;
               }
-              
-              
               const k = Math.sqrt(Math.max(0, Math.min(100, d.percent)) / 100);
               const tone = d.kind === "ble" ? "text-[var(--app-accent)]" : "text-base-content";
               const solid = d.kind === "lte" ? 0.5 : d.kind === "wifi" ? 0.45 : 0.55;
@@ -331,15 +332,16 @@ export function hiveView({ S, t }) {
       </div>
       <div data-live class="absolute inset-x-0 top-0 flex justify-center pointer-events-none">
         <span class="flex items-center gap-1.5 font-mono uppercase tracking-wide text-[length:var(--ms-label)] text-base-content/70">
-          
+          ${""}
           ${scanning ? html`<span class=${`inline-block w-1.5 h-1.5 rounded-full bg-[var(--app-accent)] ${gate ? "" : "hv-dot-live"}`}></span>` : null}
           <span>${field.length} ${T(t, "cells")}${scanning ? "" : " · " + T(t, "idle")}</span>
         </span>
       </div>
     <//>
+
     <div class="ms-side-main flex flex-col justify-end items-center pb-[var(--ms-gap)]">
       <${Island} className="w-full max-w-md">
-        
+        ${""}
         <div class="flex flex-wrap items-center gap-[var(--ms-gap)] min-w-0">
           <${ScanButton} t=${t} />
           <${Legend} t=${t} field=${field} />
@@ -349,10 +351,6 @@ export function hiveView({ S, t }) {
     </div>
   </div>`;
 }
-
-
-
-
 
 function dossier(d, t, oui, loc) {
   const L = (k) => T(t, k);
@@ -384,12 +382,8 @@ function dossier(d, t, oui, loc) {
   return lines.join("\n");
 }
 
-
-
-
-
 async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true; } catch {  }
+  try { await navigator.clipboard.writeText(text); return true; } catch { }
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -403,8 +397,6 @@ async function copyText(text) {
   } catch { return false; }
 }
 
-
-
 function chanOf(mhz) {
   if (mhz === 2484) return 14;
   if (mhz >= 2412 && mhz <= 2472) return (mhz - 2407) / 5;
@@ -412,10 +404,6 @@ function chanOf(mhz) {
   if (mhz >= 5955 && mhz <= 7115) return (mhz - 5950) / 5;
   return null;
 }
-
-
-
-
 
 export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
   const field = useField(S);
@@ -425,16 +413,11 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
   const look = useStore($look);
   const copied = useStore($copied);
   useEffect(loadOui, []);
-  
-  
   const takeIt = async (d) => {
     $target.set(d.addr);
     if (gate) seedRose(); else { rose = newRose(72, HUNT_TAU); $roseAt.set(Date.now()); }
     const text = dossier(d, t, oui, loc);
     const ok = await copyText(text);
-    
-    
-    
     $copied.set({ addr: d.addr, lines: text.split("\n").length, ok });
     toast?.(T(t, ok ? "copied" : "copyFail"));
   };
@@ -450,7 +433,7 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
     <${Panel} title=${T(t, "signal")}>
       <div data-live data-copied=${copied?.addr || ""} data-copied-lines=${copied?.lines || 0} data-copied-ok=${copied?.ok ? "1" : "0"} class="flex flex-col">
         ${field.length === 0 ? html`<div class="text-base-content/70 text-sm">${T(t, "nothingYet")}</div>` : null}
-        
+        ${""}
         ${field.map((d) => {
           const lk = look && look.addr === d.addr ? look : null;
           const verdict = lk?.state === "done" ? (lk.v.found ? "found" : lk.v.reason) : lk?.state === "asking" ? "asking" : "";
@@ -466,16 +449,16 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
             ${d.cls?.separated ? html`<span data-sep class="shrink-0 font-mono uppercase tracking-wide text-[length:var(--ms-label)] px-1.5 rounded-full border border-[var(--app-accent)]">${T(t, "sepTag")}</span>` : null}
             <span data-pct class="shrink-0 font-mono tabular-nums text-base-content">${d.percent}%</span>
           </span>
-          
+          ${""}
           <span class="mt-1.5 block h-1 rounded-full bg-base-content/10 overflow-hidden">
             <span class="block h-full rounded-full transition-[width] duration-500 ${d.kind === "ble" ? "bg-[var(--app-accent)]" : "bg-base-content/60"}"
               style=${`width:${d.percent}%`}></span>
           </span>
-          
+          ${""}
           <span class="mt-1 block font-mono text-[length:var(--ms-label)] text-base-content/70">
             ${(() => { const v = vendorOf(d.addr, d.kind, oui); return v ? html`<span data-vendor>${v}</span> · ` : null; })()}
             ${T(t, "band_" + band(d.smooth ?? d.rssi))} · ${Math.round(d.smooth ?? d.rssi)} dBm${rotates(d.addr) && d.kind === "ble" ? " · " + T(t, "rotating") : ""}
-            
+            ${""}
             ${d.cid || d.lac
               ? html` · <span data-cellid>${[d.cid ? `CID ${d.cid}` : null, d.lac ? `LAC ${d.lac}` : null].filter(Boolean).join(" · ")}</span>`
               : null}
@@ -495,7 +478,7 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
       </div>
     <//>
 
-    
+    ${""}
     <${Sheet} id="where" open=${screen === "where"} onClose=${closeScreen} title=${T(t, "whereTitle")} icon="lucide:map-pin">
       ${look?.v?.found && screen === "where"
         ? html`<div data-where class="flex flex-col gap-[var(--ms-gap)]">
@@ -504,21 +487,15 @@ export function listView({ S, t, toast, screen, openScreen, closeScreen }) {
             <span class="font-mono tabular-nums">${look.v.lat.toFixed(5)}, ${look.v.lon.toFixed(5)}</span>
             <span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted shrink-0">±${Math.round(look.v.accuracy || 0)} m · ${look.v.source}</span>
           </div>
-          
+          ${""}
           <div class="font-mono text-[length:var(--ms-label)] text-muted">© OpenStreetMap contributors</div>
         </div>`
         : html`<div class="text-sm text-muted">${T(t, "no_unknown")}</div>`}
     <//>
   </div>`;
 }
+
 const PIN = "#F2B84B";
-
-
-
-
-
-
-
 
 function MapView({ lat, lon, accuracy }) {
   const ref = useRef(null);
@@ -541,10 +518,6 @@ function MapView({ lat, lon, accuracy }) {
   return html`<div ref=${ref} data-map class="hv-map w-full rounded-[var(--ms-r)] overflow-hidden sf-inset bg-black" style="height:min(60dvh, 380px)"></div>`;
 }
 
-
-
-
-
 export function huntView({ S, t, screen, openScreen, closeScreen }) {
   const field = useField(S);
   const target = useStore($target);
@@ -563,7 +536,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
     path.push(`${i ? "L" : "M"}${(50 + Math.cos(a) * r).toFixed(2)} ${(50 + Math.sin(a) * r).toFixed(2)}`);
   }
   const dPath = path.join(" ") + " Z";
-  
+
   const angRef = useRef(0);
   if (stats.bearingDeg !== null) angRef.current = unwrapDeg(angRef.current, stats.bearingDeg);
   const hdg = useStore($heading);
@@ -571,15 +544,11 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
   dialRef.current = unwrapDeg(dialRef.current, hdg);
   const trend = dev ? sightTrend(dev.sightings) : null;
 
-  
-  
-  
   const spread = Math.max(12, Math.min(80, 90 * (1 - stats.r)));
   const wx = (a, r) => (50 + r * Math.sin((a * Math.PI) / 180)).toFixed(2);
   const wy = (a, r) => (50 - r * Math.cos((a * Math.PI) / 180)).toFixed(2);
   const wedge = `M50 50 L${wx(-spread, 40)} ${wy(-spread, 40)} A40 40 0 0 1 ${wx(spread, 40)} ${wy(spread, 40)} Z`;
 
-  
   return html`<div class="h-full min-h-0 flex flex-col gap-[var(--ms-gap)] ms-side">
     <${Stage}>
       <div class="absolute inset-0 flex items-center justify-center">
@@ -587,7 +556,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
           aria-label=${T(t, locked ? "aLobe" : "aCircle")}>
           <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="0.4" opacity="0.18" />
           <circle cx="50" cy="50" r="12" fill="none" stroke="currentColor" stroke-width="0.4" opacity="0.18" />
-          
+          ${""}
           <path d="M47.4 2.6 L52.6 2.6 L50 7.6 Z" fill="currentColor" opacity="0.65" />
           <g class="hv-dial" style=${`transform:rotate(${(-dialRef.current).toFixed(1)}deg)`}>
             ${
@@ -600,7 +569,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
                   stroke="currentColor" stroke-width=${major ? 0.7 : 0.35} opacity=${major ? 0.45 : 0.2}
                   class=${i === 0 ? "text-[var(--app-accent)]" : ""} />`;
               })}
-            
+            ${""}
             ${max > 0 ? html`<path data-petal d=${dPath} style=${`d:path('${dPath}')`}
               fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.7"
               class=${`hv-petal text-[var(--app-accent)] ${gate ? "" : "hv-e-in"}`} />` : null}
@@ -613,6 +582,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
               <path d="M50 5.5 L46.6 13 L53.4 13 Z" fill="currentColor" />
             </g>` : null}
           </g>
+          ${""}
           ${dev ? html`<g data-strength class="font-mono">
             <text x="50" y="53" text-anchor="middle" font-size="10.5" fill="currentColor"
               class="text-base-content font-mono">${dev.percent}</text>
@@ -635,7 +605,7 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
             ${Icon("lucide:crosshair")}<span class="truncate">${dev ? labelOf(dev, t) : T(t, "pickTarget")}</span>
           </button>
         </div>
-        
+        ${""}
         <div data-live class="font-mono uppercase tracking-wide text-[length:var(--ms-label)]">
           <div class="text-base-content truncate">${locked
             ? T(t, "strongestAt").replace("{deg}", Math.round(stats.bearingDeg))
@@ -666,7 +636,6 @@ export function huntView({ S, t, screen, openScreen, closeScreen }) {
   </div>`;
 }
 
-
 export function guardView({ S, t }) {
   const field = useField(S);
   const scanning = useStore($scanning);
@@ -681,7 +650,7 @@ export function guardView({ S, t }) {
   return html`<div class="flex flex-col gap-[var(--ms-gap)]">
     <${Panel} title=${T(t, "guard")}>
       <div class="flex items-center gap-[var(--ms-gap)]"><${ScanButton} t=${t} /></div>
-      
+      ${""}
       <div data-policy class="text-[length:var(--ms-label)] text-base-content/70">
         ${T(t, "policy")
           .replace("{n}", GUARD.minSightings)
@@ -715,7 +684,7 @@ export function guardView({ S, t }) {
                   class="shrink-0 font-mono uppercase tracking-wide text-[length:var(--ms-label)] px-1.5 rounded-full border border-[var(--app-accent)] text-base-content">
                   ${T(t, "sepTag")}</span>` : null}
             </span>
-            
+            ${""}
             <span class="block font-mono text-[length:var(--ms-label)] text-base-content/70">
               ${s.reasons.length ? s.reasons.map((r) => T(t, "why_" + r)).join(" · ") : T(t, "allMet")}
             </span>
@@ -727,7 +696,5 @@ export function guardView({ S, t }) {
     ${!fix && scanning && !gate ? html`<div data-nofix class="text-[length:var(--ms-label)] text-base-content/70">${T(t, "needFix")}</div>` : null}
   </div>`;
 }
-
-
 
 if (gate) startScan();

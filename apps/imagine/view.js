@@ -19,40 +19,40 @@ import { usePromptHistory, HistorySheet } from "./history.js";
 import { notify, notifyAsk } from "/_rt/notify.js";
 import { holdBackground } from "/_rt/bghold.js";
 
-const JOB_KEY = "ms:imagine:job";   
+const JOB_KEY = "ms:imagine:job";
 const BASE = `${VPS_PROXY}/image`;
 
 export { retouch } from "./edit.js";
-export { describe } from "./describe.js";   
+export { describe } from "./describe.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const randSeed = () => Math.floor(Math.random() * 1e9);
 const SPARKS = ["a lighthouse in a raging storm", "bioluminescent jellyfish in the deep sea", "a lone cabin under the northern lights", "brutalist architecture at dawn", "a fox in a misty autumn forest", "floating islands above the clouds", "a neon-lit rainy Tokyo alley", "an astronaut on a pastel desert planet", "a koi pond with cherry blossoms", "a snowy mountain village at dusk", "a whale swimming through a starry sky", "an old library with towering shelves", "a hummingbird at a tropical flower", "a coral reef bursting with colour", "a foggy harbour at first light", "a field of lavender under a purple sky", "a dragon curled on a mountain peak", "a quiet café on a rainy Paris street"];
-const gateDream = "гірське озеро на світанку, кришталева вода, золоте світло, кінематографічно";   
-const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;   
-const W = 768, H = 1024;                                                         
-const EST = { fast: 18, "2k": 32 };                                             
+const gateDream = "гірське озеро на світанку, кришталева вода, золоте світло, кінематографічно";
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+const W = 768, H = 1024;
+const EST = { fast: 18, "2k": 32 };
 const ASPECTS = [["screen", "lucide:smartphone"], ["square", "lucide:square"], ["portrait", "lucide:rectangle-vertical"], ["landscape", "lucide:rectangle-horizontal"]];
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 
 export function imagine({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
   const [prompt, setPrompt] = useKept("make.prompt", gate ? "northern lights over a frozen lake, cinematic, ultra detailed" : "");
-  const [phase, setPhase] = useKept("make.phase", gate ? "done" : "idle");                    
+  const [phase, setPhase] = useKept("make.phase", gate ? "done" : "idle");
   const [slides, setSlides] = useKept("make.slides", gate ? [7, 8, 9, 10].map((seed) => ({ url: mockArt(seed), w: W, h: H, seed })) : []);
   const [idx, setIdx] = useKept("make.idx", 0);
   const [more, setMore] = useKept("make.more", false);
   const [error, setError] = useKept("make.error", null);
-  const [t0, setT0] = useKept("make.t0", 0);                                      
-  const [live, setLive] = useState(null);                                          
-  const [quality, setQuality] = useKept("make.quality", "fast");                                 
-  const [aspect, setAspect] = useKept("make.aspect", "screen");                                 
-  const [suggesting, setSuggesting] = useState(false);                            
-  const runRef = useRef(0);                                                       
-  const jobRef = useRef(null);                                                    
-  const holdRef = useRef(null);                                                   
-  const islandRef = useRef(null);                                                 
+  const [t0, setT0] = useKept("make.t0", 0);
+  const [live, setLive] = useState(null);
+  const [quality, setQuality] = useKept("make.quality", "fast");
+  const [aspect, setAspect] = useKept("make.aspect", "screen");
+  const [suggesting, setSuggesting] = useState(false);
+  const runRef = useRef(0);
+  const jobRef = useRef(null);
+  const holdRef = useRef(null);
+  const islandRef = useRef(null);
   const [islandH, setIslandH] = useState(0);
   useEffect(() => {
     const el = islandRef.current; if (!el || typeof ResizeObserver === "undefined") return;
@@ -66,7 +66,7 @@ export function imagine({ S, toast }) {
   const handed = useStore(promptHandoff);
   useEffect(() => { if (handed) { setPrompt(handed); promptHandoff.set(null); } }, [handed]);
 
-  const est = EST[quality];                                                       
+  const est = EST[quality];
   const cur = slides[idx] || slides[0] || null;
   const [hist, remember] = usePromptHistory("make");
 
@@ -76,7 +76,7 @@ export function imagine({ S, toast }) {
     if (suggesting || phase === "generating") return;
     if (gate) { setPrompt(gateDream); return; }
     setSuggesting(true);
-    try { const p = await suggestPrompt("dream", SPARKS[Math.floor(Math.random() * SPARKS.length)], loc); if (p) setPrompt(p.local); }   
+    try { const p = await suggestPrompt("dream", SPARKS[Math.floor(Math.random() * SPARKS.length)], loc); if (p) setPrompt(p.local); }
     finally { setSuggesting(false); }
   };
 
@@ -84,7 +84,7 @@ export function imagine({ S, toast }) {
 
   const follow = async (job, run, p, seed) => {
     const alive = () => run === runRef.current;
-    const release = holdBackground({ title: T(t, "title"), body: T(t, "eGenerating") });   
+    const release = holdBackground({ title: T(t, "title"), body: T(t, "eGenerating") });
     holdRef.current = release;
     const mine = [];
     const status = await followJob({
@@ -99,10 +99,10 @@ export function imagine({ S, toast }) {
         }
       },
     });
-    if (status === "stale") return;                                                
+    if (status === "stale") return;
     release(); holdRef.current = null; jobRef.current = null;
     setMore(false); setLive(null);
-    try { localStorage.removeItem(JOB_KEY); } catch {  }
+    try { localStorage.removeItem(JOB_KEY); } catch { }
     if (!mine.length) fail(run, status === "timeout" ? "eTimeout" : status === "busy" ? "eBusy" : "eFailed");
   };
 
@@ -111,26 +111,26 @@ export function imagine({ S, toast }) {
     if (!p || phase === "generating") return;
     const seed = randSeed(), run = ++runRef.current;
     setError(null); setLive(null); setMore(false); setT0(Date.now());
-    holdRef.current?.(); holdRef.current = null;                                 
+    holdRef.current?.(); holdRef.current = null;
     freeSlides(slides); setSlides([]); setIdx(0); setPhase("generating");
     remember(p);
     if (gate) { await sleep(90); if (run === runRef.current) { setSlides([seed, seed + 1, seed + 2, seed + 3].map((sd) => ({ url: mockArt(sd), w: W, h: H, seed: sd }))); setPhase("done"); } return; }
-    notifyAsk();                                                                  
-    let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(run, e.code || "eTranslate"); }   
+    notifyAsk();
+    let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(run, e.code || "eTranslate"); }
     if (run !== runRef.current) return;
     const ratio = Math.max(0.3, Math.min(3, (window.innerWidth || 1) / (window.innerHeight || 1)));
     let job; try { job = await startJob(BASE, { prompt: pEn, quality, aspect, ratio, seed, k: 4 }); } catch (e) { return fail(run, e.code || "eNetwork"); }
     if (run !== runRef.current) { cancelJob(BASE, job); return; }
     jobRef.current = job;
     const began = Date.now(); setT0(began);
-    try { localStorage.setItem(JOB_KEY, JSON.stringify({ job, prompt: p, seed, ts: began })); } catch {  }
+    try { localStorage.setItem(JOB_KEY, JSON.stringify({ job, prompt: p, seed, ts: began })); } catch { }
     await follow(job, run, p, seed);
   };
 
   useEffect(() => {
     if (gate) return;
-    let j = null; try { j = JSON.parse(localStorage.getItem(JOB_KEY) || "null"); } catch {  }
-    if (!j?.job || Date.now() - j.ts > 240000) { try { localStorage.removeItem(JOB_KEY); } catch {  } return; }
+    let j = null; try { j = JSON.parse(localStorage.getItem(JOB_KEY) || "null"); } catch { }
+    if (!j?.job || Date.now() - j.ts > 240000) { try { localStorage.removeItem(JOB_KEY); } catch { } return; }
     const run = ++runRef.current; jobRef.current = j.job;
     setPrompt(j.prompt || ""); setPhase("generating"); setT0(j.ts);
     follow(j.job, run, j.prompt || "", j.seed || 0);
@@ -140,7 +140,7 @@ export function imagine({ S, toast }) {
     if (phase !== "generating") return;
     runRef.current++; const job = jobRef.current; jobRef.current = null;
     holdRef.current?.(); holdRef.current = null;
-    setMore(false); setLive(null); setPhase("idle"); try { localStorage.removeItem(JOB_KEY); } catch {  }
+    setMore(false); setLive(null); setPhase("idle"); try { localStorage.removeItem(JOB_KEY); } catch { }
     if (job && !gate) cancelJob(BASE, job);
   };
 
@@ -183,6 +183,7 @@ export function imagine({ S, toast }) {
         ${phase === "generating" ? html`<div data-working data-gen class="im-chip rounded-full px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums">${T(t, "eGenerating")} ${fmt(elapsed)}${live?.steps ? html` · ${live.step}/${live.steps}` : null}</div>` : null}
       </div>
 
+      ${""}
       ${phase === "done" && (slides.length > 1 || more) ? html`<div data-dots class="flex justify-center items-center gap-1.5 pb-2 text-white">
         ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full bg-current transition-[width,opacity] ${i === idx ? "w-4 h-1.5" : "w-1.5 h-1.5 opacity-45"}`}></span>`)}
         ${more ? html`<span class="w-1.5 h-1.5 rounded-full bg-current im-more"></span>` : null}
@@ -190,6 +191,7 @@ export function imagine({ S, toast }) {
 
       <div ref=${islandRef} class="p-[var(--ms-gap)] pt-0 pointer-events-auto">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
+        ${""}
         <div class="flex gap-[var(--ms-gap)]">
           <div class="flex-1 min-w-0">
             <${Segmented} attr="data-q" size="sm" label=${T(t, "quality")} value=${quality} onChange=${setQuality}

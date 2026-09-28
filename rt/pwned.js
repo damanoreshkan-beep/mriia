@@ -1,4 +1,3 @@
-
 export async function sha1hex(str) {
   const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(String(str)));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();

@@ -1,18 +1,17 @@
-
 export const DEFAULTS = {
-  carrierHz: 19000,      
-  fftSize: 32768,        
-  bandHz: 250,           
-  trackHz: 150,          
-  guardBins: 3,          
-  guardHz: 4.5,          
-  trimFrac: 0.2,         
-  carrierSnrDb: 10,      
-  onMad: 6,              
-  offMad: 3,             
+  carrierHz: 19000,
+  fftSize: 32768,
+  bandHz: 250,
+  trackHz: 150,
+  guardBins: 3,
+  guardHz: 4.5,
+  trimFrac: 0.2,
+  carrierSnrDb: 10,
+  onMad: 6,
+  offMad: 3,
   attackMs: 100,
   releaseMs: 500,
-  directionMin: 0.25,    
+  directionMin: 0.25,
 };
 
 export const speedOfSound = (tempC = 20) => 331.3 * Math.sqrt(1 + tempC / 273.15);

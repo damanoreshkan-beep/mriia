@@ -1,4 +1,3 @@
-
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { nearbyAction, proximityPairing, swiftPair, fastPair, samsungWatch, eddystoneUrl, assemble, PRESETS } from "../blesend.js";
 import { signatures } from "../blesig.js";
@@ -6,7 +5,7 @@ import { signatures } from "../blesig.js";
 const decode = (structures) => signatures(assemble(structures));
 
 Deno.test("blesend: Nearby Action round-trips to the intended action, paired with a Nearby Info", () => {
-  const sigs = decode(nearbyAction(0x08));   
+  const sigs = decode(nearbyAction(0x08));
   const na = sigs.find((s) => s.msg === "nearbyAction");
   assertEquals(na.detail.action, "wifiPassword");
   assertEquals(na.detail.popup, true);
