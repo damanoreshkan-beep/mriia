@@ -4,6 +4,7 @@
 
 # Drift
 
+**Нескінченна спокійна музика, що ніколи не повторюється. Десять настроїв — від глибокого космосу до теплого лоу-фаю — для роботи, сну й тиші. Грає без інтернету.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
