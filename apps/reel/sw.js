@@ -1,6 +1,6 @@
 self.MS = {
   app: "reel",
-  version: "89a12aecbd",
+  version: "03605976a2",
   precache: [
     "./",
     "./feed.js",
@@ -70,6 +70,7 @@ self.MS = {
     "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/update.js",
     "/_rt/urlquery.js",
     "/_rt/usage.js",
     "/_rt/validate.js",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "wall",
-  version: "bff7677a23",
+  version: "4c96e2f63c",
   precache: [
     "./",
     "./i18n/en.json",
@@ -14,6 +14,7 @@ self.MS = {
     "/_rt/account.js",
     "/_rt/ai-core.js",
     "/_rt/apk.js",
+    "/_rt/audience.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
     "/_rt/build.js",
@@ -59,6 +60,7 @@ self.MS = {
     "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/update.js",
     "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "v2m",
-  version: "1b76393d90",
+  version: "8df5c2d8cf",
   precache: [
     "./",
     "./i18n/en.json",
@@ -61,7 +61,9 @@ self.MS = {
     "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/update.js",
     "/_rt/usage.js",
+    "/_rt/v2m.js",
     "/_rt/validate.js",
     "/_rt/version.js",
     "/_rt/video.js",

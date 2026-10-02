@@ -1,6 +1,6 @@
 self.MS = {
   app: "grain",
-  version: "59de30418a",
+  version: "afcb7bc66d",
   precache: [
     "./",
     "./i18n/en.json",
@@ -28,6 +28,7 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/grain.js",
     "/_rt/groove.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
@@ -64,6 +65,7 @@ self.MS = {
     "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/update.js",
     "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",

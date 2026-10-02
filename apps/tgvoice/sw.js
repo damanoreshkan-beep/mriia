@@ -1,6 +1,6 @@
 self.MS = {
   app: "tgvoice",
-  version: "46640b584d",
+  version: "7fecffacb4",
   precache: [
     "./",
     "./i18n/en.json",
@@ -31,6 +31,7 @@ self.MS = {
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",
+    "/_rt/langid.js",
     "/_rt/list.js",
     "/_rt/material.js",
     "/_rt/overlay.js",
@@ -60,6 +61,7 @@ self.MS = {
     "/_rt/tma.js",
     "/_rt/translate.js",
     "/_rt/ui.js",
+    "/_rt/update.js",
     "/_rt/usage.js",
     "/_rt/validate.js",
     "/_rt/version.js",
