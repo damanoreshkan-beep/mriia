@@ -1,6 +1,6 @@
 self.MS = {
   app: "reel",
-  version: "03605976a2",
+  version: "efa447f21f",
   precache: [
     "./",
     "./feed.js",
@@ -28,6 +28,7 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
+    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",

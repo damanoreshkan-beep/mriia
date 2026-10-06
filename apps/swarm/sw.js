@@ -1,6 +1,6 @@
 self.MS = {
   app: "swarm",
-  version: "11db62ef16",
+  version: "20bc7eb85a",
   precache: [
     "./",
     "./engine.js",
@@ -23,6 +23,7 @@ self.MS = {
     "/_rt/camprime.js",
     "/_rt/camstage.js",
     "/_rt/chrome.js",
+    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",
