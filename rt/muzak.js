@@ -12,7 +12,7 @@ export const clock = (sec) => `${Math.floor((sec || 0) / 60)}:${String(Math.roun
 
 export const byline = (m) => [m.artist, m.album, m.year].filter(Boolean).join(" · ");
 
-export const errorKey = (status) => (status === 413 ? "errLong" : status === 429 ? "errBusy" : status === 400 ? "errLink" : "errMeta");
+export const errorKey = (status) => (status === 401 ? "" : status === 413 ? "errLong" : status === 429 ? "errBusy" : status === 400 ? "errLink" : "errMeta");
 
 export const FIXTURE_LINK = "https://music.youtube.com/watch?v=dQw4w9WgXcQ";
 export const FIXTURE_META = { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", album: "Whenever You Need Somebody", year: 1987, duration: 213, cover: null };
