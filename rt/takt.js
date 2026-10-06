@@ -1,5 +1,7 @@
 export const FAMILIES = 5; 
-export const PHRASE = 32, PALETTE_EVERY = 16, FADE_BEATS = 4;
+export const PHRASE = 16, PALETTE_EVERY = 8, FADE_BEATS = 2;
+export const ZOOM_PER_BEAT = 0.3;
+export const lunge = (phase) => 1 - Math.pow(1 - Math.max(0, Math.min(1, phase)), 3);
 const A3 = [0.8191725134, 0.6710436067, 0.5497004779]; 
 const frac = (x) => x - Math.floor(x);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -78,7 +80,7 @@ export function stepScore(s, { beatIndex = 0, beatPhase = 0, bpm = 126, energy =
       s.a.hue = frac(s.a.hue + 0.18 + 0.5 * b2); s.a.spread = 0.1 + 0.25 * c2; s.a.sat = 0.7 + 0.3 * b2;
     } else {
       const [m] = r3(s.n++, s.seed + 0.71);
-      s.a.hue = frac(s.a.hue + 0.012 * s.a.spin); s.a.warp = clamp(s.a.warp + (m - 0.5) * 0.15, 0.3, 1.5);
+      s.a.hue = frac(s.a.hue + 0.02 * s.a.spin); s.a.warp = clamp(s.a.warp + (m - 0.5) * 0.3, 0.3, 1.5);
     }
   }
   if (s.b) {
@@ -92,8 +94,8 @@ export function stepScore(s, { beatIndex = 0, beatPhase = 0, bpm = 126, energy =
     s.cur[key] = key === "hue" ? frac(c + (frac(t - c + 0.5) - 0.5) * k) : c + (t - c) * k;
   }
   s.flash *= Math.exp(-dt * 4);
-  s.zoom += (dt / spb) * 0.25;
-  s.rot += (dt / spb) * 0.03 * s.a.spin;
+  s.zoom = (beatIndex + lunge(beatPhase)) * ZOOM_PER_BEAT;
+  s.rot = (Math.floor(beatIndex / 4) + lunge(frac(beatIndex / 4 + beatPhase / 4))) * 0.12 * s.a.spin;
   const drive = clamp((s.slow - 0.06) / 0.3, 0, 1);
   const since = beatIndex - s.phraseAt;
   const B = s.b || s.a;
@@ -106,7 +108,7 @@ export function stepScore(s, { beatIndex = 0, beatPhase = 0, bpm = 126, energy =
       B.scale, B.warp, B.sym, B.quant,
       B.hue, B.spread, B.sat, B.contrast,
       s.zoom, s.rot, frac(since / PHRASE), bar % 8,
-      s.flick, pulse, 0, 0,
+      s.flick, pulse, lunge(beatPhase), 0,
       0, 0, 0, 0,
       0, 0, 0, 0,
     ],
