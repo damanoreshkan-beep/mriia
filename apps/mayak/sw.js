@@ -1,6 +1,6 @@
 self.MS = {
   app: "mayak",
-  version: "c441569faf",
+  version: "63e6262304",
   precache: [
     "./",
     "./categories.js",
@@ -20,7 +20,6 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
-    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",

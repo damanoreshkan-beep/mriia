@@ -1,6 +1,6 @@
 self.MS = {
   app: "rukh",
-  version: "d207780773",
+  version: "926f3d3bdc",
   precache: [
     "./",
     "./i18n/en.json",
@@ -21,7 +21,6 @@ self.MS = {
     "/_rt/build.js",
     "/_rt/camprime.js",
     "/_rt/chrome.js",
-    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",

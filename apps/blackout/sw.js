@@ -1,6 +1,6 @@
 self.MS = {
   app: "blackout",
-  version: "18288fadf0",
+  version: "613c94c08c",
   precache: [
     "./",
     "./gen.js",
@@ -30,7 +30,6 @@ self.MS = {
     "/_rt/chrome.js",
     "/_rt/coins.js",
     "/_rt/coinsheet.js",
-    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",

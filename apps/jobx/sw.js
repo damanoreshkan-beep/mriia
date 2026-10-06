@@ -1,6 +1,6 @@
 self.MS = {
   app: "jobx",
-  version: "8e992645f4",
+  version: "8e3b97a88a",
   precache: [
     "./",
     "./i18n/en.json",
@@ -21,7 +21,6 @@ self.MS = {
     "/_rt/authwall.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
-    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",

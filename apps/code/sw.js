@@ -1,6 +1,6 @@
 self.MS = {
   app: "code",
-  version: "840c1fdff8",
+  version: "14bf5f4d93",
   precache: [
     "./",
     "./i18n/en.json",
@@ -19,7 +19,6 @@ self.MS = {
     "/_rt/build.js",
     "/_rt/chrome.js",
     "/_rt/codebreak.js",
-    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",

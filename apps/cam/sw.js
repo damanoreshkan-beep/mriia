@@ -1,6 +1,6 @@
 self.MS = {
   app: "cam",
-  version: "81659abb3e",
+  version: "146c7bec43",
   precache: [
     "./",
     "./i18n/en.json",
@@ -20,7 +20,6 @@ self.MS = {
     "/_rt/camprime.js",
     "/_rt/camstage.js",
     "/_rt/chrome.js",
-    "/_rt/cutout.js",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",
