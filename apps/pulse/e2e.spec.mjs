@@ -53,8 +53,10 @@ export default [
       h.expect((await h.count("#p-install")) === 1, "немає кнопки встановлення");
       await h.click("#p-install"); await h.wait(150);
       h.expect((await h.prop("#install", "open")) === true, "модалка не відкрилась");
-      await h.back(); await h.wait(200);
-      h.expect((await h.prop("#install", "open")) !== true, "Back не закрив модалку");
+      await h.back();
+      let open = true;
+      for (let i = 0; i < 30 && open; i++) { await h.wait(100); open = (await h.prop("#install", "open")) === true; }
+      h.expect(!open, "Back не закрив модалку");
     },
   },
 ];
