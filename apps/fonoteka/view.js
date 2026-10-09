@@ -15,27 +15,50 @@ import { takeShared } from "/_rt/share.js";
 import { report } from "/_rt/telemetry.js";
 import { clock } from "/_rt/muzak.js";
 import { isAudio, songLine, usageLine, titleOf, errorKey, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
+import { songStore, keeper } from "/_rt/songstore.js";
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
 const $songs = atom(gate ? FIXTURE_SONGS : null);   
 const $usage = atom(gate ? FIXTURE_USAGE : null);
+const $held = atom(gate ? new Set(FIXTURE_SONGS.slice(0, 2).map((s) => s.id)) : new Set());   
 const $uploads = atom([]);                           
 const $err = atom("");
 const $cur = atom("");
 const $playing = atom(false);
 const $pos = atom(0), $dur = atom(0);
-let audio = null, hold = null, loaded = gate;
+let audio = null, hold = null, loaded = gate, kept = "";
+
+const store = gate ? null : songStore();
+const keep = gate ? null : keeper({
+  store, urlOf: (id) => sealedUrl("/library/get", { id }), onHeld: (h) => $held.set(h),
+  onFail: (e, s) => report("keep.fail", { status: e?.status || 0, err: String(e?.message || e).slice(0, 120), size: s.size }),
+});
+function confirmed(list) {
+  $songs.set(list);
+  keep?.set(list);
+  store?.saveShelf({ songs: list, usage: $usage.get() }).catch(() => {});
+}
 
 async function load() {
   if (loaded) return;
   loaded = true;
+  store?.held().then((h) => $held.set(h)).catch(() => {});
+  navigator.storage?.persist?.().catch(() => {});   
   try {
     const r = await fetch(`${VPS_PROXY}/library/list`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(20000) });
-    if (!r.ok) { if (r.status !== 401) { $err.set("errList"); report("list.fail", { status: r.status }); } $songs.set([]); return; }
+    if (!r.ok) { if (r.status === 401) { $songs.set([]); return; } report("list.fail", { status: r.status }); return offline(); }
     const j = await r.json();
-    $songs.set(j.songs || []);
     $usage.set({ count: j.count, bytes: j.bytes, maxFiles: j.maxFiles, maxBytes: j.maxBytes });
-  } catch { $err.set("errList"); $songs.set([]); }
+    confirmed(j.songs || []);
+  } catch { offline(); }
+}
+
+async function offline() {
+  const saved = await store?.readShelf().catch(() => null);
+  const held = await store?.held().catch(() => null);
+  if (!saved || !held?.size) { $err.set("errList"); $songs.set([]); return; }
+  $usage.set(saved.usage); $held.set(held);
+  $songs.set(saved.songs.filter((s) => held.has(s.id)));
 }
 
 let toastFn = null, tNow = null;
@@ -67,8 +90,9 @@ async function upload(f) {
     if (!r.ok) throw new Error(`uprow ${r.status}`);
     const row = await r.json();
     report("upload.ok", { size: f.size, dur: row.dur }, "info");
-    $songs.set([row, ...($songs.get() || [])]);
     const u = $usage.get(); if (u) $usage.set({ ...u, count: u.count + 1, bytes: u.bytes + row.size });
+    if (store) await store.put(row.id, f).then(() => $held.set(new Set([...$held.get(), row.id])), () => {});
+    confirmed([row, ...($songs.get() || [])]);
     $uploads.set($uploads.get().filter((x) => x.k !== k));
     toastFn?.(T(tNow, "uploaded"));
   } catch (e) { report("upload.throw", { err: String(e?.message || e).slice(0, 120), name: String(f.name || "").slice(0, 40), size: f.size }); $err.set("errUpload"); $uploads.set($uploads.get().map((u) => (u.k === k ? { ...u, state: "err" } : u))); }
@@ -91,7 +115,12 @@ async function play(id) {
   if (!s) return;
   if (gate) { $cur.set(id); $playing.set(true); $dur.set(Math.round(s.dur * 1000)); return; }
   const a = ensure();
-  if ($cur.get() !== id || !a.src) { a.src = await sealedUrl("/library/get", { id }); $pos.set(0); }
+  if ($cur.get() !== id || !a.src) {
+    const blob = await store.blob(id).catch(() => null);
+    if (kept) URL.revokeObjectURL(kept);
+    kept = blob ? URL.createObjectURL(blob) : "";
+    a.src = kept || await sealedUrl("/library/get", { id }); $pos.set(0);
+  }
   $cur.set(id);
   if (!hold) hold = holdAudio({ title: titleOf(s), artist: s.artist || "", onPlay: () => a.play(), onPause: () => a.pause(), onPrev: () => step(-1), onNext: () => step(1) });
   else hold.meta(titleOf(s));
@@ -108,7 +137,7 @@ function step(dir, manual = true) {
   if (next >= 0) play(list[next].id);
 }
 function seek(ms) { if (audio && !gate) audio.currentTime = ms / 1000; $pos.set(ms); }
-function stop() { if (audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); } $cur.set(""); $playing.set(false); $pos.set(0); $dur.set(0); }
+function stop() { if (audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); } if (kept) { URL.revokeObjectURL(kept); kept = ""; } $cur.set(""); $playing.set(false); $pos.set(0); $dur.set(0); }
 
 async function remove(s) {
   if (!gate) {
@@ -116,8 +145,8 @@ async function remove(s) {
     if (!r || !r.ok) { $err.set("errDelete"); return; }
   }
   if ($cur.get() === s.id) stop();
-  $songs.set(($songs.get() || []).filter((x) => x.id !== s.id));
   const u = $usage.get(); if (u) $usage.set({ ...u, count: Math.max(0, u.count - 1), bytes: Math.max(0, u.bytes - s.size) });
+  confirmed(($songs.get() || []).filter((x) => x.id !== s.id));   
   toastFn?.(T(tNow, "deleted"));
 }
 
@@ -125,7 +154,8 @@ function pickFiles(files) { for (const f of files || []) { if (isAudio(f)) uploa
 
 export function fonoteka({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
-  const songs = useStore($songs), usage = useStore($usage), uploads = useStore($uploads), err = useStore($err);
+  const songs = useStore($songs), usage = useStore($usage), uploads = useStore($uploads), err = useStore($err), held = useStore($held);
+  const onPhone = songs ? songs.filter((s) => held.has(s.id)).length : 0;
   const cur = useStore($cur), playing = useStore($playing), pos = useStore($pos), dur = useStore($dur);
   toastFn = toast; tNow = t;
   useEffect(() => { load(); }, []);
@@ -142,6 +172,10 @@ export function fonoteka({ S, toast, confirm }) {
 
     <${Panel} title=${T(t, "songs")}>
       ${usage ? html`<div data-usage class="font-mono text-xs tabular-nums text-base-content/70">${usageLine(usage, { songs: T(t, "wSongs"), of: T(t, "wOf") })}</div>` : null}
+      ${songs?.length ? html`<div data-onphone data-all=${onPhone === songs.length ? "true" : null} class="flex items-center gap-1.5 text-xs text-base-content/70">
+        ${Icon(onPhone === songs.length ? "lucide:smartphone" : "lucide:arrow-down-to-line", `text-sm ${onPhone === songs.length ? "text-[var(--app-accent)]" : ""}`)}
+        <span class="tabular-nums">${onPhone === songs.length ? T(t, "onPhoneAll") : T(t, "onPhoneSome", { n: onPhone, m: songs.length })}</span>
+      </div>` : null}
       <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
       <button data-add onClick=${() => picker.current?.click()} class="btn btn-primary w-full h-[var(--ms-ctl)] min-h-0 gap-2 sf-e3">
         ${Icon("lucide:plus", "text-[length:var(--ms-icon)]")}<span>${T(t, "add")}</span>
