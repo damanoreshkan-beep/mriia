@@ -1,6 +1,6 @@
 self.MS = {
   app: "zir",
-  version: "ca0d82b0c9",
+  version: "a5ac73a12f",
   precache: [
     "./",
     "./i18n/en.json",
@@ -31,6 +31,7 @@ self.MS = {
     "/_rt/geomag.js",
     "/_rt/gesture.js",
     "/_rt/glstage.js",
+    "/_rt/grow.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/imagejob.js",

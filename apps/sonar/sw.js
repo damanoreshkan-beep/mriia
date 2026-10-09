@@ -1,6 +1,6 @@
 self.MS = {
   app: "sonar",
-  version: "949bc9ec2d",
+  version: "196a9670a4",
   precache: [
     "./",
     "./i18n/en.json",
@@ -28,6 +28,7 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/grow.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",

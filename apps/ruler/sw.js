@@ -1,6 +1,6 @@
 self.MS = {
   app: "ruler",
-  version: "9c96e3c47d",
+  version: "f110bc7ea2",
   precache: [
     "./",
     "./i18n/en.json",
@@ -27,6 +27,7 @@ self.MS = {
     "/_rt/geofix.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/grow.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",

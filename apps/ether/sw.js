@@ -1,6 +1,6 @@
 self.MS = {
   app: "ether",
-  version: "df9e616ec0",
+  version: "e9073125aa",
   precache: [
     "./",
     "./i18n/en.json",
@@ -28,6 +28,7 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/grow.js",
     "/_rt/hackrf.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",

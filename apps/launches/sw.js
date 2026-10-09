@@ -1,6 +1,6 @@
 self.MS = {
   app: "launches",
-  version: "438d2ebc19",
+  version: "9e438eace5",
   precache: [
     "./",
     "./data.js",
@@ -29,6 +29,7 @@ self.MS = {
     "/_rt/geomag.js",
     "/_rt/gesture.js",
     "/_rt/globe.js",
+    "/_rt/grow.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
     "/_rt/index.js",
