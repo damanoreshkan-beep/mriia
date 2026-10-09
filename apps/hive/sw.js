@@ -1,6 +1,6 @@
 self.MS = {
   app: "hive",
-  version: "16ca6cf658",
+  version: "0ecc5e46b5",
   precache: [
     "./",
     "./comb.js",
@@ -56,6 +56,8 @@ self.MS = {
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",
+    "/_rt/shape.js",
+    "/_rt/shapes.vendor.js",
     "/_rt/shell-actions.js",
     "/_rt/shell.js",
     "/_rt/signin.js",

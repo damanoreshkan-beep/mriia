@@ -1,6 +1,6 @@
 self.MS = {
   app: "sigil",
-  version: "40ba410ded",
+  version: "b5fb826ac0",
   precache: [
     "./",
     "./i18n/en.json",
@@ -49,6 +49,8 @@ self.MS = {
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",
+    "/_rt/shape.js",
+    "/_rt/shapes.vendor.js",
     "/_rt/shell-actions.js",
     "/_rt/shell.js",
     "/_rt/sigil.js",

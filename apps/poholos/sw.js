@@ -1,6 +1,6 @@
 self.MS = {
   app: "poholos",
-  version: "a40bb04a77",
+  version: "c5aaeb6916",
   precache: [
     "./",
     "./i18n/en.json",
@@ -48,6 +48,8 @@ self.MS = {
     "/_rt/sealed.js",
     "/_rt/sealedfetch.js",
     "/_rt/sensors.js",
+    "/_rt/shape.js",
+    "/_rt/shapes.vendor.js",
     "/_rt/shell-actions.js",
     "/_rt/shell.js",
     "/_rt/signin.js",
