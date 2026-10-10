@@ -128,6 +128,7 @@ async function play(id) {
   else hold.meta(titleOf(s));
   a.play().catch(() => $playing.set(false));
   if (breathing !== id) breatheSong(id);
+  readyShare(s);   
 }
 
 let orbEl = null, breathing = "", unbreathe = () => {};
@@ -172,20 +173,27 @@ async function remove(s) {
   toastFn?.(T(tNow, "deleted"));
 }
 
-async function shareSong(s) {
+let shareable = null;   
+async function readyShare(s) {
+  if (!s || gate || shareable?.id === s.id) return;
+  const blob = (await store.blob(s.id).catch(() => null)) || await fetch(await sealedUrl("/library/get", { id: s.id })).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+  if (!blob) return;
+  const f = shareFile(s.name || `${titleOf(s)}.mp3`, blob.type);
+  shareable = { id: s.id, file: new File([blob], f.name, { type: f.type }) };
+}
+function shareSong(s) {
   if (!s || gate) return;
-  try {
-    const blob = (await store.blob(s.id).catch(() => null)) || await (await fetch(await sealedUrl("/library/get", { id: s.id }))).blob();
-    const f = shareFile(s.name || `${titleOf(s)}.mp3`, blob.type);
-    const file = new File([blob], f.name, { type: f.type });
-    if (!navigator.canShare?.({ files: [file] })) { report("share.out.unsupported", { type: file.type }, "info"); toastFn?.(T(tNow, "shareNo")); return; }
-    await navigator.share({ files: [file], title: titleOf(s) });
-    report("share.out.ok", { size: file.size }, "info");
-  } catch (e) {
-    if (e?.name === "AbortError") return;   
-    report("share.out.fail", { err: String(e?.message || e).slice(0, 120) });
-    toastFn?.(T(tNow, "shareFail"));
-  }
+  if (shareable?.id !== s.id) { readyShare(s); toastFn?.(T(tNow, "shareWait")); return; }   
+  const file = shareable.file;
+  if (!navigator.canShare?.({ files: [file] })) { report("share.out.unsupported", { type: file.type }, "info"); toastFn?.(T(tNow, "shareNo")); return; }
+  navigator.share({ files: [file], title: titleOf(s) }).then(
+    () => report("share.out.ok", { size: file.size }, "info"),
+    (e) => {
+      if (e?.name === "AbortError") return;   
+      report("share.out.fail", { err: String(e?.message || e).slice(0, 120), type: file.type, size: file.size });
+      toastFn?.(T(tNow, "shareFail"));
+    },
+  );
 }
 
 function pickFiles(files) { for (const f of files || []) { if (isAudio(f)) upload(f); else toastFn?.(T(tNow, "skipped")); } }
@@ -214,6 +222,7 @@ export function fonoteka({ S, toast, confirm }) {
     ro.observe(orb.current);
     orbEl = orb.current;
     if ($cur.get() && $playing.get()) breatheSong($cur.get());   
+    if ($cur.get()) readyShare(songOf($cur.get()));
     return () => { ro.disconnect(); form.current.stop(); if (orbEl === orb.current) { stopBreath(); orbEl = null; } };
   }, []);
   useLayoutEffect(() => { form.current?.to(shapeOf(cur || IDLE)); }, [cur]);
