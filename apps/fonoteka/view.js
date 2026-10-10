@@ -16,7 +16,7 @@ import { authWall } from "/_rt/authwall.js";
 import { takeShared } from "/_rt/share.js";
 import { report } from "/_rt/telemetry.js";
 import { clock } from "/_rt/muzak.js";
-import { isAudio, songLine, usageLine, titleOf, errorKey, shareFile, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
+import { isAudio, songLine, usageLine, titleOf, errorKey, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
 import { songStore, keeper } from "/_rt/songstore.js";
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
@@ -176,22 +176,25 @@ async function remove(s) {
 let shareable = null;   
 async function readyShare(s) {
   if (!s || gate || shareable?.id === s.id) return;
-  const blob = (await store.blob(s.id).catch(() => null)) || await fetch(await sealedUrl("/library/get", { id: s.id })).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
-  if (!blob) return;
-  const f = shareFile(s.name || `${titleOf(s)}.mp3`, blob.type);
-  shareable = { id: s.id, file: new File([blob], f.name, { type: f.type }) };
+  const r = await fetch(`${VPS_PROXY}/library/link`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: s.id }), signal: AbortSignal.timeout(20000) }).catch(() => null);
+  if (!r?.ok) { if (r) report("share.link.fail", { status: r.status }); return; }
+  const { url } = await r.json();
+  shareable = { id: s.id, url };
 }
 function shareSong(s) {
   if (!s || gate) return;
   if (shareable?.id !== s.id) { readyShare(s); toastFn?.(T(tNow, "shareWait")); return; }   
-  const file = shareable.file;
-  if (!navigator.canShare?.({ files: [file] })) { report("share.out.unsupported", { type: file.type }, "info"); toastFn?.(T(tNow, "shareNo")); return; }
-  navigator.share({ files: [file], title: titleOf(s) }).then(
-    () => report("share.out.ok", { size: file.size }, "info"),
+  const { url } = shareable, data = { title: titleOf(s), url };
+  if (!navigator.share || !navigator.canShare?.(data)) {
+    navigator.clipboard?.writeText(url).then(() => toastFn?.(T(tNow, "shareCopied")), () => toastFn?.(T(tNow, "shareFail")));
+    return;
+  }
+  navigator.share(data).then(
+    () => report("share.out.ok", {}, "info"),
     (e) => {
       if (e?.name === "AbortError") return;   
-      report("share.out.fail", { err: String(e?.message || e).slice(0, 120), type: file.type, size: file.size, name: file.name.slice(0, 80) });
-      toastFn?.(T(tNow, "shareFail"));
+      report("share.out.fail", { err: String(e?.message || e).slice(0, 120) });
+      navigator.clipboard?.writeText(url).then(() => toastFn?.(T(tNow, "shareCopied")), () => toastFn?.(T(tNow, "shareFail")));
     },
   );
 }
