@@ -1,4 +1,4 @@
-const SITE = "https://dreamstudio.mooo.com";
+const SITE = "https://mriia.si";
 const dry = Deno.args.includes("--dry");
 if (Deno.args.includes("--snapshot")) {
   let body = "[]";
