@@ -1233,19 +1233,16 @@
     "screens": {
       "en": [
         "Song",
-        "Liked",
-        "Free"
+        "Liked"
       ],
       "uk": [
         "Пісня",
-        "Вподобане",
-        "Вільні"
+        "Вподобане"
       ]
     },
     "shots": [
       "song",
-      "likes",
-      "free"
+      "likes"
     ],
     "bg": "#120E08",
     "fg": "#F2B84B",
