@@ -177,18 +177,34 @@ async function remove(s) {
   toastFn?.(T(tNow, "deleted"));
 }
 
-let shareable = null;   
-async function readyShare(s) {
-  if (!s || gate || shareable?.id === s.id) return;
-  const r = await fetch(`${VPS_PROXY}/library/link`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: s.id }), signal: AbortSignal.timeout(20000) }).catch(() => null);
-  if (!r?.ok) { if (r) report("share.link.fail", { status: r.status }); return; }
-  const { url } = await r.json();
-  shareable = { id: s.id, url };
+const links = new Map(), linking = new Map();   
+function readyShare(s) {
+  if (!s || gate) return Promise.resolve(null);
+  if (links.has(s.id)) return Promise.resolve(links.get(s.id));
+  if (!linking.has(s.id)) linking.set(s.id, (async () => {
+    try {
+      const r = await fetch(`${VPS_PROXY}/library/link`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: s.id }), signal: AbortSignal.timeout(20000) });
+      if (!r.ok) { report("share.link.fail", { status: r.status }); return null; }
+      const { url } = await r.json();
+      links.set(s.id, url);
+      return url;
+    } catch (e) { report("share.link.fail", { err: String(e?.name || e).slice(0, 80) }); return null; }
+    finally { linking.delete(s.id); }
+  })());
+  return linking.get(s.id);
 }
-function shareSong(s) {
+async function shareSong(s) {
   if (!s || gate) return;
-  if (shareable?.id !== s.id) { readyShare(s); toastFn?.(T(tNow, "shareWait")); return; }   
-  const { url } = shareable, data = { title: titleOf(s), url };
+  let url = links.get(s.id);
+  if (!url) {
+    toastFn?.(T(tNow, "shareWait"));
+    url = await readyShare(s);
+    if (!url) { toastFn?.(T(tNow, "shareFail")); return; }
+  }
+  openShare(s, url);
+}
+function openShare(s, url) {
+  const data = { title: titleOf(s), url };
   if (!navigator.share || !navigator.canShare?.(data)) {
     navigator.clipboard?.writeText(url).then(() => toastFn?.(T(tNow, "shareCopied")), () => toastFn?.(T(tNow, "shareFail")));
     return;
