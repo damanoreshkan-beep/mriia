@@ -4,7 +4,7 @@
 
 # Музак
 
-**Вставив посилання з YouTube Music — отримав пісню як mp3 з обкладинкою. Назва, виконавець і альбом уже всередині файлу.**
+**Посилання з YouTube Music або твої вподобання звідти — і пісня грає тут. Сподобалась — у Фонотеку, друзям — посиланням, а з будь-якої можна зробити мікс.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
