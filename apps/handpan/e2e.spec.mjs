@@ -7,6 +7,7 @@ export default [
       h.expect((await h.count("[data-scale]")) === 10, "немає 10 строїв");
       h.expect((await h.count("[data-field]")) === 9, "D Kurd має мати 9 полів (дінг + 8)");
       h.expect((await h.count("#play")) === 1, "немає програвання");
+      h.expect((await h.count("#play.tp-form svg path")) === 1, "кнопка грати не має своєї форми");
       h.expect((await h.count("#flow")) === 1, "немає Flow");
       h.expect((await h.count("[data-rec]")) === 1, "немає запису");
       h.expect((await h.count("[data-space]")) === 1, "немає простору");
@@ -59,6 +60,17 @@ export default [
       await h.tap("#save"); await h.wait(250);
       await h.click('[data-tab="saved"]'); await h.wait(300);
       h.expect((await h.count("[data-saved]")) >= 1, "збережений луп не зʼявився");
+    },
+  },
+  {
+    name: "збережений луп: своя форма, грає і зупиняється", run: async (h) => {
+      await h.click('[data-tab="saved"]'); await h.wait(300);
+      h.expect((await h.count("[data-saved] [data-play].hp-loop svg path")) === (await h.count("[data-saved]")), "у лупа немає своєї форми");
+      const key = "[data-saved] [data-play]";
+      await h.tap(key); await h.wait(200);
+      h.expect((await h.attr(key, "data-on")) === "true", "луп не заграв");
+      await h.tap(key); await h.wait(200);
+      h.expect((await h.attr(key, "data-on")) === "false", "луп не зупинився");
     },
   },
   {

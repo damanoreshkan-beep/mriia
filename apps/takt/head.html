@@ -1,6 +1,11 @@
   <style>
     /* While it plays and nobody touches the screen, the runtime's navbar and dock — and the button itself — fade so the field fills
        the glass. Nothing is removed (axe and the e2e still see them); a touch brings them back. */
-    :root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade],:root[data-immersive] [data-takt] [data-transport]{opacity:0;pointer-events:none;transition:opacity .6s ease}
+    :root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade],:root[data-immersive] [data-takt] [data-transport]{opacity:0;pointer-events:none;transition:opacity var(--t-focal) var(--ease-out)}
     @media(prefers-reduced-motion:reduce){:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}
+    /* THE BUTTON is the kit's free form (<Transport form>, core runtime.css .tp-form: a cookie that turns into a calm
+       square while it plays). The kit sizes a form at a row's 68px; here the button is the screen's only subject, so
+       it keeps the hero's size — 96px, 80px in a narrow container, the steps the hero had. */
+    [data-takt] #play.tp-form{width:6rem;height:6rem}
+    @container (max-width:300px){[data-takt] #play.tp-form{width:5rem;height:5rem}}
   </style>

@@ -57,6 +57,23 @@ export default [
     },
   },
   {
+    name: "форма: портрет — у власній формі особи, і форма та сама, коли картка стискається в рядок", run: async (h) => {
+      h.expect(await shelf(h), "полиця не змонтувалася");
+      await h.tap('.aw-tap[aria-label*="Кало"], .aw-tap[aria-label*="Kahlo"]'); await h.wait(500);
+      for (let i = 0; i < 20; i++) { if ((await h.count("[data-opener]")) > 0 || (await h.count("[data-new-chat]")) > 0) break; await h.wait(150); }
+      if ((await h.count("[data-new-chat]")) > 0) { await h.tap("[data-new-chat]"); await h.wait(200); }   // the full card shows on an empty thread
+      h.expect((await h.count("[data-intro]:not([data-slim]) [data-portrait] .pn-art img")) === 1, "портрет не всередині форми");
+      h.expect((await h.count("[data-intro] [data-portrait] .pn-rim path.e")) === 1, "у форми немає краю світла");
+      const was = await h.attr("[data-intro] [data-portrait]", "data-form");
+      h.expect(!!was, "у портрета немає форми");
+      h.expect((await h.count(`#pn-c-${was} path`)) === 1, `немає обрису форми ${was}`);
+      await h.tap("[data-opener='openerWho']"); await h.wait(200);
+      h.expect(await settled(h), "відповідь на вхід не прийшла");
+      h.expect((await h.count("[data-intro][data-slim] [data-portrait]")) === 1, "у стислій картці немає портрета у формі");
+      h.expect((await h.attr("[data-intro] [data-portrait]", "data-form")) === was, "форма особи змінилася разом із карткою");
+    },
+  },
+  {
     name: "розмови з особою: аркуш історії відкривається, Back закриває аркуш, а не особу", run: async (h) => {
       h.expect(await openFirst(h), "розмова не відкрилася");
       for (let i = 0; i < 20; i++) { if ((await h.count("[data-history]")) > 0) break; await h.wait(150); }

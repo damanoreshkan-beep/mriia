@@ -8,6 +8,7 @@ import { palette, avgColor, luminance, rgbToHsl, rgbToHex, ink } from "/_rt/colo
 import { hueToNote, paletteToChord, brightnessToCutoff, SCALES } from "/_rt/chroma.js";
 import { createEngine, midiToFreq, filter } from "/_rt/audio.js";
 import { gate } from "/_rt/gate.js";
+import { ORGANIC, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
@@ -99,10 +100,19 @@ export function synesth({ S }) {
           onVideo=${(el) => setVid(el)} onState=${(s) => setReady(!!s.ready)}>
         ${gate ? html`<div class="absolute inset-0 z-[2] opacity-35" style=${`background:linear-gradient(135deg, ${(pal.length ? pal : [[20, 20, 24]]).map(rgbToHex).join(",")})`}></div>` : null}
         <canvas ref=${canvasRef} class="hidden"></canvas>
-        ${ready ? html`<div data-readout class="absolute inset-0 z-[2] flex items-center justify-center gap-4 flex-wrap content-center px-8">
+        ${/* the colours arrive one after another when the camera wakes (.ms-stagger, once — keyed by index, so a
+             new palette recolours the orbs instead of replaying it) */""}
+        ${ready ? html`<div data-readout class="ms-stagger absolute inset-0 z-[2] flex items-center justify-center gap-4 flex-wrap content-center px-8">
           ${pal.map((rgb, i) => {
-            const hex = rgbToHex(rgb);
-            return html`<div data-orb class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-mono font-semibold ${playing ? "animate-pulse" : ""}" style=${`background:${hex};color:${ink(rgb)};box-shadow:0 0 44px -6px ${hex}`} key=${i}>${noteName(hueToNote(rgbToHsl(rgb)[0], SCALES[scale]))}</div>`;
+            const hex = rgbToHex(rgb), m = hueToNote(rgbToHsl(rgb)[0], SCALES[scale]), note = noteName(m), f = ORGANIC[((m % 12) + 12) % 12];
+            // a NOTE's own form (core shape.js ORGANIC, indexed by pitch class — 12 notes, 13 forms, so no two
+            // notes share one, and a C is the same form on every phone; shapeOf's hash folds the 12 onto 8),
+            // filled with the colour that sounds it. Keyed by the note, not the colour: camera noise moves the
+            // colour every sample, the note only when the scene really changes, so the form does not flicker.
+            return html`<div data-orb data-form=${f} class="sy-orb text-lg font-mono font-semibold" style=${`--sy-c:${hex};color:${ink(rgb)};--i:${i}`} key=${i}>
+              <svg aria-hidden="true" viewBox="0 0 1 1"><path class="f" d=${pathOf(f)} /><path class="e" d=${pathOf(f)} /></svg>
+              <span>${note}</span>
+            </div>`;
           })}
         </div>` : null}
       <//>
@@ -113,8 +123,9 @@ export function synesth({ S }) {
       <${Island} className="max-w-md w-full mx-auto flex flex-col gap-[var(--ms-gap)]">
         <${Segmented} attr="data-scale" scroll size="sm"
           items=${SCALE_KEYS.map(([s, k]) => ({ id: s, label: T(t, k) }))} value=${scale} onChange=${setScale} />
-        ${""}
-        <${Transport} locale=${loc} size="sm" playing=${playing} onToggle=${toggle}
+        ${/* the kit's organic play button (owner 2026-10-11: «розповсюджувати нову дизайн систему»). No seek and no
+             loop toggle: the chord is live from the camera — no track to scrub, no next one to go on to. */""}
+        <${Transport} form locale=${loc} playing=${playing} onToggle=${toggle}
           subtitle=${notes.length ? notes.map(noteName).join(" · ") : "—"} />
       <//>
     </div>

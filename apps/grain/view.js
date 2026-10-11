@@ -16,6 +16,7 @@ import { gate } from "/_rt/gate.js";
 import { mic, tilt, wakeLock } from "/_rt/sensors.js";
 import { MicPrime } from "/_rt/camprime.js";
 import { holdAudio } from "/_rt/mediasession.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
@@ -340,27 +341,29 @@ export function grain({ S, screen, openScreen, closeScreen, toast }) {
           <span class="tabular-nums">${take ? `${take.dur.toFixed(1)}s` : "—"}</span>
           <span data-pitch class="font-semibold text-base-content">${take ? (take.pitched ? take.name : T(t, "unpitched")) : T(t, "noTake")}</span>
         </span>
-        ${""}
-        ${recording ? html`<span data-level class="absolute left-0 bottom-0 h-1 bg-error transition-[width] duration-100" style=${`width:${Math.round(level * 100)}%`}></span>` : null}
+        ${/* the mic level updates every frame while recording: a scale on the compositor, not a width that relays out */""}
+        ${recording ? html`<span data-level class="gr-level absolute inset-x-0 bottom-0 h-1 bg-error" style=${`scale:${level.toFixed(2)} 1`}></span>` : null}
       </div>
 
       ${""}
       <div ref=${padRef} class="flex-1 min-h-0 grid grid-cols-2 auto-rows-fr gap-[var(--ms-gap)]" style="touch-action:none"
         onPointerDown=${down} onPointerUp=${up} onPointerCancel=${up} onPointerLeave=${up}>
-        ${""}
+        ${/* the eight fields ARE the instrument: whole-cell touch targets under multitouch, so they stay boxes — no
+             free form here (a clip would shrink the hit area). The take's own picture is the wave above. */""}
         ${offs.map((o, i) => html`<button key=${i} data-field=${i} disabled=${!take}
           aria-label=${take?.pitched ? noteName(take.hz * semisToRate(o)) : `${T(t, "field")} ${i + 1}`}
-          class=${`relative min-h-0 overflow-hidden rounded-[var(--ms-r)] sf-raised flex flex-col justify-end items-start gap-0.5 p-[var(--ms-pad)] transition-transform duration-150 ${lit.has(i) ? "outline-2 outline-secondary scale-[1.02]" : ""} ${take ? "" : "opacity-40"}`}>
-          <span class=${`absolute top-[var(--ms-pad)] right-[var(--ms-pad)] w-1.5 h-1.5 rounded-full transition-opacity duration-150 ${lit.has(i) ? "opacity-100" : "opacity-35"}`} style="background:var(--app-accent)"></span>
+          class=${`relative min-h-0 overflow-hidden rounded-[var(--ms-r)] sf-raised flex flex-col justify-end items-start gap-0.5 p-[var(--ms-pad)] gr-field ${lit.has(i) ? "outline-2 outline-secondary scale-[1.02]" : ""} ${take ? "" : "opacity-40"}`}>
+          <span class=${`gr-lamp absolute top-[var(--ms-pad)] right-[var(--ms-pad)] w-1.5 h-1.5 rounded-full ${lit.has(i) ? "opacity-100" : "opacity-35"}`} style="background:var(--app-accent)"></span>
           <span class="text-[length:var(--ms-label)] font-mono tabular-nums text-base-content/70 leading-none">${o > 0 ? `+${o}` : o}</span>
           <span class="text-[length:var(--ms-title)] font-semibold tabular-nums leading-none truncate max-w-full">${take?.pitched ? noteName(take.hz * semisToRate(o)) : `${T(t, "field")} ${i + 1}`}</span>
         </button>`)}
       </div>
 
       <div class="shrink-0 flex justify-center">
-        ${""}
+        ${/* the kit's free-form play button (owner 2026-10-11: «розповсюджувати нову дизайн систему»). No loop
+             toggle: nothing here is a sequence of tracks — the 16-step loop never ends, «по колу» is all it does. */""}
         <${Island} className="w-full max-w-md">
-          <${Transport} locale=${loc} stopIcon playing=${playing} disabled=${!take} onToggle=${toggle} keep=${2}
+          <${Transport} form locale=${loc} stopIcon playing=${playing} disabled=${!take} onToggle=${toggle} keep=${2}
             moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
             subtitle=${recording ? T(t, "recording") : working ? T(t, "working") : null}
             actions=${[
@@ -421,7 +424,7 @@ export function grainShape({ S, screen, openScreen, closeScreen }) {
     </div>
 
     <${Island} pinned className="w-full max-w-xl">
-      <${Transport} locale=${loc} stopIcon playing=${playing} disabled=${!take} onToggle=${toggle} keep=${2}
+      <${Transport} form locale=${loc} stopIcon playing=${playing} disabled=${!take} onToggle=${toggle} keep=${2}
         moreOpen=${screen === "smore"} onMore=${() => openScreen("smore")} onMoreClose=${closeScreen}
         actions=${[
           { id: "sflow", icon: "lucide:sparkles", label: T(t, "genFlow"), onClick: () => { buzz(); flow(); }, tone: "accent" },
@@ -485,16 +488,17 @@ export function grainTakes({ S, undo, toast }) {
   };
 
   if (!useReveal(list !== null)) {
-    return html`<div data-takes data-ready="0" class="flex flex-col gap-[var(--ms-gap)]">${[0, 1, 2].map((i) => html`<${Panel} data-skel key=${i}><div class="flex items-center gap-[var(--ms-gap)] text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${10} /></div><div class="h-5"><${Scramble} len=${18} /></div></div></div><//>`)}</div>`;
+    return html`<div data-takes data-ready="0" class="flex flex-col gap-[var(--ms-gap)]">${[0, 1, 2].map((i) => html`<${Panel} data-skel key=${i}><div class="flex items-center gap-[var(--ms-gap)] text-muted"><div class="w-11 h-11 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${10} /></div><div class="h-5"><${Scramble} len=${18} /></div></div></div><//>`)}</div>`;
   }
   if (!list.length) return html`<div data-takes data-ready="1" data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:mic", "text-4xl")}<span class="font-medium">${T(t, "takesEmpty")}</span></div>`;
 
-  return html`<div data-takes data-ready="1" class="flex flex-col gap-[var(--ms-gap)]">
-    ${list.map((it) => html`<${Panel} data-take key=${it.id}>
+  return html`<div data-takes data-ready="1" class="ms-stagger flex flex-col gap-[var(--ms-gap)]">
+    ${list.map((it, i) => html`<${Panel} data-take key=${it.id} style=${`--i:${i}`}>
       <div class="flex items-center gap-[var(--ms-gap)]">
-        ${""}
-        <button data-open aria-label=${T(t, "aPlay")} class=${`btn btn-circle btn-sm shrink-0 ${take?.name === it.name ? "btn-secondary" : "btn-primary"}`} onClick=${() => open(it)}>${Icon("lucide:play", "text-base")}</button>
-        <button class="flex-1 min-w-0 text-left flex flex-col gap-1.5" onClick=${() => open(it)}>
+        ${/* a take's open key is the take's OWN form (core shape.js, seeded by its id): the same take, the same form
+             on every phone; the secondary while it is the take under the fingers. A static path — nothing draws at rest. */""}
+        <button data-open data-on=${take?.name === it.name ? "true" : "false"} aria-label=${T(t, "aPlay")} class="gr-take ms-press" onClick=${() => open(it)}><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(shapeOf(it.id))} /></svg>${Icon("lucide:play", "text-base")}</button>
+        <button class="flex-1 min-w-0 text-left flex flex-col gap-1.5 ms-press" onClick=${() => open(it)}>
           <span class="flex items-baseline justify-between gap-2"><span class="font-semibold truncate">${it.name}</span><span class="font-mono text-[length:var(--ms-label)] text-base-content/70 tabular-nums shrink-0">${(it.dur || 0).toFixed(1)} s</span></span>
           <span class="h-5 w-full"><${Wave} take=${it} dim bars=${40} className="h-5" /></span>
         </button>

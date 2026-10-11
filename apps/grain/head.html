@@ -1,0 +1,21 @@
+  <style>
+    /* GRAIN — onto the farm's free forms (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's identity
+       is the TAKE: two seconds of the world that become the instrument. A kept take's open key is the take's own form
+       (core shape.js, seeded by its id) where a circle stood: ink at rest, the secondary while that take is the one
+       under the fingers — the colours the circle had. The play screen keeps its eight fields as boxes: they are the
+       playable surface, and the wave is already the take's own picture. A static path: nothing draws at rest. */
+    .gr-take { position: relative; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: none; color: var(--color-primary-content); }
+    .gr-take > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .gr-take > svg path { fill: var(--color-primary); transition: fill var(--t-state) var(--ease-out); }
+    .gr-take > iconify-icon { position: relative; }
+    .gr-take[data-on="true"] { color: var(--color-secondary-content); }
+    .gr-take[data-on="true"] > svg path { fill: var(--color-secondary); }
+    .gr-take:focus-visible { outline: 2px solid var(--color-base-content); outline-offset: 3px; border-radius: 50%; }
+
+    /* a struck field answers on the press clock — it is hit many times a minute, so the give is near-imperceptible */
+    .gr-field { transition: scale var(--t-press) var(--ease-out), outline-color var(--t-press) var(--ease-out); }
+    .gr-lamp { transition: opacity var(--t-press) var(--ease-out); }
+    /* the mic level: fed every frame, so a compositor scale from the left edge, eased on the press clock */
+    .gr-level { transform-origin: left; transition: scale var(--t-press) var(--ease-out); }
+    @media (prefers-reduced-motion: reduce) { .gr-field, .gr-lamp, .gr-level { transition: none; } }
+  </style>

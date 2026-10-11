@@ -5,6 +5,7 @@ import { atom } from "nanostores";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Sheet, Segmented, Transport, Island, Slider } from "/_rt/ui.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 import { audioSupported, midiToFreq, createEngine } from "/_rt/audio.js";
 import { generateMelody } from "/_rt/melody.js";
 import { collection } from "/_rt/db.js";
@@ -241,13 +242,18 @@ export function handpan({ S }) {
 
     <div class="shrink-0 px-3 pb-2 pt-1 flex justify-center">
       <${Island} className="w-full max-w-md flex items-center gap-2">
-        ${""}
-        <${Transport} className="shrink-0" locale=${loc} stopIcon playing=${playing} onToggle=${toggle}
+        ${/* the kit's free-form play button (owner 2026-10-11: «розповсюджувати нову дизайн систему»). No orb
+             here — the steel pan IS this screen's form, and it is played, not decorated. No loop toggle either:
+             a loop is 16 steps that never end, so «одна по колу» is the only mode there is.
+             flex-[3] / flex-[2], not shrink-0 / flex-1: the Transport is an @container (inline-size containment),
+             so its intrinsic width is 0 — beside a flex-1 slider it collapsed to 0 px and the play key hung off
+             the left edge of the island (measured live: #play at x = -31). A share of the row gives it a width. */""}
+        <${Transport} form className="flex-[3]" locale=${loc} stopIcon playing=${playing} onToggle=${toggle}
           actions=${[
             { id: "flow", icon: "lucide:sparkles", label: T(t, "genFlow"), onClick: newFlow, tone: "accent", active: sweep >= 0, pulse: sweep >= 0, attr: { "data-flow": true } },
             { id: "rec", icon: "lucide:circle-dot", label: T(t, "rec"), onClick: toggleRec, tone: "error", active: recording, pulse: recording, pressed: recording, attr: { "data-rec": true } },
           ]} />
-        <div class="flex-1 min-w-0">
+        <div class="flex-[2] min-w-0">
           <${Slider} id="space" attr="data-space" label=${T(t, "space")} value=${space} min=${0} max=${1} step=${0.02} onInput=${(v) => { $space.set(v); applySpace(); }} />
         </div>
       <//>
@@ -278,13 +284,13 @@ export function handpanWeave({ S, toast, screen, openScreen, closeScreen }) {
         ${""}
         ${""}
         ${STEPS.map((step) => { const on = (loop[step] || []).includes(i); const beat = step % 4 === 0; return html`<button data-cell=${`${i}-${step}`} aria-pressed=${on} aria-label=${`${label(m)} ${step + 1}`} onClick=${() => cellToggle(i, step)} key=${step}
-          class=${`flex-1 min-w-0 h-9 rounded-md touch-manipulation transition-[box-shadow,background-color,transform,scale] duration-150 ${beat && step > 0 ? "ml-1" : ""} ${on ? `sf-e2 ${i === 0 ? "bg-secondary" : "bg-primary"}` : "sf-inset"} ${step === sweep ? "outline-2 outline-accent scale-105" : step === cur ? "outline-2 outline-base-content/50" : ""}`}></button>`; })}
+          class=${`flex-1 min-w-0 h-9 rounded-md touch-manipulation transition-[box-shadow,background-color,transform,scale] duration-[var(--t-press)] ease-[var(--ease-out)] ${beat && step > 0 ? "ml-1" : ""} ${on ? `sf-e2 ${i === 0 ? "bg-secondary" : "bg-primary"}` : "sf-inset"} ${step === sweep ? "outline-2 outline-accent scale-105" : step === cur ? "outline-2 outline-base-content/50" : ""}`}></button>`; })}
       </div>`; })}
     </div>
 
     <${Island} pinned className="w-full max-w-xl">
         ${""}
-        <${Transport} locale=${loc} stopIcon playing=${playing} onToggle=${toggle} keep=${1}
+        <${Transport} form locale=${loc} stopIcon playing=${playing} onToggle=${toggle} keep=${1}
           subtitle=${T(t, scaleById(scaleId).name)}
           moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
           actions=${[
@@ -346,12 +352,14 @@ export function handpanSaved({ S, undo }) {
   if (!useReveal(list !== null)) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel class="card bg-base-100 rounded-[var(--ms-r)] overflow-hidden" key=${i}><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div class="truncate font-semibold"><${Scramble} len=${12} /></div><div class="h-5"><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
   if (!list.length) return html`<div class="flex flex-col items-center text-base-content/70 py-20 gap-2 text-center px-6">${Icon("lucide:bookmark", "text-4xl")}<span>${T(t, "savedEmpty")}</span></div>`;
 
-  return html`<div class="flex flex-col gap-2">
-    ${""}
-    ${list.map((it) => { const on = isCur(it); return html`<div data-saved class="card bg-base-100 rounded-[var(--ms-r)] transition-colors" key=${it.id}>
+  // the shelf arrives one loop after another (.ms-stagger, --i per card)
+  return html`<div class="ms-stagger flex flex-col gap-2">
+    ${list.map((it, i) => { const on = isCur(it); return html`<div data-saved class="card bg-base-100 rounded-[var(--ms-r)] transition-colors" style=${`--i:${i}`} key=${it.id}>
       <div class="card-body p-3 flex-row items-center gap-3">
-        <button data-play aria-label=${on ? T(t, "aStop") : T(t, "aPlay")} class=${`btn btn-circle btn-sm shrink-0 ${on ? "btn-secondary" : "btn-primary"}`} onClick=${() => play(it)}>${Icon(on ? "lucide:square" : "lucide:play", "text-base")}</button>
-        <button data-load class="flex-1 min-w-0 text-left flex flex-col gap-1.5" onClick=${() => open(it)}>
+        ${/* a saved loop's play key is the loop's OWN form (core shape.js, seeded by its id): the same loop, the
+             same form on every phone; a static path, so the list draws nothing at rest */""}
+        <button data-play data-on=${on ? "true" : "false"} aria-label=${on ? T(t, "aStop") : T(t, "aPlay")} class="hp-loop ms-press" onClick=${() => play(it)}><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(shapeOf(it.id))} /></svg>${Icon(on ? "lucide:square" : "lucide:play", "text-base")}</button>
+        <button data-load class="flex-1 min-w-0 text-left flex flex-col gap-1.5 ms-press" onClick=${() => open(it)}>
           <span class="flex items-baseline justify-between gap-2"><span class="font-semibold truncate">${it.name || T(t, "loopWord")}</span><span class="font-mono text-[length:var(--ms-label)] text-base-content/70 tabular-nums shrink-0">${it.bpm || 80} BPM</span></span>
           <${Spectrum} loop=${it.loop} live=${on} cur=${cur} />
         </button>

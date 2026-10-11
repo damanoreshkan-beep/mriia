@@ -12,9 +12,26 @@ import { gate } from "/_rt/gate.js";
 import { chats, chat as loadChat, send, create, deleteChat, deleteCharacter, voiceOf, publish } from "/_rt/characters.js";
 import { taskOne } from "/_rt/task.js";
 import { speechChunks, designFor, voicePhaseKey } from "/_rt/personavoice.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { toItem } from "./data.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+
+// THE PERSON'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The portrait is seen through the
+// person's own organic form (core shapeOf), its edge a rim of light that lights in the accent while the persona's
+// voice speaks. Seeded by the Wikipedia slug, so every phone draws the same form and a candidate keeps it when it
+// becomes a persona; the form never morphs — it is who this is. The set leaves out the three forms that cut deepest
+// into a centred picture (inscribed radius under .35 of the box, measured for the store): a face sits in the middle.
+// objectBoundingBox takes the 0..1 path as is, so the slim and the full portrait clip without measuring.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const Portrait = (item, cls, speaking = false) => {
+  const f = shapeOf(item.slug || item.key || item.id, FORMS), d = pathOf(f);
+  return html`<div data-portrait data-form=${f} data-speaking=${speaking ? "true" : null} aria-hidden="true" class=${`pn-face ${cls}`}>
+    <svg class="pn-defs" width="0" height="0"><defs><clipPath id=${`pn-c-${f}`} clipPathUnits="objectBoundingBox"><path d=${d} /></clipPath></defs></svg>
+    <div class="pn-art" style=${`clip-path:url(#pn-c-${f})`}><img src=${item.cover} alt="" decoding="async" /></div>
+    <svg class="pn-rim" viewBox="0 0 1 1"><path class="b" d=${d} /><path class="e" d=${d} /></svg>
+  </div>`;
+};
 const raf = (fn) => (typeof requestAnimationFrame === "function" ? requestAnimationFrame(fn) : setTimeout(fn, 16));
 
 const $threads = atom({});
@@ -263,15 +280,16 @@ export function chat({ item, t, loc, S, undo, confirm }) {
         S.detail.set(null);
       } })}>${Icon("lucide:trash-2", "text-lg")}</button>` : null;
 
+  const speaking = voice.phase === "playing";
   const intro = hasThread
     ? html`<div data-intro data-slim class="flex items-center gap-3 pt-1">
-        <img src=${item.cover} alt="" class="w-10 h-10 rounded-full object-cover shrink-0 sf-inset" />
+        ${Portrait(item, "w-10 h-10", speaking)}
         <p class="flex-1 min-w-0 text-[0.82rem] text-base-content/70 truncate">${item.byline}</p>
         <div class="flex shrink-0">${btnHistory}${openWiki}${btnNew}${btnPublish}${btnRemove}</div>
       </div>`
     : html`<div data-intro class="flex flex-col gap-3 pt-2">
         <div class="flex items-start gap-4">
-          <img src=${item.cover} alt="" class="w-[4.5rem] h-[4.5rem] rounded-full object-cover shrink-0 sf-inset" />
+          ${Portrait(item, "w-[4.5rem] h-[4.5rem]", speaking)}
           <div class="flex-1 min-w-0 pt-0.5">
             <h1 class="text-2xl font-bold leading-tight break-words">${item.title}</h1>
             <p class="text-[0.9rem] leading-snug text-base-content/70 mt-1">${item.byline}</p>
@@ -320,7 +338,7 @@ export function chat({ item, t, loc, S, undo, confirm }) {
       ${Icon(glyph, `text-base shrink-0 ${busy ? "animate-pulse" : ""}`)}
       <span class="shrink-0">${T(t, voicePhaseKey(ph))}</span>
       ${ph !== "error" ? html`<span aria-hidden="true" class="relative flex-1 h-0.5 rounded-full bg-base-content/10 overflow-hidden">
-        <span class=${`absolute inset-y-0 left-0 rounded-full bg-[var(--app-accent)] transition-[width] duration-300 ${busy ? "animate-pulse" : ""}`}
+        <span class=${`absolute inset-y-0 left-0 rounded-full bg-[var(--app-accent)] transition-[width] duration-[var(--t-state)] ease-[var(--ease-out)] ${busy ? "animate-pulse" : ""}`}
           style=${`width:${ph === "casting" ? 12 : Math.max(4, Math.round(voice.pct * 100))}%`}></span></span>` : null}
     </div>`;
   };
@@ -335,7 +353,7 @@ export function chat({ item, t, loc, S, undo, confirm }) {
             ${turn.a ? html`<div data-msg="assistant" data-pending=${turn.a.pending ? "1" : null} data-voice=${voice.id === turn.a.id ? voice.phase : null}
                 ...${speakable(turn.a) ? { role: "button", tabIndex: 0, "aria-label": `${T(t, "speak")} ${item.title}`, onClick: () => speakReply(turn.a, characterId),
                   onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speakReply(turn.a, characterId); } } } : {}}
-                class=${`text-[0.97rem] leading-relaxed text-base-content/90 whitespace-pre-wrap break-words ${speakable(turn.a) ? "cursor-pointer rounded-[var(--ms-r-in)] -mx-2 px-2 py-1 transition-colors active:bg-base-content/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--app-accent)]" : ""}`}>
+                class=${`text-[0.97rem] leading-relaxed text-base-content/90 whitespace-pre-wrap break-words ${speakable(turn.a) ? "cursor-pointer rounded-[var(--ms-r-in)] -mx-2 px-2 py-1 transition-colors duration-[var(--t-press)] ease-[var(--ease-out)] active:bg-base-content/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--app-accent)]" : ""}`}>
                 ${turn.a.pending && turn.a.chunks ? turn.a.chunks.map((c) => html`<span key=${c.id} class="ms-word-in">${c.text}</span>`) : turn.a.content}${turn.a.pending && !turn.a.content ? html`<span class="text-base-content/70"><${Scramble} len=${18} /></span>` : null}
                 ${turn.a.failed ? html`<div class="flex items-center gap-2 mt-1.5 text-sm text-base-content/70">${T(t, "sendFailed")}
                     <button data-retry type="button" class="btn btn-ghost btn-xs gap-1"
@@ -348,9 +366,9 @@ export function chat({ item, t, loc, S, undo, confirm }) {
           <span ref=${tail} aria-hidden="true" style="scroll-margin-bottom:calc(var(--composer-h, 4rem) + var(--kb, 0px) + 1rem)"></span>
         </div>`}
     ${""}
-    ${empty ? html`<div class="flex flex-wrap gap-2 pt-1 ms-reveal">
-        ${["openerWho", "openerDay", "openerAdvice"].map((k) => html`<button data-opener=${k} key=${k} type="button" onClick=${() => submit(T(t, k))} data-haptic="tap"
-          class="sf-raised rounded-full px-3.5 py-2 text-left text-[0.85rem] leading-snug text-base-content/85 active:sf-pressed transition-transform">${T(t, k)}</button>`)}
+    ${empty ? html`<div class="flex flex-wrap gap-2 pt-1 ms-stagger">
+        ${["openerWho", "openerDay", "openerAdvice"].map((k, i) => html`<button data-opener=${k} key=${k} type="button" onClick=${() => submit(T(t, k))} data-haptic="tap" style=${`--i:${i}`}
+          class="sf-raised sf-press ms-press rounded-full min-h-[var(--ms-ctl)] px-3.5 py-2 text-left text-[0.85rem] leading-snug text-base-content/85">${T(t, k)}</button>`)}
       </div>` : null}
 
     ${""}
@@ -363,7 +381,7 @@ export function chat({ item, t, loc, S, undo, confirm }) {
             placeholder=${T(t, "composer")} aria-label=${T(t, "composer")}
             class="sf-inset flex-1 min-w-0 rounded-[calc(var(--ms-ctl)/2)] border-0 px-3.5 min-h-[var(--ms-ctl)] py-[calc((var(--ms-ctl)-1.5rem)/2)] leading-6 text-[0.95rem] text-base-content placeholder:text-muted outline-none focus:ring-1 focus:ring-base-content/25"></textarea>
           <button data-send type="submit" aria-label=${T(t, "send")} disabled=${!draft.trim() || streaming} data-haptic="tap"
-            class="shrink-0 grid place-items-center w-[var(--ms-ctl)] h-[var(--ms-ctl)] rounded-full text-[var(--app-accent)] disabled:text-muted active:scale-95 transition-transform">
+            class="shrink-0 grid place-items-center w-[var(--ms-ctl)] h-[var(--ms-ctl)] rounded-full text-[var(--app-accent)] disabled:text-muted ms-press">
             ${Icon("lucide:arrow-up", "text-[length:var(--ms-icon)]")}
           </button>
         </form>
@@ -372,9 +390,9 @@ export function chat({ item, t, loc, S, undo, confirm }) {
 
     ${""}
     <${Sheet} id="persona-history" open=${screen === "history"} onClose=${() => S.screen.set(null)} title=${T(t, "history")} subtitle=${item.title} icon="lucide:history" locale=${loc}>
-      ${screen === "history" ? html`<ul data-history-list class="flex flex-col divide-y divide-base-300/60 -mx-1">
-        ${history.map((c) => html`<li key=${c.id} class="flex items-center gap-2">
-          <button data-history-row=${c.id} type="button" class=${`flex-1 min-w-0 text-left px-1 py-3 ${c.id === th.chatId ? "text-base-content" : "text-base-content/80"}`}
+      ${screen === "history" ? html`<ul data-history-list class="flex flex-col divide-y divide-base-300/60 -mx-1 ms-stagger">
+        ${history.map((c, i) => html`<li key=${c.id} style=${`--i:${i}`} class="flex items-center gap-2">
+          <button data-history-row=${c.id} type="button" class=${`flex-1 min-w-0 text-left px-1 py-3 ms-press ${c.id === th.chatId ? "text-base-content" : "text-base-content/80"}`}
             onClick=${async () => { S.screen.set(null); await openHistoryChat(characterId, c.id); }}>
             <div class="truncate text-[0.95rem]">${c.title || c.last || "…"}</div>
             <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wide text-base-content/70">${when(c.updated_at, loc)}${c.id === th.chatId ? ` · ${T(t, "current")}` : ""}</div>

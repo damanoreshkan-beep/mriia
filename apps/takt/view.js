@@ -186,7 +186,12 @@ export function takt({ S }) {
     <${GlStage} shader=${new URL("takt.frag", import.meta.url)} seed=${0.37} vary=${vary} ink=${ink} points=${points} zClass="z-0" />
     <div data-takt data-state=${state} data-bpm=${bpm || ""} data-immersive=${hidden ? "yes" : "no"}
       class="relative z-10 h-full min-h-0 flex items-center justify-center p-[var(--ms-pad)]">
-      <${Transport} locale=${loc} playing=${playing} onToggle=${toggle} size="hero" stopIcon />
+      ${/* the kit's free-form play button (owner 2026-10-11: «розповсюджувати нову дизайн систему»), kept at the
+           hero's size in head.html — this screen IS its button. w-full: the transport is an inline-size container,
+           so as a bare flex item it measures 0 wide and its width steps could never tell a phone from a watch.
+           No orb: the field under it already is the beat's own picture. No loop toggle: a live stream never
+           ends, so there is nothing to repeat or move on to. */""}
+      <${Transport} form className="w-full" locale=${loc} playing=${playing} onToggle=${toggle} stopIcon />
     </div>
   <//>`;
 }

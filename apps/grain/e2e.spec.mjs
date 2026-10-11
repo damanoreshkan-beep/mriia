@@ -8,6 +8,7 @@ export default [
       h.expect((await h.count("[data-field]")) === 8, "пентатоніка має дати 8 полів");
       h.expect((await h.count("[data-scale]")) === 4, "немає 4 ладів");
       h.expect((await h.count("#play")) === 1, "немає транспорту");
+      h.expect((await h.count("#play.tp-form")) === 1, "кнопка грати не на формі (<Transport form>)");
       h.expect((await h.count("[data-rec]")) === 1, "немає кнопки запису");
       h.expect(/A3/i.test(await h.text("[data-pitch]")), "детектор висоти не назвав ноту семпла");
     },
@@ -68,6 +69,17 @@ export default [
       await h.click('[data-tab="takes"]'); await h.wait(400);
       h.expect((await h.count("[data-take]")) >= 2, "збережений запис не зʼявився поряд із фікстурою");
       h.expect((await h.count("[data-share]")) >= 1, "немає експорту WAV");
+    },
+  },
+  {
+    name: "запис — своя форма: ключ кожного запису є його формою, взятий у руки підсвічений", run: async (h) => {
+      await h.click('[data-tab="takes"]'); await h.wait(300);
+      const n = await h.count("[data-take]");
+      h.expect(n >= 1, "немає записів");
+      h.expect((await h.count("[data-take] [data-open] svg path")) === n, "не в кожного запису своя форма");
+      h.expect((await h.count('[data-open][data-on="true"]')) >= 1, "запис під пальцями не підсвічений");   // the fixture is A3, the gate's take is A3
+      await h.tap("[data-take] [data-open]"); await h.wait(300);
+      h.expect((await h.count("[data-field]")) === 8, "відкритий запис не повернув на поля гри");
     },
   },
   {

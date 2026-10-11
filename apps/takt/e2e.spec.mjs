@@ -8,6 +8,9 @@ export default [
       h.expect((await h.count("[data-stage]")) === 1, "немає полотна поля");
       h.expect(!(await h.attr("[data-stage]", "data-err")), "шейдер не зібрався: " + (await h.attr("[data-stage]", "data-err")));
       h.expect((await h.count("#play")) === 1, "немає кнопки відтворення");
+      h.expect((await h.count("#play.tp-form svg path")) === 1, "кнопка не на своїй формі (<Transport form>)");
+      // the form keeps the hero's size (head.html): 96px, 80px in a narrow container — never the kit's 68px row button
+      h.expect(parseFloat(await h.css("#play", "width")) >= 80, "кнопка зменшилась до рядкової: " + (await h.css("#play", "width")));
       h.expect((await h.count("#prev")) + (await h.count("#next")) === 0, "зайві клавіші транспорту");
       h.expect((await h.attr(wrap, "data-state")) === "live", "стан не live під гейтом");
       h.expect((await h.attr("#play", "data-playing")) === "true", "не грає під гейтом");

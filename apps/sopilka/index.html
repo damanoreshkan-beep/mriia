@@ -64,6 +64,11 @@
     .so-window{background:rgba(0,0,0,.45)}
     .so-bore{background:rgba(0,0,0,.72)}
     .so-pad{background:#F2EDE4}
+    /* OVERBLOW ON — the button is pressed into the face (sf-pressed, view.js) and its wind glyph takes the app's
+       light: the label stays ink so it keeps its contrast. Paper: a glow on white is a smear — the deep pole, no bloom. */
+    .so-wind{transition:color var(--t-state) var(--ease-out),filter var(--t-state) var(--ease-out)}
+    #over[aria-pressed="true"] .so-wind{color:var(--app-accent);filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
+    [data-theme="signal-light"] #over[aria-pressed="true"] .so-wind{color:var(--color-secondary);filter:none}
   </style>
 </head>
 <body class="bg-base-200 min-h-dvh">

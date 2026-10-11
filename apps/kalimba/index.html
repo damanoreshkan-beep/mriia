@@ -52,6 +52,23 @@
     }
   }
   </script>
+  <style>
+    /* KALIMBA on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»).
+       The VOICE is the instrument's identity: its own organic form (core shape.js, seeded by the voice id) heads
+       the voice rail, lit in the app's light, and flows into the next voice's form on a pick. A static path at
+       rest — the screen draws nothing until a morph, which lands by itself. */
+    .kb-voice { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; flex: none; }
+    .kb-voice > svg { width: 100%; height: 100%; overflow: visible; }
+    .kb-voice path { fill: color-mix(in oklch, var(--app-accent) 16%, transparent); stroke: var(--app-accent);
+      stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+    [data-theme="signal"] .kb-voice > svg { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    /* paper: a glow on white is a smear — the form is the deep pole, no bloom */
+    [data-theme="signal-light"] .kb-voice path { fill: color-mix(in oklch, var(--color-secondary) 12%, transparent); stroke: var(--color-secondary); }
+
+    /* A struck tine gives under the thumb on the press clock (it was a raw 100ms): feedback, not travel, so it
+       stays under reduced motion like .ms-press. */
+    .kb-tine { transition: translate var(--t-press) var(--ease-out), box-shadow var(--t-press) var(--ease-out), filter var(--t-press) var(--ease-out); }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Калімба</span></div><div class="bb"><i></i></div><div class="bd"></div></div>
