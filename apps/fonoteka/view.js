@@ -208,18 +208,40 @@ async function remove(s) {
 // in front of it: Chrome consumes the gesture browser-side (ShareServiceImpl::Share → ConsumeTransientUserActivation)
 // and answers "Permission denied" to a stale one — what a 6 MB read between the tap and share() did (2026-10-10).
 // A browser with no share sheet (desktop) gets the link on the clipboard instead.
-let shareable = null;   // { id, url } — the current song's public link
-async function readyShare(s) {
-  if (!s || gate || shareable?.id === s.id) return;
-  const r = await fetch(`${VPS_PROXY}/library/link`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: s.id }), signal: AbortSignal.timeout(20000) }).catch(() => null);
-  if (!r?.ok) { if (r) report("share.link.fail", { status: r.status }); return; }
-  const { url } = await r.json();
-  shareable = { id: s.id, url };
+// One link PER SONG, remembered for the session, and one request per song in flight. It used to be a single
+// { id, url } slot: switching songs let an older song's late answer overwrite the slot, and a request that timed
+// out on a weak link failed silently — so the owner (2026-10-11) got «Готую посилання — натисни ще раз» on tap
+// after tap. Every failure is reported now.
+const links = new Map(), linking = new Map();   // song id → url · song id → the request
+function readyShare(s) {
+  if (!s || gate) return Promise.resolve(null);
+  if (links.has(s.id)) return Promise.resolve(links.get(s.id));
+  if (!linking.has(s.id)) linking.set(s.id, (async () => {
+    try {
+      const r = await fetch(`${VPS_PROXY}/library/link`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: s.id }), signal: AbortSignal.timeout(20000) });
+      if (!r.ok) { report("share.link.fail", { status: r.status }); return null; }
+      const { url } = await r.json();
+      links.set(s.id, url);
+      return url;
+    } catch (e) { report("share.link.fail", { err: String(e?.name || e).slice(0, 80) }); return null; }
+    finally { linking.delete(s.id); }
+  })());
+  return linking.get(s.id);
 }
-function shareSong(s) {
+// A link not made yet is WAITED FOR, then shared — one tap, not two. If the wait outlived the tap's gesture the
+// browser refuses the sheet ("Permission denied", seen 2026-10-10), and openShare copies the link instead.
+async function shareSong(s) {
   if (!s || gate) return;
-  if (shareable?.id !== s.id) { readyShare(s); toastFn?.(T(tNow, "shareWait")); return; }   // no link yet: one more tap
-  const { url } = shareable, data = { title: titleOf(s), url };
+  let url = links.get(s.id);
+  if (!url) {
+    toastFn?.(T(tNow, "shareWait"));
+    url = await readyShare(s);
+    if (!url) { toastFn?.(T(tNow, "shareFail")); return; }
+  }
+  openShare(s, url);
+}
+function openShare(s, url) {
+  const data = { title: titleOf(s), url };
   if (!navigator.share || !navigator.canShare?.(data)) {
     navigator.clipboard?.writeText(url).then(() => toastFn?.(T(tNow, "shareCopied")), () => toastFn?.(T(tNow, "shareFail")));
     return;
