@@ -1,0 +1,18 @@
+  <style>
+    /* THE GRID — every material of the farm on one picture: two columns on a phone, three from a tablet up; a tile is
+       the material's fox until the picture is drawn in it (owner 2026-10-11, Prism). */
+    .pr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (min-width: 40rem) { .pr-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .pr-tile, .pr-add { aspect-ratio: 1; }
+    .pr-add { border: 1.5px dashed color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    .pr-cap { background: linear-gradient(to top, rgba(0, 0, 0, .62), transparent); }
+    /* a tile being drawn: a slow light passes over the fox — progress as material, never a spinner */
+    .pr-work::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(110deg, transparent 30%, color-mix(in oklch, var(--app-accent) 26%, transparent) 50%, transparent 70%);
+      background-size: 250% 100%; animation: prSweep 1.8s var(--ease-in-out) infinite; }
+    @keyframes prSweep { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+    /* the drawn picture arrives once: a fade, on the focal clock */
+    .pr-in { animation: prIn var(--t-focal) var(--ease-out) both; }
+    @keyframes prIn { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .pr-work::after { animation: none; } .pr-in { animation: none; } }
+  </style>
