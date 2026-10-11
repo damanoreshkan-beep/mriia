@@ -1,7 +1,8 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { Sheet, Segmented, Panel } from "/_rt/ui.js";
+import { pathOf, scalePath, shaper } from "/_rt/shape.js";
 import { useStore } from "@nanostores/preact";
 import { persistentAtom } from "@nanostores/persistent";
 import { T } from "/_rt/i18n.js";
@@ -21,6 +22,9 @@ const API = `${VPS_PROXY}/horoscope`;
 const DAY_IDS = ["yesterday", "today", "tomorrow"], DAY_KEYS = ["dYesterday", "dToday", "dTomorrow"];
 
 const RATINGS = [["love", "sex"], ["work", "hustle"], ["vibe", "vibe"], ["success", "success"]];
+
+const FORM = ["Puffy", "Clover8Leaf", "Cookie9Sided", "Cookie12Sided", "VerySunny", "Cookie7Sided",
+  "Cookie4Sided", "Sunny", "Flower", "Cookie6Sided", "Clover4Leaf", "SoftBurst"];
 
 const $sign = persistentAtom("horoscope.sign", "");
 const clampSign = (n) => Math.max(0, Math.min(11, Number(n) || 0));
@@ -75,8 +79,8 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
   return html`<${Fragment}>
     <div class="flex flex-col gap-[var(--ms-gap)]" data-state=${state} data-day-sel=${DAY_IDS[day]} data-sign-idx=${signIdx}>
       ${""}
-      <button data-sign class="w-full flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 sf-press p-[var(--ms-pad)] transition-colors" onClick=${() => openScreen("signs")}>
-        <span class="shrink-0" style="color:var(--app-accent)"><${Sign} i=${signIdx} cls="w-11 h-11" /></span>
+      <button data-sign class="w-full flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 sf-press p-[var(--ms-pad)] ms-press" onClick=${() => openScreen("signs")}>
+        <${SignOrb} i=${signIdx} />
         <span class="flex-1 min-w-0 text-left">
           <span class="block font-bold text-lg leading-tight">${(t.signs || "").split("|")[signIdx] || ""}</span>
           <span class=${`block mt-0.5 ${LABEL}`}>${(t.signDates || "").split("|")[signIdx] || ""}</span>
@@ -123,13 +127,35 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
   </${Fragment}>`;
 }
 
+function SignOrb({ i }) {
+  const orb = useRef(), fill = useRef(), rim = useRef(), form = useRef();
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    form.current = shaper(FORM[i], lay);
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orb.current);
+    return () => { ro.disconnect(); form.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { form.current?.to(FORM[i]); }, [i]);
+  return html`<span ref=${orb} data-orb data-form=${FORM[i]} class="hs-orb" aria-hidden="true">
+    <span ref=${fill} class="hs-fill"></span>
+    <svg ref=${rim} class="hs-rim" viewBox="0 0 1 1"><path class="b" /><path class="e" /></svg>
+    <${Sign} i=${i} cls="hs-sign" />
+  </span>`;
+}
+
 function SignSheet({ open, onClose, t, signIdx }) {
   const choose = (i) => { $sign.set(String(i)); onClose(); };
   return html`<${Sheet} id="signsheet" open=${open} onClose=${onClose} title=${T(t, "pickSign")} icon="lucide:sparkles">
       ${""}
-      <div class="grid grid-cols-3 gap-2 sf-inset rounded-[var(--ms-r)] p-2">
-        ${Array.from({ length: 12 }, (_, i) => html`<button data-signpick=${i} aria-pressed=${i === signIdx} class=${`flex flex-col items-center gap-1.5 py-3 rounded-[var(--ms-r-in)] transition-colors ${i === signIdx ? "bg-[var(--app-tint)]" : "text-base-content/80"}`} onClick=${() => choose(i)} key=${i}>
-          <${Sign} i=${i} cls="w-6 h-6" />
+      <div class=${`grid grid-cols-3 gap-2 sf-inset rounded-[var(--ms-r)] p-2 ${open ? "ms-stagger" : ""}`}>
+        ${Array.from({ length: 12 }, (_, i) => html`<button data-signpick=${i} aria-pressed=${i === signIdx} style=${`--i:${i}`} class=${`hs-pick flex flex-col items-center gap-1.5 py-3 rounded-[var(--ms-r-in)] ms-press ${i === signIdx ? "" : "text-base-content/80"}`} onClick=${() => choose(i)} key=${i}>
+          <span class="hs-mark" data-form=${FORM[i]} aria-hidden="true"><svg viewBox="0 0 1 1" class="hs-form"><path d=${pathOf(FORM[i])} /></svg><${Sign} i=${i} cls="hs-mark-sign" /></span>
           <span class="text-sm truncate max-w-full">${(t.signs || "").split("|")[i] || ""}</span>
         </button>`)}
       </div>

@@ -53,14 +53,23 @@
   }
   </script>
   <style>
-    .pd-bob{border-radius:9999px;
+    .pd-bob{
       background:radial-gradient(circle at 42% 36%,
         oklch(from var(--app-accent) 0.97 calc(c * 0.35) h) 0%,
         oklch(from var(--app-accent) 0.9 calc(c * 0.7) h) 14%,
         var(--app-accent) 46%,
         oklch(from var(--app-accent) 0.5 c h) 78%,
         oklch(from var(--app-accent) 0.32 c h) 100%);
-      box-shadow:inset 0 -5px 13px oklch(from var(--app-accent) 0.25 c h / .6), 0 0 28px -4px var(--lm-bloom-hi)}
+      box-shadow:inset 0 -5px 13px oklch(from var(--app-accent) 0.25 c h / .6)}
+    
+    .pd-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+    .pd-rim path{fill:none;vector-effect:non-scaling-stroke}
+    .pd-rim .e{stroke:color-mix(in oklch,var(--app-accent) 85%,white);stroke-width:1.25}
+    .pd-rim .b1{stroke:var(--app-accent);stroke-width:12;opacity:.07}
+    .pd-rim .b2{stroke:var(--app-accent);stroke-width:4;opacity:.22}
+    
+    [data-theme="signal-light"] .pd-rim .e{stroke:oklch(from var(--app-accent) 0.32 c h);stroke-width:1.5}
+    [data-theme="signal-light"] .pd-rim .b1,[data-theme="signal-light"] .pd-rim .b2{display:none}
     
     .pd-halo{border-radius:9999px;background:radial-gradient(circle, var(--lm-bloom-hi) 0%, var(--lm-bloom) 30%, transparent 62%)}</style>
 </head>

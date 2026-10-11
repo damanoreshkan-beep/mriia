@@ -6,6 +6,8 @@ export default [
       h.expect((await h.count("[data-tile]")) === 1, "карта дня — рівно одна карта");
       h.expect((await h.count("[data-reading] img, [data-tile] img")) >= 1, "немає зображення карти");
       h.expect((await h.text("[data-reading]")).trim().length > 30, "порожнє значення карти");
+      h.expect((await h.count("[data-reading] [data-aura]")) === 1, "карта дня не стоїть на своїй формі");
+      h.expect(!!(await h.attr("[data-reading] [data-aura]", "data-form")), "форма карти без імені");
     },
   },
   {
@@ -58,6 +60,7 @@ export default [
     name: "card detail: аркуш історія-backed (Back закриває)", run: async (h) => {
       await h.click("[data-tile]"); await h.wait(200);
       h.expect((await h.prop("#cardsheet", "open")) === true, "аркуш карти не відкрився");
+      h.expect((await h.attr("#cardsheet [data-aura]", "data-form")) === (await h.attr("[data-reading] [data-aura]", "data-form")), "у аркуші карта не на тій самій формі");
       await h.back(); await h.wait(200);
       h.expect((await h.prop("#cardsheet", "open")) !== true, "Back не закрив аркуш карти");
     },
