@@ -76,6 +76,11 @@
     [data-loading="true"] .mz-orb { animation: mz-wait 1.6s var(--ease-out) infinite alternate; }
     @keyframes mz-wait { to { opacity: .55; } }
 
+    /* the loop is ON («одна по колу»): the repeat-1 glyph in the app's light — the kit's lit state is the theme's
+       primary, cream on black, which a phone does not tell from an unlit glyph */
+    #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+
     /* a row's cover: the song's picture, the playing one ringed in the accent */
     .mz-cover { position: relative; width: 3rem; height: 3rem; flex: none; border-radius: var(--ms-r-in); overflow: hidden; }
     [aria-pressed="true"] .mz-cover { box-shadow: 0 0 0 2px var(--app-accent); }

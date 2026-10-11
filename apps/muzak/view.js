@@ -1,6 +1,7 @@
 import { html } from "htm/preact";
 import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { atom } from "nanostores";
+import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
@@ -67,7 +68,15 @@ const $cur = atom("");
 const $playing = atom(false), $loading = atom(false);
 const $pos = atom(0), $dur = atom(0);
 let audio = null, hold = null;
-const curSong = () => $q.get().find((s) => s.id === $cur.get()) || null;
+// ONE SONG ON A LOOP or on through the list (owner 2026-10-11: «я слухаю їх як медитацію по колу в основному»):
+// two modes, not the kit's three — "off" would stop at the end of the list, which nobody here asked for. The
+// choice is remembered; advance() replays the song when it ENDS under "one", and ▶︎▶︎ still moves on.
+const $repeat = persistentAtom("muzak:repeat", "all");
+const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
+// what the button SHOWS: "on through the list" is the quiet default (the plain glyph, unlit), the loop is the lit
+// repeat-1 — the kit lights "all" too, and two lit states told apart by a tiny "1" read as one state on a phone
+const shownRepeat = (r) => (r === "one" ? "one" : "off");
+const curSong =() => $q.get().find((s) => s.id === $cur.get()) || null;
 
 function ensure() {
   if (audio) return audio;
@@ -108,7 +117,7 @@ function toggle(s, queue) {
 }
 function step(dir, manual = true) {
   const q = $q.get();
-  const next = advance(q.findIndex((s) => s.id === $cur.get()), q.length, { step: dir, repeat: "all", manual });
+  const next = advance(q.findIndex((s) => s.id === $cur.get()), q.length, { step: dir, repeat: $repeat.get(), manual });
   if (next >= 0) play(q[next]);
 }
 function seek(ms) { if (audio && !gate) audio.currentTime = ms / 1000; $pos.set(ms); }
@@ -155,7 +164,7 @@ const actionsFor = (s, kept, t, toast) => [
 export function muzak({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
-  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept);
+  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat);
   const input = useRef();
   useEffect(() => { if (!gate && !meta) input.current?.focus(); }, []);
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   // the session is restored lazily in the runtime; listening needs it
@@ -202,7 +211,7 @@ export function muzak({ S, toast }) {
            player takes that row — play/pause, seek and the same tools — so there is never a second pause button */""}
       ${on ? html`<div class="flex flex-col gap-1">
         ${loading ? html`<div data-preparing role="status" class="text-xs text-base-content/70 animate-pulse">${T(t, "preparing")}</div>` : null}
-        <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek}
+        <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           actions=${actionsFor(song, kept[song.id], t, toast)} />
       </div>` : html`<div class="flex items-center gap-1">
         <button data-listen onClick=${() => toggle(song, [song])}
@@ -305,7 +314,7 @@ export function likes({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const sid = useStore(session)?.sid || "";
   const l = useStore($likes), busy = useStore($lBusy), err = useStore($lErr), playErr = useStore($err);
-  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept);
+  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat);
   // the session is restored lazily in the runtime (the account card does it); this tab needs it at once, and a
   // signed-out restore spends no network. Signing in later (the wall a connect tap raises) re-reads through `sid`.
   useEffect(() => { if (!gate) restore().then((s) => { if (!s) $likes.set({ connected: false }); }).catch(() => {}); }, []);
@@ -353,7 +362,7 @@ export function likes({ S, toast, confirm }) {
     : html`${songs.length ? html`<section data-player aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)] pt-2">
         <${Orb} song=${now} />
         <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle(now ? null : songs[0], now ? null : songs)} className="w-full pt-1"
-          onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length}
+          onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           title=${shown ? shown.title : ""} subtitle=${now && loading ? T(t, "preparing") : shown ? [shown.artist, clock(shown.dur)].filter(Boolean).join(" · ") : ""}
           actions=${shown ? actionsFor(shown, kept[shown.id], t, toast) : []} />
       </section>` : null}

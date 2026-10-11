@@ -29,6 +29,11 @@
     /* The play button (a form that changes with the state) and the filament seek are the kit's —
        <Transport form>, core runtime.css .tp-form / .tp-filament. */
 
+    /* the loop is ON («одна по колу»): the repeat-1 glyph in the app's light — the kit's lit state is the theme's
+       primary, cream on black, which a phone does not tell from an unlit glyph */
+    #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+
     /* A SONG'S GLYPH — its own form, small: an outline at rest, lit when it is the one playing. */
     .fk-glyph { width: 1.75rem; height: 1.75rem; flex: none; overflow: visible; }
     .fk-glyph path { fill: none; stroke: color-mix(in oklch, var(--color-base-content) 38%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
