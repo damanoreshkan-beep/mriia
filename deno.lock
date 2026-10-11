@@ -6,7 +6,7 @@
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@deno/cache-dir@0.22.2": "0.22.2",
     "jsr:@deno/graph@0.86": "0.86.9",
-    "jsr:@microspec/core@1": "1.2.129",
+    "jsr:@microspec/core@1": "1.2.131",
     "jsr:@microspec/core@1.2.122": "1.2.122",
     "jsr:@microspec/core@1.2.123": "1.2.123",
     "jsr:@microspec/core@1.2.124": "1.2.124",
@@ -15,6 +15,8 @@
     "jsr:@microspec/core@1.2.127": "1.2.127",
     "jsr:@microspec/core@1.2.128": "1.2.128",
     "jsr:@microspec/core@1.2.129": "1.2.129",
+    "jsr:@microspec/core@1.2.130": "1.2.130",
+    "jsr:@microspec/core@1.2.131": "1.2.131",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/async@1": "1.4.0",
@@ -43,7 +45,7 @@
     "jsr:@zip-js/zip-js@^2.7.52": "2.8.26",
     "npm:@jsquash/png@3.0.1": "3.0.1",
     "npm:@jsquash/webp@1.4.0": "1.4.0",
-    "npm:@jsr/microspec__core@1": "1.2.129",
+    "npm:@jsr/microspec__core@1": "1.2.131",
     "npm:@nanostores/persistent@0.10.2": "0.10.2_nanostores@0.11.4",
     "npm:@nanostores/preact@0.5.2": "0.5.2_nanostores@0.11.4_preact@10.27.1",
     "npm:@resvg/resvg-wasm@2.6.2": "2.6.2",
@@ -589,6 +591,54 @@
     "@microspec/core@1.2.129": {
       "integrity": "a0301fcc3ff2fe918129220955266ed10d0fc8fef9bce19486b0adc96015bbc3",
       "dependencies": [
+        "jsr:@astral/astral",
+        "jsr:@b-fuze/deno-dom",
+        "jsr:@std/assert@1",
+        "jsr:@std/http",
+        "npm:@jsquash/png",
+        "npm:@jsquash/webp",
+        "npm:@nanostores/persistent",
+        "npm:@nanostores/preact",
+        "npm:@resvg/resvg-wasm",
+        "npm:ajv",
+        "npm:ajv-formats",
+        "npm:d3-geo",
+        "npm:daisyui",
+        "npm:htm",
+        "npm:linkedom",
+        "npm:nanostores",
+        "npm:preact",
+        "npm:tailwindcss",
+        "npm:topojson-client"
+      ]
+    },
+    "@microspec/core@1.2.130": {
+      "integrity": "569c6beb722f37e30478a66ef96f36746d592ad71e4749366d6d20926bc5de3e",
+      "dependencies": [
+        "jsr:@astral/astral",
+        "jsr:@b-fuze/deno-dom",
+        "jsr:@std/assert@1",
+        "jsr:@std/http",
+        "npm:@jsquash/png",
+        "npm:@jsquash/webp",
+        "npm:@nanostores/persistent",
+        "npm:@nanostores/preact",
+        "npm:@resvg/resvg-wasm",
+        "npm:ajv",
+        "npm:ajv-formats",
+        "npm:d3-geo",
+        "npm:daisyui",
+        "npm:htm",
+        "npm:linkedom",
+        "npm:nanostores",
+        "npm:preact",
+        "npm:tailwindcss",
+        "npm:topojson-client"
+      ]
+    },
+    "@microspec/core@1.2.131": {
+      "integrity": "59ffc2e6e4033fb938dd5777e5d560ab3903a187382718c619c2b33c9be0be62",
+      "dependencies": [
         "npm:@nanostores/persistent",
         "npm:@nanostores/preact",
         "npm:d3-geo",
@@ -733,8 +783,8 @@
       ],
       "tarball": "https://npm.jsr.io/~/11/@jsr/denosaurs__plug/1.0.3.tgz"
     },
-    "@jsr/microspec__core@1.2.129": {
-      "integrity": "sha512-IIxLShUc2Ygx+gRoBSXV0kHXgP5AOzjEqFvmIsX3rQSNGc9i2I8kefmwKoI1ieTLL8ofaxtAlsw5AJ75snUSSA==",
+    "@jsr/microspec__core@1.2.131": {
+      "integrity": "sha512-9zc/GmQajxo35+qru2/zpfomKtTrJKUqRbJj9keeY+Um6hMZalZbkv5+Di8GJcqGg1Qiiny2ZAS8ZfFNDmobAg==",
       "dependencies": [
         "@jsquash/png",
         "@jsquash/webp",
@@ -756,7 +806,7 @@
         "tailwindcss",
         "topojson-client"
       ],
-      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.129.tgz"
+      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.131.tgz"
     },
     "@jsr/std__assert@0.213.1": {
       "integrity": "sha512-mbq7QHPHeAJiJJlwmjNI0uoZlvIU2rG89df8ceeJB1pgE5b54DkiNhjQmmfBft0/fYO8/d933rBYwcNzuLxhXA==",
