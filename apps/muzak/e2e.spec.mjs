@@ -2,7 +2,7 @@ const ready = async (h) => { for (let i = 0; i < 20; i++) { if ((await h.count("
 
 export default [
   {
-    name: "пісня: картка з назвою, виконавцем і тривалістю; слухати, у Фонотеку, поділитися, мікс — і жодного «скачати»", run: async (h) => {
+    name: "пісня: картка з назвою, виконавцем і тривалістю; слухати, скачати, у Фонотеку, поділитися, мікс", run: async (h) => {
       await ready(h); await h.wait(300);
       h.expect((await h.count("[data-link]")) === 1, "немає поля посилання");
       h.expect((await h.attr("[data-muzak]", "data-song")) === "dQw4w9WgXcQ", "картка пісні не показана під гейтом");
@@ -10,9 +10,15 @@ export default [
       h.expect(/Rick Astley · Whenever You Need Somebody · 1987/.test(await h.bodyText()), "немає рядка виконавець · альбом · рік");
       h.expect(/3:33/.test(await h.bodyText()), "немає тривалості");
       h.expect((await h.count("[data-listen]")) === 1, "немає «Слухати»");
-      for (const a of ["keep", "share", "mix"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
-      h.expect((await h.count("[data-save], [data-dl], a[download]")) === 0, "кнопка скачування лишилась");
+      for (const a of ["save", "keep", "share", "mix"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
       h.expect((await h.count(".loading")) === 0, "крутилка на екрані");
+    },
+  },
+  {
+    name: "скачати: тап зберігає mp3 і каже «Збережено»", run: async (h) => {
+      await ready(h);
+      await h.tap("[data-muzak] [data-save]"); await h.wait(400);
+      h.expect(/Збережено|Saved/.test(await h.bodyText()), "немає підтвердження");
     },
   },
   {
@@ -47,14 +53,16 @@ export default [
     },
   },
   {
-    name: "вподобане: плеєр над списком, тап на пісню грає її, у кожної «У Фонотеку», список довантажується сам", run: async (h) => {
+    name: "вподобане: плеєр над списком, тап на пісню грає її, у кожної «У Фонотеку» і «Скачати», список довантажується сам", run: async (h) => {
       await h.click('[data-tab="likes"]'); await h.wait(250);
       h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом");
       h.expect((await h.count("[data-player]")) === 1, "немає плеєра");
       h.expect((await h.count("[data-like]")) === 4, "не 4 пісні");
       h.expect((await h.count("[data-like] [data-keep]")) === 4, "не в кожної пісні «У Фонотеку»");
       for (const a of ["share", "mix"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
-      h.expect((await h.count("[data-dl], [data-save], a[download]")) === 0, "кнопка скачування лишилась");
+      h.expect((await h.count("[data-like] [data-save]")) === 4, "не в кожної пісні «Скачати»");
+      await h.tap('[data-like] [data-save="kXYiU_JCYtU"]'); await h.wait(400);
+      h.expect(/Збережено|Saved/.test(await h.bodyText()), "скачування не сказало «Збережено»");
       h.expect(/YouTube · Оксана/i.test(await h.bodyText()), "немає рядка, чий це YouTube");   // the label is uppercase by CSS, and innerText carries it
       h.expect((await h.count("[data-tail]")) === 1, "немає довантаження в кінці списку");
       h.expect((await h.count("[data-yt-off]")) === 1, "немає «Відключити»");
