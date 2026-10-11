@@ -53,9 +53,11 @@
   }
   </script>
   <style>
-    :root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade],:root[data-immersive] [data-takt] [data-transport]{opacity:0;pointer-events:none;transition:opacity .6s ease}
+    :root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade],:root[data-immersive] [data-takt] [data-transport]{opacity:0;pointer-events:none;transition:opacity var(--t-focal) var(--ease-out)}
     @media(prefers-reduced-motion:reduce){:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}
-  </style>
+    
+    [data-takt] #play.tp-form{width:6rem;height:6rem}
+    @container (max-width:300px){[data-takt] #play.tp-form{width:5rem;height:5rem}}</style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Такт</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

@@ -108,14 +108,15 @@ export function sopilka({ S }) {
       <div class="absolute inset-x-0 flex justify-center" style="top:9%">
         <div class="so-window w-8 h-1.5 rounded-full"></div>
       </div>
+      
       ${Array.from({ length: HOLES }, (_, i) => html`<div key=${i} data-hole=${i} aria-hidden="true"
-        class=${`absolute left-1/2 -translate-x-1/2 w-7 h-7 rounded-full transition-colors ${covered.has(i) ? "so-pad" : "so-bore"}`}
+        class=${`absolute left-1/2 -translate-x-1/2 w-7 h-7 rounded-full ${covered.has(i) ? "so-pad" : "so-bore"}`}
         style=${`top:calc(${TOP + i * GAP}% - 0.875rem)`}></div>`)}
     </div>
 
-    ${""}
-    <button id="over" data-over aria-pressed=${over} class=${`btn btn-sm gap-2 ${over ? "btn-primary" : "btn-outline"}`}
-      data-haptic="bump" onClick=${() => setOver((v) => !v)}>${Icon("lucide:wind", "text-base")}${T(t, "overblow")}</button>
+    
+    <button id="over" data-over aria-pressed=${over} class=${`btn rounded-full h-[var(--ms-ctl)] min-h-0 px-4 gap-2 ms-press ${over ? "sf-pressed" : "sf-raised"}`}
+      data-haptic="bump" onClick=${() => setOver((v) => !v)}>${Icon("lucide:wind", "so-wind text-base")}${T(t, "overblow")}</button>
     ${!audioSupported ? html`<div class="text-sm text-muted text-center">${T(t, "noAudio")}</div>` : null}
   </div>`;
 }

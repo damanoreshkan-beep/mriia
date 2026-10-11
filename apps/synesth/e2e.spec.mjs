@@ -6,6 +6,7 @@ export default [
       await ready(h);
       h.expect((await h.count("[data-readout]")) === 1, "немає сцени");
       h.expect((await h.count("[data-orb]")) === 5, "немає 5 нот-орбів");
+      h.expect((await h.count("[data-orb][data-form] .f")) === 5, "у ноти немає своєї форми");
       h.expect((await h.count("[data-scale]")) === 7, "немає 7 ладів");
       h.expect((await h.count("#play")) === 1, "немає play");
     },
@@ -15,6 +16,7 @@ export default [
       await ready(h);
       await h.tap("#play"); await h.wait(200);
       h.expect((await h.attr("#play", "data-playing")) === "true", "play не запустився");
+      h.expect((await h.count("[data-playing='on'] [data-orb] .e")) === 5, "обідки нот не світяться, коли акорд звучить");
       await h.tap("#play"); await h.wait(200);
       h.expect((await h.attr("#play", "data-playing")) !== "true", "pause не зупинив");
     },

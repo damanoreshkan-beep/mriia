@@ -1,9 +1,10 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Segmented, Transport, Slider } from "/_rt/ui.js";
+import { scalePath, shaper } from "/_rt/shape.js";
 import { createEngine, audioSupported, noiseSource as src, filter as bqf, lfo, noteFreq } from "/_rt/audio.js";
 import { STATIONS, LAYERS, station, reactorVoices, faderGain, semiToRatio } from "/_rt/scifi.js";
 
@@ -11,6 +12,7 @@ const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}><
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 const NAME = { reactor: "stReactor", bridge: "stBridge", observation: "stObservation", cryo: "stCryo", derelict: "stDerelict", relay: "stRelay" };
+const FORM = { reactor: "Cookie9Sided", bridge: "Puffy", observation: "Clover8Leaf", cryo: "VerySunny", derelict: "Cookie4Sided", relay: "SoftBurst" };
 const LMETA = { hull: "lucide:box", vent: "lucide:wind", reactor: "lucide:atom", servo: "lucide:cog", tele: "lucide:activity", deep: "lucide:radio" };
 const TIMERS = [15, 30, 60, 90];
 const TELE_SCALE = [0, 3, 5, 7, 10, 12];
@@ -75,6 +77,21 @@ export function outpost({ S }) {
 
   useEffect(() => () => { eng.current?.stop(); eng.current = null; }, []);
 
+  const orb = useRef(), fill = useRef(), rim = useRef(), form = useRef();
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    form.current = shaper(FORM[stId], lay);
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orb.current);
+    return () => { ro.disconnect(); form.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { form.current?.to(FORM[stId]); }, [stId]);
+
   const pickStation = (id) => { buzz(); tweaked.current = false; setStId(id); setFaders({ ...station(id).levels }); };
   const setFader = (L, v) => { tweaked.current = true; setFaders((f) => ({ ...f, [L]: v })); };
   const resetMix = () => { buzz(); tweaked.current = false; setFaders({ ...station(stId).levels }); };
@@ -98,30 +115,30 @@ export function outpost({ S }) {
           value=${stId} onChange=${pickStation} />
       </div>
 
-      <!-- the core: transport + live cue -->
-      <div class="relative grid place-items-center py-1">
-        ${""}
-        <div class="op-glow absolute w-44 h-44 rounded-full" data-on=${playing ? "" : null} aria-hidden="true"></div>
-        ${""}
-        <div class="absolute w-40 h-40 rounded-full sf-e2"></div>
-        <div class="absolute w-32 h-32 rounded-full sf-e2"></div>
-        ${""}
-        <${Transport} locale=${loc} size="hero" playing=${playing} onToggle=${toggle} disabled=${!audioSupported} />
+      <!-- the core: the station's form with the play button on it + live cue -->
+      <div class="op-core w-full max-w-[440px] grid place-items-center py-1">
+        <div ref=${orb} data-orb data-form=${FORM[stId]} class="op-orb" aria-hidden="true">
+          <div ref=${fill} class="op-fill"></div>
+          <svg ref=${rim} class="op-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
+        </div>
+        
+        <${Transport} form locale=${loc} playing=${playing} onToggle=${toggle} disabled=${!audioSupported} className="w-full" />
       </div>
-      <div class=${`-mt-3 flex items-center gap-2 ${LABEL} tracking-[0.2em]`} data-status>
+      <div class=${`-mt-1 flex items-center gap-2 ${LABEL} tracking-[0.2em]`} data-status>
         ${""}
         <span class="op-led w-1.5 h-1.5 rounded-full" data-on=${playing ? "" : null} style=${playing ? "" : "background:var(--sf-track-face)"}></span>
         ${T(t, NAME[stId])} · ${T(t, playing ? "online" : "offline")}
       </div>
 
       <!-- fader bank -->
-      <div class="w-full max-w-[440px] flex flex-col gap-2.5">
+      
+      <div class="w-full max-w-[440px] flex flex-col gap-2.5 ms-stagger">
         <div class="flex items-center justify-end">
           ${""}
-          <button data-reset onClick=${resetMix} class="btn btn-ghost btn-sm rounded-full gap-1.5 text-sm text-muted">${Icon("lucide:rotate-ccw", "text-sm")}${T(t, "aReset")}</button>
+          <button data-reset onClick=${resetMix} class="btn btn-ghost btn-sm rounded-full gap-1.5 text-sm text-muted ms-press">${Icon("lucide:rotate-ccw", "text-sm")}${T(t, "aReset")}</button>
         </div>
         ${""}
-        ${LAYERS.map((L) => html`<div data-fader=${L} key=${L} class="flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 px-[var(--ms-pad)] py-2.5">
+        ${LAYERS.map((L, i) => html`<div data-fader=${L} key=${L} style=${`--i:${i + 1}`} class="flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 px-[var(--ms-pad)] py-2.5">
           <span class="flex items-center justify-center w-8 h-8 rounded-full shrink-0 sf-inset text-base-content/70">${Icon(LMETA[L], "text-lg")}</span>
           <div class="flex-1 min-w-0"><${Slider} attr="data-level" id=${L} label=${T(t, "l" + L[0].toUpperCase() + L.slice(1))} value=${faders[L]} onInput=${(v) => setFader(L, v)} /></div>
         </div>`)}

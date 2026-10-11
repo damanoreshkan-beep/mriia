@@ -52,6 +52,22 @@
     }
   }
   </script>
+  <style>
+    .gr-take { position: relative; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: none; color: var(--color-primary-content); }
+    .gr-take > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .gr-take > svg path { fill: var(--color-primary); transition: fill var(--t-state) var(--ease-out); }
+    .gr-take > iconify-icon { position: relative; }
+    .gr-take[data-on="true"] { color: var(--color-secondary-content); }
+    .gr-take[data-on="true"] > svg path { fill: var(--color-secondary); }
+    .gr-take:focus-visible { outline: 2px solid var(--color-base-content); outline-offset: 3px; border-radius: 50%; }
+
+    
+    .gr-field { transition: scale var(--t-press) var(--ease-out), outline-color var(--t-press) var(--ease-out); }
+    .gr-lamp { transition: opacity var(--t-press) var(--ease-out); }
+    
+    .gr-level { transform-origin: left; transition: scale var(--t-press) var(--ease-out); }
+    @media (prefers-reduced-motion: reduce) { .gr-field, .gr-lamp, .gr-level { transition: none; } }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Зерно</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

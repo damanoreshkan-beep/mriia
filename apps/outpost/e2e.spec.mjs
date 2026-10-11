@@ -11,6 +11,19 @@ export default [
     },
   },
   {
+    name: "ядро — форма станції з кнопкою пуску, що перетікає у форму обраної станції", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-orb]")) === 1, "немає ядра-форми");
+      h.expect((await h.count("[data-orb] .op-rim path")) === 3, "у ядра немає обідка");
+      h.expect((await h.count(".op-core > [data-orb] ~ [data-transport] #play")) === 1, "кнопка пуску не на формі");
+      const bridge = await h.attr("[data-orb]", "data-form");
+      h.expect(!!bridge, "форма містка не задана");
+      await h.tap('[data-station="cryo"]'); await h.wait(150);
+      h.expect((await h.attr("[data-orb]", "data-form")) !== bridge, "форма не змінилась зі станцією");
+      h.expect(!!(await h.attr("[data-orb] .op-rim .e", "d")), "обідок не намальований");
+    },
+  },
+  {
     name: "вибір станції", run: async (h) => {
       await ready(h);
       await h.tap('[data-station="cryo"]'); await h.wait(150);

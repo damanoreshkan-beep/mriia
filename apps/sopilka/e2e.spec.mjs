@@ -15,6 +15,7 @@ export default [
       h.expect((await h.attr("[data-over]", "aria-pressed")) === "false", "передування вже увімкнене");
       await h.click("[data-over]"); await h.wait(150);
       h.expect((await h.attr("[data-over]", "aria-pressed")) === "true", "передування не увімкнулось");
+      h.expect(/\bsf-pressed\b/.test(await h.attr("[data-over]", "class")), "увімкнене передування не втиснуте в поверхню");
       await h.click("[data-over]"); await h.wait(150);
       h.expect((await h.attr("[data-over]", "aria-pressed")) === "false", "передування не вимкнулось");
     },

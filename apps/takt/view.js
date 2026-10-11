@@ -185,7 +185,7 @@ export function takt({ S }) {
     <${GlStage} shader=${new URL("takt.frag", import.meta.url)} seed=${0.37} vary=${vary} ink=${ink} points=${points} zClass="z-0" />
     <div data-takt data-state=${state} data-bpm=${bpm || ""} data-immersive=${hidden ? "yes" : "no"}
       class="relative z-10 h-full min-h-0 flex items-center justify-center p-[var(--ms-pad)]">
-      <${Transport} locale=${loc} playing=${playing} onToggle=${toggle} size="hero" stopIcon />
+      <${Transport} form className="w-full" locale=${loc} playing=${playing} onToggle=${toggle} stopIcon />
     </div>
   <//>`;
 }

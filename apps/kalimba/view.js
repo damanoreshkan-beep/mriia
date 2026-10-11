@@ -1,12 +1,11 @@
 import { html } from "htm/preact";
-import { useState, useRef, useEffect, useMemo } from "preact/hooks";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Segmented } from "/_rt/ui.js";
+import { shapeOf, shaper } from "/_rt/shape.js";
 import { audioSupported, midiToFreq, createEngine } from "/_rt/audio.js";
 import { generateMelody } from "/_rt/melody.js";
-
-const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
 const TONIC = 60;
 const PC = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
@@ -50,6 +49,16 @@ const SONGS = [
   { id: "twinkle", name: "sTwinkle", step: 340, scale: "major", seq: [0, 0, 4, 4, 5, 5, 4, null, 3, 3, 2, 2, 1, 1, 0] },
   { id: "ode", name: "sOde", step: 320, scale: "major", seq: [2, 2, 3, 4, 4, 3, 2, 1, 0, 0, 1, 2, 2, 1, 1] },
 ];
+
+function VoiceForm({ v, title }) {
+  const path = useRef(), form = useRef();
+  useLayoutEffect(() => {
+    form.current = shaper(shapeOf(v), (d) => path.current?.setAttribute("d", d));
+    return () => form.current.stop();
+  }, []);
+  useLayoutEffect(() => { form.current?.to(shapeOf(v)); }, [v]);
+  return html`<span class="kb-voice" data-voice-form=${shapeOf(v)} title=${title}><svg aria-hidden="true" viewBox="0 0 1 1"><path ref=${path} /></svg></span>`;
+}
 
 export function kalimba({ S }) {
   const t = useStore(S.t);
@@ -99,9 +108,9 @@ export function kalimba({ S }) {
   useEffect(() => () => { flashes.current.forEach(clearTimeout); song.current.forEach(clearTimeout); if (eng.current) eng.current.close(); }, []);
 
   return html`<div class="ms-stage z-20 bg-base-200 flex flex-col">
-    <div class="shrink-0 flex flex-col gap-1 px-2 py-2 border-b border-base-300">
+    <div class="shrink-0 relative z-10 flex flex-col gap-1 px-2 py-2 sf-raised">
       <div class="flex items-center gap-1.5 min-w-0">
-        <span class="shrink-0 grid place-items-center text-muted" title=${T(t, "voice")}>${Icon("lucide:music", "text-sm")}</span>
+        <${VoiceForm} v=${voice} title=${T(t, "voice")} />
         <div class="flex-1 min-w-0"><${Segmented} attr="data-voice" scroll size="sm" label=${T(t, "voice")}
           items=${VOICES.map((v) => ({ id: v.id, label: T(t, v.name) }))} value=${voice}
           onChange=${(id) => { setVoice(id); const e = ensure(); if (e && tines[8]) e.strike(tines[8].freq, voiceById(id).t); flash(8); }} /></div>
@@ -124,7 +133,7 @@ export function kalimba({ S }) {
         <div class="flex-1 min-h-0 flex items-start justify-center gap-[3px] select-none" style="touch-action:none"
           onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onLift} onPointerCancel=${onLift} onClick=${onClickBoard}>
           ${tines.map((tn) => html`<button data-tine=${tn.pos} data-note=${tn.letter} aria-label=${label(tn.midi)}
-            class=${`relative flex-1 min-w-0 rounded-b-md bg-gradient-to-b from-zinc-100 to-zinc-400 sf-e2 transition-transform duration-100 ${lit.has(tn.pos) ? "ring-2 ring-primary translate-y-1.5 z-10 brightness-110" : ""}`}
+            class=${`relative flex-1 min-w-0 rounded-b-md bg-gradient-to-b from-zinc-100 to-zinc-400 sf-e2 kb-tine ${lit.has(tn.pos) ? "ring-2 ring-primary translate-y-1.5 z-10 brightness-110" : ""}`}
             style=${`height:${tn.h}%`} key=${tn.pos}>
             ${tn.tonic ? html`<span class="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 rounded-b-md bg-amber-400"></span>` : null}
             <span class="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[10px] font-bold text-zinc-800">${tn.letter}</span>

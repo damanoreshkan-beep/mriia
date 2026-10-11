@@ -10,6 +10,20 @@ export default [
       h.expect((await h.count('[data-song="flow"]')) === 1, "немає Flow");
       h.expect((await h.count("[data-voice]")) === 6, "немає 6 голосів");
       h.expect((await h.attr('[data-tine="8"]', "aria-label")) === "C4", "центральна пелюстка не C4 (tonic)");
+      h.expect((await h.count("[data-voice-form] path")) === 1, "у голосу немає своєї форми");
+    },
+  },
+  {
+    name: "форма голосу перетікає у форму обраного голосу", run: async (h) => {
+      await ready(h);
+      h.expect((await h.attr("[data-voice-form]", "data-voice-form")) === "SoftBurst", "класик не у своїй формі");
+      const before = await h.attr("[data-voice-form] path", "d");
+      h.expect(!!before, "форма голосу не намальована");
+      await h.tap('[data-voice="bell"]'); await h.wait(450);
+      h.expect((await h.attr("[data-voice-form]", "data-voice-form")) === "PuffyDiamond", "форма не змінилась на дзвін");
+      h.expect((await h.attr("[data-voice-form] path", "d")) !== before, "контур форми не перетік");
+      await h.tap('[data-voice="classic"]'); await h.wait(450);
+      h.expect((await h.attr("[data-voice-form]", "data-voice-form")) === "SoftBurst", "форма не повернулась до класика");
     },
   },
   {
