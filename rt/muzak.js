@@ -30,15 +30,4 @@ export const FIXTURE_LIKES = {
   ],
 };
 
-// Licence (owner 2026-10-11: «тільки робимо легально з указом на джерело»). The edge reports yt-dlp's licence string;
-// YouTube's Creative Commons mark is CC BY — reuse and remix allowed with credit. Anything else is the standard licence.
-export const isCC = (license) => /creative commons/i.test(String(license || ""));
-
-// The credit a CC BY reuse owes, in the TASL order the licence asks for: Title, Author, Source, Licence.
-export const credit = (m, link) => [
-  `"${m.title}" — ${m.channel || m.artist || ""}`.trim(),
-  link || `https://youtu.be/${m.id}`,
-  "Licence: Creative Commons Attribution (CC BY), via YouTube",
-].join("\n");
-
 export const FIXTURE_META ={ id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", album: "Whenever You Need Somebody", year: 1987, duration: 213, cover: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg" };

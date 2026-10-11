@@ -13,7 +13,7 @@ import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
 import { authWall } from "/_rt/authwall.js";
 import { shapeOf, scalePath, shaper } from "/_rt/shape.js";
-import { videoId, clock, byline, errorKey, isCC, credit, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES } from "/_rt/muzak.js";
+import { videoId, clock, byline, errorKey, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES } from "/_rt/muzak.js";
 import { taskOne, taskCall } from "/_rt/task.js";
 import { openOutside } from "/_rt/tma.js";
 import { session, restore } from "/_rt/auth.js";
@@ -150,11 +150,6 @@ function share(s, toast, t) {
   navigator.share(data).catch((e) => { if (e?.name !== "AbortError") copy(); });
 }
 
-// The credit a CC BY song owes (Title, Author, Source, Licence) onto the clipboard — pasted under the video.
-function copyCredit(m, link, toast, t) {
-  navigator.clipboard?.writeText(credit(m, link)).then(() => toast?.(T(t, "creditCopied")), () => toast?.(T(t, "shareFail")));
-}
-
 // «Мікс» — Remix takes a song the way any app hands it one: a shared link, looked up the moment it lands.
 function mix(s) { if (!gate) location.assign(`/remix/?sh_text=${encodeURIComponent(s.url)}`); }
 
@@ -236,20 +231,6 @@ export function muzak({ S, toast }) {
           <div class="font-mono text-xs tabular-nums text-base-content/70">${clock(meta.duration)}</div>
         </div>
       </div>
-      ${/* the song's licence, said plainly (owner 2026-10-11: «тільки робимо легально з указом на джерело»): CC BY →
-           may be remixed with credit, and the credit is one tap; anything else → not without the owner's permission */""}
-      ${!gate && meta.license === undefined ? null : isCC(meta.license)
-        ? html`<div data-licence="cc" class="flex flex-col gap-1.5 rounded-[var(--ms-r-in)] sf-inset px-3 py-2.5">
-            <div class="flex items-start gap-2">
-              ${Icon("lucide:badge-check", "shrink-0 mt-0.5 text-[length:var(--ms-icon)] text-[var(--app-accent)]")}
-              <span class="flex-1 min-w-0 text-sm leading-snug">${T(t, "ccYes")}</span>
-            </div>
-            <button data-credit type="button" onClick=${() => copyCredit(meta, link, toast, t)}
-              class="btn btn-sm rounded-full sf-raised self-start ml-7 min-h-0 h-8 px-3 gap-1.5 font-medium ms-press">${Icon("lucide:copy", "text-sm")}${T(t, "aCredit")}</button>
-          </div>`
-        : html`<div data-licence="std" class="flex items-center gap-2 text-sm text-base-content/70 leading-snug">
-            ${Icon("lucide:lock", "shrink-0 text-base")}<span>${T(t, "ccNo")}</span>
-          </div>`}
       ${/* before the first listen: one wide «Слухати» and the song's tools; once it is the current song, the
            player takes that row — play/pause, seek and the same tools — so there is never a second pause button */""}
       ${on ? html`<div class="flex flex-col gap-1">

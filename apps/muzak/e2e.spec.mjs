@@ -10,7 +10,6 @@ export default [
       h.expect(/Rick Astley · Whenever You Need Somebody · 1987/.test(await h.bodyText()), "немає рядка виконавець · альбом · рік");
       h.expect(/3:33/.test(await h.bodyText()), "немає тривалості");
       h.expect((await h.count("[data-listen]")) === 1, "немає «Слухати»");
-      h.expect((await h.count("[data-licence]")) === 1, "картка не каже про ліцензію");
       for (const a of ["save", "keep", "share", "mix"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
       h.expect((await h.count(".loading")) === 0, "крутилка на екрані");
     },
