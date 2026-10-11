@@ -29,13 +29,16 @@ function parse(xml, bron) {
   return [...d.querySelectorAll("item")].map((it) => {
     const g = (s) => it.querySelector(s)?.textContent?.trim() || "";
     const tmp = document.createElement("div"); tmp.innerHTML = g("description");
+    // The whole vacancy, its paragraphs kept: the feed carries the full text (1.4–6.2k chars, measured on Front End),
+    // and the detail renders it whitespace-pre-line. It used to be one flattened line cut at 600 chars — every vacancy
+    // ended mid-sentence (owner 2026-10-11: «потрібно повністю показувати опис вакансії»). The list card clamps it to two lines.
     for (const el of tmp.querySelectorAll("p,div,br,li,tr,h1,h2,h3,h4,h5,h6,section,article,blockquote")) {
-      el.parentNode?.insertBefore(document.createTextNode(" "), el);
+      el.parentNode?.insertBefore(document.createTextNode(el.tagName === "LI" ? "\n• " : "\n"), el);
     }
-    const desc = tmp.textContent.replace(/\s+/g, " ").trim();
+    const desc = tmp.textContent.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n").replace(/^•\n/gm, "• ");   // <li><p>…</p></li> puts its bullet on the line before
     const m = parseTitle(g("title"));
     const tech = TECH.filter((k) => new RegExp("\\b" + k.replace("+", "\\+"), "i").test(m.position + " " + desc)).slice(0, 3);
-    return { ...m, link: g("link"), bron, tech, desc: desc.slice(0, 600), ts: new Date(g("pubDate")).getTime() };
+    return { ...m, link: g("link"), bron, tech, desc, ts: new Date(g("pubDate")).getTime() };
   });
 }
 let _cats = null;
