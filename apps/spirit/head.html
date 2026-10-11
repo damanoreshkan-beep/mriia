@@ -4,13 +4,34 @@
        mark colour (--app-accent, set per theme module) and the theme's grain tile (--ds-grain, the noise the
        page itself is drawn on; a theme without one — lum, plain — paints nothing). The rim + bloom around the
        card come from sf-e3. "Злегка": saturation never below .4, contrast within ±16 %. */
-    .sp-void{container-type:size}
+    .sp-void{position:relative;container-type:size}
     /* the page's art box: half the viewport, never under 12rem (the frame inside stays legible at 340px) */
     .sp-stage{height:clamp(12rem,48dvh,34rem)}
     /* height from BOTH limits at once: the box's height, or the width the 350×600 scan needs at that height —
-       so the frame is always exactly the picture's shape and the overlays never cover a letterbox */
-    .sp-frame{position:relative;display:block;height:min(100cqh,calc(100cqw * 600 / 350));aspect-ratio:350/600;border-radius:var(--ms-r);overflow:hidden;line-height:0;transition:rotate .55s cubic-bezier(.4,0,.2,1),filter .5s ease}
-    .sp-art{display:block;width:100%;height:100%;object-fit:cover;transition:filter .5s ease}
+       so the frame is always exactly the picture's shape and the overlays never cover a letterbox.
+       The flip is the card's focal moment; a new card ARRIVES (keyed in view.js) — a short rise, never a slide */
+    .sp-frame{position:relative;display:block;height:min(100cqh,calc(100cqw * 600 / 350));aspect-ratio:350/600;border-radius:var(--ms-r);overflow:hidden;line-height:0;
+      transition:rotate var(--t-focal) var(--ease-in-out),filter var(--t-state) var(--ease-out),opacity var(--t-move) var(--ease-out),translate var(--t-move) var(--ease-out),scale var(--t-move) var(--ease-out)}
+    @starting-style{.sp-frame{opacity:0;translate:0 10px;scale:.985}}
+    .sp-art{display:block;width:100%;height:100%;object-fit:cover;transition:filter var(--t-state) var(--ease-out)}
+
+    /* THE CARD'S SPIRIT (motion and free forms, owner 2026-10-11): the card's own organic form (core shape.js,
+       seeded by the card id — view.js CardPage) stands BEHIND the scan, wider than the card, so it shows as the
+       card's aura at both sides. The theme's material fills it (each theme its own, no per-app art); the edge is
+       a rim of light, lit once the spirit has spoken. The scan is never clipped. At rest it draws nothing. */
+    .sp-spirit{position:absolute;left:50%;top:50%;width:min(100cqw,90cqh);aspect-ratio:1;translate:-50% -50%;pointer-events:none}
+    .sp-fill{position:absolute;inset:0;background:var(--ds-fill,var(--ds-scatter,none)) center / 125% auto no-repeat,var(--color-base-100)}
+    /* the rim: the same path as the clip, in an SVG over it so the light can spill OUTSIDE the form */
+    .sp-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+    .sp-rim path{fill:none;vector-effect:non-scaling-stroke;transition:stroke var(--t-state) var(--ease-out),opacity var(--t-state) var(--ease-out)}
+    .sp-rim .e{stroke:var(--lm-rim-hi);stroke-width:1.25}
+    .sp-rim .b{stroke:var(--app-accent);stroke-width:5;opacity:0}
+    [data-spoken="true"] .sp-rim .e{stroke:color-mix(in oklch,var(--app-accent) 85%,white)}
+    [data-spoken="true"] .sp-rim .b{opacity:.22}
+    /* paper: a glow on white is a smear — the lit rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .sp-rim .e{stroke:color-mix(in oklch,var(--color-base-content) 22%,transparent)}
+    [data-theme="signal-light"] [data-spoken="true"] .sp-rim .e{stroke:var(--color-secondary);stroke-width:1.75}
+    [data-theme="signal-light"] .sp-rim .b{display:none}
     .sp-frame::before{content:"";position:absolute;inset:0;pointer-events:none;background:color-mix(in oklch,var(--app-accent) 14%,transparent);mix-blend-mode:soft-light}
     .sp-frame::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:var(--ds-grain,none);background-size:220px 220px;mix-blend-mode:multiply;opacity:.55}
     html[data-material="paper"] .sp-art{filter:sepia(.32) contrast(.94) saturate(.9)}
@@ -27,5 +48,5 @@
     /* the words arrive as film subtitles: one beat per character, capped so a long line lands within a second */
     .sp-caret{display:inline-block;width:2px;height:1em;vertical-align:-.12em;background:var(--app-accent);animation:sp-blink 1s steps(2) infinite}
     @keyframes sp-blink{to{opacity:0}}
-    @media(prefers-reduced-motion:reduce){.sp-frame,.sp-art{transition:none}.sp-caret{animation:none}}
+    @media(prefers-reduced-motion:reduce){.sp-frame,.sp-art,.sp-rim path{transition:none}.sp-caret{animation:none}}
   </style>

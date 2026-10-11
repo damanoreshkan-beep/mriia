@@ -191,7 +191,7 @@ export function draw2D(canvas, sigil, opts = {}) {
   if (!ctx || !sigil) return;
   const W = canvas.width || 0, H = canvas.height || 0; if (!W || !H) return;
   const theme = opts.live ? readTheme() : { ink: "#F2EEE6", accent: "#F2B84B", dark: true };
-  const cx = W / 2, cy = opts.live ? H * 0.42 : H / 2, R = Math.min(W, H) * 0.34;
+  const cx = W / 2, cy = opts.live && !opts.centred ? H * 0.42 : H / 2, R = Math.min(W, H) * 0.34;
   ctx.clearRect(0, 0, W, H);
   if (!opts.live) { const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7); g.addColorStop(0, "#141018"); g.addColorStop(1, "#070709"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
   const sm = smooth(sigil.points, 16).map((p) => [p.x * R, -p.y * R]);

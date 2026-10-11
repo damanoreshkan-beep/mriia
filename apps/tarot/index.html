@@ -52,6 +52,29 @@
     }
   }
   </script>
+  <style>
+    /* TAROT on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему», the
+       esoterica wave). The CARD is the identity: a drawn card shown large (the card of the day, the card sheet)
+       stands on its own organic form (core shape.js, seeded by the card's id — the same on every phone and in
+       both places), the theme's texture through it and a rim of light, its lobes showing either side of the
+       card. The card art itself is never clipped — the form is behind it, not around it. A reversed card turns
+       with its form. At rest it draws nothing: the form is static, it is which card this is. */
+    .tr-card { position: relative; }
+    .tr-aura { position: absolute; left: 50%; top: 50%; width: 155%; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
+    [data-reversed] > .tr-aura { rotate: 180deg; }
+    /* a zero-size svg, not display:none — a clipPath inside a display:none svg does not clip in every engine */
+    .tr-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    .tr-fill { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    /* the rim: the clip's path in an SVG over it, so the light can spill OUTSIDE the form. The drawn card is
+       the one in play, so its rim is lit in the app's light, as a playing song's orb is. */
+    .tr-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .tr-rim path { fill: none; vector-effect: non-scaling-stroke; }
+    .tr-rim .e { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 1.25; }
+    .tr-rim .b { stroke: var(--app-accent); stroke-width: 5; opacity: .22; }
+    /* paper: a glow on white is a smear — the rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .tr-rim .e { stroke: var(--color-secondary); stroke-width: 1.75; }
+    [data-theme="signal-light"] .tr-rim .b { display: none; }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Таро</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

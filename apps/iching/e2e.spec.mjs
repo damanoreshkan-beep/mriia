@@ -19,6 +19,18 @@ export default [
     },
   },
   {
+    // reads only — it consumes no state the next tests need
+    name: "гексаграма у своїй формі: шість ліній усередині, обідок засвічений", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-reading] [data-orb]")) === 1, "кинута гексаграма не у своїй формі");
+      h.expect((await h.count("[data-orb] [data-line]")) === 6, "лінії гексаграми не всередині форми");
+      h.expect(/^[A-Z][A-Za-z0-9]+$/.test((await h.attr("[data-orb]", "data-form")) || ""), "у форми немає імені з органічного набору");
+      h.expect((await h.count("[data-orb][data-lit]")) === 1, "обідок форми не засвічений для кидка");
+      h.expect((await h.count("[data-orb] [data-fill][style*='clip-path']")) === 1, "тло не обрізане формою");
+      h.expect((await h.count("[data-orb] [data-rim] path[d]")) === 3, "обідок форми не намальований");
+    },
+  },
+  {
     name: "зміна методу змінює показані шанси", run: async (h) => {
       await ready(h);
       await h.tap("[data-ask]"); await h.wait(300);

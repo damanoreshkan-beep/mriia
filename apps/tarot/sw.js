@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "tarot",
-  version: "9e245833e2",
+  version: "01e595d021",
   precache: [
     "./",
     "./hero.wgsl",
@@ -83,7 +83,6 @@ self.MS = {
     "https://esm.sh/@nanostores/persistent@0.10.2?external=nanostores",
     "https://esm.sh/@nanostores/preact@0.5.2?external=preact,nanostores",
     "https://esm.sh/htm@3.1.1/preact?external=preact",
-    "https://esm.sh/motion@11.18.2",
     "https://esm.sh/nanostores@0.11.4",
     "https://esm.sh/preact@10.27.1",
     "https://esm.sh/preact@10.27.1/hooks",

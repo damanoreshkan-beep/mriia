@@ -54,6 +54,20 @@ export default [
     },
   },
   {
+    name: "печатка: збережений сигіл — у власній формі, та сама форма в деталі", run: async (h) => {
+      await h.click('[data-tab="grimoire"]'); await h.wait(400);
+      h.expect((await h.count("[data-item] [data-seal] .sg-ground canvas[data-sigil]")) >= 1, "сигіл не всередині печатки");
+      h.expect((await h.count("[data-item] [data-seal] .sg-rim path.e")) >= 1, "у печатки немає краю світла");
+      const was = await h.attr("[data-item] [data-seal]", "data-form");
+      h.expect(!!was, "у печатки немає форми");
+      h.expect((await h.count(`#sg-c-${was} path`)) === 1, `немає обрису форми ${was} (або він повторюється)`);
+      await h.tap("[data-item]"); await h.wait(250);
+      h.expect((await h.attr("[data-detail] [data-seal]", "data-form")) === was, "у деталі печатка іншої форми");
+      await h.back(); await h.wait(250);
+      h.expect((await h.prop("#detailsheet", "open")) !== true, "Back не закрив деталь-sheet");
+    },
+  },
+  {
     name: "i18n EN/UA", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('[data-loc="en"]'); await h.wait(250);

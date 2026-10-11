@@ -1,0 +1,28 @@
+  <style>
+    /* SIGIL on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»), after
+       fonoteka and persona. A KEPT sigil is pressed into its own SEAL: the sigil's organic form (core shape.js,
+       seeded by the sigil's seed — view.js Seal), the theme's material faint through it so the line stays the
+       subject, its edge a rim of light. The forge's 3D stage is the working surface and wears no form. Energy:
+       nothing here loops; at rest the grimoire draws nothing. */
+    .sg-seal { position: relative; flex: none; }
+    /* a zero-size svg, not display:none — a clipPath inside a display:none svg does not clip in every engine */
+    .sg-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    /* the seal's ground: the page tone, the theme's material under it at a whisper — a texture at full strength
+       would fight the sigil's hairline */
+    .sg-ground { position: absolute; inset: 0; background: var(--color-base-100); }
+    .sg-ground::before { content: ""; position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat; opacity: .35; }
+    .sg-ground canvas { position: relative; }
+    /* the rim: the same path as the clip, drawn in an SVG over it so the light can spill OUTSIDE the form */
+    .sg-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .sg-rim path { fill: none; vector-effect: non-scaling-stroke; transition: stroke var(--t-press) var(--ease-out), opacity var(--t-state) var(--ease-out); }
+    .sg-rim .e { stroke: var(--lm-rim-hi); stroke-width: 1.25; }
+    .sg-rim .b { stroke: var(--app-accent); stroke-width: 6; opacity: 0; }
+    /* a touch lights the seal's rim (the press itself is .ms-press, the kit's 3% give); the open one in the
+       detail sheet is the chosen one, lit as a playing song's orb is */
+    [data-item]:active .sg-rim .e, .sg-seal.lit .sg-rim .e { stroke: color-mix(in oklch, var(--app-accent) 85%, white); }
+    .sg-seal.lit .sg-rim .b { opacity: .22; }
+    /* paper: a glow on white is a smear — the lit rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .sg-rim .e { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    [data-theme="signal-light"] [data-item]:active .sg-rim .e, [data-theme="signal-light"] .sg-seal.lit .sg-rim .e { stroke: var(--color-secondary); stroke-width: 1.75; }
+    [data-theme="signal-light"] .sg-rim .b { display: none; }
+  </style>

@@ -12,6 +12,15 @@ export default [
     },
   },
   {
+    name: "знак — форма: орб у власній формі знака, текстура крізь неї, обідок", run: async (h) => {
+      h.expect((await h.count("[data-sign] [data-orb]")) === 1, "на картці знака немає орба");
+      h.expect(!!(await h.attr("[data-orb]", "data-form")), "форма знака не задана");
+      h.expect((await h.count("[data-orb] .hs-rim path")) === 2, "у орба немає обідка");
+      h.expect(!!(await h.attr("[data-orb] .hs-rim .e", "d")), "обідок не намальований");
+      h.expect(/^path\(/.test(await h.css("[data-orb] .hs-fill", "clip-path")), "текстура не обрізана формою знака");
+    },
+  },
+  {
     name: "перемикання дня змінює гороскоп", run: async (h) => {
       const today = await h.text("[data-reading]");
       await h.click('[data-day="tomorrow"]'); await h.wait(200);
@@ -27,9 +36,17 @@ export default [
       await h.back(); await h.wait(200);
       h.expect((await h.prop("#signsheet", "open")) !== true, "Back не закрив аркуш вибору");
       await h.click("[data-sign]"); await h.wait(200);
+      // every sign its own form — twelve signs, twelve faces; the chosen one is the orb's
+      const forms = new Set();
+      for (let i = 0; i < 12; i++) forms.add(await h.attr(`[data-signpick="${i}"] [data-form]`, "data-form"));
+      h.expect(forms.size === 12 && !forms.has(null) && !forms.has(""), "у знаків у виборі не дванадцять різних форм");
+      const was = await h.attr("[data-orb]", "data-form");
+      h.expect((await h.attr('[data-signpick][aria-pressed="true"] [data-form]', "data-form")) === was, "обраний знак у виборі не у формі орба");
+      const aries = await h.attr('[data-signpick="0"] [data-form]', "data-form");
       await h.click('[data-signpick="0"]'); await h.wait(200);
       h.expect((await h.prop("#signsheet", "open")) !== true, "вибір знака не закрив аркуш");
       h.expect(/Aries|Овен/.test(await h.text("[data-sign]")), "картка не оновилась на обраний знак");
+      h.expect((await h.attr("[data-orb]", "data-form")) === aries && aries !== was, "орб не перетік у форму обраного знака");
     },
   },
   {

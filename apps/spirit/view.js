@@ -1,6 +1,6 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { atom } from "nanostores";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
@@ -9,7 +9,7 @@ import { spiritRead, isSpiritRead, warmSpiritRead, groundCard, aiTick } from "/_
 import { Scramble } from "/_rt/skeleton.js";
 import { DECK } from "/_rt/tarotdeck.js";
 import { gate } from "/_rt/gate.js";
-import { animate } from "motion";
+import { shapeOf, scalePath, shaper } from "/_rt/shape.js";
 import { usePanX, useSheetDrag } from "/_rt/gesture.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -39,15 +39,15 @@ export function spirit({ S, screen, openScreen, closeScreen }) {
   const sel = useStore($sel);
   const open = (i) => { $sel.set(i); openScreen("card"); };
   return html`<${Fragment}>
-    <div class="flex flex-col gap-[calc(var(--ms-gap)*1.5)]">
-      ${SECTIONS.map((s) => html`<section key=${s.id} data-section=${s.id} class="flex flex-col gap-[var(--ms-gap)]">
+    <div class="ms-stagger flex flex-col gap-[calc(var(--ms-gap)*1.5)]">
+      ${SECTIONS.map((s, si) => html`<section key=${s.id} data-section=${s.id} style=${`--i:${si}`} class="flex flex-col gap-[var(--ms-gap)]">
         <div class="flex items-baseline justify-between px-0.5">
           <h2 class="font-mono uppercase tracking-[0.16em] text-[length:var(--ms-label)] text-muted">${T(t, s.key)}</h2>
           <span class="font-mono tabular-nums text-[length:var(--ms-label)] text-muted">${s.cards.length}</span>
         </div>
         <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(4.5rem,1fr))">
           ${s.cards.map((i) => { const c = DECK[i]; return html`<button key=${c.id} data-deck-card=${c.id} aria-label=${cardName(c, loc)} onClick=${() => open(i)}
-              class="flex flex-col items-center gap-1 min-w-0 active:scale-95 transition-transform">
+              class="flex flex-col items-center gap-1 min-w-0 ms-press">
               <span class="block w-full aspect-[350/600] rounded-[var(--ms-r-in)] overflow-hidden sf-e1"><img src=${imgURL(c.img)} alt="" loading="lazy" class="sp-art" /></span>
               <span class="w-full truncate text-center font-mono text-[0.55rem] uppercase tracking-wide text-muted leading-tight">${cardName(c, loc)}</span>
             </button>`; })}
@@ -75,7 +75,7 @@ function useSpirit(c, reversed, loc, active) {
 }
 
 function CardPage({ open, onClose, idx, t, loc }) {
-  const dref = useRef(), frameRef = useRef();
+  const dref = useRef();
   const [rev, setRev] = useState(false);
   const { boxRef, grip } = useSheetDrag(onClose);
   useStore(trTick);
@@ -88,12 +88,30 @@ function CardPage({ open, onClose, idx, t, loc }) {
   useEffect(() => { const el = dref.current; if (!el) return; if (open) { if (!el.open) el.showModal?.(); } else el.close?.(); }, [open]);
   useEffect(() => { if (open) setRev(false); }, [open]);
   useEffect(() => { if (open) warm([c.up, c.rev], loc); }, [open, c, loc]);
-  useEffect(() => {
-    if (instant() || !open) return;
-    const el = frameRef.current; if (!el) return;
-    const a = animate(el, { opacity: [0, 1], transform: ["translateY(10px) scale(.985)", "translateY(0px) scale(1)"] }, { duration: 0.35, ease: "easeOut" });
-    return () => a.stop?.();
-  }, [idx, open]);
+  // THE CARD'S SPIRIT — the card's own organic form (core shape.js, seeded by its id) standing behind the
+  // scan, the theme's material through it, its edge a rim of light; it flows into the next card's form when
+  // the card changes. The scan itself is never clipped: the card is the picture, the form is its spirit.
+  // Layout effects, so the first paint already has the form; the clip follows the measured size (0 while
+  // the dialog is closed — the observer lays it on open, before paint).
+  const orb = useRef(), fill = useRef(), rim = useRef(), form = useRef(), lay = useRef(), shown = useRef(false);
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "";
+    lay.current = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay.current(last); } });
+    ro.observe(orb.current);
+    return () => { ro.disconnect(); form.current?.stop(); };
+  }, []);
+  // prev/next on an open page: the form flows into the next card's. A card opened from the deck stands as
+  // ITS form at once — never a morph out of whichever card was looked at last.
+  useLayoutEffect(() => {
+    if (shown.current) form.current.to(shapeOf(c.id));
+    else { form.current?.stop(); form.current = shaper(shapeOf(c.id), lay.current); }
+    shown.current = open;
+  }, [c.id, open]);
 
   const meaning = rev ? c.rev : c.up;
   return html`<dialog id="card" ref=${dref} class="modal" aria-label=${cardName(c, loc)} onClose=${onClose}>
@@ -110,23 +128,28 @@ function CardPage({ open, onClose, idx, t, loc }) {
 
         <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-[var(--ms-gap)] px-[var(--ms-pad)] pb-[var(--ms-pad)]">
           ${""}
-          <div ref=${paneRef} ...${pan} class="sp-void sp-stage shrink-0 flex items-center justify-center touch-pan-y">
-            <button ref=${frameRef} data-card data-reversed=${rev ? "1" : "0"} aria-label=${T(t, "flip")} aria-pressed=${rev} onClick=${() => setRev((r) => !r)}
+          <div ref=${paneRef} ...${pan} data-spoken=${text ? "true" : null} class="sp-void sp-stage shrink-0 flex items-center justify-center touch-pan-y">
+            <div ref=${orb} data-spirit-form=${shapeOf(c.id)} class="sp-spirit" aria-hidden="true">
+              <div ref=${fill} class="sp-fill"></div>
+              <svg ref=${rim} class="sp-rim" viewBox="0 0 1 1"><path class="b" /><path class="e" /></svg>
+            </div>
+            ${/* keyed by the card: a new card ARRIVES (the frame's @starting-style in head.html) */""}
+            <button key=${c.id} data-card data-reversed=${rev ? "1" : "0"} aria-label=${T(t, "flip")} aria-pressed=${rev} onClick=${() => setRev((r) => !r)}
               class=${`sp-frame sf-e3 ${rev ? "rotate-180" : ""}`}>
               <img src=${imgURL(c.img)} alt="" class="sp-art" />
             </button>
           </div>
           <div class="shrink-0 flex items-center justify-center gap-[var(--ms-gap)]">
-            <button data-prev aria-label=${T(t, "prevCard")} class="btn btn-sm btn-circle" onClick=${() => goTo(-1)}>${Icon("lucide:chevron-left", "text-lg")}</button>
-            <button data-flip class=${`btn btn-sm rounded-full gap-1.5 ${rev ? "btn-secondary" : ""}`} aria-pressed=${rev} onClick=${() => setRev((r) => !r)}>${Icon("lucide:flip-vertical-2", "text-base")}<span class="text-xs font-semibold">${T(t, "flip")}</span></button>
-            <button data-next aria-label=${T(t, "nextCard")} class="btn btn-sm btn-circle" onClick=${() => goTo(1)}>${Icon("lucide:chevron-right", "text-lg")}</button>
+            <button data-prev aria-label=${T(t, "prevCard")} class="btn btn-sm btn-circle ms-press" onClick=${() => goTo(-1)}>${Icon("lucide:chevron-left", "text-lg")}</button>
+            <button data-flip class=${`btn btn-sm rounded-full gap-1.5 ms-press ${rev ? "btn-secondary" : ""}`} aria-pressed=${rev} onClick=${() => setRev((r) => !r)}>${Icon("lucide:flip-vertical-2", "text-base")}<span class="text-xs font-semibold">${T(t, "flip")}</span></button>
+            <button data-next aria-label=${T(t, "nextCard")} class="btn btn-sm btn-circle ms-press" onClick=${() => goTo(1)}>${Icon("lucide:chevron-right", "text-lg")}</button>
           </div>
 
           <div class="flex flex-col max-w-[480px] w-full mx-auto pt-2">
             ${text ? html`<${Typewriter} key=${c.id + (rev ? "r" : "u") + loc} text=${text} />`
               : failed ? html`<div class="flex flex-col items-center gap-3 py-4 text-center">
                   <span class="text-base-content/80">${T(t, "spiritFail")}</span>
-                  <button data-spirit-retry onClick=${retry} class="btn btn-sm rounded-full gap-2">${Icon("lucide:rotate-cw", "text-base")}<span class="text-xs">${T(t, "retry")}</span></button>
+                  <button data-spirit-retry onClick=${retry} class="btn btn-sm rounded-full gap-2 ms-press">${Icon("lucide:rotate-cw", "text-base")}<span class="text-xs">${T(t, "retry")}</span></button>
                 </div>`
               : html`<div class="flex flex-col items-center gap-2 text-muted">${[26, 32, 28, 20].map((n, i) => html`<div key=${i}><${Scramble} len=${n} /></div>`)}</div>`}
             ${""}

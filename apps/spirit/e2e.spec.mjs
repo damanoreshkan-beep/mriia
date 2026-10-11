@@ -44,6 +44,21 @@ export default [
     },
   },
   {
+    name: "дух карти — її власна форма за карткою, світиться, коли дух сказав; з новою картою перетікає в її форму", run: async (h) => {
+      await h.click('[data-deck-card="ar00"]'); await h.wait(300);
+      h.expect((await h.attr("[data-spirit-form]", "data-spirit-form")) === "Puffy", "форма Дурня має бути Puffy (shapeOf за id карти)");
+      const d0 = await h.attr("[data-spirit-form] .sp-rim .e", "d");
+      h.expect(!!d0 && d0.length > 20, "обрис форми не намальований");
+      h.expect(/^path\(/.test(await h.css("[data-spirit-form] .sp-fill", "clip-path")), "матеріал теми не обрізаний формою");
+      h.expect((await h.attr(".sp-stage", "data-spoken")) === "true", "обрис має світитись, коли слова духа є");
+      h.expect((await h.count("[data-card] img")) === 1, "карта лишається цілою, не обрізаною формою");
+      await h.click("[data-next]"); await h.wait(450);
+      h.expect((await h.attr("[data-spirit-form]", "data-spirit-form")) === "PuffyDiamond", "у Мага своя форма");
+      h.expect((await h.attr("[data-spirit-form] .sp-rim .e", "d")) !== d0, "форма не перетекла в нову");
+      await h.back(); await h.wait(300);
+    },
+  },
+  {
     name: "i18n EN/UA", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('[data-loc="en"]'); await h.wait(250);

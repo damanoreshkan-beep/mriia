@@ -11,11 +11,21 @@ export default [
     },
   },
   {
-    name: "тап по сцені змінює пару", run: async (h) => {
+    name: "тягарець — форма пари з обідком світла", run: async (h) => {
+      await ready(h);
+      h.expect(!!(await h.attr("[data-bob]", "data-form")), "форма пари не задана");
+      h.expect((await h.count("[data-bob] .pd-rim path")) === 3, "у тягарця немає обідка");
+      h.expect(!!(await h.attr("[data-bob] .pd-rim .e", "d")), "обідок не намальований");
+    },
+  },
+  {
+    name: "тап по сцені змінює пару і форму тягарця", run: async (h) => {
       await ready(h);
       const a0 = (await h.text("[data-pole-a]")).trim();
+      const f0 = await h.attr("[data-bob]", "data-form");
       await h.click("[data-stage]"); await h.wait(200);
       h.expect((await h.text("[data-pole-a]")).trim() !== a0, "тап не змінив пару");
+      h.expect((await h.attr("[data-bob]", "data-form")) !== f0, "форма не перетекла у форму нової пари");
     },
   },
   {

@@ -9,12 +9,25 @@ import { Scramble } from "/_rt/skeleton.js";
 import { SPREADS, spreadById, hashSeed, draw } from "/_rt/tarot.js";
 import { DECK } from "/_rt/tarotdeck.js";
 import { gate } from "/_rt/gate.js";
-import { animate, stagger } from "motion";
 import { useSheetDrag, usePanX } from "/_rt/gesture.js";
 import { Sheet, Segmented } from "/_rt/ui.js";
 import { HeroStage } from "/_rt/hero.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+
+// THE CARD'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»): a drawn card shown large stands on its
+// own organic form, seeded by the card's id, so the card of the day and its sheet show the same one. The form sits
+// BEHIND the card (head.html .tr-aura) — the Rider-Waite art is the reading and is never clipped. objectBoundingBox
+// takes the 0..1 path as is, so nothing is measured; the form never morphs — it is which card this is.
+const Aura = (c) => {
+  const f = shapeOf(c.id), d = pathOf(f);
+  return html`<div data-aura data-form=${f} aria-hidden="true" class="tr-aura">
+    <svg class="tr-defs" width="0" height="0"><defs><clipPath id=${`tr-c-${f}`} clipPathUnits="objectBoundingBox"><path d=${d} /></clipPath></defs></svg>
+    <div class="tr-fill" style=${`clip-path:url(#tr-c-${f})`}></div>
+    <svg class="tr-rim" viewBox="0 0 1 1"><path class="b" d=${d} /><path class="e" d=${d} /></svg>
+  </div>`;
+};
 const QS = new URLSearchParams(location.search);
 const SPREAD_OVERRIDE = QS.get("spread");
 const imgURL = (file) => new URL(`./assets/${file}`, import.meta.url).href;
@@ -53,13 +66,6 @@ export function tarot({ S, screen, openScreen, closeScreen }) {
 
   useEffect(() => { setOverride(null); }, [spreadId]);
   useEffect(() => { warm(drawn.map(meaningOf), loc); }, [seed, loc]);
-  useEffect(() => {
-    if (gate || isDaily) return;
-    const cards = document.querySelectorAll("[data-reading] [data-tile]");
-    if (!cards.length) return;
-    const a = animate([...cards], { opacity: [0, 1], y: [16, 0] }, { delay: stagger(0.045), duration: 0.4, ease: "easeOut" });
-    return () => a.stop?.();
-  }, [seed]);
 
   const openCard = (i) => { setDetail(i); openScreen("card"); };
   const pickSpread = (id) => { setSpreadId(id); };
@@ -85,7 +91,7 @@ export function tarot({ S, screen, openScreen, closeScreen }) {
       : html`<div class="relative z-10 flex flex-col gap-2.5 h-[calc(100dvh-11.5rem)] min-h-0 overflow-hidden" data-spread-id=${spreadId} data-cards=${drawn.length}>
           <${Picker} t=${t} spreadId=${spreadId} onPick=${pickSpread} />
           <${Header} t=${t} spreadId=${spreadId} isDaily=${false} onShuffle=${shuffle} onRitual=${openRitual} onSynth=${() => openScreen("synth")} />
-          <${FitReading} rows=${rows} drawn=${drawn} pos=${spread.pos} t=${t} loc=${loc} onOpen=${openCard} paneRef=${paneRef} pan=${pan} />
+          <${FitReading} seed=${seed} rows=${rows} drawn=${drawn} pos=${spread.pos} t=${t} loc=${loc} onOpen=${openCard} paneRef=${paneRef} pan=${pan} />
         </div>`}
 
     <${Ritual} open=${screen === "ritual"} onClose=${closeScreen} onDraw=${completeRitual} deckLen=${spread.majorOnly ? 22 : 78} t=${t} loc=${loc} spreadName=${T(t, SPREAD_KEY[spreadId])} />
@@ -121,9 +127,9 @@ function Header({ t, spreadId, isDaily, onShuffle, onRitual, onSynth }) {
     </div>
     ${""}
     ${!isDaily ? html`<div class="shrink-0 flex items-center gap-1.5">
-      <button data-synth aria-label=${T(t, "synthTitle")} class="btn btn-sm btn-circle" onClick=${onSynth}>${Icon("lucide:scroll-text", "text-base")}</button>
-      <button data-shuffle aria-label=${T(t, "redraw")} class="btn btn-sm btn-circle" onClick=${onShuffle}>${Icon("lucide:shuffle", "text-base")}</button>
-      <button data-ritual class="btn btn-sm btn-secondary gap-1.5 rounded-full" onClick=${onRitual}>${Icon("lucide:sparkles", "text-base")}<span class="font-semibold">${T(t, "ritual")}</span></button>
+      <button data-synth aria-label=${T(t, "synthTitle")} class="btn btn-sm btn-circle ms-press" onClick=${onSynth}>${Icon("lucide:scroll-text", "text-base")}</button>
+      <button data-shuffle aria-label=${T(t, "redraw")} class="btn btn-sm btn-circle ms-press" onClick=${onShuffle}>${Icon("lucide:shuffle", "text-base")}</button>
+      <button data-ritual class="btn btn-sm btn-secondary gap-1.5 rounded-full ms-press" onClick=${onRitual}>${Icon("lucide:sparkles", "text-base")}<span class="font-semibold">${T(t, "ritual")}</span></button>
     </div>` : null}
   </div>`;
 }
@@ -144,24 +150,28 @@ function SynthSheet({ open, onClose, sig, input, t, loc, spreadName }) {
       ${done
         ? html`<p data-synth-text class="text-[0.97rem] leading-relaxed">${text}</p>`
         : failed
-          ? html`<button data-synth-retry class="btn btn-sm gap-2 rounded-full" onClick=${run}>${Icon("lucide:rotate-cw", "text-base")}<span class="text-sm">${T(t, "synthRetry")}</span></button>`
+          ? html`<button data-synth-retry class="btn btn-sm gap-2 rounded-full ms-press" onClick=${run}>${Icon("lucide:rotate-cw", "text-base")}<span class="text-sm">${T(t, "synthRetry")}</span></button>`
           : html`<div class="flex flex-col gap-2 text-muted">${[30, 34, 28, 20].map((n, i) => html`<div class="text-[0.95rem]" key=${i}><${Scramble} len=${n} /></div>`)}</div>`}
   </${Sheet}>`;
 }
 
-function FitReading({ rows, drawn, pos, t, loc, onOpen, paneRef, pan }) {
+function FitReading({ seed, rows, drawn, pos, t, loc, onOpen, paneRef, pan }) {
   const maxCols = Math.max(...rows.map((r) => r.length));
   const wpct = (94 / maxCols).toFixed(2);
+  // a new draw is dealt card by card in position order (core .ms-stagger, --i = position): the rows are keyed by
+  // the seed, so a shuffle, a ritual or a spread switch remounts them and the deal plays once; the pane keeps its
+  // node, so the swipe keeps its ref. The tiles stay plain cards — up to ten share one screen, no room for a form.
+  // Under the gate the deal is skipped, as before: shots and axe read the tiles at rest, not mid-fade.
   return html`<div data-reading ref=${paneRef} ...${pan || {}} class="flex-1 min-h-0 overflow-hidden flex flex-col gap-2 touch-pan-y will-change-transform">
-    ${rows.map((row, ri) => html`<div class="flex-1 min-h-0 flex justify-center items-stretch gap-2" key=${ri}>
-      ${row.map((pi) => html`<${FitTile} d=${drawn[pi]} pos=${pos[pi]} t=${t} loc=${loc} wpct=${wpct} onOpen=${() => onOpen(pi)} key=${pi} />`)}
+    ${rows.map((row, ri) => html`<div class=${`flex-1 min-h-0 flex justify-center items-stretch gap-2${gate ? "" : " ms-stagger"}`} key=${`${seed}:${ri}`}>
+      ${row.map((pi) => html`<${FitTile} d=${drawn[pi]} pos=${pos[pi]} i=${pi} t=${t} loc=${loc} wpct=${wpct} onOpen=${() => onOpen(pi)} key=${pi} />`)}
     </div>`)}
   </div>`;
 }
 
-function FitTile({ d, pos, t, loc, wpct, onOpen }) {
+function FitTile({ d, pos, i, t, loc, wpct, onOpen }) {
   const c = DECK[d.card];
-  return html`<button data-tile class="h-full min-h-0 flex flex-col items-center justify-center gap-1 active:scale-95 transition" style=${`max-width:${wpct}%`} aria-label=${`${cardName(c, loc)} — ${T(t, pos)}`} onClick=${onOpen}>
+  return html`<button data-tile class="h-full min-h-0 flex flex-col items-center justify-center gap-1 ms-press" style=${`max-width:${wpct}%;--i:${i}`} aria-label=${`${cardName(c, loc)} — ${T(t, pos)}`} onClick=${onOpen}>
     <div class="min-h-0 flex items-center justify-center w-full">
       <img src=${imgURL(c.img)} alt="" loading="lazy" class=${`max-h-full max-w-full w-auto h-auto object-contain rounded-md sf-e2 ${d.reversed ? "rotate-180" : ""}`} />
     </div>
@@ -245,7 +255,7 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
             <div class="font-bold text-[length:var(--ms-title)] leading-tight truncate">${spreadName}</div>
             <div class=${`mt-0.5 text-sm leading-snug ${inkMuted}`}>${T(t, "ritualWhat")}</div>
           </div>
-          <button data-ritual-close aria-label=${T(t, "close")} class=${`btn btn-sm btn-circle btn-ghost shrink-0 ${ink}`} onClick=${onClose}>${Icon("lucide:x", "text-lg")}</button>
+          <button data-ritual-close aria-label=${T(t, "close")} class=${`btn btn-sm btn-circle btn-ghost shrink-0 ms-press ${ink}`} onClick=${onClose}>${Icon("lucide:x", "text-lg")}</button>
         </div>
 
         <div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-5">
@@ -262,7 +272,7 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
           <div class="relative flex items-center justify-center" style="width:9.5rem;height:9.5rem">
             <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full -rotate-90" aria-hidden="true">
               <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="2.5" />
-              <circle cx="50" cy="50" r="45" fill="none" stroke=${rgba(col, 0.95)} stroke-width="2.5" stroke-linecap="round" stroke-dasharray=${`${(charge * 282.7).toFixed(1)} 282.7`} style="transition:stroke-dasharray .2s linear" />
+              <circle cx="50" cy="50" r="45" fill="none" stroke=${rgba(col, 0.95)} stroke-width="2.5" stroke-linecap="round" stroke-dasharray=${`${(charge * 282.7).toFixed(1)} 282.7`} style="transition:stroke-dasharray var(--t-state) linear" />
             </svg>
             <div class="text-center">
               <div data-number class="text-[2.6rem] font-bold tabular-nums leading-none" style=${`color:${rgba(col, 1)}`}>${num}</div>
@@ -274,9 +284,9 @@ function Ritual({ open, onClose, onDraw, deckLen, t, loc, spreadName }) {
         ${""}
         <div class="flex flex-col gap-4">
           <div class="flex justify-center gap-3">
-            ${RIT_COLORS.map((c, i) => html`<button data-color=${i} aria-label=${`${T(t, "colorPick")} ${i + 1}`} aria-pressed=${color === i} class=${`h-8 w-8 rounded-full transition-[transform,box-shadow] ${color === i ? "ring-2 ring-offset-2 ring-offset-black scale-110" : ""}`} style=${`background:${rgba(c, color === i ? 1 : 0.6)};--tw-ring-color:${rgba(c, 1)}`} onClick=${() => setColor(i)} key=${i}></button>`)}
+            ${RIT_COLORS.map((c, i) => html`<button data-color=${i} aria-label=${`${T(t, "colorPick")} ${i + 1}`} aria-pressed=${color === i} class=${`h-8 w-8 rounded-full transition-[transform,box-shadow] duration-[var(--t-state)] ease-[var(--ease-out)] ${color === i ? "ring-2 ring-offset-2 ring-offset-black scale-110" : ""}`} style=${`background:${rgba(c, color === i ? 1 : 0.6)};--tw-ring-color:${rgba(c, 1)}`} onClick=${() => setColor(i)} key=${i}></button>`)}
           </div>
-          <button data-draw class="btn btn-lg btn-primary w-full rounded-full font-bold" onClick=${drawNow}>${T(t, "drawCards")}</button>
+          <button data-draw class="btn btn-lg btn-primary w-full rounded-full font-bold ms-press" onClick=${drawNow}>${T(t, "drawCards")}</button>
         </div>
       </div>
     </div>
@@ -289,9 +299,12 @@ function Solo({ d, pos, t, loc, onOpen }) {
   const c = DECK[d.card];
   return html`<div data-reading class="flex flex-col items-center gap-4">
     <div class=${LBL}>${T(t, pos)}</div>
-    <button data-tile class="w-[62%] max-w-[11rem] active:scale-[.99] transition-transform" onClick=${onOpen}>
-      <img src=${imgURL(c.img)} alt=${cardName(c, loc)} class=${`w-full aspect-[350/600] object-cover rounded-[var(--ms-r-in)] sf-e3 ${d.reversed ? "rotate-180" : ""}`} />
-    </button>
+    <div class="tr-card w-[62%] max-w-[11rem]" data-reversed=${d.reversed ? "" : null}>
+      ${Aura(c)}
+      <button data-tile class="relative block w-full ms-press" onClick=${onOpen}>
+        <img src=${imgURL(c.img)} alt=${cardName(c, loc)} class=${`w-full aspect-[350/600] object-cover rounded-[var(--ms-r-in)] sf-e3 ${d.reversed ? "rotate-180" : ""}`} />
+      </button>
+    </div>
     <div class="text-center">
       <div class="font-bold text-xl leading-tight">${cardName(c, loc)}</div>
       <div class=${`mt-1 badge badge-sm font-medium ${d.reversed ? "badge-warning" : "badge-secondary"}`}>${T(t, d.reversed ? "reversed" : "upright")}</div>
@@ -307,7 +320,10 @@ function CardSheet({ open, onClose, d, pos, t, loc }) {
   return html`<${Sheet} id="cardsheet" open=${open} onClose=${onClose} locale=${loc}>
       ${c ? html`<div class="flex flex-col items-center gap-4">
         <div class=${LBL}>${T(t, pos)}</div>
-        <img src=${imgURL(c.img)} alt=${cardName(c, loc)} class=${`w-40 aspect-[350/600] object-cover rounded-[var(--ms-r-in)] sf-e3 ${d.reversed ? "rotate-180" : ""}`} />
+        <div class="tr-card w-40" data-reversed=${d.reversed ? "" : null}>
+          ${Aura(c)}
+          <img src=${imgURL(c.img)} alt=${cardName(c, loc)} class=${`relative w-full aspect-[350/600] object-cover rounded-[var(--ms-r-in)] sf-e3 ${d.reversed ? "rotate-180" : ""}`} />
+        </div>
         <div class="text-center">
           <div class="font-bold text-xl leading-tight">${cardName(c, loc)}</div>
           <div class=${`${LBL} mt-1`}>${kind}</div>

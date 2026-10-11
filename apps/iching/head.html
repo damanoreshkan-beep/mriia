@@ -4,13 +4,46 @@
        — base-100 at a known alpha, base-content ink — so night is black-on-black in the dark theme (the owner's
        "magic film") and paper-on-paper in the light theme, with contrast deterministic in both. */
     .ic-pane{background:color-mix(in srgb,var(--color-base-100) 85%,transparent);color:var(--color-base-content);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
-    .ic-pane:active{background:color-mix(in srgb,var(--color-base-100) 95%,transparent)}
-    /* the question slot: a pill of the ground with the material's rim, the one control on the set */
-    .ic-slot{background:color-mix(in srgb,var(--color-base-100) 90%,transparent);color:var(--color-base-content);box-shadow:0 0 0 1px var(--lm-rim, rgba(255,232,196,.11))}
+    /* the question slot: a pill of the ground with the material's rim, the one control on the set. Its press
+       is the kit's .ms-press; the transition is restated here because this rule would otherwise replace it. */
+    .ic-slot{background:color-mix(in srgb,var(--color-base-100) 90%,transparent);color:var(--color-base-content);box-shadow:0 0 0 1px var(--lm-rim, rgba(255,232,196,.11));transition:box-shadow var(--t-state) var(--ease-out),scale var(--t-press) var(--ease-out)}
     .ic-slot:hover{box-shadow:0 0 0 1px var(--lm-rim-hi, rgba(255,238,208,.2))}
+
+    /* THE CAST'S FORM (view.js CastOrb, owner 2026-10-11: «розповсюджувати нову дизайн систему»): the hexagram
+       stands inside its own organic form. The form is the PANE's ground, not the theme texture — the six bars
+       are ink and must read on it, so the film's contrast contract holds; the current shows round the form.
+       Square, sized by whichever runs out first (fonoteka's rule): width, height, or a ceiling — no floor, so a
+       short landscape screen shrinks it instead of pushing the question slot off the stage. */
+    .ic-orb{position:relative;flex:none;display:grid;place-items:center;width:min(15rem,64vw,32dvh);aspect-ratio:1}
+    .ic-orb-fill{position:absolute;inset:0;background:color-mix(in srgb,var(--color-base-100) 85%,transparent);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+    .ic-orb > :not(.ic-orb-fill):not(.ic-rim){position:relative}
+    /* the rim is the clip's path in an SVG over it, so the light can spill OUTSIDE the form */
+    .ic-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+    .ic-rim path{fill:none;vector-effect:non-scaling-stroke;transition:stroke var(--t-state) var(--ease-out),opacity var(--t-state) var(--ease-out)}
+    .ic-rim .e{stroke:var(--lm-rim-hi, color-mix(in oklch,var(--color-base-content) 30%,transparent));stroke-width:1.25}
+    .ic-rim .b1{stroke:var(--app-accent);stroke-width:12;opacity:0}
+    .ic-rim .b2{stroke:var(--app-accent);stroke-width:4;opacity:0}
+    /* a cast lights the rim in the app's gold — the book has answered */
+    .ic-orb[data-lit] .ic-rim .e{stroke:color-mix(in oklch,var(--app-accent) 85%,white)}
+    .ic-orb[data-lit] .ic-rim .b1{opacity:.07}
+    .ic-orb[data-lit] .ic-rim .b2{opacity:.22}
+    /* paper: a glow on white is a smear — the lit rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .ic-rim .e{stroke:color-mix(in oklch,var(--color-base-content) 22%,transparent)}
+    [data-theme="signal-light"] .ic-orb[data-lit] .ic-rim .e{stroke:var(--color-secondary);stroke-width:1.75}
+    [data-theme="signal-light"] .ic-rim .b1,[data-theme="signal-light"] .ic-rim .b2{display:none}
+
     /* the veil over the current inside the ceremony: dimmer while the lines shuffle so the field visibly dances */
-    .ic-veil{background:color-mix(in srgb,var(--color-base-100) 90%,transparent);transition:background-color .7s ease}
+    .ic-veil{background:color-mix(in srgb,var(--color-base-100) 90%,transparent);transition:background-color var(--t-focal) var(--ease-out)}
     .ic-veil[data-thin]{background:color-mix(in srgb,var(--color-base-100) 70%,transparent)}
+    /* each phase of the ceremony arrives: a short rise + fade on entry AND on every opening. An animation, not
+       @starting-style: daisyUI's .modal keeps a closed dialog display:grid (only visibility:hidden), so a phase
+       that stays mounted across a close would never get a starting style again; [open] restarts this one. */
+    dialog[open] .ic-act{animation:ic-rise var(--t-move) var(--ease-out) both}
+    @keyframes ic-rise{from{opacity:0;translate:0 12px}}
+    /* a line locks: its halves glide together, the yang bar joins, then the moving mark lands */
+    .ic-glide{transition:x var(--t-state) var(--ease-out),width var(--t-state) var(--ease-out)}
+    .ic-join{transition:opacity var(--t-press) var(--ease-out) var(--t-press)}
+    .ic-mark{transition:opacity var(--t-state) var(--ease-out) var(--t-state)}
     /* the incantation chip under the shuffle */
     .ic-chip{background:color-mix(in srgb,var(--color-base-100) 90%,transparent)}
     /* the golden caret — the film's through-line — blinks by CSS, never a pulse utility */
@@ -18,5 +51,5 @@
     @keyframes ic-blink{to{opacity:0}}
     /* the writing line: the golden hairline the answer later types itself onto */
     .ic-line{height:1px;width:100%;background:linear-gradient(90deg,transparent,var(--app-accent),transparent);opacity:.6}
-    @media(prefers-reduced-motion:reduce){.ic-caret{animation:none}.ic-veil{transition:none}}
+    @media(prefers-reduced-motion:reduce){.ic-caret{animation:none}.ic-veil,.ic-rim path{transition:none}dialog[open] .ic-act{animation:none}}
   </style>

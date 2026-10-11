@@ -10,6 +10,26 @@ import { Sheet, Island, Panel } from "/_rt/ui.js";
 import { Scramble, Pixels, useReveal } from "/_rt/skeleton.js";
 import { SigilStage, draw2D, sigilToDataURL, immersionAvailable, enableImmersion, disableImmersion } from "./viz.js";
 import { downloadUrl } from "/_rt/apk.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
+
+// THE SEAL (owner 2026-10-11: «розповсюджувати нову дизайн систему»). A kept sigil is pressed into its own seal: the
+// sigil's organic form (core shapeOf, seeded by the sigil's seed, so every phone seals the same intent the same way),
+// the theme's material faint through it, its edge a rim of light. The form never morphs — it is this sigil's seal.
+// The forge stays the 3D stage: the working surface is not decorated. The set leaves out the three forms that cut
+// deepest into a centred picture (persona's measure); the sigil reaches ~.25 of the box from the centre.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const formOf = (sig) => shapeOf(sig.seed, FORMS);
+// one clipPath per form on screen, not one per seal — two seals of the same form must not repeat an id
+const SealDefs = ({ forms }) => html`<svg class="sg-defs" width="0" height="0" aria-hidden="true"><defs>
+  ${forms.map((f) => html`<clipPath key=${f} id=${`sg-c-${f}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(f)} /></clipPath>`)}
+</defs></svg>`;
+const Seal = ({ sig, size, lit }) => {
+  const f = formOf(sig), d = pathOf(f);
+  return html`<div data-seal data-form=${f} class=${`sg-seal ${lit ? "lit" : ""}`} style=${`width:${size}px;height:${size}px`}>
+    <div class="sg-ground" style=${`clip-path:url(#sg-c-${f})`}><${SigilCanvas} sig=${sig} size=${size} /></div>
+    <svg class="sg-rim" viewBox="0 0 1 1" aria-hidden="true"><path class="b" d=${d} /><path class="e" d=${d} /></svg>
+  </div>`;
+};
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -19,7 +39,7 @@ const dKey = (k) => "dom" + k[0].toUpperCase() + k.slice(1);
 const grim = collection("sigil");
 const DEFAULT_INTENT = "I am calm and focused";
 
-const Attribution = ({ t, sig, onOpen }) => html`<button data-about aria-label=${T(t, "aboutAria")} onClick=${onOpen} class="inline-flex max-w-full items-center gap-2 rounded-full sf-raised sf-e2 px-3 py-1.5 active:scale-[0.98] transition-transform">
+const Attribution = ({ t, sig, onOpen }) => html`<button data-about aria-label=${T(t, "aboutAria")} onClick=${onOpen} class="inline-flex max-w-full items-center gap-2 rounded-full sf-raised sf-e2 px-3 py-1.5 ms-press">
   <span class="shrink-0"><${Planet} body=${sig.planet} /></span>
   <span class="text-sm font-medium truncate">${T(t, pKey(sig.planet))}</span>
   <span class=${`${META} shrink-0`}>${sig.order}×${sig.order}</span>
@@ -107,18 +127,19 @@ export function forge({ S, toast }) {
   </div>`;
 }
 
-function SigilCanvas({ sig, size = 132, cls }) {
+function SigilCanvas({ sig, size = 132 }) {
   const ref = useRef();
   useEffect(() => {
     const c = ref.current; if (!c) return;
     const dpr = Math.min(2, (typeof devicePixelRatio !== "undefined" && devicePixelRatio) || 1);
     c.width = size * dpr; c.height = size * dpr;
-    draw2D(c, sig, { live: true });
+    // centred: the sigil sits in the middle of its seal (the stage lifts it above the island; a seal has none)
+    draw2D(c, sig, { live: true, centred: true });
     let mo;
-    if (typeof MutationObserver !== "undefined") { mo = new MutationObserver(() => draw2D(c, sig, { live: true })); mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] }); }
+    if (typeof MutationObserver !== "undefined") { mo = new MutationObserver(() => draw2D(c, sig, { live: true, centred: true })); mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] }); }
     return () => mo?.disconnect();
   }, [sig && sig.seed, size]);
-  return html`<canvas ref=${ref} data-sigil style=${`width:${size}px;height:${size}px`} class=${cls || ""}></canvas>`;
+  return html`<canvas ref=${ref} data-sigil style=${`width:${size}px;height:${size}px`} class="block"></canvas>`;
 }
 
 export function grimoire({ S, toast, undo }) {
@@ -163,9 +184,10 @@ export function grimoire({ S, toast, undo }) {
   }
 
   return html`<div class="p-[var(--ms-pad)]" data-kept=${withSig.length}>
-    <div class="grid grid-cols-2 gap-[var(--ms-gap)]">
-      ${withSig.map((it) => html`<button data-item key=${it.id} onClick=${() => open(it)} class=${`group ${tile} active:scale-[0.98] transition-transform`}>
-        <${SigilCanvas} sig=${it.sig} size=${132} cls="rounded-[var(--ms-r-in)]" />
+    <${SealDefs} forms=${[...new Set(withSig.map((it) => formOf(it.sig)))]} />
+    <div class="grid grid-cols-2 gap-[var(--ms-gap)] ms-stagger">
+      ${withSig.map((it, i) => html`<button data-item key=${it.id} onClick=${() => open(it)} style=${`--i:${i}`} class=${`group ${tile} ms-press`}>
+        <${Seal} sig=${it.sig} size=${132} />
         <div class="w-full flex items-center gap-1.5 justify-center text-base-content/70">
           <${Planet} body=${it.sig.planet} />
           <span class="text-sm font-medium truncate">${it.intent}</span>
@@ -181,7 +203,8 @@ export function grimoire({ S, toast, undo }) {
 function DetailSheet({ t, open, it, onClose, onShare, onRemove }) {
   return html`<${Sheet} id="detailsheet" open=${open} onClose=${onClose} title=${it ? it.intent : ""}>
     ${it ? html`<div data-detail class="flex flex-col items-center gap-4">
-      <${SigilCanvas} sig=${it.sig} size=${260} cls="rounded-[var(--ms-r-in)]" />
+      <!-- its clipPath is the grimoire's SealDefs: the sheet opens only for a kept item, whose form is defined there -->
+      <${Seal} sig=${it.sig} size=${260} lit />
       <div class="flex items-center gap-2">
         <${Planet} body=${it.sig.planet} />
         <span class="font-medium">${T(t, pKey(it.sig.planet))}</span>

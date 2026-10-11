@@ -1,11 +1,12 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { animate } from "motion";
 import { T } from "/_rt/i18n.js";
 import { state as pstate } from "/_rt/pendulum.js";
 import { gate } from "/_rt/gate.js";
+import { scalePath, shaper } from "/_rt/shape.js";
 
 const buzz = () => { try { navigator.vibrate?.(10); } catch { } };
 const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -22,6 +23,10 @@ const DUALITIES = [
   ["dWaking", "dReverie"],
 ];
 const N = DUALITIES.length;
+// each pair's own form for the orb (core shape.js organic set). shapeOf(first key) seeded it, but by hash love
+// lands on life's Flower and certainty on inhale's PuffyDiamond — two readings with one face — so the eight are
+// pinned here, one each; the two that collided take Clover4Leaf and Cookie4Sided.
+const FORM = ["Puffy", "Flower", "Clover8Leaf", "Cookie6Sided", "PuffyDiamond", "Clover4Leaf", "Cookie4Sided", "Cookie7Sided"];
 
 const PERIOD = 8000;
 const AMP = 15;
@@ -78,6 +83,24 @@ export function pendulum({ S }) {
     return () => { a1.stop(); a2.stop(); };
   }, []);
 
+  // THE ORB IS THE PAIR'S FORM: the bob wears the current pair's shape, its light gradient through the clip and a
+  // rim drawn over it; turning the pair flows it into the next one's form (one-shot, ~320ms, inside the bloom).
+  // Layout effects, so the first paint already has the form, never an unclipped square.
+  const fillRef = useRef(), rimRef = useRef(), formRef = useRef();
+  useLayoutEffect(() => {
+    let w = bobRef.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fillRef.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rimRef.current.children) p.setAttribute("d", d);
+    };
+    formRef.current = shaper(FORM[durIdx], lay);
+    const ro = new ResizeObserver(() => { const nw = bobRef.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(bobRef.current);
+    return () => { ro.disconnect(); formRef.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { formRef.current?.to(FORM[durIdx]); }, [durIdx]);
+
   const [aKey, bKey] = DUALITIES[durIdx];
   const init = gate ? pstate(GATE_PH * PERIOD, PERIOD, AMP) : pstate(0, PERIOD, AMP);
   const poleStyle = (w) => `opacity:${poleInk(w)};color:${w >= 0.5 ? "var(--color-accent)" : "inherit"}`;
@@ -89,9 +112,10 @@ export function pendulum({ S }) {
         <div ref=${armRef} style=${`position:absolute;left:50%;top:${PIVOT};transform-origin:top center;transform:rotate(${init.angle.toFixed(2)}deg)`}>
           <div style="position:absolute;top:-5px;left:-5px;width:9px;height:9px;border-radius:9999px;background:var(--color-base-content);opacity:0.35"></div>
           <div style=${`width:2px;height:${ARM};margin-left:-1px;background:linear-gradient(to bottom, transparent, color-mix(in oklch, var(--color-base-content) 70%, transparent));opacity:0.28`}></div>
-          <div ref=${bobRef} data-bob style=${`position:absolute;top:${ARM};left:0;width:6rem;height:6rem;transform:translate(-50%,-50%)`}>
+          <div ref=${bobRef} data-bob data-form=${FORM[durIdx]} style=${`position:absolute;top:${ARM};left:0;width:6rem;height:6rem;transform:translate(-50%,-50%)`}>
             <div class="pd-halo" style="position:absolute;left:50%;top:50%;width:15rem;height:15rem;transform:translate(-50%,-50%)"></div>
-            <div class="pd-bob" style="position:absolute;inset:0"></div>
+            <div ref=${fillRef} class="pd-bob" style="position:absolute;inset:0"></div>
+            <svg ref=${rimRef} class="pd-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
           </div>
         </div>
       </div>

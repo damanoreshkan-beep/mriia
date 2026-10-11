@@ -1,6 +1,6 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { atom } from "nanostores";
 import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
@@ -12,7 +12,7 @@ import { gate } from "/_rt/gate.js";
 import { summary, warmSummary, isSummarized, aiTick } from "/_rt/ai-text.js";
 import { METHODS, cast, reading, isMoving, bitOf } from "/_rt/iching.js";
 import { useSheetDrag } from "/_rt/gesture.js";
-import { animate } from "motion";
+import { ORGANIC, shapeOf, scalePath, shaper } from "/_rt/shape.js";
 import { nameOf } from "./book.js";
 import { HeroStage } from "/_rt/hero.js";
 
@@ -131,6 +131,40 @@ const HexSvg = ({ lines, bits, label, cls }) => {
   </svg>`;
 };
 
+// THE CAST'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему», the esoterica wave). The app's
+// object is the HEXAGRAM a question lands on, one of 64, so each owns an organic form (core shapeOf, seeded by
+// its number): the same hexagram, the same form, on every phone. The six lines stand inside it on the pane's
+// own ground (head.html: what the eye reads sits on base-100, the current shows round it), its edge a rim of
+// light, lit in the app's gold once there is a cast. A new answer flows the form into the next hexagram's
+// AFTER the ceremony closes (`hold`): a rare, focal moment, seen instead of spent under the veil. At rest
+// nothing is drawn. The set drops the three forms whose inscribed radius is under .35 of the box (the store's
+// measure): the bars' corners reach .33 of it at 56% width, so they stay inside the other ten (.37–.44).
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const IDLE = "Cookie12Sided";   // the silent book, before the first cast
+const formOf = (n) => (n ? shapeOf(`hex${n}`, FORMS) : IDLE);
+let shown = null;   // the form last laid on screen: a remount (a tab switch, the first cast) flows on from it
+function CastOrb({ form, lit, hold, children }) {
+  const orb = useRef(), fill = useRef(), rim = useRef(), sh = useRef();
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    sh.current = shaper(shown || form, lay, { ms: 560 });   // the focal clock: a new answer is rare
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orb.current);
+    return () => { ro.disconnect(); sh.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { if (!hold) { sh.current.to(form); shown = form; } }, [form, hold]);
+  return html`<div ref=${orb} data-orb data-form=${form} data-lit=${lit ? "" : null} class="ic-orb">
+    <div ref=${fill} data-fill aria-hidden="true" class="ic-orb-fill"></div>
+    <svg ref=${rim} data-rim aria-hidden="true" class="ic-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
+    ${children}
+  </div>`;
+}
+
 const Caret = (cls) => html`<span aria-hidden="true" class=${`ic-caret ${cls || ""}`}></span>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 
@@ -158,25 +192,33 @@ export function iching({ S, screen, openScreen, closeScreen }) {
     <div class="ms-stage z-10 flex flex-col items-center pointer-events-none" data-ic-state=${shuffling ? "shuffle" : r ? "cast" : "empty"}>
       <div class="flex-1 min-h-0 w-full flex flex-col items-center justify-center px-6">
         ${r ? html`<button data-read data-live data-reading aria-label=${T(t, "readingOpen")} onClick=${openRead}
-            class="ic-pane pointer-events-auto max-w-full min-h-0 flex flex-col items-center gap-2.5 rounded-[var(--ms-r)] px-[calc(var(--ms-pad)*2)] py-[calc(var(--ms-pad)*1.5)] transition-colors">
-            <div class="w-[clamp(5.5rem,20vh,9rem)] min-h-0"><${HexSvg} lines=${r.lines} label=${`${name.cn} ${name.py}`} cls="text-base-content/90" /></div>
-            <div class="text-[clamp(2.2rem,6.5vh,3.4rem)] font-light leading-none">${name.cn}</div>
-            <div class=${`${LABEL} tracking-[0.3em]`}>${name.py}</div>
-            <div class="flex items-center gap-2 font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/70">
-              <span data-number>${r.number}</span>
-              <span>${r.upper.cn}${r.lower.cn}</span>
-              <span data-change>${r.changing
-                ? html`<span aria-hidden="true" style="color:var(--app-accent)">→</span> ${toName.cn} · ${r.toNumber}`
-                : T(t, "noMoving")}</span>
+            class="pointer-events-auto max-w-full min-h-0 flex flex-col items-center gap-3 ms-press">
+            <${CastOrb} form=${formOf(r.number)} lit hold=${screen === "ask"}>
+              <div class="w-[56%]"><${HexSvg} lines=${r.lines} label=${`${name.cn} ${name.py}`} cls="text-base-content/90" /></div>
+            <//>
+            <div class="ic-pane flex flex-col items-center gap-2 rounded-[var(--ms-r)] px-[calc(var(--ms-pad)*1.5)] py-[var(--ms-pad)]">
+              <div class="text-[clamp(2rem,6vh,3rem)] font-light leading-none">${name.cn}</div>
+              <div class=${`${LABEL} tracking-[0.3em]`}>${name.py}</div>
+              <div class="flex items-center gap-2 font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/70">
+                <span data-number>${r.number}</span>
+                <span>${r.upper.cn}${r.lower.cn}</span>
+                <span data-change>${r.changing
+                  ? html`<span aria-hidden="true" style="color:var(--app-accent)">→</span> ${toName.cn} · ${r.toNumber}`
+                  : T(t, "noMoving")}</span>
+              </div>
             </div>
           </button>`
-        : html`<div data-live class="ic-pane pointer-events-auto flex flex-col items-center gap-2 rounded-[var(--ms-r)] px-[calc(var(--ms-pad)*2)] py-[calc(var(--ms-pad)*1.5)] text-center">
-            <span class="text-base-content/90">${T(t, "emptyCast")}</span>
-            <span class="text-sm text-muted">${T(t, "emptyCastHint")}</span>
+        : html`<div data-live class="pointer-events-auto flex flex-col items-center gap-3 text-center">
+            ${/* the book before its first answer: an unlit form, the one the first cast flows out of */""}
+            <${CastOrb} form=${IDLE} hold=${screen === "ask"} />
+            <div class="ic-pane flex flex-col items-center gap-2 rounded-[var(--ms-r)] px-[calc(var(--ms-pad)*1.5)] py-[var(--ms-pad)]">
+              <span class="text-base-content/90">${T(t, "emptyCast")}</span>
+              <span class="text-sm text-muted">${T(t, "emptyCastHint")}</span>
+            </div>
           </div>`}
       </div>
       <button data-ask onClick=${openAsk}
-        class="ic-slot pointer-events-auto shrink-0 mb-4 w-[min(86vw,24rem)] rounded-full px-6 py-3.5 text-left text-base-content/75 transition-shadow">
+        class="ic-slot pointer-events-auto shrink-0 mb-4 w-[min(86vw,24rem)] rounded-full px-6 py-3.5 text-left text-base-content/75 ms-press">
         ${Caret("mr-2.5")}${T(t, "question")}
       </button>
     </div>
@@ -186,7 +228,7 @@ export function iching({ S, screen, openScreen, closeScreen }) {
 }
 
 function Ceremony({ open, onClose, t, loc }) {
-  const dref = useRef(), qRef = useRef(), actRef = useRef();
+  const dref = useRef(), qRef = useRef();
   const [phase, setPhase] = useState("ask");
   const [row, setRow] = useState(null);
   const [replay, setReplay] = useState(false);
@@ -204,11 +246,6 @@ function Ceremony({ open, onClose, t, loc }) {
     else { setRow(null); setReplay(false); setQText(""); setPhase("ask"); }
     if (!instant()) setTimeout(() => qRef.current?.focus?.(), 420);
   }, [open]);
-  useEffect(() => {
-    if (instant() || !open) return;
-    const el = actRef.current;
-    if (el) animate(el, { opacity: [0, 1], transform: ["translateY(18px)", "translateY(0px)"] }, { duration: 0.45, ease: "easeOut" });
-  }, [phase, open]);
 
   const begin = (entry, rep) => {
     setRow(entry); setReplay(rep);
@@ -241,7 +278,10 @@ function Ceremony({ open, onClose, t, loc }) {
   const name = r ? nameOf(r.number) : null;
   const toName = r?.toNumber ? nameOf(r.toNumber) : null;
   const canRecast = phase === "answer" && row && row.day !== dayKey();
-  const pill = "btn btn-ghost rounded-full px-6 font-mono uppercase tracking-[0.18em] text-sm font-normal";
+  const pill = "btn btn-ghost rounded-full px-6 font-mono uppercase tracking-[0.18em] text-sm font-normal ms-press";
+  // each phase ARRIVES, and again on every opening (head.html .ic-act, on the motion tokens); instant in the
+  // gate, as the cast itself is
+  const act = instant() ? "" : "ic-act";
 
   return html`<dialog id="ask" ref=${dref} class="modal" aria-label=${T(t, "askTitle")} onClose=${onClose}>
     ${""}
@@ -251,10 +291,10 @@ function Ceremony({ open, onClose, t, loc }) {
       <div class="relative z-10 flex flex-col h-full px-6" style="padding-top:calc(env(safe-area-inset-top) + 0.5rem);padding-bottom:calc(env(safe-area-inset-bottom) + 1.25rem)">
         ${grip}
         <div class="flex items-center justify-end shrink-0">
-          <button data-ask-close aria-label=${T(t, "close")} class="btn btn-sm btn-circle btn-ghost" onClick=${onClose}>${Icon("lucide:x", "text-lg")}</button>
+          <button data-ask-close aria-label=${T(t, "close")} class="btn btn-sm btn-circle btn-ghost ms-press" onClick=${onClose}>${Icon("lucide:x", "text-lg")}</button>
         </div>
 
-        ${phase === "ask" ? html`<div data-phase="ask" ref=${actRef} class="flex-1 min-h-0 flex flex-col max-w-[440px] w-full mx-auto">
+        ${phase === "ask" ? html`<div data-phase="ask" class=${`flex-1 min-h-0 flex flex-col max-w-[440px] w-full mx-auto ${act}`}>
           <div class="flex-1 min-h-0 flex flex-col justify-center gap-6">
             <div class=${`text-center ${LABEL} tracking-[0.35em]`}>${T(t, "askTitle")}</div>
             <div class="flex flex-col gap-3">
@@ -281,7 +321,7 @@ function Ceremony({ open, onClose, t, loc }) {
 
         ${phase === "cast" && row ? (() => {
           const wm = METHODS[row.m] ?? METHODS.yarrow;
-          return html`<div data-phase="cast" ref=${actRef} class="flex-1 min-h-0 flex flex-col items-center justify-center gap-7">
+          return html`<div data-phase="cast" class=${`flex-1 min-h-0 flex flex-col items-center justify-center gap-7 ${act}`}>
             <${CastPlay} lines=${row.lines} onDone=${() => setPhase("answer")} />
             ${""}
             <div class="ic-chip rounded-full px-4 py-1.5 font-mono text-[length:var(--ms-label)] tabular-nums text-base-content/75">
@@ -289,7 +329,7 @@ function Ceremony({ open, onClose, t, loc }) {
           </div>`;
         })() : null}
 
-        ${phase === "answer" && r ? html`<div data-phase="answer" ref=${actRef} class="flex-1 min-h-0 overflow-y-auto flex flex-col max-w-[480px] w-full mx-auto">
+        ${phase === "answer" && r ? html`<div data-phase="answer" class=${`flex-1 min-h-0 overflow-y-auto flex flex-col max-w-[480px] w-full mx-auto ${act}`}>
           <div class="shrink-0 flex flex-col items-center gap-2.5 pt-2 text-center">
             <div class="w-[clamp(4.5rem,15vh,6.5rem)]"><${HexSvg} lines=${r.lines} label=${`${name.cn} ${name.py}`} cls="text-base-content/90" /></div>
             <div class="text-[clamp(2.4rem,7vh,3.6rem)] font-light leading-none">${name.cn}</div>
@@ -323,7 +363,7 @@ function Ceremony({ open, onClose, t, loc }) {
             <div class="flex gap-2.5">
               ${canRecast ? html`<button data-recast onClick=${recast} class=${pill}>
                 <span aria-hidden="true" class="inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle" style="background:var(--app-accent)"></span>${T(t, "recast")}</button>` : null}
-              <button data-ask-done onClick=${onClose} class="btn btn-primary rounded-full px-6 font-mono uppercase tracking-[0.18em] text-sm font-normal">
+              <button data-ask-done onClick=${onClose} class="btn btn-primary rounded-full px-6 font-mono uppercase tracking-[0.18em] text-sm font-normal ms-press">
                 ${T(t, "close")}</button>
             </div>
           </div>
@@ -361,15 +401,16 @@ function CastPlay({ lines, onDone }) {
       const isLocked = i < locked;
       const yang = bitOf(v) === 1, moving = isLocked && isMoving(v);
       const y = (5 - i) * PITCH, mid = y + BAR / 2;
-      const glide = isLocked ? "transition-[x,width] duration-200 ease-out" : "";
+      // the lock on the motion tokens (head.html): the halves glide, then the bar joins, then the mark lands
+      const glide = isLocked ? "ic-glide" : "";
       return html`<${Fragment} key=${i}>
         <rect x="0" y=${y} width=${yang ? W / 2 + 1 : HW} height=${BAR} rx=${BAR / 2} class=${glide} />
         <rect x=${yang ? W / 2 - 1 : (W + GAP) / 2} y=${y} width=${yang ? W / 2 + 1 : HW} height=${BAR} rx=${BAR / 2} class=${glide} />
         <rect x="0" y=${y} width=${W} height=${BAR} rx=${BAR / 2}
-          class=${`transition-opacity duration-150 delay-150 ${isLocked && yang ? "opacity-100" : "opacity-0"}`} />
+          class=${`ic-join ${isLocked && yang ? "opacity-100" : "opacity-0"}`} />
         <circle cx=${W / 2} cy=${mid} r=${BAR * 0.62} fill="none" stroke="var(--app-accent)" stroke-width="1.8"
-          class=${`transition-opacity duration-200 delay-200 ${moving && yang ? "opacity-100" : "opacity-0"}`} />
-        <g class=${`transition-opacity duration-200 delay-200 ${moving && !yang ? "opacity-100" : "opacity-0"}`}>
+          class=${`ic-mark ${moving && yang ? "opacity-100" : "opacity-0"}`} />
+        <g class=${`ic-mark ${moving && !yang ? "opacity-100" : "opacity-0"}`}>
           <line x1=${W / 2 - 3.4} y1=${mid - 3.4} x2=${W / 2 + 3.4} y2=${mid + 3.4} stroke="var(--app-accent)" stroke-width="1.8" stroke-linecap="round" />
           <line x1=${W / 2 - 3.4} y1=${mid + 3.4} x2=${W / 2 + 3.4} y2=${mid - 3.4} stroke="var(--app-accent)" stroke-width="1.8" stroke-linecap="round" />
         </g>
@@ -433,11 +474,14 @@ export function ichingLog({ S, screen, openScreen, closeScreen, confirm, undo })
     </div>`;
   }
 
+  // The journal arrives one cast after another (.ms-stagger, --i per entry). No form per row: the row's glyph
+  // IS the hexagram, and inside a 44px form its six bars would shrink below legibility — the form lives on
+  // the Cast tab, where the hexagram has room.
   return html`<div class="flex flex-col gap-2 max-w-[440px] mx-auto w-full" data-live data-log>
-    ${rows.map((row) => {
+    <div class="ms-stagger flex flex-col gap-2">${rows.map((row, i) => {
       const nm = nameOf(row.n), to = row.to ? nameOf(row.to) : null;
-      return html`<div key=${row.id} data-entry class="rounded-[var(--ms-r)] sf-raised sf-e2 px-[var(--ms-pad)] py-3 flex items-center gap-[var(--ms-gap)]">
-        <button data-open class="flex-1 min-w-0 flex items-center gap-[var(--ms-gap)] text-left" onClick=${() => { $sel.set(row); openScreen("entry"); }}>
+      return html`<div key=${row.id} data-entry style=${`--i:${i}`} class="rounded-[var(--ms-r)] sf-raised sf-e2 px-[var(--ms-pad)] py-3 flex items-center gap-[var(--ms-gap)]">
+        <button data-open class="flex-1 min-w-0 flex items-center gap-[var(--ms-gap)] text-left ms-press" onClick=${() => { $sel.set(row); openScreen("entry"); }}>
           <div class="w-10 shrink-0"><${HexSvg} lines=${row.lines} label=${nm.cn} cls="text-base-content/85" /></div>
           <div class="flex-1 min-w-0 flex flex-col gap-0.5">
             <span class="font-medium truncate">${row.q || T(t, "noQuestion")}</span>
@@ -445,12 +489,12 @@ export function ichingLog({ S, screen, openScreen, closeScreen, confirm, undo })
               ${nm.cn} ${nm.py}${to ? ` → ${to.cn}` : ""} · ${new Date(row.at).toLocaleDateString(loc === "uk" ? "uk-UA" : "en-GB")}</span>
           </div>
         </button>
-        <button data-del aria-label=${T(t, "logDeleted")} class="btn btn-ghost btn-sm btn-circle shrink-0" onClick=${() => del(row)}>
+        <button data-del aria-label=${T(t, "logDeleted")} class="btn btn-ghost btn-sm btn-circle shrink-0 ms-press" onClick=${() => del(row)}>
           ${Icon("lucide:trash-2", "text-base")}
         </button>
       </div>`;
-    })}
-    <button data-clear class="btn btn-ghost btn-sm rounded-full self-center mt-2 text-muted" onClick=${clearAll}>${T(t, "logClear")}</button>
+    })}</div>
+    <button data-clear class="btn btn-ghost btn-sm rounded-full self-center mt-2 text-muted ms-press" onClick=${clearAll}>${T(t, "logClear")}</button>
 
     <${LogSheet} open=${screen === "entry"} onClose=${closeScreen} row=${sel} t=${t} loc=${loc} />
   </div>`;
@@ -465,7 +509,7 @@ function LogSheet({ open, onClose, row, t, loc }) {
       ${text ? html`<p data-log-text class="leading-relaxed whitespace-pre-line">${text}</p>`
         : failed ? html`<div class="flex flex-col items-center gap-3 py-6 text-center">
             <span class="text-muted">${T(t, "readingFail")}</span>
-            <button class="btn btn-sm btn-outline rounded-full" onClick=${retry}>${T(t, "retry")}</button>
+            <button class="btn btn-sm btn-outline rounded-full ms-press" onClick=${retry}>${T(t, "retry")}</button>
           </div>`
         : html`<div class="flex flex-col gap-2 text-base-content/70">${[28, 32, 26].map((n, i) => html`<div key=${i}><${Scramble} len=${n} /></div>`)}</div>`}
       <div class="flex items-start gap-2 text-[length:var(--ms-label)] text-muted border-t border-base-content/10 pt-3">
