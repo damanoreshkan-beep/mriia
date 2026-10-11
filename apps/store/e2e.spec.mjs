@@ -35,15 +35,11 @@ export default [
     },
   },
   {
-    name: "тап по застосунку → шитик опису, Back закриває", run: async (h) => {
+    name: "тап по застосунку відкриває його одразу — без шитика опису; стор пам'ятає, що його відкривали", run: async (h) => {
       await ready(h);
-      await h.click('[data-app="rave"]'); await h.wait(250);
-      h.expect((await h.prop("#appsheet", "open")) === true, "не відкрився шитик опису");
-      h.expect((await h.count("#open-app")) === 1, "немає кнопки Відкрити в шитику");
-      h.expect(/техно|techno/i.test(await h.bodyText()), "немає опису застосунку");
-      await h.back(); await h.wait(250);
-      h.expect((await h.prop("#appsheet", "open")) !== true, "Back не закрив шитик опису");
-      h.expect((await h.count("#open-app")) === 0, "вміст шитика лишився в DOM після закриття");
+      await h.click('[data-app="rave"] > button'); await h.wait(250);
+      h.expect((await h.count("#appsheet")) === 0, "шитик опису повернувся");
+      h.expect((await h.count('[data-app="rave"] .btn iconify-icon')) === 1, "стор не запам'ятав відкритий застосунок");
     },
   },
   {
@@ -57,7 +53,7 @@ export default [
     },
   },
   {
-    name: "стор: добірка карток, сторінка апки з Install і скріном, категорія → рядки", run: async (h) => {
+    name: "стор: добірка карток відкриває апку одразу, категорія → рядки", run: async (h) => {
       await ready(h);
       h.expect((await h.count("[data-featured]")) >= 2, "немає карток добірки");
       h.expect((await h.attr("[data-featured]", "data-app")) === "takt", "Такт не веде стек «Сьогодні»");
@@ -65,13 +61,7 @@ export default [
       if (await h.attr("[data-featured]", "data-newborn")) h.expect(/сьогодні|учора|today|yesterday/i.test(await h.text(".st-hero")), "брова героя-новинки не каже «коли»");
       else h.expect((await h.text("[data-slogan]")).trim().length > 5, "герой без гасла");
       await h.click('[data-featured][data-app="tide"]'); await h.wait(300);
-      h.expect((await h.prop("#appsheet", "open")) === true, "картка добірки не відкрила сторінку апки");
-      h.expect((await h.count("#install-app")) === 1, "немає кнопки Встановити на сторінці апки");
-      h.expect((await h.count("#appsheet img[src*='shot-tide']")) === 1, "немає скріншота на сторінці апки");
-      h.expect(/v\d/.test(await h.text("#appsheet")), "немає версії на сторінці апки");
-      h.expect((await h.count("#appsheet .st-tile.lit[data-form]")) === 1, "плитка на сторінці апки не у своїй формі з освітленим обідком");
-      await h.back(); await h.wait(250);
-      h.expect((await h.prop("#appsheet", "open")) !== true, "Back не закрив сторінку апки");
+      h.expect((await h.count("#appsheet")) === 0, "картка добірки відкрила шитик замість апки");
       h.expect((await h.count("[data-app] .btn")) >= 10, "рядки без кнопки Відкрити");
     },
   },

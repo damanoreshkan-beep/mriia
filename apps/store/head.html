@@ -43,10 +43,6 @@
     [data-app]:has(> button:active) .st-rim use, .st-fresh:active .st-rim use{stroke:var(--app-accent)}
     [data-theme="signal"] [data-app]:has(> button:active) .st-rim, [data-theme="signal"] .st-fresh:active .st-rim{filter:drop-shadow(0 0 4px var(--lm-bloom-hi))}
     [data-theme="signal-light"] [data-app]:has(> button:active) .st-rim use, [data-theme="signal-light"] .st-fresh:active .st-rim use{stroke:var(--color-secondary)}
-    /* the app page's tile is the chosen one: its rim is lit, as the playing song's is in fonoteka */
-    .st-tile.lit .st-rim use{stroke:color-mix(in oklch, var(--app-accent) 85%, white);stroke-width:1.5}
-    [data-theme="signal"] .st-tile.lit .st-rim{filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
-    [data-theme="signal-light"] .st-tile.lit .st-rim use{stroke:var(--color-secondary)}
 
     /* THE ORB — the lead app's art through its form, square, sized by the card (cqi of .st-hero). The rim is
        three strokes of the same path: a wide faint bloom, a narrow brighter one, a crisp edge — fonoteka's lit

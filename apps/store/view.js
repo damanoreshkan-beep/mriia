@@ -2,7 +2,6 @@ import { html } from "htm/preact";
 import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
-import { Sheet } from "/_rt/ui.js";
 import { collection } from "/_rt/db.js";
 import { ORGANIC, shapeOf, pathOf, scalePath, morphTo } from "/_rt/shape.js";
 import apps from "./apps.json" with { type: "json" };
@@ -28,7 +27,7 @@ const formOf = (a) => shapeOf(a.id, FORMS);
 // without measuring and ninety rows share ten paths. A zero-size svg, not display:none — a clipPath inside a
 // display:none svg does not clip in every engine.
 const Forms = () => html`<svg aria-hidden="true" class="st-forms" width="0" height="0"><defs>${FORMS.map((n) => html`<clipPath key=${"c" + n} id=${`st-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath><path key=${"p" + n} id=${`st-p-${n}`} d=${pathOf(n)} vector-effect="non-scaling-stroke" />`)}</defs></svg>`;
-const Tile = (a, cls, lit = false) => { const f = formOf(a); return html`<div data-form=${f} class=${`st-tile ${lit ? "lit" : ""} ${cls}`}>
+const Tile = (a, cls) => { const f = formOf(a); return html`<div data-form=${f} class=${`st-tile ${cls}`}>
   <div class="st-tile-art" style=${`clip-path:url(#st-c-${f})`}>${AppArt(a, a.icon ? "100%" : "46%")}</div>
   <svg aria-hidden="true" class="st-rim" viewBox="0 0 1 1"><use href=${`#st-p-${f}`} /></svg>
 </div>`; };
@@ -66,7 +65,7 @@ function HeroOrb({ a }) {
 }
 const SEEN = collection("seen");
 const CATALOG = collection("catalog");
-const appUrl = (id, install = false) => `../${id}/${install ? "?install=1" : ""}`;
+const appUrl = (id) => `../${id}/`;
 const shotUrl = (a, tab, light) => `./assets/shot-${a.id}--${tab}${light ? "--light" : ""}.webp`;
 const CATS = ["science", "feeds", "tools", "sound", "hackrf", "creative", "money", "wellness", "play", "esoterica"];
 const catKey = (c) => "cat" + c[0].toUpperCase() + c.slice(1);
@@ -85,13 +84,12 @@ const FRESH = apps.filter((a) => a.added && ageDays(a) <= FRESH_DAYS)
   .sort((x, y) => y.added.localeCompare(x.added) || x.title.localeCompare(y.title, "uk")).slice(0, FRESH_MAX);
 const SLIDES = Array.from({ length: Math.ceil(FRESH.length / PER_SLIDE) }, (_, i) => FRESH.slice(i * PER_SLIDE, i * PER_SLIDE + PER_SLIDE));
 
-export function store({ S, openScreen, closeScreen }) {
-  const t = useStore(S.t), screen = useStore(S.screen), locale = useStore(S.locale);
+export function store({ S }) {
+  const t = useStore(S.t), locale = useStore(S.locale);
   const light = useStore(S.theme) === "signal-light";
   const firstShot = (a) => (a.shots?.length ? shotUrl(a, a.shots[0], light) : null);
   const nameOf = (a) => a.titles?.[locale] || a.title;
   const taglineOf = (a) => a.taglines?.[locale] || a.tagline || "";
-  const screensOf = (a) => a.screens?.[locale] || a.screens?.en || [];
   const subtitleOf = (a) => { const s = taglineOf(a); const m = /^(.{12,90}?[.!?—])\s/.exec(s + " "); return m ? m[1].replace(/[—.]$/, "") : s; };
   const byName = (x, y) => nameOf(x).localeCompare(nameOf(y), locale);
   const [q, setQ] = useState("");
@@ -100,7 +98,6 @@ export function store({ S, openScreen, closeScreen }) {
   useEffect(() => { if (searchOpen) fieldRef.current?.focus?.(); else setQ(""); }, [searchOpen]);
   const [seen, setSeen] = useState(null);
   const [fresh, setFresh] = useState(null);
-  const [more, setMore] = useState(false);
   useEffect(() => {
     Promise.all([SEEN.all(), CATALOG.all()]).then(([s, c]) => {
       setSeen(Object.fromEntries(s.map((x) => [x.id, x.v])));
@@ -111,66 +108,16 @@ export function store({ S, openScreen, closeScreen }) {
       CATALOG.put("known", { ids }).catch(() => {});
     }).catch(() => { setSeen({}); setFresh(new Set()); });
   }, []);
-  useEffect(() => { setMore(false); }, [screen]);
   const badgeOf = (a) => (!seen || !fresh ? null : fresh.has(a.id) && !(a.id in seen) ? "new" : (a.id in seen) && seen[a.id] !== a.version ? "upd" : null);
   const installed = (a) => !!seen && a.id in seen;
   const remember = (a) => { SEEN.put(a.id, { v: a.version }).catch(() => {}); setSeen((s) => ({ ...(s || {}), [a.id]: a.version })); };
-  const launch = (a, install = false) => { remember(a); try { window.open(appUrl(a.id, install), "_blank", "noopener"); } catch { location.assign(appUrl(a.id, install)); } };
+  const launch = (a) => { remember(a); try { window.open(appUrl(a.id), "_blank", "noopener"); } catch { location.assign(appUrl(a.id)); } };
   const tag = (b) => b === "new" ? html`<span class=${`${LABEL} inline-flex items-center gap-1 shrink-0`}>${DOT()}${T(t, "newBadge")}</span>` : b === "upd" ? html`<span class=${`${LABEL} inline-flex items-center gap-1 shrink-0`}>${DOT(true)}${T(t, "updBadge")}</span>` : null;
   const needsUsb = (a) => (a.needs || []).includes("usb");
-  const tap = (a) => (installed(a) ? launch(a) : openScreen(a.id));
+  // a tap opens the app itself (owner 2026-10-11: «прибери боттомшит з деталями апки, її простіше і правильніше
+  // відкривати одразу») — the tile, the name and the line under it already say what it is
+  const tap = (a) => launch(a);
   const pill = (a, extra = "") => html`<button class=${`btn btn-xs rounded-full px-3.5 min-h-7 h-7 bg-base-300 border-0 text-base-content font-bold shrink-0 ms-press ${extra}`} aria-label=${`${T(t, "openApp")} — ${nameOf(a)}`} onClick=${(e) => { e.stopPropagation(); launch(a); }}>${installed(a) ? Icon("lucide:external-link", "text-sm") : T(t, "openApp")}</button>`;
-
-  const sel = screen ? apps.find((a) => a.id === screen) : null;
-  const page = html`<${Sheet} id="appsheet" size="lg" open=${!!sel} onClose=${closeScreen} title=${sel ? nameOf(sel) : ""}>
-    ${sel ? (() => { const b = badgeOf(sel), scr = screensOf(sel), shots = sel.shots || [], desc = taglineOf(sel), long = desc.length > 180; return html`<div class="flex flex-col gap-6 pb-2">
-      ${""}
-      <div class="flex items-start gap-4">
-        ${Tile(sel, "w-28 h-28", true)}
-        <div class="min-w-0 flex-1 flex flex-col gap-1 pt-0.5">
-          <div class="font-bold text-[1.35rem] leading-tight break-words">${nameOf(sel)}</div>
-          <div class="text-sm text-muted leading-snug line-clamp-2">${subtitleOf(sel)}</div>
-          <div class="flex items-center gap-2 mt-2">
-            <button id="open-app" class="btn btn-sm btn-primary rounded-full px-5 min-h-8 h-8 font-bold" onClick=${() => launch(sel)}>${T(t, "openApp")}</button>
-            <button id="install-app" class="btn btn-sm btn-ghost rounded-full px-3 min-h-8 h-8 gap-1.5" onClick=${() => launch(sel, true)}>${Icon("lucide:download", "text-base")}${T(t, "installApp")}</button>
-          </div>
-        </div>
-      </div>
-      ${""}
-      <div class="grid grid-cols-4 divide-x divide-base-300/60 sf-inset rounded-[var(--ms-r-in)] py-3 text-center">
-        ${[[T(t, "version"), `v${sel.version || "1.0"}`], [T(t, "category"), T(t, catKey(sel.category))], [T(t, "offline"), T(t, "yes")], [T(t, "screens"), String(scr.length || 1)]].map(([k, v]) => html`<div class="px-1 min-w-0 flex flex-col gap-1" key=${k}>
-          <div class=${`${LABEL} truncate`}>${k}</div>
-          <div class="text-sm font-semibold truncate">${v}</div>
-        </div>`)}
-      </div>
-      ${""}
-      ${needsUsb(sel) ? html`<div data-needs-device class="flex items-center gap-2 text-sm text-base-content sf-inset rounded-[var(--ms-r-in)] px-3 py-2">${Icon("lucide:usb", "shrink-0 text-[length:var(--ms-icon)]", "color:var(--app-accent)")}<span>${T(t, sel.deviceNote || "needsDeviceHackrf")}</span></div>` : null}
-      ${""}
-      ${shots.length ? html`<div class="flex flex-col gap-2">
-        <div class="font-bold text-lg px-0.5">${T(t, "screenshots")}</div>
-        <div class="flex gap-3 overflow-x-auto snap-x [overscroll-behavior-x:contain] [scrollbar-width:none] -mx-[var(--ms-pad)] px-[var(--ms-pad)] pb-1">
-          ${shots.map((tab, i) => html`<figure key=${tab} class="snap-start shrink-0 w-[62%] max-w-[15rem] rounded-[var(--ms-r-in)] overflow-hidden bg-black sf-raised sf-e2 aspect-[384/832]">
-            <img src=${shotUrl(sel, tab, light)} alt=${scr[i] || ""} loading=${i ? "lazy" : "eager"} decoding="async" class="w-full h-full object-cover object-top block" />
-          </figure>`)}
-        </div>
-      </div>` : null}
-      ${""}
-      <div class="flex flex-col gap-1">
-        <p class=${`text-[0.95rem] leading-relaxed text-base-content/85 break-words ${more || !long ? "" : "line-clamp-3"}`}>${desc}</p>
-        ${long ? html`<button class="self-end text-sm font-semibold text-base-content" onClick=${() => setMore(!more)}>${more ? T(t, "less") : T(t, "more")}</button>` : null}
-      </div>
-      <div class="flex flex-col gap-1">
-        <div class="flex items-baseline justify-between px-0.5"><span class="font-bold text-lg">${T(t, "whatsNew")}</span><span class=${`${LABEL} normal-case tracking-normal inline-flex items-center gap-1`}>v${sel.version || "1.0"}${b === "upd" ? html` · ${DOT(true)}<span>${T(t, "newVersion")}</span>` : ""}</span></div>
-        <p class="text-sm text-base-content/80">${T(t, "whatsNewBody")}</p>
-      </div>
-      <div class="flex flex-col gap-1">
-        <div class="font-bold text-lg px-0.5">${T(t, "info")}</div>
-        <div class="flex flex-col text-sm">
-          ${[[T(t, "developer"), T(t, "title")], [T(t, "category"), T(t, catKey(sel.category))], [T(t, "version"), `v${sel.version || "1.0"}`], [T(t, "offline"), T(t, "yes")], [T(t, "installation"), T(t, "homeScreen")], ...(needsUsb(sel) ? [[T(t, "device"), "USB"]] : []), ...(scr.length ? [[T(t, "screens"), scr.join(" · ")]] : [])].map(([k, v]) => html`<div class="flex items-start justify-between gap-4 py-2.5 border-b border-base-300/50 last:border-0" key=${k}><span class="text-muted shrink-0">${k}</span><span class="text-right break-words">${v}</span></div>`)}
-        </div>
-      </div>
-    </div>`; })() : null}
-  <//>`;
 
   const sloganOf = (a) => t?.["slogan_" + a.id] || "";
   const rtf = new Intl.RelativeTimeFormat(locale === "uk" ? "uk" : "en", { numeric: "auto" });
@@ -271,12 +218,11 @@ export function store({ S, openScreen, closeScreen }) {
   if (found) {
     return html`<div class="flex flex-col gap-4" data-store-mode="search" data-store-search=${searchOpen ? "open" : "folded"} data-store-found=${found.length}>${headRow}
       <div class="ms-stagger flex flex-col" key=${query}>${found.length ? rows(found) : noResults}</div>
-      ${page}
       <${Forms} />
     </div>`;
   }
 
-  return html`<div class="flex flex-col gap-7" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-featured=${FEATURED.length} data-store-newborn=${NEWBORN.length} data-store-page=${sel ? sel.id : null}>
+  return html`<div class="flex flex-col gap-7" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-featured=${FEATURED.length} data-store-newborn=${NEWBORN.length}>
     ${headRow}
     ${FEATURED.length ? html`<div class="ms-stagger grid grid-cols-2 md:grid-cols-3 gap-3">${FEATURED.map((a, i) => html`<div style=${`--i:${i}`} key=${a.id} class=${i === 0 ? "col-span-2 md:col-span-3" : "min-h-0"}>${i === 0 ? Featured(a) : FeaturedTall(a)}</div>`)}</div>` : null}
     ${freshSection}
@@ -289,7 +235,6 @@ export function store({ S, openScreen, closeScreen }) {
         ${rows(items)}
       </div>`;
     })}
-    ${page}
     <${Forms} />
   </div>`;
 }
