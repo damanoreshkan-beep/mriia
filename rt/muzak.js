@@ -41,12 +41,4 @@ export const credit = (m, link) => [
   "Licence: Creative Commons Attribution (CC BY), via YouTube",
 ].join("\n");
 
-// The «Вільні» tab under the gate: real CC BY songs (Kevin MacLeod, incompetech) and one CC-marked rework, flagged.
-export const FIXTURE_FREE = [
-  { id: "Yy-NyPTRYU8", title: "Exit the Premises", artist: "Kevin MacLeod", dur: 213, cover: "https://i.ytimg.com/vi/Yy-NyPTRYU8/mqdefault.jpg", url: "https://music.youtube.com/watch?v=Yy-NyPTRYU8", doubt: false },
-  { id: "KKVgIrnlWDg", title: "Clash Defiant", artist: "Kevin MacLeod", dur: 376, cover: "https://i.ytimg.com/vi/KKVgIrnlWDg/mqdefault.jpg", url: "https://music.youtube.com/watch?v=KKVgIrnlWDg", doubt: false },
-  { id: "nKnyq0PMIkc", title: "Silver Blue Light", artist: "Kevin MacLeod Archive", dur: 353, cover: "https://i.ytimg.com/vi/nKnyq0PMIkc/mqdefault.jpg", url: "https://music.youtube.com/watch?v=nKnyq0PMIkc", doubt: false },
-  { id: "Dtdz7qpRcLU", title: "RM - Tokyo Lofi (Slowed + Reverb + Rain)", artist: "Apollo", dur: 233, cover: "https://i.ytimg.com/vi/Dtdz7qpRcLU/mqdefault.jpg", url: "https://music.youtube.com/watch?v=Dtdz7qpRcLU", doubt: true },
-];
-
 export const FIXTURE_META ={ id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", album: "Whenever You Need Somebody", year: 1987, duration: 213, cover: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg" };

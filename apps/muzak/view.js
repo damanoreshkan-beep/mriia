@@ -13,7 +13,7 @@ import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
 import { authWall } from "/_rt/authwall.js";
 import { shapeOf, scalePath, shaper } from "/_rt/shape.js";
-import { videoId, clock, byline, errorKey, isCC, credit, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES, FIXTURE_FREE } from "/_rt/muzak.js";
+import { videoId, clock, byline, errorKey, isCC, credit, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES } from "/_rt/muzak.js";
 import { taskOne, taskCall } from "/_rt/task.js";
 import { openOutside } from "/_rt/tma.js";
 import { session, restore } from "/_rt/auth.js";
@@ -443,79 +443,5 @@ export function likes({ S, toast, confirm }) {
           <div class="font-semibold text-sm">${T(t, "likesEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "likesEmptyHint")}</div>
         </div>` : null}
       </section>`}
-  </div>`;
-}
-
-// ── tab «Вільні»: songs it is LEGAL to remix and publish with credit (owner 2026-10-11: «тільки робимо легально з
-// указом на джерело … додай табу нову в музак перевіримо теорію»). The edge searches YouTube with its own Creative
-// Commons filter (/feed/music/free); a title that reads as a rework of someone else's song is flagged, because the CC
-// mark is the uploader's word and a re-upload grants nothing. A row plays; its arrow opens the song's card, where the
-// licence is read again from the song itself and the credit is one tap.
-const FREE_WORDS = ["lofi", "ambient", "piano", "jazz", "electronic", "cinematic", "phonk", "kevin macleod"];
-const $free = atom(gate ? FIXTURE_FREE : null);   // null = nothing asked yet
-const $fq = atom(gate ? "lofi" : ""), $fBusy = atom(false), $fErr = atom("");
-let fseq = 0;
-async function findFree(q) {
-  q = String(q || "").trim();
-  if (!q) return;
-  $fq.set(q);
-  if (gate) { $free.set(FIXTURE_FREE); return; }
-  const my = ++fseq;
-  $fBusy.set(true); $fErr.set("");
-  try {
-    const r = await fetch(`${VPS_PROXY}/music/free?q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(30000) });
-    if (my !== fseq) return;
-    if (!r.ok) { $fErr.set("errFree"); return; }
-    $free.set((await r.json()).songs || []);
-  } catch { if (my === fseq) $fErr.set("errFree"); }
-  finally { if (my === fseq) $fBusy.set(false); }
-}
-
-export function free({ S }) {
-  const t = useStore(S.t);
-  const list = useStore($free), q = useStore($fq), busy = useStore($fBusy), err = useStore($fErr);
-  const cur = useStore($cur), playing = useStore($playing);
-  useEffect(() => { if (!gate) restore().catch(() => {}); }, []);
-  const open = (s) => { $link.set(s.url); find(s.url); S.tab.set("song"); };
-
-  return html`<div data-free data-songs=${list ? list.length : null} class="flex flex-col gap-[var(--ms-gap)] p-[var(--ms-pad)]">
-    <${Panel} title=${T(t, "freeTitle")}>
-      <p class="text-sm leading-relaxed text-base-content/80">${T(t, "freeIntro")}</p>
-      <form class="flex items-center gap-2" onSubmit=${(e) => { e.preventDefault(); findFree(q); }}>
-        <textarea rows="1" data-line data-free-q enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" value=${q} placeholder=${T(t, "freePlaceholder")}
-          onInput=${(e) => $fq.set(e.target.value)} class="input input-bordered sf-inset min-w-0 flex-1 text-sm"></textarea>
-        <button type="submit" data-free-find aria-label=${T(t, "aFind")} disabled=${!q.trim() || busy}
-          class=${`btn btn-primary btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 sf-e3 ${busy ? "animate-pulse" : ""}`}>${Icon("lucide:search", "text-[length:var(--ms-icon)]")}</button>
-      </form>
-      <div class="flex flex-wrap gap-1.5">
-        ${FREE_WORDS.map((w) => html`<button key=${w} type="button" data-free-word=${w} onClick=${() => findFree(w)}
-          class=${`btn btn-sm rounded-full min-h-0 h-8 px-3 font-normal ${q === w ? "sf-pressed text-primary" : "sf-raised"} ms-press`}>${w}</button>`)}
-      </div>
-      ${err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
-    <//>
-
-    ${busy && !list ? [0, 1, 2, 3].map((i) => html`<div key=${i} class="flex items-center gap-3 px-1 py-1.5"><div class="skeleton w-12 h-12 shrink-0 rounded-[var(--ms-r-in)]"></div><div class="flex-1 flex flex-col gap-1.5"><div class="skeleton h-3.5 w-2/3"></div><div class="skeleton h-3 w-1/3"></div></div></div>`) : null}
-    ${list ? html`<div class=${`flex flex-col gap-1 ${busy ? "opacity-60" : ""}`}>
-      ${list.map((s) => {
-        const here = cur === s.id;
-        return html`<div key=${s.id} data-free-song=${s.id} data-doubt=${s.doubt ? "true" : null} class="mz-row flex items-center gap-1">
-          <button data-play=${s.id} aria-pressed=${here ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${s.title}`} onClick=${() => toggle(s, list)}
-            class="flex-1 min-w-0 flex items-center gap-3 text-left px-1 py-1.5 min-h-0 rounded-[var(--ms-r-in)] ms-press">
-            <span class="mz-cover sf-raised bg-base-200 flex items-center justify-center text-base-content/40">
-              ${Icon(here && playing ? "lucide:audio-lines" : "lucide:music-2", "text-lg")}
-              ${s.cover ? html`<img src=${s.cover} alt="" loading="lazy" class=${`absolute inset-0 w-full h-full object-cover ${here && playing ? "opacity-60" : ""}`} onError=${(e) => { e.target.remove(); }} />` : null}
-            </span>
-            <span class="min-w-0 flex-1 flex flex-col leading-tight gap-0.5">
-              <span class=${`font-semibold text-sm truncate ${here ? "text-primary" : ""}`}>${s.title}</span>
-              <span class="text-xs text-base-content/70 truncate">${s.artist}<span class="font-mono tabular-nums"> · ${clock(s.dur)}</span></span>
-              ${s.doubt ? html`<span data-doubt-note class="text-xs text-warning truncate">${T(t, "freeDoubt")}</span>` : null}
-            </span>
-          </button>
-          <button data-free-open=${s.id} aria-label=${`${T(t, "aOpenSong")}: ${s.title}`} onClick=${() => open(s)}
-            class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 text-base-content/70">${Icon("lucide:chevron-right", "text-[length:var(--ms-icon)]")}</button>
-        </div>`;
-      })}
-      ${!list.length ? html`<div data-none class="py-6 text-center text-sm text-base-content/70">${T(t, "freeEmpty")}</div>` : null}
-    </div>` : null}
   </div>`;
 }

@@ -10,6 +10,7 @@ export default [
       h.expect(/Rick Astley · Whenever You Need Somebody · 1987/.test(await h.bodyText()), "немає рядка виконавець · альбом · рік");
       h.expect(/3:33/.test(await h.bodyText()), "немає тривалості");
       h.expect((await h.count("[data-listen]")) === 1, "немає «Слухати»");
+      h.expect((await h.count("[data-licence]")) === 1, "картка не каже про ліцензію");
       for (const a of ["save", "keep", "share", "mix"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
       h.expect((await h.count(".loading")) === 0, "крутилка на екрані");
     },
@@ -83,18 +84,6 @@ export default [
       await h.tap("[data-player] #repeat"); await h.wait(150);
       h.expect((await h.attr("[data-player] #repeat", "data-repeat")) === was, "другий тап не повернув режим");
       await h.click('[data-tab="song"]'); await h.wait(120);
-    },
-  },
-  {
-    name: "вільні: пісні під Creative Commons, перезалив чужої підсвічено, стрілка відкриває картку з ліцензією", run: async (h) => {
-      await h.click('[data-tab="free"]'); await h.wait(250);
-      h.expect((await h.attr("[data-free]", "data-songs")) === "4", "не 4 вільні пісні під гейтом");
-      h.expect((await h.count("[data-free-word]")) >= 6, "немає слів-підказок");
-      h.expect((await h.count('[data-free-song][data-doubt="true"]')) === 1, "перезалив чужої пісні не підсвічено");
-      h.expect((await h.count("[data-doubt-note]")) === 1, "немає пояснення сумніву");
-      await h.click('[data-free-open="Yy-NyPTRYU8"]'); await h.wait(300);
-      h.expect((await h.prop("[data-link]", "value")).includes("Yy-NyPTRYU8"), "пісня не відкрилась у вкладці «Пісня»");
-      h.expect((await h.count("[data-licence]")) === 1, "картка не каже про ліцензію");
     },
   },
   {
