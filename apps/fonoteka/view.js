@@ -3,10 +3,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { atom } from "nanostores";
 import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
-import { T, sys } from "/_rt/i18n.js";
+import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
-import { Transport } from "/_rt/ui.js";
+import { Transport, MiniPlayer } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
 import { shapeOf, pathOf, scalePath, shaper } from "/_rt/shape.js";
 import { envelopeOfBlob, breathe } from "/_rt/breath.js";
@@ -184,6 +184,37 @@ function step(dir, manual = true) {
 }
 function seek(ms) { if (audio && !gate) audio.currentTime = ms / 1000; $pos.set(ms); }
 function stop() { stopBreath(); if (audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); } if (kept) { URL.revokeObjectURL(kept); kept = ""; } $cur.set(""); $playing.set(false); $pos.set(0); $dur.set(0); }
+
+// RESUME — the last song and its second survive a reload (owner 2026-10-11: «запоминай останній трек та час, але
+// енергоефективно … я часто перезагружаю апку і хочу щоб далі грало»; «багато ризиків що зломається, зроби в одному
+// місці по інтервалу»). ONE writer: an interval every 5 s that does nothing unless a song is playing, and writes only
+// when the whole second or the song changed — no listener on timeupdate, pause, unload or visibility to keep in step.
+// ONE reader: the first shelf that holds the remembered song puts it back at that second and asks it to play; a
+// browser that will not start sound before a tap leaves it paused right there, and the next ▶︎ continues from it.
+const RESUME_KEY = "fonoteka:resume";
+let resumeSaved = "";
+if (!gate) setInterval(() => {
+  if (!$playing.get() || !audio || !$cur.get()) return;
+  const v = JSON.stringify({ id: $cur.get(), t: Math.floor(audio.currentTime) });
+  if (v === resumeSaved) return;
+  resumeSaved = v;
+  try { localStorage.setItem(RESUME_KEY, v); } catch { }
+}, 5000);
+if (!gate) {
+  const off = $songs.subscribe((list) => {
+    if (!list?.length) return;
+    queueMicrotask(() => off());
+    let r = null; try { r = JSON.parse(localStorage.getItem(RESUME_KEY) || "null"); } catch { }
+    if (!r?.id || $cur.get() || !songOf(r.id)) return;
+    resumeAt(r.id, Number(r.t) || 0);
+  });
+}
+async function resumeAt(id, t) {
+  await play(id);
+  const a = audio; if (!a) return;
+  const go = () => { try { a.currentTime = t; } catch { } $pos.set(Math.round(t * 1000)); };
+  if (a.readyState >= 1) go(); else a.addEventListener("loadedmetadata", go, { once: true });
+}
 
 async function remove(s) {
   if (!gate) {
@@ -363,14 +394,9 @@ export function fonoteka({ S, toast, confirm }) {
     </section>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
-    <div data-mini data-show=${mini ? "true" : "false"} aria-hidden=${mini ? null : "true"} inert=${!mini} class="fk-mini">
-      <div class="sf-raised sf-e4 rounded-full h-[3.25rem] pl-3 pr-1 flex items-center gap-2 bg-base-100">
-        <button class="flex-1 min-w-0 flex items-center gap-3 text-left h-full ms-press" aria-label=${now ? `${T(t, "now")}: ${titleOf(now)}` : T(t, "now")} onClick=${toOrb}>
-          ${now ? glyph(now.id, true) : null}
-          <span class="min-w-0 flex-1 font-semibold text-sm truncate">${now ? titleOf(now) : ""}</span>
-        </button>
-        <button class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0" aria-label=${sys(playing ? "aPause" : "aPlay", locale)} onClick=${toggle}>${Icon(playing ? "lucide:pause" : "lucide:play", "text-[length:var(--ms-icon)]")}</button>
-      </div>
-    </div>
+    ${/* the island is the kit's MiniPlayer now (owner 2026-10-11: «заливкою анімованою трек часу пісні і перемотка,
+         щоб не скролити до верху … винести зробити системним»): its fill is the song's time, a drag across it seeks */""}
+    <${MiniPlayer} show=${mini} title=${now ? titleOf(now) : ""} glyph=${now ? glyph(now.id, true) : null} playing=${playing} onToggle=${toggle}
+      pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} onOpen=${toOrb} openLabel=${now ? `${T(t, "now")}: ${titleOf(now)}` : T(t, "now")} locale=${locale} />
   </div>`;
 }
