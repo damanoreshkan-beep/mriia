@@ -107,6 +107,7 @@
       },
       "card": {
         "layout": "table",
+        "form": "whale",
         "columns": [
           {
             "field": "valueStr",

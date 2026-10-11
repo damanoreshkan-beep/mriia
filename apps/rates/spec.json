@@ -18,6 +18,7 @@
       "card": {
         "layout": "row",
         "lead": "code",
+        "form": "code",
         "title": "name",
         "trailing": "rate",
         "unit": "USD"
