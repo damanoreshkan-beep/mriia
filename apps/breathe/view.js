@@ -1,8 +1,9 @@
 import { html } from "htm/preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Segmented, Transport, Island } from "/_rt/ui.js";
+import { scalePath, shaper } from "/_rt/shape.js";
 
 const TECHS = {
   box: { name: "tBox", sub: "sBox", in: 4, h1: 4, out: 4, h2: 4 },
@@ -11,6 +12,7 @@ const TECHS = {
   calm: { name: "tCalm", sub: "sCalm", in: 4, h1: 0, out: 6, h2: 0 },
 };
 const ORDER = ["box", "478", "coherent", "calm"];
+const FORM = { box: "PuffyDiamond", "478": "Puffy", coherent: "Cookie12Sided", calm: "Flower" };
 const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
 const readTech = () => { try { const k = localStorage.getItem("breathe.tech"); return TECHS[k] ? k : "box"; } catch { return "box"; } };
 
@@ -20,6 +22,21 @@ export function breathe({ S }) {
   const [tech, setTech] = useState(readTech);
   const [playing, setPlaying] = useState(true);
   const orbRef = useRef(), phaseRef = useRef(), countRef = useRef();
+  const fill = useRef(), rim = useRef(), form = useRef();
+
+  useLayoutEffect(() => {
+    let w = orbRef.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    form.current = shaper(FORM[tech], lay);
+    const ro = new ResizeObserver(() => { const nw = orbRef.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orbRef.current);
+    return () => { ro.disconnect(); form.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { form.current?.to(FORM[tech]); }, [tech]);
 
   const choose = (k) => { setTech(k); try { localStorage.setItem("breathe.tech", k); } catch { } };
 
@@ -54,14 +71,17 @@ export function breathe({ S }) {
 
     ${""}
     <div class="w-full flex justify-center py-3">
-      <div ref=${orbRef} data-orb class="br-orb w-full max-w-[210px] aspect-square rounded-full" style="will-change:transform"></div>
+      <div ref=${orbRef} data-orb data-form=${FORM[tech]} class="br-orb w-full max-w-[210px] aspect-square" style="will-change:transform" aria-hidden="true">
+        <div ref=${fill} class="br-fill"></div>
+        <svg ref=${rim} class="br-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
+      </div>
     </div>
 
     <div class="flex flex-col items-center gap-[var(--ms-gap)] -mt-4 self-stretch">
       <div ref=${phaseRef} data-phase class="text-xl font-semibold text-base-content/80 h-7"></div>
       <div ref=${countRef} class="text-6xl font-bold tabular-nums leading-none h-14"></div>
       <${Island} className="w-full max-w-xs mx-auto">
-        <${Transport} locale=${loc} size="sm" playing=${playing} onToggle=${() => setPlaying((p) => !p)} />
+        <${Transport} form locale=${loc} playing=${playing} onToggle=${() => setPlaying((p) => !p)} />
       <//>
     </div>
   </div>`;

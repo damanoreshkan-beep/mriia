@@ -91,6 +91,18 @@ export default [
     },
   },
   {
+    name: "скарбниця: кожен сеанс — монета у своїй формі, скарб валюти — у своїй", run: async (h) => {
+      await h.click('[data-tab="vault"]'); await h.wait(600);
+      const rows = await h.count("[data-session]");
+      h.expect(rows > 0, "у скарбниці немає сеансів");
+      h.expect((await h.count("[data-session] [data-coin][data-form]")) === rows, "сеанс без власної монети");
+      h.expect(/url\(/.test(await h.css("[data-session] [data-coin] .hd-fill", "clip-path")), "монета не обрізана формою");
+      h.expect((await h.css("[data-session] [data-coin] .hd-fill", "position")) === "absolute", "стиль монети не застосовано (head.html не вбудовано?)");
+      h.expect((await h.attr('[data-total="UAH"] [data-hoard]', "data-form")) === "Cookie12Sided", "скарб гривні не у своїй закріпленій формі");
+      h.expect(/\d/.test(await h.text("[data-total] .text-2xl")), "сума скарбу порожня");
+    },
+  },
+  {
     name: "мови", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(300);
       await h.click('[data-loc="en"]'); await h.wait(400);
