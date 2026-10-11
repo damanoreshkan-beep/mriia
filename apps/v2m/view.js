@@ -1,6 +1,7 @@
 import { html } from "htm/preact";
 import { useState, useEffect } from "preact/hooks";
 import { atom } from "nanostores";
+import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { collection, idbSupported } from "/_rt/db.js";
@@ -9,7 +10,7 @@ import { holdAudio } from "/_rt/mediasession.js";
 import { wakeLock } from "/_rt/sensors.js";
 import { gate } from "/_rt/gate.js";
 import { Island, Segmented, Transport, Stage } from "/_rt/ui.js";
-import { advance, cycleRepeat } from "/_rt/player.js";
+import { advance } from "/_rt/player.js";
 import { MIRRORS, parseAuthors, parseListing, titleOf, trackId, trackURL, authorURL, normGain } from "/_rt/v2m.js";
 import { ByteStage, bindAudio, bindProgress, setTuneBytes } from "./viz.js";
 
@@ -38,7 +39,14 @@ const $syncing = atom(false);
 const $owned = atom(new Set());
 const $queue = atom([]);
 const $qIndex = atom(-1);
-const $repeat = atom("off");
+// ONE TUNE ON A LOOP or on through the list (owner 2026-10-11: «у цих апках плеєрах має бути переключалка режимів
+// по колу пісню чи далі, я слухаю їх як медитацію по колу»): two modes, not the kit's three — "off" would stop at
+// the end of the list, which nobody here asked for. The choice is remembered; ▶︎▶︎ still moves on under "one".
+const $repeat = persistentAtom("v2m:repeat", "all");
+const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
+// what the button SHOWS: «далі» is the quiet default (the plain glyph, unlit), the loop is the lit repeat-1 — the
+// kit lights "all" too, and two lit states told apart by a tiny "1" read as one state on a phone
+const shownRepeat = (r) => (r === "one" ? "one" : "off");
 const $shuffle = atom(false);
 let notify = null;
 
@@ -298,6 +306,9 @@ async function playIndex(idx) {
 }
 
 function step(dir, manual) {
+  // the loop replays the tune that is LOADED, not queue[qIndex]: a library row or the demo plays outside the
+  // queue (qIndex stays -1 or points at the last store pick), so advance() alone would loop a different tune
+  if (!manual && $repeat.get() === "one") { seek(0); return resume(); }
   const q = queueList();
   const next = advance($qIndex.get(), q.length, { step: dir, repeat: $repeat.get(), shuffle: $shuffle.get(), manual });
   if (next < 0) { pause(); return false; }
@@ -361,14 +372,14 @@ export function v2m({ S, toast, undo }) {
 
       <div class="ms-side-main relative z-10 flex flex-col justify-end pb-[var(--ms-gap)]">
         <${Island} className="mx-[var(--ms-gap)] px-[var(--ms-pad)] py-[var(--ms-pad)] flex flex-col gap-2">
-          <${Transport}
+          <${Transport} form
             locale=${loc}
             playing=${playing}
             onToggle=${() => toggle()}
             onPrev=${hasQueue ? () => playPrev() : null}
             onNext=${hasQueue ? () => playNext() : null}
-            repeat=${repeat}
-            onRepeat=${() => $repeat.set(cycleRepeat($repeat.get()))}
+            repeat=${shownRepeat(repeat)}
+            onRepeat=${flipRepeat}
             shuffle=${shuffle}
             onShuffle=${hasQueue ? () => $shuffle.set(!$shuffle.get()) : null}
             pos=${pos} dur=${dur} onSeek=${(v) => { scrubbing = false; seek(v); }}

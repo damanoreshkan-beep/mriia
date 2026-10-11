@@ -10,7 +10,8 @@ export default [
       await ready(h);
       h.expect((await h.count("[data-track]")) === 1, "плеєр не змонтувався");
       h.expect((await h.count("#play")) === 1, "немає кнопки play");
-      h.expect((await h.count("[data-time]")) === 1, "немає індикатора часу");
+      // <Transport form>: the seek is a filament; its clock shows only once a tune has a length, so the filament is the check
+      h.expect((await h.count("[data-tp-filament]")) === 1, "немає нитки перемотки");
       h.expect((await h.count('input[type="range"]')) === 1, "немає seek-повзунка");
       h.expect((await h.count("[data-stage]")) === 1, "немає 3D-сцени");
     },
@@ -116,17 +117,16 @@ export default [
     },
   },
   {
-    name: "повтор: off → all → one → off", run: async (h) => {
+    name: "по колу чи далі: перемикач у плеєрі ходить між «далі» і «одна по колу»", run: async (h) => {
       await ready(h);
-      h.expect((await h.attr("#repeat", "data-repeat")) === "off", "повтор має починатися вимкненим");
+      h.expect((await h.count("#repeat")) === 1, "немає перемикача");
+      const was = await h.attr("#repeat", "data-repeat");
       await h.tap("#repeat"); await h.wait(150);
-      h.expect((await h.attr("#repeat", "data-repeat")) === "all", "не перемкнувся на «весь список»");
-      h.expect((await h.attr("#repeat", "aria-pressed")) === "true", "активний стан не позначено");
+      const now = await h.attr("#repeat", "data-repeat");
+      h.expect(["off", "one"].includes(was) && ["off", "one"].includes(now) && was !== now, `перемикач не перемкнувся (${was} → ${now})`);   // "off" is how «далі» is SHOWN (view.js shownRepeat)
+      h.expect((await h.attr("#repeat", "aria-pressed")) === (now === "one" ? "true" : "false"), "«одна по колу» не підсвічена");
       await h.tap("#repeat"); await h.wait(150);
-      h.expect((await h.attr("#repeat", "data-repeat")) === "one", "не перемкнувся на «один трек»");
-      await h.tap("#repeat"); await h.wait(150);
-      h.expect((await h.attr("#repeat", "data-repeat")) === "off", "цикл не замкнувся");
-      h.expect((await h.attr("#repeat", "aria-pressed")) === "false", "вимкнений стан не позначено");
+      h.expect((await h.attr("#repeat", "data-repeat")) === was, "другий тап не повернув режим");
     },
   },
   {

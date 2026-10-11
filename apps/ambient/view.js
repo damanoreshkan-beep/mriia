@@ -4,6 +4,7 @@ import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Transport, Segmented, Slider } from "/_rt/ui.js";
 import { audioSupported, noiseSource as src, filter as bqf, lfo, strike, createEngine } from "/_rt/audio.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -139,7 +140,9 @@ export function ambient({ S }) {
   return html`<div class="flex flex-col items-center gap-[var(--ms-gap)] pt-1"
     data-mix-state=${anyOn ? (paused ? "paused" : "playing") : "idle"} data-mix-on=${active.size} data-timer-min=${timerMin}>
     ${""}
-    <${Transport} locale=${loc} size="sm" playing=${anyOn && !paused} disabled=${!anyOn}
+    ${/* the kit's organic play button (owner 2026-10-11: «розповсюджувати нову дизайн систему»). No seek and no
+         loop toggle: a mix is endless generated layers — no track to scrub, no next one to go on to. */""}
+    <${Transport} form locale=${loc} playing=${anyOn && !paused} disabled=${!anyOn}
       onToggle=${() => { ensure(); setPaused((p) => !p); }}
       subtitle=${anyOn ? `${active.size} · ${paused ? T(t, "aResume") : T(t, "playing")}` : null} />
 
@@ -151,7 +154,9 @@ export function ambient({ S }) {
           ${items.map(({ key, name, icon }) => { const on = active.has(key); return html`<div data-layer=${key} data-on=${on ? "1" : null} class=${`rounded-[var(--ms-r)] p-[var(--ms-pad)] flex flex-col gap-2 transition-[box-shadow,background-color] ${on ? "bg-[var(--app-tint)] sf-e3" : "sf-raised sf-e2"}`} key=${key}>
             <button aria-pressed=${on} class="flex items-center gap-2.5 text-left w-full" onClick=${() => toggle(key)}>
               ${""}
-              <span class=${`flex items-center justify-center w-9 h-9 rounded-full shrink-0 ${on ? "sf-e2 text-primary" : "sf-inset text-muted"}`}>${Icon(icon, "text-xl")}</span>
+              ${/* the sound's own form (core shape.js, seeded by its key — the same on every phone) in place of a
+                   circle: an outline at rest, lit while it plays (owner 2026-10-09: «досить будувати квадратики») */""}
+              <span class="am-form"><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(shapeOf(key))} /></svg>${Icon(icon, "text-xl")}</span>
               <span class="font-semibold flex-1 min-w-0 truncate">${T(t, name)}</span>
               ${on ? Icon("lucide:volume-2", "text-primary shrink-0") : null}
             </button>

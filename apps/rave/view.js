@@ -7,6 +7,7 @@ import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { usePanX } from "/_rt/gesture.js";
 import { Sheet, Segmented, Transport, Island, Slider } from "/_rt/ui.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 import { audioSupported, midiToFreq, createEngine } from "/_rt/audio.js";
 import { generateGroove, mulberry32 } from "/_rt/groove.js";
 import { collection } from "/_rt/db.js";
@@ -272,7 +273,10 @@ export function rave({ S, screen, openScreen, closeScreen }) {
           <div class="flex-1 min-w-0"><${Slider} id="mfilter" attr="data-filter" label=${T(t, "fxFilter")} min=${0} max=${1} step=${0.01} value=${fx.mfilter} onInput=${(v) => setFx("mfilter", v)} /></div>
           <span class=${`${LABEL} tabular-nums shrink-0 pb-1`}>${bpm} BPM</span>
         </div>
-        <${Transport} locale=${loc} playing=${playing} stopIcon onToggle=${toggle} disabled=${!audioSupported}
+        ${/* the kit's free-form play button (owner 2026-10-11: «розповсюджувати нову дизайн систему»). No orb
+             here — the 3D stage IS this screen's form. No loop toggle either: a beat is a 16-step loop that never
+             ends, so «одна по колу» is the only mode there is; prev/next step through the generator by hand. */""}
+        <${Transport} form locale=${loc} playing=${playing} stopIcon onToggle=${toggle} disabled=${!audioSupported}
           onPrev=${() => stepTrack(-1)} onNext=${() => stepTrack(1)}
           keep=${2} moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
           actions=${[
@@ -308,7 +312,7 @@ export function ravePads({ S, toast, screen, openScreen, closeScreen }) {
 
     <${Island} pinned className="w-full max-w-xl">
         ${""}
-        <${Transport} locale=${loc} stopIcon playing=${playing} onToggle=${toggle} disabled=${!audioSupported} keep=${4}
+        <${Transport} form locale=${loc} stopIcon playing=${playing} onToggle=${toggle} disabled=${!audioSupported} keep=${4}
           moreOpen=${screen === "more"} onMore=${() => openScreen("more")} onMoreClose=${closeScreen}
           actions=${[
             { id: "gen", icon: "lucide:sparkles", label: T(t, "gen"), onClick: newTrack, tone: "accent", active: sweep >= 0, pulse: sweep >= 0, attr: { "data-gen": true } },
@@ -371,7 +375,9 @@ export function raveSaved({ S, undo }) {
     ${""}
     ${list.map((it) => { const on = isCur(it); return html`<div data-saved class="card bg-base-100 rounded-[var(--ms-r)]" key=${it.id}>
       <div class="card-body p-3 flex-row items-center gap-3">
-        <button data-play disabled=${!audioSupported} aria-label=${on ? T(t, "aStop") : T(t, "aPlay")} class=${`btn btn-circle btn-sm shrink-0 ${on ? "btn-secondary" : "btn-primary"}`} onClick=${() => play(it)}>${Icon(on ? "lucide:square" : "lucide:play", "text-base")}</button>
+        ${/* a saved beat's play key is the beat's OWN form (core shape.js, seeded by its id): the same beat, the same
+             form on every phone; a static path, so the list draws nothing at rest */""}
+        <button data-play data-on=${on ? "true" : "false"} disabled=${!audioSupported} aria-label=${on ? T(t, "aStop") : T(t, "aPlay")} class="rv-beat ms-press" onClick=${() => play(it)}><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(shapeOf(it.id))} /></svg>${Icon(on ? "lucide:square" : "lucide:play", "text-base")}</button>
         <button data-load class="flex-1 min-w-0 text-left flex flex-col gap-1.5" onClick=${() => open(it)}>
           <span class="flex items-baseline justify-between gap-2"><span class="font-semibold truncate">${it.name || T(t, "beatWord")}</span><span class=${`${LABEL} tabular-nums shrink-0`}>${it.bpm || 130} BPM</span></span>
           <${Spectrum} tracks=${it.tracks} live=${on} cur=${cur} />

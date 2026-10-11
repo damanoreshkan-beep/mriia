@@ -8,4 +8,9 @@
     :root{--tide-s:60%;--tide-l:58%}
     [data-theme="signal-light"]{--tide-s:55%;--tide-l:40%}
     .tide-dot{background:hsl(var(--tide-hue) var(--tide-s) var(--tide-l))}
+    /* A STATION'S GLYPH in the picker — its own form (core shape.js, seeded by its id), small: a faint outline
+       at rest, filled with the current's colour when it is the one on air (the same mark the dot was). */
+    .tide-glyph{width:1.25rem;height:1.25rem;flex:none;overflow:visible}
+    .tide-glyph path{fill:none;stroke:color-mix(in oklch,var(--color-base-content) 38%,transparent);stroke-width:1.25;vector-effect:non-scaling-stroke;transition:fill var(--t-state) var(--ease-out),stroke var(--t-state) var(--ease-out)}
+    [aria-pressed="true"] .tide-glyph path{fill:hsl(var(--tide-hue) var(--tide-s) var(--tide-l));stroke:hsl(var(--tide-hue) var(--tide-s) var(--tide-l))}
   </style>

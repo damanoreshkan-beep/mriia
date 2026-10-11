@@ -1,0 +1,9 @@
+  <style>
+    /* V2M — the play button and the seek are the kit's free forms (<Transport form>, core runtime.css .tp-form /
+       .tp-filament). The tune's own form is already on screen: the stage draws its bytes, so no orb here. */
+
+    /* the loop is ON («одна по колу»): the repeat-1 glyph in the app's light — the kit's lit state is the theme's
+       primary, cream on black, which a phone does not tell from an unlit glyph */
+    #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+  </style>

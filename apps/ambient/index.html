@@ -52,6 +52,25 @@
     }
   }
   </script>
+  <style>
+    /* AMBIENT — every sound is a FORM, not a circle (owner 2026-10-09: «досить будувати квадратики, потрібні
+       форми довільні»). A layer owns one of the farm's organic shapes (core shape.js, seeded by its key), its
+       icon inside: an outline at rest, lit in the app's light while it plays. The form never morphs — it is
+       the sound's identity; only the light says on/off. At rest the screen draws nothing. */
+    .am-form { position: relative; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none;
+      color: color-mix(in oklch, var(--color-base-content) 62%, transparent); transition: color var(--t-state) var(--ease-out); }
+    .am-form > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .am-form > iconify-icon { position: relative; }
+    .am-form path { fill: color-mix(in oklch, var(--color-base-content) 5%, transparent);
+      stroke: color-mix(in oklch, var(--color-base-content) 30%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke;
+      transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
+    [aria-pressed="true"] .am-form { color: var(--app-accent); }
+    [aria-pressed="true"] .am-form path { fill: color-mix(in oklch, var(--app-accent) 16%, transparent); stroke: var(--app-accent); }
+    [data-theme="signal"] [aria-pressed="true"] .am-form > svg { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    /* paper: a glow on white is a smear — the lit form is the deep pole, no bloom */
+    [data-theme="signal-light"] [aria-pressed="true"] .am-form { color: var(--color-secondary); }
+    [data-theme="signal-light"] [aria-pressed="true"] .am-form path { fill: color-mix(in oklch, var(--color-secondary) 12%, transparent); stroke: var(--color-secondary); }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Звуки</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

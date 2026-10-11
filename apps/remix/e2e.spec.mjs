@@ -44,6 +44,20 @@ export default [
     },
   },
   {
+    name: "форма: кожна версія — своя форма в рядку, сфера в плеєрі перетікає у форму вибраної версії", run: async (h) => {
+      await mixed(h);
+      h.expect((await h.count("[data-pick] svg.rx-glyph")) === 3, "не три форми версій у рядках");
+      h.expect((await h.count("[data-remix] [data-orb]")) === 1, "немає сфери в плеєрі");
+      h.expect((await h.count("[data-tp-filament]")) === 1, "плеєр не на формі (немає нитки перемотки)");
+      const was = await h.attr("[data-orb]", "data-form");
+      await h.tap('[data-pick="nightcore"]'); await h.wait(450);
+      const now = await h.attr("[data-orb]", "data-form");
+      h.expect(!!was && !!now && was !== now, `сфера не змінила форму (${was} → ${now})`);   // slowed / nightcore seed different forms (core shapeOf)
+      await h.tap('[data-pick="slowed"]'); await h.wait(450);
+      h.expect((await h.attr("[data-orb]", "data-form")) === was, "сфера не повернулась до форми першої версії");
+    },
+  },
+  {
     name: "зберегти: тап каже «Збережено»", run: async (h) => {
       await mixed(h);
       await h.tap('[data-save="deep"]'); await h.wait(400);

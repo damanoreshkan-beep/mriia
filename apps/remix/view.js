@@ -1,5 +1,5 @@
 import { html } from "htm/preact";
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { atom } from "nanostores";
 import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
@@ -8,6 +8,7 @@ import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { Panel, Transport } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
+import { shapeOf, pathOf, scalePath, shaper } from "/_rt/shape.js";
 import { askAI } from "/_rt/ai-core.js";
 import { takeShared, firstLink } from "/_rt/share.js";
 import { videoId, clock, byline } from "/_rt/muzak.js";
@@ -172,6 +173,34 @@ async function keep(v, link, toast, t) {
   } catch { $kept.set({ ...$kept.get(), [v]: "" }); $err.set("errKeep"); }
 }
 
+// THE ORB — the version in the transport as its own form (core shape.js, seeded by the version, so slowed, deep and
+// nightcore keep the same three forms on every song and the eye learns them), the theme's material through it, its
+// edge a rim of light; ▶︎▶︎ flows it into the next version's form (one-shot). The song's cover is already on the card
+// above — the same picture twice is a caption — so the orb holds the theme's fill, as in fonoteka. Layout effects:
+// the first paint already has the form.
+function Orb({ v }) {
+  const orb = useRef(), fill = useRef(), rim = useRef(), form = useRef();
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    form.current = shaper(shapeOf(v), lay);
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orb.current);
+    return () => { ro.disconnect(); form.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { form.current?.to(shapeOf(v)); }, [v]);
+  return html`<div ref=${orb} data-orb data-form=${shapeOf(v)} class="rx-orb" aria-hidden="true">
+    <div ref=${fill} class="rx-fill"></div>
+    <svg ref=${rim} class="rx-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
+  </div>`;
+}
+// a version's form, small, in its row: an outline at rest, lit when it is the one in the transport
+const glyph = (v) => html`<svg aria-hidden="true" viewBox="0 0 1 1" class="rx-glyph"><path d=${pathOf(shapeOf(v))} /></svg>`;
+
 export function remix({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
@@ -248,7 +277,7 @@ export function remix({ S, toast }) {
             <button data-pick=${v} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPick")}: ${T(t, `v_${v}`)}`} disabled=${st !== "ready"}
               onClick=${() => pick(v)}
               class=${`flex-1 min-w-0 flex items-center gap-3 text-left rounded-[var(--ms-r-in)] px-2 h-[var(--ms-ctl)] min-h-0 ${on ? "sf-pressed" : ""} disabled:opacity-60`}>
-              <span aria-hidden="true" class=${`w-2 h-2 shrink-0 rounded-full ${on ? "bg-[var(--app-accent)]" : "bg-base-content/20"}`}></span>
+              ${glyph(v)}
               <span class="min-w-0 flex-1 flex flex-col leading-tight">
                 <span class="font-semibold text-sm truncate">${T(t, `v_${v}`)}</span>
                 ${p ? html`<span class="flex flex-wrap gap-x-2 text-xs text-base-content/70 leading-snug"><span class="font-mono tabular-nums">${presetLine(p)}</span><span>${T(t, roomKey(p))}</span></span>`
@@ -271,8 +300,13 @@ export function remix({ S, toast }) {
         })}
       </div>
       ${/* no title block: the picked row above already names the version — the same words twice is a caption */""}
-      ${anyReady ? html`<${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${toggle}
-        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat} />` : null}
+      ${/* motion and free forms (owner 2026-10-11: «розповсюджувати нову дизайн систему»): the orb over the kit's
+           <Transport form> — the organic play button and the filament seek */""}
+      ${anyReady ? html`<div data-player class="flex flex-col items-center gap-[var(--ms-gap)] pt-2">
+        <${Orb} v=${cur || VARIANTS[0]} />
+        <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} className="w-full pt-1"
+          onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat} />
+      </div>` : null}
     <//>` : null}
   </div>`;
 }

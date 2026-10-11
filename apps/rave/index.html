@@ -52,6 +52,20 @@
     }
   }
   </script>
+  <style>
+    /* RAVE — onto the farm's free forms (owner 2026-10-11: «розповсюджувати нову дизайн систему» to the music apps).
+       The player's play button is the kit's (<Transport form>, core runtime.css .tp-form). A SAVED BEAT'S play key is
+       the beat's own form (core shape.js, seeded by its id) in place of a circle: ink at rest, the secondary while
+       that beat is the one playing — the colours the circle had. A static path: nothing draws at rest. */
+    .rv-beat { position: relative; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; color: var(--color-primary-content); }
+    .rv-beat > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .rv-beat > svg path { fill: var(--color-primary); transition: fill var(--t-state) var(--ease-out); }
+    .rv-beat > iconify-icon { position: relative; }
+    .rv-beat[data-on="true"] { color: var(--color-secondary-content); }
+    .rv-beat[data-on="true"] > svg path { fill: var(--color-secondary); }
+    .rv-beat:disabled { opacity: .4; }
+    .rv-beat:focus-visible { outline: 2px solid var(--color-base-content); outline-offset: 3px; border-radius: 50%; }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Рейв</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

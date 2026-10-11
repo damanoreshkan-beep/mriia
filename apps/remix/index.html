@@ -53,10 +53,40 @@
   }
   </script>
   <style>
+    /* REMIX on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»), after
+       fonoteka and muzak. Each VERSION owns one of the farm's organic forms (core shape.js, seeded by the version);
+       the one in the transport is the ORB — the theme's material through that form, its edge a rim of light — and
+       it flows into the next version's form when the version changes. At rest the orb draws nothing. */
+    .rx-orb { position: relative; width: min(13rem, 56vw, 28dvh); aspect-ratio: 1; margin-inline: auto; }
+    .rx-fill { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    /* the rim: the same path as the clip, drawn in an SVG over it so the light can spill OUTSIDE the form */
+    .rx-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .rx-rim path { fill: none; vector-effect: non-scaling-stroke; transition: stroke var(--t-state) var(--ease-out), opacity var(--t-state) var(--ease-out); }
+    .rx-rim .e { stroke: var(--lm-rim-hi); stroke-width: 1.25; }
+    .rx-rim .b1 { stroke: var(--app-accent); stroke-width: 12; opacity: 0; }
+    .rx-rim .b2 { stroke: var(--app-accent); stroke-width: 4; opacity: 0; }
+    [data-playing="true"] .rx-rim .e { stroke: color-mix(in oklch, var(--app-accent) 85%, white); }
+    [data-playing="true"] .rx-rim .b1 { opacity: .07; }
+    [data-playing="true"] .rx-rim .b2 { opacity: .22; }
+    /* paper: a glow on white is a smear — the playing rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .rx-rim .e { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    [data-theme="signal-light"] [data-playing="true"] .rx-rim .e { stroke: var(--color-secondary); stroke-width: 1.75; }
+    [data-theme="signal-light"] .rx-rim .b1, [data-theme="signal-light"] .rx-rim .b2 { display: none; }
+
+    /* The play button (a form that changes with the state) and the filament seek are the kit's —
+       <Transport form>, core runtime.css .tp-form / .tp-filament. */
+
     /* the loop is ON («одна по колу»): the repeat-1 glyph in the app's light — the kit's lit state is the theme's
        primary, cream on black, which a phone does not tell from an unlit glyph (as in muzak and fonoteka) */
     #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
     [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+
+    /* A VERSION'S GLYPH — its own form, small, in its row: an outline at rest, lit when it is the one picked. */
+    .rx-glyph { width: 1.5rem; height: 1.5rem; flex: none; overflow: visible; }
+    .rx-glyph path { fill: none; stroke: color-mix(in oklch, var(--color-base-content) 38%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
+    [aria-pressed="true"] .rx-glyph path { fill: var(--app-accent); stroke: var(--app-accent); }
+    [data-theme="signal"] [aria-pressed="true"] .rx-glyph { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] [aria-pressed="true"] .rx-glyph path { fill: var(--color-secondary); stroke: var(--color-secondary); }
   </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
