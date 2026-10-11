@@ -52,6 +52,12 @@
     }
   }
   </script>
+  <style>
+    /* the loop is ON («одна по колу»): the repeat-1 glyph in the app's light — the kit's lit state is the theme's
+       primary, cream on black, which a phone does not tell from an unlit glyph (as in muzak and fonoteka) */
+    #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Ремікс</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

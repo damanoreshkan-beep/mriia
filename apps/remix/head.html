@@ -1,0 +1,6 @@
+  <style>
+    /* the loop is ON («одна по колу»): the repeat-1 glyph in the app's light — the kit's lit state is the theme's
+       primary, cream on black, which a phone does not tell from an unlit glyph (as in muzak and fonoteka) */
+    #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+  </style>

@@ -73,6 +73,18 @@ export default [
     },
   },
   {
+    name: "по колу чи далі: перемикач у плеєрі ходить між «далі» і «одна по колу»", run: async (h) => {
+      await mixed(h);
+      h.expect((await h.count("[data-remix] #repeat")) === 1, "немає перемикача");
+      const was = await h.attr("[data-remix] #repeat", "data-repeat");
+      await h.tap("[data-remix] #repeat"); await h.wait(150);
+      const now = await h.attr("[data-remix] #repeat", "data-repeat");
+      h.expect(["off", "one"].includes(was) && ["off", "one"].includes(now) && was !== now, `перемикач не перемкнувся (${was} → ${now})`);   // "off" is how «далі» is SHOWN (view.js shownRepeat)
+      await h.tap("[data-remix] #repeat"); await h.wait(150);
+      h.expect((await h.attr("[data-remix] #repeat", "data-repeat")) === was, "другий тап не повернув режим");
+    },
+  },
+  {
     name: "i18n EN/UA", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('[data-loc="en"]'); await h.wait(250);
