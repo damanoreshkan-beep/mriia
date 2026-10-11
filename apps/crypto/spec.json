@@ -40,6 +40,7 @@
       "card": {
         "layout": "row",
         "lead": "base",
+        "form": "base",
         "title": "name",
         "trailing": "price",
         "trend": "chg"
