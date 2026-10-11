@@ -17,11 +17,16 @@
 
     
 
+    #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
+
+    
     .fk-glyph { width: 1.75rem; height: 1.75rem; flex: none; overflow: visible; }
     .fk-glyph path { fill: none; stroke: color-mix(in oklch, var(--color-base-content) 38%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
     [aria-pressed="true"] .fk-glyph path, .fk-glyph.on path { fill: var(--app-accent); stroke: var(--app-accent); }
     [data-theme="signal"] [aria-pressed="true"] .fk-glyph, [data-theme="signal"] .fk-glyph.on { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
     [data-theme="signal-light"] [aria-pressed="true"] .fk-glyph path, [data-theme="signal-light"] .fk-glyph.on path { fill: var(--color-secondary); stroke: var(--color-secondary); }
+    
     .fk-up { position: relative; width: 1.75rem; height: 1.75rem; flex: none; }
     .fk-up .fk-glyph { position: absolute; inset: 0; }
     .fk-up .fk-glyph.lit path { fill: var(--app-accent); stroke: var(--app-accent); }

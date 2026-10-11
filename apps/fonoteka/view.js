@@ -1,6 +1,7 @@
 import { html } from "htm/preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { atom } from "nanostores";
+import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T, sys } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
@@ -29,6 +30,9 @@ const $cur = atom("");
 const $playing = atom(false);
 const $pos = atom(0), $dur = atom(0);
 let audio = null, hold = null, loaded = gate, kept = "";
+const $repeat = persistentAtom("fonoteka:repeat", "all");
+const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
+const shownRepeat = (r) => (r === "one" ? "one" : "off");
 
 const store = gate ? null : songStore();
 const keep = gate ? null : keeper({
@@ -156,7 +160,7 @@ function toggle() {
 }
 function step(dir, manual = true) {
   const list = $songs.get() || [];
-  const next = advance(list.findIndex((s) => s.id === $cur.get()), list.length, { step: dir, repeat: "all", manual });
+  const next = advance(list.findIndex((s) => s.id === $cur.get()), list.length, { step: dir, repeat: $repeat.get(), manual });
   if (next >= 0) play(list[next].id);
 }
 function seek(ms) { if (audio && !gate) audio.currentTime = ms / 1000; $pos.set(ms); }
@@ -205,7 +209,7 @@ export function fonoteka({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const songs = useStore($songs), usage = useStore($usage), uploads = useStore($uploads), err = useStore($err), held = useStore($held);
   const onPhone = songs ? songs.filter((s) => held.has(s.id)).length : 0;
-  const cur = useStore($cur), playing = useStore($playing), pos = useStore($pos), dur = useStore($dur);
+  const cur = useStore($cur), playing = useStore($playing), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
   toastFn = toast; tNow = t;
   useEffect(() => { load(); }, []);
   const now = cur ? songOf(cur) : null;
@@ -248,7 +252,7 @@ export function fonoteka({ S, toast, confirm }) {
         <svg ref=${rim} class="fk-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
       </div>
       <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full pt-1"
-        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek}
+        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
         title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? (now.artist || clock(now.dur)) : ""}
         actions=${[{ id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => shareSong(now), disabled: !now, attr: { "data-share": true } }]} />
     </section>

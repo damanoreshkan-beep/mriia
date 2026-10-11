@@ -1,6 +1,7 @@
 import { html } from "htm/preact";
 import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { atom } from "nanostores";
+import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
@@ -58,7 +59,10 @@ const $cur = atom("");
 const $playing = atom(false), $loading = atom(false);
 const $pos = atom(0), $dur = atom(0);
 let audio = null, hold = null;
-const curSong = () => $q.get().find((s) => s.id === $cur.get()) || null;
+const $repeat = persistentAtom("muzak:repeat", "all");
+const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
+const shownRepeat = (r) => (r === "one" ? "one" : "off");
+const curSong =() => $q.get().find((s) => s.id === $cur.get()) || null;
 
 function ensure() {
   if (audio) return audio;
@@ -99,7 +103,7 @@ function toggle(s, queue) {
 }
 function step(dir, manual = true) {
   const q = $q.get();
-  const next = advance(q.findIndex((s) => s.id === $cur.get()), q.length, { step: dir, repeat: "all", manual });
+  const next = advance(q.findIndex((s) => s.id === $cur.get()), q.length, { step: dir, repeat: $repeat.get(), manual });
   if (next >= 0) play(q[next]);
 }
 function seek(ms) { if (audio && !gate) audio.currentTime = ms / 1000; $pos.set(ms); }
@@ -138,7 +142,7 @@ const actionsFor = (s, kept, t, toast) => [
 export function muzak({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
-  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept);
+  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat);
   const input = useRef();
   useEffect(() => { if (!gate && !meta) input.current?.focus(); }, []);
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   
@@ -183,7 +187,7 @@ export function muzak({ S, toast }) {
       </div>
       ${on ? html`<div class="flex flex-col gap-1">
         ${loading ? html`<div data-preparing role="status" class="text-xs text-base-content/70 animate-pulse">${T(t, "preparing")}</div>` : null}
-        <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek}
+        <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           actions=${actionsFor(song, kept[song.id], t, toast)} />
       </div>` : html`<div class="flex items-center gap-1">
         <button data-listen onClick=${() => toggle(song, [song])}
@@ -283,7 +287,7 @@ export function likes({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const sid = useStore(session)?.sid || "";
   const l = useStore($likes), busy = useStore($lBusy), err = useStore($lErr), playErr = useStore($err);
-  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept);
+  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat);
   
   useEffect(() => { if (!gate) restore().then((s) => { if (!s) $likes.set({ connected: false }); }).catch(() => {}); }, []);
   useEffect(() => { if (sid && !gate) readLikes(); }, [sid]);   
@@ -327,7 +331,7 @@ export function likes({ S, toast, confirm }) {
     : html`${songs.length ? html`<section data-player aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)] pt-2">
         <${Orb} song=${now} />
         <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle(now ? null : songs[0], now ? null : songs)} className="w-full pt-1"
-          onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length}
+          onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           title=${shown ? shown.title : ""} subtitle=${now && loading ? T(t, "preparing") : shown ? [shown.artist, clock(shown.dur)].filter(Boolean).join(" · ") : ""}
           actions=${shown ? actionsFor(shown, kept[shown.id], t, toast) : []} />
       </section>` : null}
