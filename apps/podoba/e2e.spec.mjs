@@ -35,8 +35,11 @@ export default [
       h.expect((await h.count('[data-mat] [data-form] .ly-rim path.e')) === 11, "у форм немає краю");
       const lit = await h.css('[data-mat="lum"] .ly-rim .e', "stroke"), dim = await h.css('[data-mat="ink"] .ly-rim .e', "stroke");
       h.expect(lit !== dim, "край обраного матеріалу не відрізняється");
-      await h.click('[data-mat="ink"]'); await h.wait(350);
-      h.expect(await h.css('[data-mat="ink"] .ly-rim .e', "stroke") === lit, "край не засвітився у Туші");
+      // the rim colour runs on a --t-state transition: poll for the lit colour, never read it mid-way (CI 7c23343)
+      await h.click('[data-mat="ink"]');
+      let inkLit = false;
+      for (let i = 0; i < 20 && !inkLit; i++) { inkLit = (await h.css('[data-mat="ink"] .ly-rim .e', "stroke")) === lit; if (!inkLit) await h.wait(100); }
+      h.expect(inkLit, "край не засвітився у Туші");
       h.expect(await h.css('[data-mat="lum"] .ly-rim .e', "stroke") === dim, "край Сяйва не згас");
     },
   },
