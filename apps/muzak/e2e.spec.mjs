@@ -61,6 +61,9 @@ export default [
       h.expect((await h.count("[data-like] [data-keep]")) === 4, "не в кожної пісні «У Фонотеку»");
       for (const a of ["share", "mix"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
       h.expect((await h.count("[data-like] [data-save]")) === 4, "не в кожної пісні «Скачати»");
+      h.expect((await h.count("[data-like] [data-mix]")) === 4, "не в кожної пісні «Мікс»");
+      await h.tap('[data-like] [data-mix="pAgnJDJN4VA"]'); await h.wait(400);
+      h.expect(/Обидві версії у Фонотеці|Both versions are in Fonoteka/.test(await h.bodyText()), "мікс не сказав, що обидві версії у Фонотеці");
       await h.tap('[data-like] [data-save="kXYiU_JCYtU"]'); await h.wait(400);
       h.expect(/Збережено|Saved/.test(await h.bodyText()), "скачування не сказало «Збережено»");
       h.expect(/YouTube · Оксана/i.test(await h.bodyText()), "немає рядка, чий це YouTube");   // the label is uppercase by CSS, and innerText carries it
