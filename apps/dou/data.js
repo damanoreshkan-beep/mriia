@@ -30,12 +30,12 @@ function parse(xml, bron) {
     const g = (s) => it.querySelector(s)?.textContent?.trim() || "";
     const tmp = document.createElement("div"); tmp.innerHTML = g("description");
     for (const el of tmp.querySelectorAll("p,div,br,li,tr,h1,h2,h3,h4,h5,h6,section,article,blockquote")) {
-      el.parentNode?.insertBefore(document.createTextNode(" "), el);
+      el.parentNode?.insertBefore(document.createTextNode(el.tagName === "LI" ? "\n• " : "\n"), el);
     }
-    const desc = tmp.textContent.replace(/\s+/g, " ").trim();
+    const desc = tmp.textContent.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n").replace(/^•\n/gm, "• ");   
     const m = parseTitle(g("title"));
     const tech = TECH.filter((k) => new RegExp("\\b" + k.replace("+", "\\+"), "i").test(m.position + " " + desc)).slice(0, 3);
-    return { ...m, link: g("link"), bron, tech, desc: desc.slice(0, 600), ts: new Date(g("pubDate")).getTime() };
+    return { ...m, link: g("link"), bron, tech, desc, ts: new Date(g("pubDate")).getTime() };
   });
 }
 let _cats = null;
