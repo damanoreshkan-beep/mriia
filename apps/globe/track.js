@@ -131,7 +131,7 @@ export function iss({ S }) {
 
     ${me
       ? html`<div data-me class="flex items-center gap-2 text-xs text-muted"><span class="inline-block size-2 rounded-full" style=${`background:${ME_COLOR}`}></span>${T(t, "meHere")} · ${T(t, "trackAhead")}</div>`
-      : html`<button type="button" data-me-ask class="btn btn-sm btn-ghost rounded-full gap-1.5" onClick=${findMe}>${Icon("lucide:locate-fixed", "text-base")}${T(t, meErr ? "meDenied" : "meShow")}</button>`}
+      : html`<button type="button" data-me-ask class="btn btn-sm btn-ghost rounded-full gap-1.5 ms-press" onClick=${findMe}>${Icon("lucide:locate-fixed", "text-base")}${T(t, meErr ? "meDenied" : "meShow")}</button>`}
 
     <div data-over class="flex items-center gap-2 text-sm">
       <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-70"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-success"></span></span>

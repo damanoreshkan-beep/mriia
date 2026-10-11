@@ -65,6 +65,23 @@ export default [
     },
   },
   {
+    name: "місто має власну форму: обране світиться, обране місце несе її під компасом", run: async (h) => {
+      await ready(h);
+      await h.click("#open-globe"); await h.wait(300);
+      const forms = new Set();
+      for (const c of ["Kyiv", "London", "Tokyo", "New York", "Sydney"]) forms.add(await h.attr(`[data-city="${c}"] [data-form]`, "data-form"));
+      h.expect(forms.size === 5, "у міст-пресетів немає п'яти різних форм");
+      await h.click('[data-city="London"]'); await h.wait(200);
+      h.expect((await h.attr('[data-city="London"]', "aria-pressed")) === "true", "обране місто не позначене");
+      h.expect((await h.attr('[data-city="Kyiv"]', "aria-pressed")) === "false", "необране місто позначене");
+      const form = await h.attr('[data-city="London"] [data-form]', "data-form");
+      await h.click("#pick-here"); await h.wait(300);
+      h.expect((await h.attr("#clear-pick [data-form]", "data-form")) === form, "обране місце не несе форму свого міста");
+      await h.click("#clear-pick"); await h.wait(200);
+      h.expect((await h.count("#clear-pick")) === 0, "обране місце не скинулось");
+    },
+  },
+  {
     name: "системний multi-фільтр планет", run: async (h) => {
       await ready(h);
       h.expect((await h.count("#filter-btn")) === 1, "немає кнопки фільтра");

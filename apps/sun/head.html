@@ -1,0 +1,16 @@
+  <style>
+    .sn-form { flex: none; width: 1rem; height: 1rem; overflow: visible; }
+    .sn-form path { fill: transparent; stroke: color-mix(in oklch, var(--color-base-content) 45%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
+    .sn-city:active .sn-form path { stroke: var(--app-accent); }
+    .sn-city[aria-pressed="true"] .sn-form path { fill: var(--app-accent); stroke: var(--app-accent); }
+    .btn.sn-city[aria-pressed="true"]:not(.btn-link):not(:disabled) { box-shadow: var(--sf-press); }
+    [data-theme="signal"] .sn-city[aria-pressed="true"] .sn-form { filter: drop-shadow(0 0 4px var(--lm-bloom-hi)); }
+    
+    .sn-picked .sn-form path { fill: var(--app-accent); stroke: var(--app-accent); }
+    [data-theme="signal"] .sn-picked .sn-form { filter: drop-shadow(0 0 4px var(--lm-bloom-hi)); }
+
+    
+    [data-theme="signal-light"] .sn-city:active .sn-form path { stroke: var(--color-secondary); }
+    [data-theme="signal-light"] .sn-city[aria-pressed="true"] .sn-form path,
+    [data-theme="signal-light"] .sn-picked .sn-form path { fill: var(--color-secondary); stroke: var(--color-secondary); }
+  </style>
