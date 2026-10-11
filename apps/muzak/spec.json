@@ -21,6 +21,13 @@
       "needs": ["auth"]
     },
     {
+      "id": "free",
+      "type": "tool",
+      "icon": "lucide:badge-check",
+      "label": "tabFree",
+      "view": "free"
+    },
+    {
       "id": "me",
       "type": "profile",
       "icon": "lucide:user",

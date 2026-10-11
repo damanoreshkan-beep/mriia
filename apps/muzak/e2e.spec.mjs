@@ -86,6 +86,18 @@ export default [
     },
   },
   {
+    name: "вільні: пісні під Creative Commons, перезалив чужої підсвічено, стрілка відкриває картку з ліцензією", run: async (h) => {
+      await h.click('[data-tab="free"]'); await h.wait(250);
+      h.expect((await h.attr("[data-free]", "data-songs")) === "4", "не 4 вільні пісні під гейтом");
+      h.expect((await h.count("[data-free-word]")) >= 6, "немає слів-підказок");
+      h.expect((await h.count('[data-free-song][data-doubt="true"]')) === 1, "перезалив чужої пісні не підсвічено");
+      h.expect((await h.count("[data-doubt-note]")) === 1, "немає пояснення сумніву");
+      await h.click('[data-free-open="Yy-NyPTRYU8"]'); await h.wait(300);
+      h.expect((await h.prop("[data-link]", "value")).includes("Yy-NyPTRYU8"), "пісня не відкрилась у вкладці «Пісня»");
+      h.expect((await h.count("[data-licence]")) === 1, "картка не каже про ліцензію");
+    },
+  },
+  {
     name: "i18n EN/UA", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('[data-loc="en"]'); await h.wait(250);
