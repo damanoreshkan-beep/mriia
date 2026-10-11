@@ -1,6 +1,7 @@
 import { html } from "htm/preact";
 import { useEffect, useRef } from "preact/hooks";
 import { atom } from "nanostores";
+import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
@@ -31,7 +32,10 @@ const $tracks = atom(gate ? MIXED : {});
 const $cur = atom(gate ? VARIANTS[0] : "");          
 const $playing = atom(false);
 const $pos = atom(0), $dur = atom(0);
-let seq = 0, audio = null, run = null;   
+let seq = 0, audio = null, run = null;
+const $repeat = persistentAtom("remix:repeat", "all");
+const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
+const shownRepeat = (r) => (r === "one" ? "one" : "off");   
 takeShared((s) => { const link = firstLink(s) || String(s.text || "").trim(); if (link) { $link.set(link); find(link); } });
 
 function reset() { run?.abort(); run = null; stop(); $ana.set(null); $tags.set(null); for (const t of Object.values($tracks.get())) if (t.url) URL.revokeObjectURL(t.url); $tracks.set({}); $cur.set(""); }
@@ -132,7 +136,7 @@ function toggle() {
 }
 function pick(v) { const was = $playing.get(); if (was) play(v); else $cur.set(v); }
 function step(dir, manual = true) {
-  const next = advance(VARIANTS.indexOf($cur.get()), VARIANTS.length, { step: dir, repeat: "all", manual });
+  const next = advance(VARIANTS.indexOf($cur.get()), VARIANTS.length, { step: dir, repeat: $repeat.get(), manual });
   if (next < 0) return;
   const v = VARIANTS[next];
   if ($playing.get() || !manual) play(v); else $cur.set(v);
@@ -157,7 +161,7 @@ export function remix({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
   const ana = useStore($ana), tags = useStore($tags), tracks = useStore($tracks), cur = useStore($cur), kept = useStore($kept);
-  const playing = useStore($playing), pos = useStore($pos), dur = useStore($dur), offline = useStore($offline);
+  const playing = useStore($playing), pos = useStore($pos), dur = useStore($dur), offline = useStore($offline), repeat = useStore($repeat);
   const input = useRef();
   useEffect(() => { if (!gate && !meta) input.current?.focus(); }, []);
   const paste = async () => {
@@ -251,7 +255,7 @@ export function remix({ S, toast }) {
         })}
       </div>
       ${anyReady ? html`<${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${toggle}
-        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} />` : null}
+        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat} />` : null}
     <//>` : null}
   </div>`;
 }
