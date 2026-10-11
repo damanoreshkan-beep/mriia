@@ -11,6 +11,7 @@ import { gate } from "/_rt/gate.js";
 import { fetchJson } from "/_rt/feed.js";
 import { splitBands } from "/_rt/spectrum.js";
 import { advance } from "/_rt/player.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 import { Segmented, Island, Transport, Sheet, Slider } from "/_rt/ui.js";
 import { GlStage } from "/_rt/glstage.js";
 import { useSwipe, useTap } from "/_rt/gesture.js";
@@ -327,7 +328,7 @@ export function tide({ S }) {
       </div>
 
       <${Island} className="shrink-0" tone="frost">
-        <${Transport} locale=${loc} playing=${playing} onToggle=${toggle} onPrev=${() => skip(-1)} onNext=${() => skip(1)}
+        <${Transport} form locale=${loc} playing=${playing} onToggle=${toggle} onPrev=${() => skip(-1)} onNext=${() => skip(1)}
           moreOpen=${screen === "more"} onMore=${() => S.screen.set("more")} onMoreClose=${() => S.screen.set(null)}
           title=${station.name}
           subtitle=${html`<span class="inline-flex items-center gap-1.5"><span class="tide-dot inline-block w-1.5 h-1.5 rounded-full shrink-0"></span>${T(t, cat.key)} · ${T(t, station.genre)}</span>`}
@@ -394,7 +395,8 @@ function StationSheet({ S, t, open, cat, stId, playing }) {
         return html`<button key=${s.id} data-pick=${s.id} aria-pressed=${active ? "true" : "false"} type="button"
           onClick=${() => { select(s.id); if (!playing) start(); S.screen.set(null); }}
           class=${`btn btn-ghost justify-start gap-3 h-[var(--ms-ctl)] min-h-0 px-2 ${active ? "text-primary" : ""}`}>
-          <span class=${`tide-dot inline-block w-2 h-2 rounded-full shrink-0 ${active ? "" : "opacity-0"}`}></span>
+          
+          <svg aria-hidden="true" viewBox="0 0 1 1" class="tide-glyph"><path d=${pathOf(shapeOf(s.id))} /></svg>
           <span class="flex-1 min-w-0 flex items-baseline gap-2">
             <span class="truncate font-semibold">${s.name}</span>
             <span class=${`truncate ${meta}`}>${T(t, s.genre)}</span>

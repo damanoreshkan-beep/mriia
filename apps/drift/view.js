@@ -12,6 +12,7 @@ import {
   enoLoops, loopsForDensity, dwellSeconds, mulberry32, midiToFreq,
 } from "/_rt/ambient.js";
 import { Segmented, Island, Panel, Slider, Transport } from "/_rt/ui.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 import { PACKS, packById, padVoice, textureVoice, droneVoice, sparkle, makeIR } from "./synth.js";
 import { Field, bindAudio } from "./viz.js";
 
@@ -164,7 +165,7 @@ const setDensity = (v) => { $density.set(v); };
 const setTone = (v) => { $tone.set(v); if (eng) try { toneFilter.frequency.setTargetAtTime(toneHz(v), eng.ctx.currentTime, 0.1); } catch { } };
 const setSpace = (v) => { $space.set(v); if (eng) try { revSend.gain.setTargetAtTime(v, eng.ctx.currentTime, 0.1); } catch { } };
 
-const Dot = (hue, cls = "w-2 h-2") => html`<span class=${`${cls} rounded-full shrink-0`} style=${`background:hsl(${hue} 70% 58%)`}></span>`;
+const Glyph = (s, f = shapeOf(s.id)) => html`<svg data-form=${f} aria-hidden="true" viewBox="0 0 1 1" class="w-4 h-4 shrink-0 overflow-visible"><path d=${pathOf(f)} fill=${`hsl(${s.hue} 70% 58%)`} /></svg>`;
 
 export function drift({ S }) {
   const t = useStore(S.t); curT = t;
@@ -184,8 +185,8 @@ export function drift({ S }) {
 
       ${""}
       <${Island} className="shrink-0">
-        <${Transport} locale=${loc} playing=${playing} onToggle=${toggle}
-          title=${html`<span class="inline-flex items-center gap-2">${Dot(style.hue, "w-2.5 h-2.5")}${T(t, style.key)}</span>`}
+        <${Transport} form locale=${loc} playing=${playing} onToggle=${toggle}
+          title=${html`<span class="inline-flex items-center gap-2">${Glyph(style)}${T(t, style.key)}</span>`}
           subtitle=${html`<span class="inline-flex items-center gap-1.5">${Icon(pack.icon, "text-base")}${T(t, pack.key)}${playing ? html`<span class="inline-block w-1.5 h-1.5 rounded-full bg-primary ml-1 animate-pulse"></span>` : null}</span>`}
           actions=${[{ id: "vary", icon: "lucide:shuffle", label: T(t, "aVary"), onClick: vary, disabled: !playing, haptic: "off" }]} />
       </${Island}>

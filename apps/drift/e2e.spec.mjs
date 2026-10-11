@@ -7,6 +7,7 @@ export default [
       h.expect((await h.count("[data-style]")) === 10, "немає 10 стилів");
       h.expect((await h.count("#play")) === 1, "немає кнопки відтворення");
       h.expect((await h.count("[data-field]")) === 1, "немає ембієнт-сцени");
+      h.expect((await h.count("[data-form]")) === 1, "немає форми світу");
       await h.tap("#play"); await h.wait(200);
       h.expect((await h.attr("#play", "data-playing")) === "true", "не почав грати");
       await h.tap("#play"); await h.wait(200);

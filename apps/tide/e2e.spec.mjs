@@ -52,6 +52,7 @@ export default [
       await h.tap("[data-stations]"); await h.wait(300);
       h.expect((await h.prop("#stations", "open")) === true, "аркуш станцій не відкрився");
       h.expect((await h.count("[data-pick]")) >= 6, "менше 6 станцій у течії");
+      h.expect((await h.count("[data-pick] .tide-glyph")) === (await h.count("[data-pick]")), "не кожна станція має свою форму");
       await h.back(); await h.wait(300);
       h.expect((await h.prop("#stations", "open")) !== true, "Back не закрив аркуш");
       await h.tap("[data-stations]"); await h.wait(300);

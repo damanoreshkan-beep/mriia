@@ -5,6 +5,7 @@ export default [
     name: "мікшер: 6 шарів + пауза + таймер рендеряться", run: async (h) => {
       await ready(h); await h.wait(300);
       h.expect((await h.count("[data-layer]")) === 20, "немає 20 шарів звуку");
+      h.expect((await h.count("[data-layer] .am-form path")) === 20, "у звуку немає своєї форми");
       h.expect((await h.count("#play")) === 1, "немає кнопки пауза/плей");
       h.expect((await h.prop("#play", "disabled")) === true, "пауза активна без звуків (нічого не грає)");
       h.expect((await h.count("[data-timer]")) === 3, "немає чипів таймера сну");
