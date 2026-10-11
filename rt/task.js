@@ -1,7 +1,5 @@
 import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 
-const DS_CLIENT = "https://esm.sh/@durable-streams/client@0.2.7";   
-
 /** A key for one tap: the same key re-sent is the same task on the edge. */
 export const taskKey = () => crypto.randomUUID().replaceAll("-", "").slice(0, 24);
 
@@ -36,22 +34,28 @@ export async function startTask(route, body, { signal, fetchFn = (...a) => fetch
 }
 
 /** Every event of task `id`, in order, to `onEvent`; resolves at the stream's EOF. A gone task rejects (404). */
-export async function followTask(id, onEvent, { signal } = {}) {
-  const { stream } = await import(DS_CLIENT);
-  let n = 0;
-  const res = await stream({
-    url: `${VPS_PROXY}/task/${id}`, live: "long-poll", signal,
-    onError: async (e) => {
-      if (e?.status === 404 || e?.status === 410) return undefined;
+export async function followTask(id, onEvent, { signal, fetchFn = (...a) => fetch(...a) } = {}) {
+  let offset = "-1", cursor = "", n = 0;
+  for (;;) {
+    const q = new URLSearchParams({ offset });
+    if (offset !== "-1") { q.set("live", "long-poll"); if (cursor) q.set("cursor", cursor); }
+    let r, items = null;
+    try {
+      r = await fetchFn(`${VPS_PROXY}/task/${id}?${q}`, { signal });
+      if (r.status === 404 || r.status === 410) throw new TaskError(404, "task gone");
+      if (!r.ok) { if (final(r.status)) throw new TaskError(r.status); throw new Error(`http ${r.status}`); }
+      if (r.status !== 204) { items = await r.json(); if (!Array.isArray(items)) throw new Error("not a batch"); }
+    } catch (e) {
+      if (e instanceof TaskError || signal?.aborted) throw e;
       await pace(n++, signal);
-      return {};
-    },
-  });
-  await new Promise((done, fail) => {
-    res.subscribeJson(async (batch) => { for (const ev of batch.items) onEvent(ev); });
-    res.closed.then(done, fail);
-  });
-  if (!res.streamClosed && !signal?.aborted) throw new TaskError(404, "task gone");
+      continue;
+    }
+    n = 0;
+    for (const ev of items || []) onEvent(ev);
+    offset = r.headers.get("stream-next-offset") || offset;
+    cursor = r.headers.get("stream-cursor") || cursor;
+    if (r.headers.get("stream-closed") === "true") return;
+  }
 }
 
 function liveMirror(onLive) {
