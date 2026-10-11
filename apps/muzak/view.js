@@ -13,7 +13,7 @@ import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
 import { authWall } from "/_rt/authwall.js";
 import { shapeOf, scalePath, shaper } from "/_rt/shape.js";
-import { videoId, clock, byline, errorKey, isCC, credit, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES } from "/_rt/muzak.js";
+import { videoId, clock, byline, errorKey, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES } from "/_rt/muzak.js";
 import { taskOne, taskCall } from "/_rt/task.js";
 import { openOutside } from "/_rt/tma.js";
 import { session, restore } from "/_rt/auth.js";
@@ -131,10 +131,6 @@ function share(s, toast, t) {
   navigator.share(data).catch((e) => { if (e?.name !== "AbortError") copy(); });
 }
 
-function copyCredit(m, link, toast, t) {
-  navigator.clipboard?.writeText(credit(m, link)).then(() => toast?.(T(t, "creditCopied")), () => toast?.(T(t, "shareFail")));
-}
-
 function mix(s) { if (!gate) location.assign(`/remix/?sh_text=${encodeURIComponent(s.url)}`); }
 
 const $dl = atom("");   
@@ -211,19 +207,6 @@ export function muzak({ S, toast }) {
           <div class="font-mono text-xs tabular-nums text-base-content/70">${clock(meta.duration)}</div>
         </div>
       </div>
-      ${!gate && meta.license === undefined ? null : isCC(meta.license)
-        ? html`<div data-licence="cc" class="flex flex-col gap-1.5 rounded-[var(--ms-r-in)] sf-inset px-3 py-2.5">
-            <div class="flex items-start gap-2">
-              ${Icon("lucide:badge-check", "shrink-0 mt-0.5 text-[length:var(--ms-icon)] text-[var(--app-accent)]")}
-              <span class="flex-1 min-w-0 text-sm leading-snug">${T(t, "ccYes")}</span>
-            </div>
-            <button data-credit type="button" onClick=${() => copyCredit(meta, link, toast, t)}
-              class="btn btn-sm rounded-full sf-raised self-start ml-7 min-h-0 h-8 px-3 gap-1.5 font-medium ms-press">${Icon("lucide:copy", "text-sm")}${T(t, "aCredit")}</button>
-          </div>`
-        : html`<div data-licence="std" class="flex items-center gap-2 text-sm text-base-content/70 leading-snug">
-            ${Icon("lucide:lock", "shrink-0 text-base")}<span>${T(t, "ccNo")}</span>
-          </div>`}
-      
       ${on ? html`<div class="flex flex-col gap-1">
         ${loading ? html`<div data-preparing role="status" class="text-xs text-base-content/70 animate-pulse">${T(t, "preparing")}</div>` : null}
         <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
@@ -239,7 +222,6 @@ export function muzak({ S, toast }) {
     <//>` : null}
   </div>`;
 }
-
 
 
 const $likes = atom(gate ? FIXTURE_LIKES : null);   
@@ -301,7 +283,6 @@ async function disconnect(toast, t) {
 }
 
 
-
 const IDLE = "Cookie9Sided";
 function Orb({ song }) {
   const orb = useRef(), fill = useRef(), rim = useRef(), form = useRef();
@@ -330,16 +311,13 @@ export function likes({ S, toast, confirm }) {
   const l = useStore($likes), busy = useStore($lBusy), err = useStore($lErr), playErr = useStore($err);
   const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl);
   
-  
   useEffect(() => { if (!gate) restore().then((s) => { if (!s) $likes.set({ connected: false }); }).catch(() => {}); }, []);
   useEffect(() => { if (sid && !gate) readLikes(); }, [sid]);   
-  
   useEffect(() => {
     const on = () => { if (back && document.visibilityState === "visible") { back = false; readLikes(); } };
     document.addEventListener("visibilitychange", on);
     return () => document.removeEventListener("visibilitychange", on);
   }, []);
-  
   
   const tail = useRef();
   const songs = l?.connected ? l.songs : [];
@@ -355,7 +333,6 @@ export function likes({ S, toast, confirm }) {
   const reading = !gate && !!sid && l === null;
   const now = q.find((s) => s.id === cur) || null;
   const shown = now || songs[0] || null;   
-
   return html`<div data-likes data-connected=${on ? "true" : l ? "false" : null} data-songs=${on ? songs.length : null} data-playing=${playing ? "true" : null} data-loading=${loading ? "true" : null}
     class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
     ${err || playErr ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err || playErr)}</div>` : null}

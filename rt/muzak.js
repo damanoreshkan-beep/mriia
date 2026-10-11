@@ -25,12 +25,4 @@ export const FIXTURE_LIKES = {
   ],
 };
 
-export const isCC = (license) => /creative commons/i.test(String(license || ""));
-
-export const credit = (m, link) => [
-  `"${m.title}" — ${m.channel || m.artist || ""}`.trim(),
-  link || `https://youtu.be/${m.id}`,
-  "Licence: Creative Commons Attribution (CC BY), via YouTube",
-].join("\n");
-
 export const FIXTURE_META ={ id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", album: "Whenever You Need Somebody", year: 1987, duration: 213, cover: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg" };
