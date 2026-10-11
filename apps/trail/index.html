@@ -52,6 +52,12 @@
     }
   }
   </script>
+  <style>
+    .btn.tr-rec.sf-pressed:not(.btn-link):not(:disabled){box-shadow:var(--sf-press)}
+    button.tr-rec{transition:scale var(--t-press) var(--ease-out),background-color var(--t-state) var(--ease-out),box-shadow var(--t-state) var(--ease-out),color var(--t-state) var(--ease-out)}
+    .tr-rec > iconify-icon{transition:color var(--t-state) var(--ease-out),filter var(--t-state) var(--ease-out)}
+    .tr-rec[data-rec="on"] > iconify-icon{color:var(--app-accent);filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
+    [data-theme="signal-light"] .tr-rec[data-rec="on"] > iconify-icon{color:var(--color-secondary);filter:none}</style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">trail</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

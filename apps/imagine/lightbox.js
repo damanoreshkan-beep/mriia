@@ -53,7 +53,7 @@ export function Lightbox({ open, slides, src, index = 0, alt = "", onIndex, onCl
       </div>`)}
     </div>
     ${list.length > 1 ? html`<div data-lightbox-dots class="absolute inset-x-0 bottom-4 flex justify-center items-center gap-1.5 pointer-events-none" style="bottom:max(1rem,env(safe-area-inset-bottom))">
-      ${list.map((s, i) => html`<span key=${s.url} class=${`rounded-full transition-[width,background-color] ${i === index ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/45"}`}></span>`)}
+      ${list.map((s, i) => html`<span key=${s.url} class=${`rounded-full transition-[width,background-color] duration-[var(--t-state)] ease-[var(--ease-out)] ${i === index ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/45"}`}></span>`)}
     </div>` : null}
     <button aria-label=${sys("close", document.documentElement.lang)} class="absolute top-3 left-3 z-10 btn btn-circle btn-sm bg-black/50 text-white border-0" style="top:max(0.75rem,env(safe-area-inset-top))" onClick=${(e) => { e.stopPropagation(); onClose(); }}>${Icon("lucide:x", "text-base")}</button>
   </div>`;

@@ -8,6 +8,7 @@ export default [
       h.expect((await h.count("[data-stage]")) === 1, "немає полотна рейв-поля");
       h.expect((await h.count("[data-dancers]")) === 1, "немає полотна 3D-сцени");
       h.expect((await h.count("#play")) === 1, "немає кнопки відтворення");
+      h.expect((await h.count("#play.tp-form svg path")) === 1, "кнопка відтворення не форма");
       h.expect((await h.attr(wrap, "data-state")) === "live", "стан не live під гейтом");
       h.expect((await h.attr("#play", "data-playing")) === "true", "не грає під гейтом");
       h.expect((await h.attr(wrap, "data-cast")) === "3", "стартовий склад не 3");
@@ -45,6 +46,23 @@ export default [
       h.expect((await h.text("[data-cast-count]")).trim() === "3/12", "«Топ» не повернув трійку");
       await h.click('[data-tab="stage"]'); await ready(h);
       h.expect((await h.attr(wrap, "data-cast")) === "3", "сцена не підхопила склад");
+    },
+  },
+  {
+    name: "каст: кожен танцівник — у власній формі, і форма та сама, коли він виходить на сцену й сходить з неї", run: async (h) => {
+      await h.click('[data-tab="cast"]'); await h.wait(300);
+      const n = await h.count("[data-char]");
+      h.expect((await h.count("[data-char] [data-form] .ad-art img")) === n, "не кожен портрет у формі");
+      h.expect((await h.count("[data-char] .ad-rim path.e")) === n, "не в кожної форми є край світла");
+      const f = await h.attr('[data-char="eve"] [data-form]', "data-form");
+      h.expect(!!f && (await h.count(`#ad-c-${f} path`)) === 1, `немає обрису форми ${f}`);
+      h.expect(!!(await h.attr('[data-char="eve"] .ad-rim .e', "d")), "край не намальований");
+      await h.tap('[data-char="eve"]'); await h.wait(200);
+      h.expect((await h.attr('[data-char="eve"]', "aria-pressed")) === "true", "eve не вийшла на сцену");
+      h.expect((await h.attr('[data-char="eve"] [data-form]', "data-form")) === f, "форма змінилась разом зі станом");
+      await h.tap('[data-char="eve"]'); await h.wait(200);
+      h.expect((await h.attr('[data-char="eve"]', "aria-pressed")) !== "true", "eve не зійшла зі сцени");
+      await h.click('[data-tab="stage"]'); await ready(h);
     },
   },
   {

@@ -23,6 +23,7 @@ export default [
       h.expect((await h.count("[data-dots] span")) === 4, "немає крапок слайдів");
       h.expect((await h.count("#prompt")) === 1, "немає поля опису");
       h.expect((await h.count("[data-go]")) === 1, "немає кнопки дії");
+      h.expect((await h.count("[data-go].tp-form > svg path")) === 1, "кнопка дії не на формі (форма кнопки грати)");
       h.expect((await h.count("[data-act=save]")) === 1, "немає збереження");
       h.expect((await h.count("[data-act=share]")) === 1, "немає поділитися");
       h.expect(await h.attr('[data-mode="make"]', "aria-pressed") === "true", "режим Твори не активний");
@@ -253,12 +254,16 @@ export default [
       await h.click("[data-styles]"); await h.wait(250);
       h.expect((await h.prop("#styles", "open")) === true, "шит стилів не відкрився");
       h.expect((await h.count("[data-style]")) === 12, "має бути 12 карток (без стилю + 11)");
+      h.expect((await h.count("[data-style] [data-form]")) === 12, "не в кожного стилю своя форма");
+      h.expect((await h.count('[data-style="none"] .mg-form.lit')) === 1, "«без стилю» не підсвічене як вибране");
       h.expect(/Сяйво|Glow/.test(await h.text('[data-style="lum"]')), "перша картка — не Сяйво");
       await h.click('[data-style="lum"]'); await h.wait(250);
       h.expect((await h.prop("#styles", "open")) !== true, "вибір не закрив шит");
       h.expect((await h.count("[data-styles] img")) === 1, "кнопка стилю не показує вибрану картку");
+      h.expect((await h.count("[data-styles] [data-form]")) === 1, "вибрана картка на кнопці не у своїй формі");
       await h.click("[data-styles]"); await h.wait(250);
       h.expect((await h.attr('[data-style="lum"]', "aria-pressed")) === "true", "вибрана картка не позначена");
+      h.expect((await h.count('[data-style="lum"] .mg-form.lit')) === 1 && (await h.count("[data-style] .mg-form.lit")) === 1, "підсвічена не лише вибрана форма");
       await h.back(); await h.wait(250);
       h.expect((await h.prop("#styles", "open")) !== true, "Back не закрив шит стилів");
       await h.click("[data-styles]"); await h.wait(200);

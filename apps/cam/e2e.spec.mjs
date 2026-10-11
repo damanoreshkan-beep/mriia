@@ -10,6 +10,17 @@ export default [
     },
   },
   {
+    name: "форма: слот кадру поруч із затвором — власна форма з краєм світла, затвор на ms-press", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-shot]")) === 1, "немає слоту кадру");
+      const f = await h.attr("[data-shot]", "data-form");
+      h.expect(!!f, "у слоту немає форми");
+      h.expect((await h.count(`#cm-c-${f} path`)) === 1, `немає обрису форми ${f}`);
+      h.expect((await h.count("[data-shot] .cm-rim path")) === 1, "у форми немає краю світла");
+      h.expect((await h.count("[data-shutter].ms-press")) === 1, "затвор без ms-press");
+    },
+  },
+  {
     name: "вибір фільтра", run: async (h) => {
       await ready(h);
       await h.tap('[data-fx="3"]'); await h.wait(150);

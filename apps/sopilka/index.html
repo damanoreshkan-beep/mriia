@@ -60,7 +60,8 @@
     .so-wind{transition:color var(--t-state) var(--ease-out),filter var(--t-state) var(--ease-out)}
     #over[aria-pressed="true"] .so-wind{color:var(--app-accent);filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
     [data-theme="signal-light"] #over[aria-pressed="true"] .so-wind{color:var(--color-secondary);filter:none}
-  </style>
+    
+    .btn#over.sf-pressed:not(.btn-link):not(:disabled){box-shadow:var(--sf-press)}</style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Сопілка</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

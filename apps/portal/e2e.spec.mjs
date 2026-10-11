@@ -24,6 +24,18 @@ export default [
     },
   },
   {
+    name: "кожен матеріал у власній формі, і вибір її не змінює", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-mat] .pt-mat[data-form]")) === 12, "матеріал без власної форми");
+      for (const f of ["Flower", "PuffyDiamond", "Puffy"]) h.expect((await h.count(`[data-mat] [data-form="${f}"]`)) === 0, `форма ${f} ріже картинку матеріалу`);
+      h.expect((await h.count("#pt-c-Cookie4Sided, #pt-c-Cookie6Sided, #pt-c-Cookie7Sided, #pt-c-Cookie9Sided, #pt-c-Cookie12Sided, #pt-c-Clover4Leaf, #pt-c-Clover8Leaf, #pt-c-Sunny, #pt-c-VerySunny, #pt-c-SoftBurst")) === 10, "матеріали ділять форми, хоча вільні ще є");
+      const form = await h.attr('[data-mat="smoke"] [data-form]', "data-form");
+      h.expect((await h.count(`#pt-c-${form}`)) === 1, `немає обрису ${form} для кліпу`);
+      await h.click('[data-mat="smoke"]'); await h.wait(150);
+      h.expect(await h.attr('[data-mat="smoke"] [data-form]', "data-form") === form, "форма матеріалу змінилась після вибору");
+    },
+  },
+  {
     name: "тонкі налаштування: іконка відкриває панель, у матеріалу свій набір ручок, ручка змінює сцену", run: async (h) => {
       await ready(h);
       await h.click('[data-mat="lum"]'); await h.wait(150);

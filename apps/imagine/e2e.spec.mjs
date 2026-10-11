@@ -90,6 +90,23 @@ export default [
     },
   },
   {
+    name: "форма промпту: рядок історії у власній формі, ті самі слова — та сама форма", run: async (h) => {
+      await ready(h);
+      await h.type("#prompt", "a lighthouse in a storm"); await h.click("[data-go]"); await h.wait(500);
+      await h.click("[data-history]"); await h.wait(250);
+      const row = '#hist-make [data-hist-item="0"]';
+      const was = await h.attr(`${row} [data-form]`, "data-form");
+      h.expect(!!was, "у промпту немає форми");
+      h.expect((await h.count(`#hist-make-c-${was} path`)) === 1, `немає обрису форми ${was}`);
+      h.expect((await h.count(`${row} .im-form-rim path`)) === 1, "у форми немає краю світла");
+      await h.back(); await h.wait(300);
+      await h.type("#prompt", "a quiet neon city in the rain"); await h.click("[data-go]"); await h.wait(500);
+      await h.click("[data-history]"); await h.wait(250);
+      h.expect((await h.attr('#hist-make [data-hist-item="1"] [data-form]', "data-form")) === was, "форма промпту змінилась, коли він посунувся в списку");
+      await h.back(); await h.wait(300);
+    },
+  },
+  {
     name: "порожній опис не запускає генерацію", run: async (h) => {
       await ready(h);
       await h.type("#prompt", "");

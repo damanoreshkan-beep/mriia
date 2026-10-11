@@ -65,6 +65,21 @@ export default [
     },
   },
   {
+    name: "форми: печатка — форма голосу, відлуння носить ту саму форму, транспорт з формою", run: async (h) => {
+      await ready(h);
+      const form = await h.attr(".vd-seal", "data-form");
+      h.expect(!!form, "печатка кільця без форми голосу");
+      h.expect(!!(await h.attr(".vd-seal path", "d")), "форма печатки не намалювалась");
+      await h.type("[data-words]", "Третє відлуння"); await h.wait(100);
+      await h.tap("[data-generate]"); await h.wait(600);
+      h.expect(((await h.attr("#play", "class")) || "").includes("tp-form"), "кнопка відтворення не форма");
+      await h.click("[data-echoes]"); await h.wait(300);
+      h.expect((await h.attr("[data-echo-play]", "data-form")) === form, "відлуння не носить форму свого голосу");
+      h.expect((await h.attr("[data-echo-play]", "data-on")) === "true", "відлуння на транспорті не підсвічене в списку");
+      await h.back(); await h.wait(300);
+    },
+  },
+  {
     name: "видалення запису: печатка зникає, голос стає пресетом, Мій зникає зі sheet", run: async (h) => {
       await ready(h);
       h.expect((await h.count("[data-delete-take]")) === 1, "немає кнопки видалення запису");

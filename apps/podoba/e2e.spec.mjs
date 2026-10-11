@@ -25,6 +25,22 @@ export default [
     },
   },
   {
+    name: "форма: кожен матеріал у своїй формі, край світиться в обраного й переходить за тапом", run: async (h) => {
+      await ready(h);
+      await h.click('[data-mat="lum"]'); await h.wait(350);
+      h.expect((await h.count("[data-mat] [data-form] img")) === 11, "не кожен матеріал у своїй формі");
+      h.expect(await h.attr('[data-mat="lum"] [data-form]', "data-form") === "Sunny", "Сяйво не у своїй формі");
+      h.expect(await h.attr('[data-mat="ink"] [data-form]', "data-form") === "Cookie6Sided", "Туш не у своїй формі");
+      h.expect((await h.count("#ly-c-Sunny path")) === 1, "форма, спільна для Сяйва й Завіси, має не один обрис");
+      h.expect((await h.count('[data-mat] [data-form] .ly-rim path.e')) === 11, "у форм немає краю");
+      const lit = await h.css('[data-mat="lum"] .ly-rim .e', "stroke"), dim = await h.css('[data-mat="ink"] .ly-rim .e', "stroke");
+      h.expect(lit !== dim, "край обраного матеріалу не відрізняється");
+      await h.click('[data-mat="ink"]'); await h.wait(350);
+      h.expect(await h.css('[data-mat="ink"] .ly-rim .e', "stroke") === lit, "край не засвітився у Туші");
+      h.expect(await h.css('[data-mat="lum"] .ly-rim .e', "stroke") === dim, "край Сяйва не згас");
+    },
+  },
+  {
     name: "перевернути камеру: дзеркало вмикається і вимикається", run: async (h) => {
       await ready(h);
       await h.click("[data-flip]"); await h.wait(120);

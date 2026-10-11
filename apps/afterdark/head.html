@@ -1,0 +1,17 @@
+  <style>
+    .ad-face { position: relative; display: block; flex: none; }
+    .ad-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    .ad-art { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    .ad-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .ad-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .ad-rim path { fill: none; vector-effect: non-scaling-stroke; transition: stroke var(--t-state) var(--ease-out), stroke-width var(--t-state) var(--ease-out), opacity var(--t-state) var(--ease-out); }
+    .ad-rim .e { stroke: var(--lm-rim-hi); stroke-width: 1.25; }
+    .ad-rim .b { stroke: var(--tint); stroke-width: 7; opacity: 0; }
+    [aria-pressed="true"] .ad-rim .e { stroke: var(--tint); stroke-width: 2.5; }
+    [aria-pressed="true"] .ad-rim .b { opacity: .3; }
+    
+    [data-theme="signal-light"] .ad-rim .e { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    [data-theme="signal-light"] [aria-pressed="true"] .ad-rim .e { stroke: color-mix(in oklch, var(--tint) 62%, black); stroke-width: 2.5; }
+    [data-theme="signal-light"] .ad-rim .b { display: none; }
+    
+    .ad-char { transition: scale var(--t-press) var(--ease-out), opacity var(--t-state) var(--ease-out); }</style>

@@ -1,0 +1,8 @@
+  <style>
+    .fx-pic { transition: opacity var(--t-state) var(--ease-out); }
+    .fx-level { transform-origin: left; transition: scale var(--t-press) var(--ease-out); }
+    
+    .fx-glyph { transition: color var(--t-state) var(--ease-out), filter var(--t-state) var(--ease-out); }
+    [data-ghost][aria-pressed="true"] .fx-glyph, [data-sound][aria-pressed="true"] .fx-glyph { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] [data-ghost][aria-pressed="true"] .fx-glyph, [data-theme="signal-light"] [data-sound][aria-pressed="true"] .fx-glyph { color: var(--color-secondary); filter: none; }
+    @media (prefers-reduced-motion: reduce) { .fx-pic, .fx-level, .fx-glyph { transition: none; } }</style>
