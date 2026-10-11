@@ -11,7 +11,7 @@ import { placeLabel, formatCoords } from "/_rt/places.js";
 import { aiTick } from "/_rt/ai-astro.js";
 import { Scramble } from "/_rt/skeleton.js";
 import { Panel } from "/_rt/ui.js";
-import { Icon, DAY, LBL, META, wheelAngle, signOf, bodyLabel, pt, dm, ASPECT_HUE, ASPECT_DASH, ASPECT_KEY, CHIPS, SCRUB, ymd, dayOffset, clampScrub, READ_TRANSIT, READ_PLACEMENT, READ_CUSP, READ_PORTRAIT, READ_ASK, readScreen, fmtHitAt, hitKey, dot, NOW, $offset, useChart } from "./lib.js";
+import { Icon, DAY, LBL, META, wheelAngle, signOf, bodyLabel, pt, dm, ASPECT_HUE, ASPECT_DASH, ASPECT_KEY, CHIPS, SCRUB, ymd, dayOffset, clampScrub, READ_TRANSIT, READ_PLACEMENT, READ_CUSP, READ_PORTRAIT, READ_ASK, readScreen, fmtHitAt, hitKey, bodyForm, PersonOrb, NOW, $offset, useChart } from "./lib.js";
 import { NeedBirth, BirthSheet } from "./birth.js";
 import { TransitSheet, PlacementSheet, CuspSheet, PortraitSheet, InterpSheet, AskSheet } from "./sheets.js";
 
@@ -20,7 +20,7 @@ export { match } from "./match.js";
 function DayStep({ dir, t, offset }) {
   const to = clampScrub(offset + (dir === "prev" ? -1 : 1)), end = to === offset;
   return html`<button data-step=${dir} aria-label=${T(t, dir === "prev" ? "prevDay" : "nextDay")} disabled=${end}
-    class=${`shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] rounded-[var(--ms-r-in)] grid place-items-center transition-colors ${end ? "sf-inset text-muted" : "sf-raised sf-e2 sf-press"}`}
+    class=${`shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] rounded-[var(--ms-r-in)] grid place-items-center transition-colors duration-[var(--t-state)] ease-[var(--ease-out)] ${end ? "sf-inset text-muted" : "sf-raised sf-e2 sf-press"}`}
     onClick=${() => $offset.set(to)}>${Icon(dir === "prev" ? "lucide:chevron-left" : "lucide:chevron-right", "text-lg")}</button>`;
 }
 
@@ -89,9 +89,10 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
         ${natalRing}
       </div>
 
-      <!-- the birth moment this whole chart hangs on, and the date being transited -->
-      <!-- the page extruded, pressed IN under a finger — the material's own press, so no scale nudge on top -->
-      <button data-birth-row class="w-full max-w-[420px] rounded-[var(--ms-r)] sf-raised sf-e2 sf-press px-[var(--ms-pad)] py-3 flex items-center gap-3 text-left transition" onClick=${() => openScreen("birth")}>
+      <!-- the birth moment this whole chart hangs on, and the date being transited; whose chart it is, as the person's orb -->
+      <!-- the page extruded, pressed IN under a finger, with the farm's 3% give (.ms-press) on the same press -->
+      <button data-birth-row class="w-full max-w-[420px] rounded-[var(--ms-r)] sf-raised sf-e2 sf-press ms-press px-[var(--ms-pad)] py-3 flex items-center gap-3 text-left" onClick=${() => openScreen("birth")}>
+        <${PersonOrb} seed=${C.rec.date} sign=${C.sunSign} />
         <div class="min-w-0 flex-1">
           <div class="text-sm font-semibold truncate">${placeLabel(b.place)}</div>
           <div class=${`${META} truncate`}>${C.rec.date} ${C.rec.time} ${b.offsetLabel} · ${formatCoords(b.lat, b.lng)}</div>
@@ -112,8 +113,8 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
         </div>
         ${""}
         <div class="grid grid-cols-3 gap-1.5 text-center">
-          ${CHIPS.map(([o, lbl]) => html`<button data-chip=${lbl} aria-pressed=${offset === o} class=${`rounded-[var(--ms-r-in)] py-1.5 text-[0.78rem] font-medium transition-colors ${offset === o ? "sf-e2 bg-primary/10 text-primary font-semibold" : "sf-inset"}`} onClick=${() => $offset.set(o)} key=${lbl}>${T(t, lbl)}</button>`)}
-          <label data-chip="pick" data-picked=${picked ? "true" : "false"} class=${`relative flex items-center justify-center gap-1 rounded-[var(--ms-r-in)] py-1.5 text-[0.78rem] font-medium transition-colors cursor-pointer ${picked ? "sf-e2 bg-primary/10 text-primary font-semibold" : "sf-inset"}`}>
+          ${CHIPS.map(([o, lbl]) => html`<button data-chip=${lbl} aria-pressed=${offset === o} class=${`rounded-[var(--ms-r-in)] py-1.5 text-[0.78rem] font-medium transition-colors duration-[var(--t-state)] ease-[var(--ease-out)] ${offset === o ? "sf-e2 bg-primary/10 text-primary font-semibold" : "sf-inset"}`} onClick=${() => $offset.set(o)} key=${lbl}>${T(t, lbl)}</button>`)}
+          <label data-chip="pick" data-picked=${picked ? "true" : "false"} class=${`relative flex items-center justify-center gap-1 rounded-[var(--ms-r-in)] py-1.5 text-[0.78rem] font-medium transition-colors duration-[var(--t-state)] ease-[var(--ease-out)] cursor-pointer ${picked ? "sf-e2 bg-primary/10 text-primary font-semibold" : "sf-inset"}`}>
             ${Icon("lucide:calendar-days", "text-sm shrink-0")}
             <span class="truncate">${picked ? shortDate(C.when) : T(t, "pickDay")}</span>
             <input data-pick type="date" aria-label=${T(t, "pickAria")} value=${ymd(C.when)}
@@ -147,8 +148,8 @@ export function wheel({ S, screen, openScreen, closeScreen }) {
 }
 
 function ContactRow({ a, t, retro, onOpen }) {
-  return html`<button data-contact onClick=${onOpen} class="w-full text-left flex items-center gap-2 py-1.5 border-b border-base-300/40 last:border-0 active:opacity-80 transition">
-    ${dot(a.t)}
+  return html`<button data-contact data-exact=${a.exact ? "true" : "false"} onClick=${onOpen} class="w-full text-left flex items-center gap-2 py-1.5 border-b border-base-300/40 last:border-0 ms-press">
+    ${bodyForm(a.t)}
     <span class="font-medium truncate max-w-[4.6rem]">${bodyLabel(t, a.t)}${retro ? html`<span class="text-warning font-mono ml-0.5" title=${T(t, "retro")}>℞</span>` : null}</span>
     <span class="text-[0.78rem] font-medium shrink-0" style=${`color:${ASPECT_HUE[a.nature]}`}>${T(t, ASPECT_KEY[a.type])}</span>
     <span class="text-base-content/70 shrink-0 text-[0.78rem]">${T(t, "natalMark")}</span>
@@ -193,16 +194,18 @@ export function hits({ S, screen, openScreen, closeScreen }) {
     </${Fragment}>`;
   }
 
+  // the moments arrive one after another when the tab opens (a tab switch remounts the list; a solved time only
+  // re-renders a card, it never replays the rise)
   return html`<${Fragment}>
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3 ms-stagger">
       ${C.hits.length ? C.hits.map((a, i) => {
         const times = solved[hitKey(a)];
         const prec = HIT_PRECISION[a.t] || "minute";
         const nearest = times && times.length ? times.reduce((best, x) => Math.abs(x - C.when) < Math.abs(best - C.when) ? x : best) : null;
-        return html`<button data-hit data-hit-key=${hitKey(a)} onClick=${() => openScreen(READ_TRANSIT + hitKey(a))}
-          class="w-full text-left rounded-[var(--ms-r)] sf-raised sf-e2 sf-press px-[var(--ms-pad)] py-3 flex flex-col gap-2 transition" key=${i}>
+        return html`<button data-hit data-hit-key=${hitKey(a)} data-exact=${a.exact ? "true" : "false"} style=${`--i:${i}`} onClick=${() => openScreen(READ_TRANSIT + hitKey(a))}
+          class="w-full text-left rounded-[var(--ms-r)] sf-raised sf-e2 sf-press ms-press px-[var(--ms-pad)] py-3 flex flex-col gap-2" key=${i}>
         <div class="flex items-center gap-2">
-          ${dot(a.t)}
+          ${bodyForm(a.t, "tr-body-lg")}
           <span class="font-semibold truncate">${bodyLabel(t, a.t)}</span>
           <span class="text-[0.78rem] font-semibold truncate" style=${`color:${ASPECT_HUE[a.nature]}`}>${T(t, ASPECT_KEY[a.type])}</span>
           <span class="text-base-content/70 shrink-0 text-[0.78rem]">${T(t, "natalMark")}</span>
@@ -242,7 +245,7 @@ export function chart({ S, screen, openScreen, closeScreen }) {
 
   const open = (key) => openScreen(READ_PLACEMENT + key);
   const mark = () => Icon("lucide:sparkles", "text-xs text-primary shrink-0 w-3.5");
-  const ROW = "w-full text-left flex items-center gap-1.5 py-1.5 border-b border-base-300/40 last:border-0 active:opacity-80 transition";
+  const ROW = "w-full text-left flex items-center gap-1.5 py-1.5 border-b border-base-300/40 last:border-0 ms-press";
   const angleRow = (key, lbl, lon) => html`<button data-angle-row=${lbl} data-place=${key} onClick=${() => open(key)} class=${ROW} key=${key}>
     <div class="flex-[1.1] min-w-0 font-medium truncate text-primary">${T(t, lbl)}</div>
     <div class="w-5 flex justify-center text-base-content/70 shrink-0"><${Sign} i=${signOf(lon)} cls="w-5 h-5" /></div>
@@ -254,7 +257,8 @@ export function chart({ S, screen, openScreen, closeScreen }) {
 
   return html`<${Fragment}>
     <div class="flex flex-col gap-3">
-      <button data-birth-row class="rounded-[var(--ms-r)] sf-raised sf-e2 sf-press px-[var(--ms-pad)] py-3 flex items-center gap-3 text-left transition" onClick=${() => openScreen("birth")}>
+      <button data-birth-row class="rounded-[var(--ms-r)] sf-raised sf-e2 sf-press ms-press px-[var(--ms-pad)] py-3 flex items-center gap-3 text-left" onClick=${() => openScreen("birth")}>
+        <${PersonOrb} seed=${C.rec.date} sign=${C.sunSign} />
         <div class="min-w-0 flex-1">
           <div class="text-sm font-semibold truncate">${placeLabel(b.place)}</div>
           <div class=${`${META} truncate`}>${b.date.toISOString().replace(".000Z", "Z")} · ${T(t, "utcMark")} ${b.offsetLabel}</div>
@@ -262,7 +266,7 @@ export function chart({ S, screen, openScreen, closeScreen }) {
         ${Icon("lucide:pencil", "text-base text-base-content/70")}
       </button>
 
-      <button data-ask-open class="rounded-[var(--ms-r)] sf-raised sf-e2 sf-press px-[var(--ms-pad)] py-3.5 flex items-center gap-3 text-left transition" onClick=${() => openScreen(READ_ASK)}>
+      <button data-ask-open class="rounded-[var(--ms-r)] sf-raised sf-e2 sf-press ms-press px-[var(--ms-pad)] py-3.5 flex items-center gap-3 text-left" onClick=${() => openScreen(READ_ASK)}>
         <div class="rounded-full sf-inset p-2 text-primary shrink-0">${Icon("lucide:sparkles", "text-lg")}</div>
         <span class="flex-1 min-w-0 font-semibold">${T(t, "askTitle")}</span>
         ${Icon("lucide:chevron-right", "text-base text-base-content/70 shrink-0")}
@@ -299,7 +303,7 @@ export function chart({ S, screen, openScreen, closeScreen }) {
         ${H.fallback ? html`<div data-house-fallback class="mb-2 rounded-[var(--ms-r-in)] sf-e2 bg-warning/10 px-3 py-2 text-sm text-base-content">${T(t, "hsFallback")}</div>` : null}
         <div class="grid grid-cols-2 gap-x-4">
           ${H.cusps.map((c, i) => html`<button data-cusp=${i + 1} onClick=${() => openScreen(READ_CUSP + (i + 1))}
-              class="w-full text-left flex items-center gap-1.5 py-1 border-b border-base-300/40 last:border-0 active:opacity-80 transition" key=${i}>
+              class="w-full text-left flex items-center gap-1.5 py-1 border-b border-base-300/40 last:border-0 ms-press" key=${i}>
             <span class="w-4 text-[0.78rem] font-mono text-base-content/70 tabular-nums">${i + 1}</span>
             <${Sign} i=${signOf(c)} cls="w-4 h-4 text-base-content/70 shrink-0" />
             <span class="ml-auto font-mono text-[0.78rem] tabular-nums">${dm(c)}</span>

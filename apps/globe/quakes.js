@@ -1,10 +1,10 @@
 import { html } from "htm/preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Scramble, useReveal } from "/_rt/skeleton.js";
 import { Globe } from "/_rt/globe.js";
-import { animate, stagger } from "motion";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { isGate, MOCK } from "/_rt/gate.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -16,6 +16,10 @@ const magI = (m) => Math.max(0, Math.min(6, Math.floor(m) - 2));
 const magFill = (m) => MAG[magI(m)][0];
 const magColor = (m) => `light-dark(${MAG_INK[magI(m)][1]},${MAG_INK[magI(m)][0]})`;
 const magSize = (m) => 2 + Math.max(0, m - 2.5) * 1.5;
+// A quake's own form (core shape.js, seeded by its USGS id), outlined in its magnitude colour with the magnitude
+// in it: the event as an object in the list, never on the globe, which stays the working surface. The three
+// forms that cut deepest into a centred mark are left out (the store's measure), so "6.2" fits inside.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
 
 const parse = (geo) => (geo.features || []).filter((f) => f && f.properties && f.properties.mag != null && f.geometry).map((f) => ({ id: f.id, mag: f.properties.mag, place: f.properties.place || "", time: f.properties.time, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], depth: f.geometry.coordinates[2] }));
 
@@ -36,7 +40,6 @@ export function quakes({ S }) {
   const [list, setList] = useState(isGate || MOCK ? sample() : null);
   const [err, setErr] = useState(false);
   const [selId, setSelId] = useState(null);
-  const rowsRef = useRef();
 
   useEffect(() => {
     if (isGate || MOCK) return;
@@ -52,14 +55,6 @@ export function quakes({ S }) {
 
   const top = list && list.length ? list.reduce((a, b) => (b.mag > a.mag ? b : a)) : null;
   const sel = (list && list.find((q) => q.id === selId)) || top;
-
-  useEffect(() => {
-    if (!top || !rowsRef.current) return;
-    const rows = rowsRef.current.querySelectorAll(".qrow");
-    if (!rows.length) return;
-    const a = animate(rows, { y: [12, 0] }, { delay: stagger(0.035), duration: 0.35, ease: "easeOut" });
-    return () => { try { a.stop(); } catch { } };
-  }, [top && top.id]);
 
   const ready = useReveal(!!list);
   if (err && !list) return html`<div class="flex flex-col items-center text-base-content/70 py-20 gap-2 text-center px-6">${Icon("lucide:cloud-off", "text-3xl")}<span>${T(t, "qStatusError")}</span></div>`;
@@ -86,9 +81,9 @@ export function quakes({ S }) {
     </div>` : null}
 
     ${""}
-    <div ref=${rowsRef} class="w-full max-w-[420px] rounded-2xl sf-raised overflow-hidden divide-y divide-base-300/40">
-      ${recent.map((q) => html`<button data-quake class=${`qrow w-full text-left flex items-center gap-3 px-4 py-2.5 transition ${sel && q.id === sel.id ? "bg-primary/10" : "sf-press"}`} onClick=${() => setSelId(q.id)} key=${q.id}>
-        <div class="w-11 text-center font-bold tabular-nums rounded-lg py-1 text-sm shrink-0" style=${`color:${magColor(q.mag)};border:1.5px solid ${magFill(q.mag)}`}>${q.mag.toFixed(1)}</div>
+    <div class="w-full max-w-[420px] rounded-2xl sf-raised overflow-hidden divide-y divide-base-300/40 ms-stagger">
+      ${recent.map((q, i) => html`<button data-quake=${q.id} aria-pressed=${!!sel && q.id === sel.id} style=${`--i:${i}`} class=${`gl-qrow w-full text-left flex items-center gap-3 px-4 py-2.5 ${sel && q.id === sel.id ? "bg-primary/10" : "sf-press"}`} onClick=${() => setSelId(q.id)} key=${q.id}>
+        <span class="gl-mag" data-form=${shapeOf(q.id, FORMS)} style=${`--mag:${magFill(q.mag)}`}><svg viewBox="0 0 1 1" class="gl-form" aria-hidden="true"><path d=${pathOf(shapeOf(q.id, FORMS))} /></svg><span class="font-bold tabular-nums text-sm" style=${`color:${magColor(q.mag)}`}>${q.mag.toFixed(1)}</span></span>
         <div class="flex-1 min-w-0"><div class="font-medium truncate text-sm">${q.place}</div><div class="text-xs text-base-content/70 tabular-nums">${Math.round(q.depth)} ${T(t, "km")} · ${ago(q.time)}</div></div>
         ${sel && q.id === sel.id ? Icon("lucide:crosshair", "text-primary shrink-0") : null}
       </button>`)}

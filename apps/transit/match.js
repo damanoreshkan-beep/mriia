@@ -12,6 +12,7 @@ import { matchRead, warmMatchRead, isMatchRead } from "/_rt/ai-astro.js";
 import { gate } from "/_rt/gate.js";
 import { DateField, CalendarSheet, parseYmd } from "./datepick.js";
 import { Reading } from "./reading.js";
+import { PersonOrb } from "./lib.js";
 
 const AI_MATCH = { get: matchRead, has: isMatchRead, warm: warmMatchRead };
 
@@ -86,7 +87,7 @@ export function match({ S, screen, openScreen, closeScreen }) {
       ${r ? html`
         <${Ring} score=${r.overall} t=${t} />
         <div class="grid grid-cols-2 gap-3">
-          ${people.map((p) => html`<${Person} key=${p.key} label=${p.label} pos=${p.pos} t=${t}
+          ${people.map((p) => html`<${Person} key=${p.key} label=${p.label} date=${p.date} pos=${p.pos} t=${t}
             unsettled=${moonUnsettled(p.date, p.off)} attr=${p.attr} />`)}
         </div>
         <${Bars} r=${r} t=${t} />
@@ -136,11 +137,12 @@ function Ring({ score, t }) {
   </div>`;
 }
 
-function Person({ label, pos, t, unsettled, attr }) {
+// a person is their orb, seeded by the birth date — «you» here is the same form as on the wheel when the dates agree
+function Person({ label, date, pos, t, unsettled, attr }) {
   const sun = signOf(bodyOf(pos, "sun").lon);
   return html`<div ...${{ [attr]: "1" }} class="rounded-[var(--ms-r)] sf-raised sf-e2 p-3 flex flex-col items-center gap-2">
     <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70">${label}</div>
-    <${Sign} i=${sun} cls="w-9 h-9 text-secondary" />
+    <${PersonOrb} seed=${date} sign=${sun} big />
     <div class="text-sm font-semibold leading-tight text-center">${T(t, "sign" + sun)}</div>
     <div class="grid grid-cols-3 gap-1 w-full mt-1">
       ${["moon", "venus", "mars"].map((pl) => {

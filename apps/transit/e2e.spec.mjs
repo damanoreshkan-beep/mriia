@@ -13,6 +13,17 @@ export default [
     },
   },
   {
+    name: "форми: орб людини на рядку народження, кожна планета контакту у своїй формі", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-birth-row] [data-orb]")) === 1, "на рядку народження немає орба");
+      h.expect(!!(await h.attr("[data-birth-row] [data-orb]", "data-form")), "форма людини не задана");
+      h.expect(!!(await h.attr("[data-birth-row] [data-orb] .tr-rim .e", "d")), "обідок орба не намальований");
+      h.expect(/^path\(/.test(await h.css("[data-birth-row] [data-orb] .tr-fill", "clip-path")), "текстура не обрізана формою людини");
+      const n = await h.count("[data-contact]");
+      h.expect((await h.count("[data-contact] [data-body][data-form]")) === n, "не кожен контакт несе форму своєї планети");
+    },
+  },
+  {
     name: "натальна карта: планети з домами, кути, 12 куспідів", run: async (h) => {
       await h.click('[data-tab="chart"]'); await h.wait(300);
       h.expect((await h.count("[data-row]")) >= 6, "немає натальних позицій");
@@ -29,6 +40,16 @@ export default [
     name: "моменти: точний час, коли аспект стає точним", run: async (h) => {
       await h.click('[data-tab="hits"]'); await h.wait(300);
       h.expect((await h.count("[data-hit]")) >= 1, "немає жодного транзиту");
+      // every moment carries its planet's form: one planet one form, ten planets ten different forms
+      h.expect((await h.count("[data-hit] [data-body]")) === (await h.count("[data-hit]")), "не кожен момент несе форму своєї планети");
+      const forms = new Map();
+      for (const k of ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"]) {
+        if ((await h.count(`[data-hit] [data-body="${k}"]`)) === 0) continue;
+        const f = await h.attr(`[data-hit] [data-body="${k}"]`, "data-form");
+        h.expect((await h.count(`[data-hit] [data-body="${k}"]:not([data-form="${f}"])`)) === 0, `планета ${k} у різних формах`);
+        forms.set(k, f);
+      }
+      h.expect(new Set(forms.values()).size === forms.size, "дві планети ділять одну форму");
       for (let i = 0; i < 30; i++) { if ((await h.count("[data-hit-time]")) > 0) break; await h.wait(300); }
       h.expect((await h.count("[data-hit-time]")) >= 1, "немає жодного точного моменту");
       const txt = await h.text("[data-hit-time]");
@@ -283,6 +304,16 @@ export default [
     },
   },
   {
+    name: "сумісність: кожна людина — орб, «ти» в тій самій формі, що на колесі", run: async (h) => {
+      await h.click('[data-tab="wheel"]'); await h.wait(300);
+      const mine = await h.attr("[data-birth-row] [data-orb]", "data-form");
+      await h.click('[data-tab="match"]'); await h.wait(600);
+      h.expect((await h.count("[data-person-a] [data-orb]")) === 1 && (await h.count("[data-person-b] [data-orb]")) === 1, "не в кожної картки є орб");
+      h.expect(!!(await h.attr("[data-person-b] [data-orb] .tr-rim .e", "d")), "обідок орба партнера не намальований");
+      h.expect((await h.attr("[data-person-a] [data-orb]", "data-form")) === mine, "«ти» в сумісності не в тій формі, що на колесі");
+    },
+  },
+  {
     name: "сумісність: індекс і контакти пораховані з реальних довгот", run: async (h) => {
       await h.click('[data-tab="match"]'); await h.wait(600);
       h.expect((await h.text("[data-overall]")).trim() === "83", "індекс на мок-датах має бути 83");
@@ -323,6 +354,23 @@ export default [
       await h.click('[data-tab="match"]'); await h.wait(600);
       h.expect((await h.count("[data-reading]")) === 1, "немає блоку трактування");
       h.expect((await h.text("[data-reading]")).length > 200, "трактування підозріло коротке");
+    },
+  },
+  {
+    // last on purpose: it changes the partner's date (and puts it back) — nothing after it reads the match
+    name: "сумісність: нова дата партнера перетікає його орб у нову форму", run: async (h) => {
+      await h.click('[data-tab="match"]'); await h.wait(600);
+      const was = await h.attr("[data-person-b] [data-orb]", "data-form");
+      const rim = await h.attr("[data-person-b] [data-orb] .tr-rim .e", "d");
+      await h.tap("[data-date-b]"); await h.wait(400);
+      await h.click('[data-cal-day="21"]'); await h.wait(500);
+      const now = await h.attr("[data-person-b] [data-orb]", "data-form");
+      h.expect(now && now !== was, `орб партнера не змінив форму: ${was} → ${now}`);
+      h.expect((await h.attr("[data-person-b] [data-orb] .tr-rim .e", "d")) !== rim, "обідок не перетік у нову форму");
+      await h.tap("[data-date-b]"); await h.wait(400);
+      await h.click('[data-cal-day="22"]'); await h.wait(500);
+      h.expect((await h.attr("[data-person-b] [data-orb]", "data-form")) === was, "повернення дати не повернуло форму");
+      h.expect((await h.text("[data-overall]")).trim() === "83", "повернення дати не повернуло індекс");
     },
   },
 ];

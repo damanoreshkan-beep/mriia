@@ -1,9 +1,10 @@
 import { html } from "htm/preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef, useLayoutEffect } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Scramble, Pixels, useReveal } from "/_rt/skeleton.js";
 import { Panel } from "/_rt/ui.js";
+import { shapeOf, shaper } from "/_rt/shape.js";
 import { isGate, MOCK, gate } from "/_rt/gate.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -32,6 +33,22 @@ const gauge = (kp) => {
     <circle cx="50" cy="50" r=${R} fill="none" stroke=${kpFill(kp)} stroke-width="7" stroke-linecap="round" stroke-dasharray=${`${(frac * ARC * C).toFixed(1)} ${C.toFixed(1)}`} transform="rotate(135 50 50)"></circle>
   </svg>`;
 };
+
+// THE READING'S FORM — the storm state (quiet, active, G1…G5) owns one organic form (core shape.js, seeded by
+// the "kp:" namespace + the state, under which all seven states get seven different forms), painted in the NOAA
+// scale's colour where the bare storm dot was. A state change flows the old form into the new one: one ~320ms
+// morph per change, nothing drawn at rest. The gauge and the forecast stay data — no form goes on them.
+const stateOf = (kp, g) => g > 0 ? `g${g}` : kp >= 4 ? "active" : "quiet";
+const formOf = (state) => shapeOf(`kp:${state}`);
+function StateForm({ state, kp }) {
+  const path = useRef(), form = useRef();
+  useLayoutEffect(() => {
+    form.current = shaper(formOf(state), (d) => path.current?.setAttribute("d", d));
+    return () => form.current.stop();
+  }, []);
+  useLayoutEffect(() => { form.current.to(formOf(state)); }, [state]);
+  return html`<svg aria-hidden="true" viewBox="0 0 1 1" data-state-form=${state} data-form=${formOf(state)} class="kp-form" style=${`--kp-c:${kpFill(kp)}`}><path ref=${path} /></svg>`;
+}
 
 export function kp({ S }) {
   const t = useStore(S.t), locale = useStore(S.locale);
@@ -75,7 +92,7 @@ export function kp({ S }) {
   const days = []; let last = "";
   win.forEach((e, i) => { const d = parseUTC(e.time_tag); const k = d.toISOString().slice(0, 10); if (k !== last) { days.push({ x: (i + 0.5) * bw, label: d.toLocaleDateString(locale === "en" ? "en-GB" : locale || "uk", { weekday: "short", day: "numeric" }) }); last = k; } });
 
-  const stat = (icon, label, value, unit) => html`<${Panel}><div class="flex flex-col gap-0.5">
+  const stat = (i, icon, label, value, unit) => html`<${Panel} style=${`--i:${i}`}><div class="flex flex-col gap-0.5">
     <div class=${`${LABEL} flex items-center gap-1`}>${Icon(icon)}${T(t, label)}</div>
     <div class="text-xl font-bold tabular-nums">${value}<span class="text-sm font-medium text-muted ml-1">${unit ? T(t, unit) : ""}</span></div>
   </div><//>`;
@@ -90,7 +107,7 @@ export function kp({ S }) {
       </div>
     </div>
     <div class="flex flex-col items-center gap-0.5 -mt-1">
-      <div class="text-lg font-bold flex items-center gap-2">${g > 0 ? html`<span class="w-2.5 h-2.5 rounded-full shrink-0" style=${`background:${kpFill(kpNow)}`} aria-hidden="true"></span><span>G${g} · ${T(t, SEV[g])}</span>` : T(t, kpNow >= 4 ? "stActive" : "stQuiet")}</div>
+      <div class="text-lg font-bold flex items-center gap-2"><${StateForm} state=${stateOf(kpNow, g)} kp=${kpNow} /><span>${g > 0 ? `G${g} · ${T(t, SEV[g])}` : T(t, kpNow >= 4 ? "stActive" : "stQuiet")}</span></div>
       <div class="text-sm text-muted">${T(t, "updated")} ${hhmm(parseUTC(cur.time_tag))}</div>
     </div>
 
@@ -106,9 +123,10 @@ export function kp({ S }) {
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 w-full max-w-[420px]">
-      ${stat("lucide:wind", "wind", data.wind != null ? Math.round(data.wind) : "—", "kms")}
-      ${stat("lucide:sparkles", "aurora", "~" + auroraLat(kpNow) + "°", null)}
+    <!-- the readings arrive one after the other once the data lands (mounts once; a refresh does not replay it) -->
+    <div class="grid grid-cols-2 gap-2 w-full max-w-[420px] ms-stagger">
+      ${stat(0, "lucide:wind", "wind", data.wind != null ? Math.round(data.wind) : "—", "kms")}
+      ${stat(1, "lucide:sparkles", "aurora", "~" + auroraLat(kpNow) + "°", null)}
     </div>
   </div>`;
 }

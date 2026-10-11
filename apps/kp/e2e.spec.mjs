@@ -12,6 +12,16 @@ export default [
     },
   },
   {
+    name: "форма стану: шторм G1 має свою форму, залиту кольором шкали", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-state-form]")) === 1, "немає форми стану");
+      h.expect((await h.attr("[data-state-form]", "data-state-form")) === "g1", "стан семплу не G1");
+      h.expect(!!(await h.attr("[data-state-form]", "data-form")), "форма без імені");
+      h.expect(((await h.attr("[data-state-form] path", "d")) || "").length > 20, "форма не намальована");
+      h.expect((await h.count('[data-storm="true"] [data-state-form]')) === 1, "шторм не заливає форму");
+    },
+  },
+  {
     name: "i18n EN/UA", run: async (h) => {
       await h.click('[data-tab="me"]'); await h.wait(150);
       await h.click('[data-loc="en"]'); await h.wait(250);

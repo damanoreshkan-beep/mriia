@@ -1,0 +1,45 @@
+  <style>
+    /* GLOBE on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The
+       globe is the working surface — never clipped, never drawn over. The form sits on the OBJECTS around it: a
+       country (its code in the search list, the orb on its facts card) and a quake (its row in the list). The
+       station keeps no form: its mark is the dot on the globe. Energy: at rest nothing moves; a country change is
+       one morph. */
+
+    /* THE ORB — the chosen country's form, square, in the facts card's header row */
+    .gl-orb { position: relative; display: grid; place-items: center; flex: none; width: clamp(3.75rem, 18vw, 4.5rem); aspect-ratio: 1; }
+    /* the theme's MATERIAL through the form (its fill texture, falling back to its scatter), over the page tone */
+    .gl-fill { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    /* the rim: the same path as the clip, drawn in an SVG over it so the light can spill OUTSIDE the form. One
+       bloom stroke: at ~4rem a 12px bloom would swallow the form. The chosen country is always lit. */
+    .gl-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .gl-rim path { fill: none; vector-effect: non-scaling-stroke; }
+    .gl-rim .e { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 1.25; }
+    .gl-rim .b { stroke: var(--app-accent); stroke-width: 5; opacity: .22; }
+    /* the code sits on the texture: a halo in the page tone keeps it legible over any theme's material */
+    .gl-code { position: relative; color: var(--color-base-content); text-shadow: 0 0 3px var(--color-base-100), 0 0 6px var(--color-base-100); }
+    /* paper: a glow on white is a smear — the rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .gl-rim .e { stroke: var(--color-secondary); stroke-width: 1.75; }
+    [data-theme="signal-light"] .gl-rim .b { display: none; }
+
+    /* A FORM IN A LIST — small, an outline: the country's form with its code in it (a search match), the quake's
+       form in its magnitude colour with the magnitude in it (a row). */
+    .gl-mark, .gl-mag { display: grid; place-items: center; flex: none; }
+    .gl-mark > *, .gl-mag > * { grid-area: 1 / 1; }
+    .gl-mark { width: 2rem; height: 2rem; }
+    .gl-mag { width: 2.75rem; height: 2.75rem; }
+    .gl-form { width: 100%; height: 100%; overflow: visible; }
+    .gl-form path { fill: none; stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: stroke var(--t-press) var(--ease-out), stroke-width var(--t-state) var(--ease-out); }
+    .gl-mark .gl-form path { stroke: color-mix(in oklch, var(--color-base-content) 38%, transparent); }
+    .gl-mark-code { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--ms-label); font-weight: 600; letter-spacing: .04em; color: color-mix(in oklch, var(--color-base-content) 80%, transparent); }
+    /* a touch lights the match's outline before the list closes */
+    .gl-pick:active .gl-mark .gl-form path { stroke: var(--app-accent); }
+    [data-theme="signal-light"] .gl-pick:active .gl-mark .gl-form path { stroke: var(--color-secondary); }
+    /* the quake's colour is its magnitude — data, so the form only carries it; the chosen one is drawn heavier
+       and, on true black, glows in its own colour (paper: no bloom) */
+    .gl-mag .gl-form path { stroke: var(--mag); stroke-width: 1.5; }
+    [aria-pressed="true"] .gl-mag .gl-form path { stroke-width: 2.5; }
+    [data-theme="signal"] [aria-pressed="true"] .gl-mag .gl-form { filter: drop-shadow(0 0 5px color-mix(in oklch, var(--mag) 55%, transparent)); }
+
+    /* the chosen row's tint follows the tap instead of snapping */
+    .gl-qrow { transition: background-color var(--t-state) var(--ease-out); }
+  </style>

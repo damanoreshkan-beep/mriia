@@ -52,6 +52,42 @@
     }
   }
   </script>
+  <style>
+    /* TRANSIT on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The
+       wheel, the tables and the times are the instrument and stay plain. Two objects take a form: the PERSON whose
+       chart it is (an orb on the birth row and on each match card, seeded by the birth date) and each transiting
+       PLANET (its own form in its own colour on the wheel's contacts and on the moments). Energy: at rest nothing
+       moves; a new birth date is one morph. */
+
+    /* THE ORB — spans, not divs, since it lives in a <button> */
+    .tr-orb { position: relative; display: block; flex: none; width: 3rem; aspect-ratio: 1; }
+    .tr-orb-lg { width: 3.75rem; }
+    /* the theme's MATERIAL through the form (its fill texture, falling back to its scatter), over the page tone */
+    .tr-fill { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    /* the rim: the same path as the clip, in an SVG over it so the light can spill OUTSIDE the form. One thin bloom:
+       at 3rem a wide one would swallow the form. Always lit — the person is the chart's owner. */
+    .tr-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .tr-rim path { fill: none; vector-effect: non-scaling-stroke; }
+    .tr-rim .e { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 1.25; }
+    .tr-rim .b { stroke: var(--app-accent); stroke-width: 4; opacity: .2; }
+    /* the Sun's sign sits on the texture: a halo in the page tone keeps it legible over any theme's material */
+    .tr-sign { position: absolute; inset: 25%; width: 50%; height: 50%; color: var(--app-accent); filter: drop-shadow(0 0 3px var(--color-base-100)); }
+    /* paper: a glow on white is a smear — the rim and the sign are the deep pole, no bloom */
+    [data-theme="signal-light"] .tr-rim .e { stroke: var(--color-secondary); stroke-width: 1.75; }
+    [data-theme="signal-light"] .tr-rim .b { display: none; }
+    [data-theme="signal-light"] .tr-sign { color: var(--color-secondary); }
+
+    /* A PLANET — its form in its own colour; a hairline edge keeps the pale ones (Moon, Venus) on paper. An EXACT
+       contact (the one whose degrees the app already prints in the primary) lights the edge. */
+    /* sized to the rows they sit in: a contact row is already full to the edge on a phone, so the form takes only
+       a few px more than a dot would */
+    .tr-body { flex: none; width: 1.125rem; height: 1.125rem; overflow: visible; }
+    .tr-body-lg { width: 1.5rem; height: 1.5rem; }
+    .tr-body path { fill: var(--body); stroke: color-mix(in oklch, var(--color-base-content) 28%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    [data-exact="true"] .tr-body path { stroke: var(--app-accent); stroke-width: 1.5; }
+    [data-theme="signal"] [data-exact="true"] .tr-body { filter: drop-shadow(0 0 5px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] [data-exact="true"] .tr-body path { stroke: var(--color-secondary); }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Транзити</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

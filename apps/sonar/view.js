@@ -13,6 +13,7 @@ import { Scramble } from "/_rt/skeleton.js";
 import { gate, MOCK } from "/_rt/gate.js";
 import { wakeLock } from "/_rt/sensors.js";
 import { collection } from "/_rt/db.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -282,7 +283,7 @@ export function sonar({ t, toast, S }) {
 
   return html`<div class="h-full min-h-0 flex flex-col gap-[var(--ms-gap)] relative" data-status=${status} data-motion=${active ? "on" : "off"} data-calibrated=${calS.ready ? "yes" : "no"}>
     <div class="shrink-0 flex items-center gap-[var(--ms-gap)]">
-      <span class=${`w-3 h-3 rounded-full shrink-0 ${active ? "bg-[var(--app-accent)]" : "bg-base-content/25"}`}></span>
+      <span class=${`sn-led w-3 h-3 rounded-full shrink-0 ${active ? "bg-[var(--app-accent)]" : "bg-base-content/25"}`}></span>
       <div class="min-w-0 flex-1">
         <div class="text-[length:var(--ms-title)] font-semibold leading-tight truncate">${T(t, state)}</div>
         <div class=${`${LABEL} truncate`}>
@@ -301,7 +302,10 @@ export function sonar({ t, toast, S }) {
 
     ${err ? html`<div data-err class="shrink-0 text-center text-sm text-muted">${T(t, err)}</div>` : null}
 
-    <${Transport} locale=${loc} playing=${listening} stopIcon
+    ${/* the kit's free-form key on its own row (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The
+         waterfall above is the instrument's working surface, so it carries no form. No loop toggle: listening is
+         one endless reading, not a sequence of tracks. */""}
+    <${Transport} form locale=${loc} playing=${listening} stopIcon
       onToggle=${() => (listening ? stop() : start())}
       actions=${[{ id: "s-cal", icon: "lucide:crosshair", label: T(t, "aCalibrate"), disabled: !listening,
         onClick: () => { reset(); toast?.(T(t, "stateCal")); }, attr: { "data-cal": "1" } }]} />
@@ -352,7 +356,7 @@ export function sonarLog({ t, S, toast, confirm, undo }) {
     onConfirm: async () => { try { await EVENTS.clear(); } catch { } $logv.set($logv.get() + 1); toast?.(T(t, "logCleared")); },
   });
 
-  if (!list) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel key=${i} class="card bg-base-100 rounded-[var(--ms-r)]"><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-9 h-9 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1"><div class="font-mono font-semibold"><${Scramble} len=${5} /></div><div class=${META}><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
+  if (!list) return html`<div class="flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div data-skel key=${i} class="card bg-base-100 rounded-[var(--ms-r)]"><div class="card-body p-3 flex-row items-center gap-3 text-muted"><div class="w-10 h-10 rounded-full sf-inset shrink-0"></div><div class="flex-1 min-w-0 flex flex-col gap-1"><div class="font-mono font-semibold"><${Scramble} len=${5} /></div><div class=${META}><${Scramble} len=${16} /></div></div></div></div>`)}</div>`;
   if (!list.length) {
     return html`<div class="flex flex-col items-center text-center gap-2 px-6 py-20 text-base-content/70">
       ${Icon("lucide:radio", "text-4xl")}
@@ -361,9 +365,12 @@ export function sonarLog({ t, S, toast, confirm, undo }) {
     </div>`;
   }
   return html`<div class="flex flex-col gap-2">
-    ${list.map((it) => html`<div data-event key=${it.id} class="card bg-base-100 rounded-[var(--ms-r)]">
+    <div class="ms-stagger flex flex-col gap-2">${list.map((it, i) => html`<div data-event key=${it.id} style=${`--i:${i}`} class="card bg-base-100 rounded-[var(--ms-r)]">
       <div class="card-body p-3 flex-row items-center gap-3">
-        <span class=${`w-9 h-9 rounded-full sf-inset shrink-0 flex items-center justify-center ${Math.abs(it.dir) >= DEFAULTS.directionMin ? "text-[var(--app-accent)]" : "text-base-content/70"}`}>
+        ${/* a burst's glyph is the burst's OWN form (core shape.js, seeded by its id) where a circle stood: the same
+             event, the same form on every phone; lit in the app's light when its direction was clear. A static path. */""}
+        <span data-form data-lit=${Math.abs(it.dir) >= DEFAULTS.directionMin ? "true" : "false"} class=${`sn-event ${Math.abs(it.dir) >= DEFAULTS.directionMin ? "text-[var(--app-accent)]" : "text-base-content/70"}`}>
+          <svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(shapeOf(it.id))} /></svg>
           ${Icon(Math.abs(it.dir) < DEFAULTS.directionMin ? "lucide:waves" : it.dir > 0 ? "lucide:arrow-down-to-dot" : "lucide:arrow-up-from-dot", "text-lg")}
         </span>
         <div class="flex-1 min-w-0">
@@ -375,7 +382,8 @@ export function sonarLog({ t, S, toast, confirm, undo }) {
         </div>
         <button data-del data-haptic="bump" aria-label=${T(t, "delete")} class="btn btn-ghost btn-sm btn-circle text-base-content/70" onClick=${() => del(it)}>${Icon("lucide:trash-2", "text-lg")}</button>
       </div>
-    </div>`)}
+    </div>`)}</div>
+    ${/* outside the stagger: its held end transform would override the button's own press */""}
     <button data-clear data-haptic="bump" class="btn btn-ghost btn-sm self-center mt-2 text-base-content/70" onClick=${clear}>${Icon("lucide:eraser")}${T(t, "logClear")}</button>
   </div>`;
 }

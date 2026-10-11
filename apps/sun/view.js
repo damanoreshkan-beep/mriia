@@ -10,13 +10,19 @@ import { SkyDial } from "/_rt/skydial.js";
 import { TimeScale } from "/_rt/timescale.js";
 import { Scramble } from "/_rt/skeleton.js";
 import { Sheet } from "/_rt/ui.js";
+import { pathOf, shapeOf } from "/_rt/shape.js";
 import { isGate, MOCK, gate } from "/_rt/gate.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const NAME_LABEL = "font-mono text-[length:var(--ms-label)] tracking-wide";
 const KYIV = { lat: 50.45, lng: 30.52, approx: true };
-const PRESETS = [["Kyiv", 50.45, 30.52], ["London", 51.5, -0.13], ["Tokyo", 35.68, 139.69], ["New York", 40.71, -74.0], ["Sydney", -33.87, 151.21]];
+// a PLACE is this app's object: each owns an organic form (core shape.js), seeded by its name, or by its rounded
+// point when the globe tap named nothing. The presets are pinned — shapeOf put Kyiv/New York and London/Sydney on
+// one form each, two cities with one face side by side.
+const PRESETS = [["Kyiv", 50.45, 30.52, "Cookie7Sided"], ["London", 51.5, -0.13, "Cookie9Sided"], ["Tokyo", 35.68, 139.69, "PuffyDiamond"], ["New York", 40.71, -74.0, "Clover4Leaf"], ["Sydney", -33.87, 151.21, "Sunny"]];
+const formOf = (p) => PRESETS.find(([n]) => n === p.name)?.[3] || shapeOf(p.name || `${p.lat.toFixed(1)},${p.lng.toFixed(1)}`);
+const PlaceForm = (p) => { const f = formOf(p); return html`<svg viewBox="0 0 1 1" class="sn-form" data-form=${f} aria-hidden="true"><path d=${pathOf(f)} /></svg>`; };
 const DIRS = ["Пн", "Пн-Сх", "Сх", "Пд-Сх", "Пд", "Пд-Зх", "Зх", "Пн-Зх"];
 const dirName = (b) => DIRS[Math.round((b % 360) / 45) % 8];
 const hhmm = (d) => d instanceof Date && !isNaN(d) ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : "—";
@@ -60,7 +66,7 @@ export function sun({ S, openScreen, closeScreen }) {
   useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(id); }, []);
 
   const grant = async () => { if (await compass.request()) setNeedPerm(false); };
-  const openGlobe = () => { const l = picked || pos || KYIV; setTmp({ lat: l.lat, lng: l.lng }); setFocus({ lat: l.lat, lon: l.lng }); openScreen("globe"); };
+  const openGlobe = () => { const l = picked || pos || KYIV; setTmp({ lat: l.lat, lng: l.lng, name: l.name }); setFocus({ lat: l.lat, lon: l.lng }); openScreen("globe"); };
 
   const globeSheet = html`<${Sheet} id="globesheet" open=${screen === "globe"} onClose=${closeScreen}
     title=${T(t, "pickTitle")} icon="lucide:globe">
@@ -71,7 +77,9 @@ export function sun({ S, openScreen, closeScreen }) {
         <div class=${`${LABEL} text-muted tabular-nums`}>${tmp ? `${tmp.lat.toFixed(2)}°, ${tmp.lng.toFixed(2)}°` : ""}</div>
       </div>
       ${""}
-      <div class="flex flex-wrap gap-1.5 justify-center">${PRESETS.map(([n, la, lo]) => html`<button class="btn btn-xs rounded-full" data-city=${n} key=${n} onClick=${() => { setTmp({ lat: la, lng: lo, name: n }); setFocus({ lat: la, lon: lo }); }}>${n}</button>`)}</div>
+      <!-- the cities arrive one after another each time the sheet opens: daisy's closed modal is only hidden, so a
+           standing .ms-stagger would play once, unseen, at boot — the class rides the open screen instead -->
+      <div class=${`flex flex-wrap gap-1.5 justify-center ${screen === "globe" ? "ms-stagger" : ""}`}>${PRESETS.map(([n, la, lo], i) => html`<button class="sn-city btn btn-sm h-[var(--ms-ctl)] min-h-0 rounded-full gap-1.5 ms-press" style=${`--i:${i}`} aria-pressed=${tmp?.name === n} data-city=${n} key=${n} onClick=${() => { setTmp({ lat: la, lng: lo, name: n }); setFocus({ lat: la, lon: lo }); }}>${PlaceForm({ name: n })}${n}</button>`)}</div>
       <button id="pick-here" class="btn btn-primary gap-2" disabled=${!tmp} onClick=${() => { setPicked(tmp); closeScreen(); }}>${Icon("lucide:map-pin")}${T(t, "pickHere")}</button>
     </div>
   <//>`;
@@ -122,7 +130,7 @@ export function sun({ S, openScreen, closeScreen }) {
     <div class="flex flex-col items-center gap-1.5">
       <button id="open-globe" class="btn btn-ghost btn-sm gap-2" onClick=${openGlobe}>${Icon("lucide:globe")}${T(t, "pickOnGlobe")}</button>
       ${picked
-        ? html`<button id="clear-pick" class=${`${NAME_LABEL} text-primary flex items-center gap-1`} onClick=${() => setPicked(null)}>${Icon("lucide:map-pin")}${picked.name || `${picked.lat.toFixed(1)}°, ${picked.lng.toFixed(1)}°`} · ${T(t, "myLocation")}</button>`
+        ? html`<button id="clear-pick" class=${`sn-picked ${NAME_LABEL} text-primary flex items-center gap-1.5 min-h-[var(--ms-ctl)] ms-press`} onClick=${() => setPicked(null)}>${PlaceForm(picked)}${picked.name || `${picked.lat.toFixed(1)}°, ${picked.lng.toFixed(1)}°`} · ${T(t, "myLocation")}</button>`
         : ready ? (pos?.approx ? html`<div class=${LABEL}>${T(t, "approxKyiv")}</div>` : null)
         : html`<div class=${`${LABEL} text-muted flex items-center gap-1.5`}>${Icon("lucide:map-pin")}${T(t, "locating")}</div>`}
     </div>

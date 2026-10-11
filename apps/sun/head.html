@@ -1,0 +1,25 @@
+  <style>
+    /* SUN on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The sky
+       dial is the instrument — the data itself — and wears no form. The PLACE the sun is reckoned for is the
+       object: each city and each picked point owns an organic form (core shape.js, view.js formOf), drawn as a
+       small glyph on its chip in the globe sheet and on the chip that names the chosen place. Energy: nothing
+       here loops; the chips arrive once when the sheet opens. */
+    .sn-form { flex: none; width: 1rem; height: 1rem; overflow: visible; }
+    .sn-form path { fill: transparent; stroke: color-mix(in oklch, var(--color-base-content) 45%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
+
+    /* a city chip: a touch lights the outline; the chosen city's form is filled with the app's light and the
+       chip sits pressed in (scoped past the kit's raised .btn rule, which would otherwise win — trail's lesson) */
+    .sn-city:active .sn-form path { stroke: var(--app-accent); }
+    .sn-city[aria-pressed="true"] .sn-form path { fill: var(--app-accent); stroke: var(--app-accent); }
+    .btn.sn-city[aria-pressed="true"]:not(.btn-link):not(:disabled) { box-shadow: var(--sf-press); }
+    [data-theme="signal"] .sn-city[aria-pressed="true"] .sn-form { filter: drop-shadow(0 0 4px var(--lm-bloom-hi)); }
+
+    /* the chosen place's chip under the dial: its form lit, the way the chosen city is in the sheet */
+    .sn-picked .sn-form path { fill: var(--app-accent); stroke: var(--app-accent); }
+    [data-theme="signal"] .sn-picked .sn-form { filter: drop-shadow(0 0 4px var(--lm-bloom-hi)); }
+
+    /* paper: a glow on white is a smear — the lit form is the deep pole, no bloom */
+    [data-theme="signal-light"] .sn-city:active .sn-form path { stroke: var(--color-secondary); }
+    [data-theme="signal-light"] .sn-city[aria-pressed="true"] .sn-form path,
+    [data-theme="signal-light"] .sn-picked .sn-form path { fill: var(--color-secondary); stroke: var(--color-secondary); }
+  </style>

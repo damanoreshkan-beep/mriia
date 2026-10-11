@@ -1,0 +1,19 @@
+  <style>
+    /* SONAR — onto the farm's free forms (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's identity
+       is the BURST: a moment the room's echo bent, kept in the log. A logged burst's glyph is its own form (core
+       shape.js, seeded by its id) where an inset circle stood: a quiet tint at rest, the app's light when the
+       direction was clear. The room screen keeps the waterfall as it is — it is the instrument's reading, not a
+       surface to decorate. A static path: nothing draws at rest. */
+    .sn-event { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex: none; }
+    .sn-event > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .sn-event > svg path { fill: color-mix(in oklch, var(--color-base-content) 7%, transparent); stroke: var(--lm-rim-hi); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .sn-event > iconify-icon { position: relative; }
+    .sn-event[data-lit="true"] > svg path { fill: color-mix(in oklch, var(--app-accent) 16%, transparent); stroke: color-mix(in oklch, var(--app-accent) 45%, transparent); }
+    /* paper: a white rim on a white card is nothing — the edge is a faint ink line */
+    [data-theme="signal-light"] .sn-event > svg path { stroke: color-mix(in oklch, var(--color-base-content) 14%, transparent); }
+    [data-theme="signal-light"] .sn-event[data-lit="true"] > svg path { stroke: color-mix(in oklch, var(--app-accent) 55%, transparent); }
+
+    /* the motion LED flips with every burst: a colour change on the state clock, never a jump */
+    .sn-led { transition: background-color var(--t-state) var(--ease-out); }
+    @media (prefers-reduced-motion: reduce) { .sn-led { transition: none; } }
+  </style>

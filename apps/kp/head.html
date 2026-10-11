@@ -1,6 +1,6 @@
   <style>
     /* THE NOAA SCALE'S OWN COLOURS — a value of the data (quiet greens → storm oranges/reds → the G5 purple),
-       painted on MARKS only: the gauge arc, the forecast bars, the storm dot. Never on type — the Kp reading
+       painted on MARKS only: the gauge arc, the forecast bars, the state's form. Never on type — the Kp reading
        and the G level are ink, and the arc beside them carries the colour. light-dark() picks the deep pair
        on paper and the bright pair on black, so the scale reads on both grounds. */
     :root{
@@ -9,4 +9,10 @@
       --kp-6:light-dark(#A24810,#E7742E);--kp-7:light-dark(#B63125,#EC5A4A);--kp-8:light-dark(#A5291F,#E0463A);
       --kp-9:light-dark(#8E2A86,#C94BBA)
     }
+    /* THE STATE'S FORM — the old storm dot grown into the state's own shape (core shape.js): an outline in the
+       scale's colour while the field is quiet or unsettled, filled with it once a storm (G1+) is on. The colour
+       is the reading's (--kp-c, set inline), so it reads on both grounds by the scale's own light-dark pair. */
+    .kp-form{width:1.75rem;height:1.75rem;flex:none;overflow:visible}
+    .kp-form path{fill:transparent;stroke:var(--kp-c);stroke-width:1.5;vector-effect:non-scaling-stroke;transition:fill var(--t-state) var(--ease-out),stroke var(--t-state) var(--ease-out)}
+    [data-storm="true"] .kp-form path{fill:var(--kp-c)}
   </style>

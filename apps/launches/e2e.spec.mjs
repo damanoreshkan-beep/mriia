@@ -45,6 +45,24 @@ export default [
     },
   },
   {
+    // before the calendar test: that one picks a day and turns the month, and this one needs today's month whole
+    name: "форми: майданчик і запуск — кожен у своїй формі, та сама форма на Землі й у календарі", run: async (h) => {
+      await feed(h);
+      await h.tap('[data-tab="map"]'); await h.wait(800);
+      h.expect((await h.count("[data-site-row] [data-form]")) === 5, "не кожен майданчик у своїй формі");
+      // only the current tab is mounted (render.js TabView), so the Earth tab opens with no site chosen
+      await h.tap("[data-site-row]"); await h.wait(300);
+      h.expect((await h.attr("[data-site-row]", "aria-expanded")) === "true", "майданчик не розкрився");
+      const form = await h.attr('[data-launch="gate-0"] [data-form]', "data-form");
+      h.expect(!!form, "запуск у списку майданчика без форми");
+      h.expect((await h.count(`#ln-p-${form}`)) === 1, "форма запуску не має свого кліпу");
+      h.expect((await h.count('[data-launch="gate-0"] .ln-ground img')) === 1, "картинка запуску не всередині форми");
+      await h.tap('[data-tab="cal"]'); await h.wait(500);
+      h.expect((await h.attr('[data-launch="gate-0"] [data-form]', "data-form")) === form, "у календарі той самий запуск в іншій формі");
+      await feed(h);
+    },
+  },
+  {
     name: "Календар: позначений день фільтрує, місяць гортається", run: async (h) => {
       await feed(h);
       await h.tap('[data-tab="cal"]'); await h.wait(500);

@@ -9,6 +9,7 @@ export default [
       h.expect((await h.count("[data-live]")) >= 1, "немає живого читання");
       h.expect((await h.count("canvas")) === 1, "немає водоспаду");
       h.expect((await h.count("#play")) === 1, "немає транспорту");
+      h.expect((await h.count("#play.tp-form")) === 1, "кнопка слухати не на формі (<Transport form>)");
       h.expect((await h.count("[data-cal]")) === 1, "немає перекалібрування");
       const body = await h.bodyText();
       h.expect(/Рух|Motion/i.test(body), `гейт показує не рух: ${body.slice(0, 120)}`);
@@ -32,6 +33,8 @@ export default [
     name: "журнал: події, напрямок, видалення", run: async (h) => {
       await h.click('[data-tab="log"]'); await h.wait(300);
       h.expect((await h.count("[data-event]")) === 3, "гейт має три записи руху");
+      h.expect((await h.count("[data-event] [data-form] svg path")) === 3, "не в кожного запису своя форма");
+      h.expect((await h.count('[data-form][data-lit="true"]')) === 2, "записи з ясним напрямком не підсвічені");   // fixture: dir 0.91 and -0.44 are clear, 0.08 is not
       const body = await h.bodyText();
       h.expect(/дБ|dB/i.test(body), "запис не показує піковий сигнал");
       h.expect(/с$|с\b|\ss\b/i.test(body) || /\d+\.\d/.test(body), "запис не показує тривалість");

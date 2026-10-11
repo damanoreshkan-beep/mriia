@@ -1,8 +1,9 @@
 import { html } from "htm/preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef, useLayoutEffect } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Scramble, Pixels, useReveal } from "/_rt/skeleton.js";
+import { shapeOf, pathOf, scalePath, shaper } from "/_rt/shape.js";
 import { eaqiBand, pollutantBand, pollenBand } from "/_rt/air.js";
 import { geo } from "/_rt/sensors.js";
 import { isGate, MOCK, gate } from "/_rt/gate.js";
@@ -20,6 +21,9 @@ const fillFor = (b) => AQ[clamp(b, 5)];
 const AQI_KEYS = ["aqiGood", "aqiFair", "aqiModerate", "aqiPoor", "aqiVeryPoor", "aqiExtreme"];
 const POLLEN_DOT = [null, fillFor(0), fillFor(2), fillFor(3), fillFor(4)];
 const dot = (fill) => html`<span class="w-2 h-2 rounded-full shrink-0" aria-hidden="true" style=${`background:${fill}`}></span>`;
+// a pollen grain IS an organic form under the microscope: each species its own, lit in its band. A fixed map, not
+// shapeOf — the hash puts mugwort and ragweed (both late-summer, often side by side) on one form; six species, six forms.
+const grain = (p, fill) => html`<svg viewBox="0 0 1 1" class="w-3.5 h-3.5 shrink-0" aria-hidden="true" data-grain=${p.sp}><path d=${pathOf(p.form)} style=${`fill:${fill}`}></path></svg>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const POLLEN_KEYS = ["pnNone", "pnLow", "pnModerate", "pnHigh", "pnVeryHigh"];
 
@@ -31,12 +35,12 @@ const POLLUTANTS = [
   { sp: "so2", f: "sulphur_dioxide", label: "SO₂" },
 ];
 const POLLENS = [
-  { f: "grass_pollen", sp: "grass", key: "pGrass" },
-  { f: "birch_pollen", sp: "birch", key: "pBirch" },
-  { f: "mugwort_pollen", sp: "mugwort", key: "pMugwort" },
-  { f: "ragweed_pollen", sp: "ragweed", key: "pRagweed" },
-  { f: "alder_pollen", sp: "alder", key: "pAlder" },
-  { f: "olive_pollen", sp: "olive", key: "pOlive" },
+  { f: "grass_pollen", sp: "grass", key: "pGrass", form: "Cookie12Sided" },
+  { f: "birch_pollen", sp: "birch", key: "pBirch", form: "Cookie6Sided" },
+  { f: "mugwort_pollen", sp: "mugwort", key: "pMugwort", form: "Clover4Leaf" },
+  { f: "ragweed_pollen", sp: "ragweed", key: "pRagweed", form: "SoftBurst" },
+  { f: "alder_pollen", sp: "alder", key: "pAlder", form: "Cookie4Sided" },
+  { f: "olive_pollen", sp: "olive", key: "pOlive", form: "Cookie7Sided" },
 ];
 
 const hhmm = (iso) => String(iso).slice(11, 16);
@@ -60,11 +64,39 @@ function makeSample() {
 
 const gauge = (aqi, band) => {
   const R = 42, C = 2 * Math.PI * R, ARC = 0.75, frac = Math.min(1, aqi / 100);
-  return html`<svg viewBox="0 0 100 100" class="w-36 h-36" aria-hidden="true">
+  return html`<svg viewBox="0 0 100 100" class="w-full h-full" aria-hidden="true">
     <circle cx="50" cy="50" r=${R} fill="none" style="stroke:var(--sf-track-face)" stroke-width="7" stroke-linecap="round" stroke-dasharray=${`${(ARC * C).toFixed(1)} ${C.toFixed(1)}`} transform="rotate(135 50 50)"></circle>
     <circle cx="50" cy="50" r=${R} fill="none" stroke=${fillFor(band)} stroke-width="7" stroke-linecap="round" stroke-dasharray=${`${(frac * ARC * C).toFixed(1)} ${C.toFixed(1)}`} transform="rotate(135 50 50)"></circle>
   </svg>`;
 };
+
+// THE READING IS A FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»): the air of a place sits in that
+// place's own form — seeded by the coordinates to a tenth of a degree, so a city has one form on every phone and
+// in every language — the theme's texture through it, the band's hue in its rim (head.html). A first fix flows
+// Kyiv's form into the found place's (one-shot). The gauge rides on top, never clipped. Layout effects, so the
+// first paint already has the form, never an unclipped square.
+function ReadingOrb({ seed, band, children }) {
+  const name = shapeOf(seed);
+  const orb = useRef(), fill = useRef(), rim = useRef(), form = useRef();
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "";
+    const lay = (d) => {
+      last = d;
+      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    form.current = shaper(name, lay);
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orb.current);
+    return () => { ro.disconnect(); form.current.stop(); };
+  }, []);
+  useLayoutEffect(() => { form.current?.to(name); }, [name]);
+  return html`<div ref=${orb} data-orb data-form=${name} class="air-orb" style=${`--band:${fillFor(band)}`}>
+    <div ref=${fill} class="air-fill" aria-hidden="true"></div>
+    <svg ref=${rim} class="air-rim" viewBox="0 0 1 1" aria-hidden="true"><path class="b1"></path><path class="b2"></path><path class="e"></path></svg>
+    <div class="air-gauge">${children}</div>
+  </div>`;
+}
 
 export function air({ S }) {
   const t = useStore(S.t), locale = useStore(S.locale);
@@ -112,7 +144,7 @@ export function air({ S }) {
   const ready = useReveal(!!data);
   if (err && !data) return html`<div data-air data-ready="0" data-empty class="flex flex-col items-center text-muted py-16 gap-2 text-center px-6"><span data-mascot aria-hidden="true"></span>${Icon("lucide:cloud-off", "text-4xl")}<span class="font-medium">${T(t, "statusError")}</span></div>`;
   if (!ready) return html`<div data-air data-ready="0" class="flex flex-col gap-[calc(var(--ms-gap)*1.5)] items-center">
-    <div class="w-36 h-36 rounded-full border-[6px] flex items-center justify-center" style="border-color:var(--sf-track-face)"><span class="text-5xl font-bold tabular-nums text-muted"><${Scramble} len=${2} /></span></div>
+    <div class="air-orb grid place-items-center"><div class="w-[66%] aspect-square rounded-full border-[6px] flex items-center justify-center" style="border-color:var(--sf-track-face)"><span class="text-5xl font-bold tabular-nums text-muted"><${Scramble} len=${2} /></span></div></div>
     <div class="text-lg font-bold text-muted"><${Scramble} len=${8} /></div>
     <div class="w-full max-w-[420px] h-28 rounded-[var(--ms-r)] overflow-hidden sf-inset"><${Pixels} /></div>
     <div class="w-full max-w-[420px] flex flex-col gap-2">${[0, 1, 2].map((i) => html`<div class="flex items-center justify-between text-muted border-b border-base-300/50 pb-2" key=${i}><${Scramble} len=${7} /><${Scramble} len=${5} /></div>`)}</div>
@@ -128,15 +160,15 @@ export function air({ S }) {
   const active = POLLENS.map((p) => ({ ...p, v: c[p.f] })).filter((p) => p.v != null && p.v > 0).sort((a, b2) => b2.v - a.v);
 
   return html`<div data-air data-ready="1" data-band=${band} class="flex flex-col gap-[calc(var(--ms-gap)*1.5)] items-center">
-    <!-- current AQI gauge: the number is ink; the band is the arc's hue -->
-    <div class="relative w-36 h-36 flex items-center justify-center">
+    <!-- current AQI gauge in the place's form: the number is ink; the band is the arc's hue -->
+    <${ReadingOrb} seed=${`${loc.lat.toFixed(1)},${loc.lng.toFixed(1)}`} band=${band}>
       ${gauge(aqi, band)}
       <div class="absolute flex flex-col items-center">
         <div data-aqi class="text-5xl font-bold tabular-nums leading-none">${aqi}</div>
         <div class=${`${LABEL} mt-1`}>AQI</div>
       </div>
-    </div>
-    <div class="flex flex-col items-center gap-0.5 -mt-2 text-center px-[var(--ms-pad)]">
+    <//>
+    <div class="flex flex-col items-center gap-0.5 -mt-1 text-center px-[var(--ms-pad)]">
       <div class="text-lg font-bold inline-flex items-center gap-2">${dot(fillFor(band))}${T(t, AQI_KEYS[clamp(band, 5)])}</div>
       <div class="text-sm text-muted inline-flex items-center gap-1" data-live>${Icon("lucide:map-pin", "text-[0.85em]")}${loc.place || T(t, loc.located ? "myLocation" : "place")} · ${T(t, "updated")} ${hhmm(c.time)}</div>
     </div>
@@ -144,20 +176,24 @@ export function air({ S }) {
     <!-- 24-hour forecast -->
     <div class="w-full max-w-[420px] flex flex-col gap-1">
       <div class=${`${LABEL} px-1`}>${T(t, "forecastLabel")}</div>
-      <svg viewBox=${`0 0 100 ${H}`} class="w-full" style="height:96px" preserveAspectRatio="none">
-        ${hrs.map((h, i) => html`<rect x=${(i * bw + bw * 0.12).toFixed(2)} y=${yOf(h.aqi).toFixed(2)} width=${(bw * 0.76).toFixed(2)} height=${Math.max(0.6, H - yOf(h.aqi)).toFixed(2)} rx="0.5" fill=${fillFor(eaqiBand(h.aqi))} key=${i}></rect>`)}
-      </svg>
-      <div class="relative h-4 font-mono text-[length:var(--ms-label)] text-muted">
-        ${ticks.map((d) => html`<span class="absolute -translate-x-1/2 whitespace-nowrap" style=${`left:${Math.min(94, Math.max(4, (d.i + 0.5) * bw)).toFixed(1)}%`} key=${d.i}>${d.label}</span>`)}
+      ${/* the chart sits in an inset well (the surface its skeleton already showed) — padded, never clipped */""}
+      <div data-forecast class="sf-inset rounded-[var(--ms-r-in)] p-2 pb-1 flex flex-col gap-1">
+        <svg viewBox=${`0 0 100 ${H}`} class="w-full" style="height:96px" preserveAspectRatio="none">
+          ${hrs.map((h, i) => html`<rect x=${(i * bw + bw * 0.12).toFixed(2)} y=${yOf(h.aqi).toFixed(2)} width=${(bw * 0.76).toFixed(2)} height=${Math.max(0.6, H - yOf(h.aqi)).toFixed(2)} rx="0.5" fill=${fillFor(eaqiBand(h.aqi))} key=${i}></rect>`)}
+        </svg>
+        <div class="relative h-4 font-mono text-[length:var(--ms-label)] text-muted">
+          ${ticks.map((d) => html`<span class="absolute -translate-x-1/2 whitespace-nowrap" style=${`left:${Math.min(94, Math.max(4, (d.i + 0.5) * bw)).toFixed(1)}%`} key=${d.i}>${d.label}</span>`)}
+        </div>
       </div>
     </div>
 
     <!-- pollutants: each value carries its own EEA sub-index band as the dot beside it -->
-    <div class="w-full max-w-[420px] flex flex-col gap-1">
+    ${/* both lists arrive row by row (.ms-stagger, --i per row) — once, when the reading lands */""}
+    <div class="ms-stagger w-full max-w-[420px] flex flex-col gap-1">
       <div class=${`${LABEL} px-1 mb-0.5`}>${T(t, "pollutantsLabel")}</div>
-      ${POLLUTANTS.map((p) => {
+      ${POLLUTANTS.map((p, i) => {
         const v = c[p.f], pb = pollutantBand(p.sp, v);
-        return html`<div class="flex items-center justify-between gap-2 py-1.5 border-b border-base-300/50 last:border-0" key=${p.sp}>
+        return html`<div class="flex items-center justify-between gap-2 py-1.5 border-b border-base-300/50 last:border-0" style=${`--i:${i + 1}`} key=${p.sp}>
           <span class="font-mono text-sm font-semibold shrink-0">${p.label}</span>
           <span class="flex items-baseline gap-1.5 min-w-0">
             ${pb >= 0 ? dot(fillFor(pb)) : html`<span class="w-2 h-2 rounded-full sf-inset shrink-0" aria-hidden="true"></span>`}
@@ -169,12 +205,12 @@ export function air({ S }) {
     </div>
 
     <!-- pollen: active species, banded -->
-    <div class="w-full max-w-[420px] flex flex-col gap-1">
+    <div class="ms-stagger w-full max-w-[420px] flex flex-col gap-1">
       <div class=${`${LABEL} px-1 mb-0.5`}>${T(t, "pollenLabel")}</div>
-      ${active.length ? active.map((p) => {
+      ${active.length ? active.map((p, i) => {
         const pb = pollenBand(p.sp, p.v);
-        return html`<div class="flex items-center gap-2 py-1.5 border-b border-base-300/50 last:border-0" key=${p.sp}>
-          ${POLLEN_DOT[pb] ? dot(POLLEN_DOT[pb]) : html`<span class="w-2 h-2 rounded-full sf-inset shrink-0" aria-hidden="true"></span>`}
+        return html`<div class="flex items-center gap-2 py-1.5 border-b border-base-300/50 last:border-0" style=${`--i:${i + 1}`} key=${p.sp}>
+          ${grain(p, POLLEN_DOT[pb] || "var(--sf-track-face)")}
           <span class="font-medium truncate flex-1 min-w-0">${T(t, p.key)}</span>
           <span class="text-sm font-semibold shrink-0">${T(t, POLLEN_KEYS[pb])}</span>
           <span class="tabular-nums font-mono text-[length:var(--ms-label)] text-muted text-right shrink-0 @max-[280px]:hidden">${Math.round(p.v)} ${T(t, "grains")}</span>

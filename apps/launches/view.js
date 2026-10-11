@@ -5,6 +5,7 @@ import { T, whenLabel } from "/_rt/i18n.js";
 import { Globe } from "/_rt/globe.js";
 import { Calendar, monthKey } from "/_rt/calendar.js";
 import { Panel } from "/_rt/ui.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -15,13 +16,26 @@ const coords = (lat, lon) =>
 const Nothing = (t, key) => html`<div class="flex flex-col items-center text-muted py-10 gap-2 text-center px-6">
   ${Icon("lucide:radar", "text-3xl")}<span class="text-sm">${T(t, key)}</span></div>`;
 
-const Launch = ({ it, t, loc, S }) => html`<button type="button" data-launch=${it.id}
-  class="flex items-center gap-2.5 py-2 w-full text-left min-w-0" onClick=${() => S.detail.set(it)}>
-  <span class="w-10 h-10 shrink-0 rounded-[var(--ms-r-in)] overflow-hidden sf-inset grid place-items-center">
-    ${it.thumb
-      ? html`<img src=${it.thumb} alt="" loading="lazy" class="w-full h-full object-cover" />`
-      : Icon("lucide:rocket", "text-lg text-muted")}
-  </span>
+// A launch and a launch site each wear their OWN form (core shape.js: the same seed, the same form on every phone),
+// clipped by an objectBoundingBox clipPath so a row needs no measuring. Each view keeps its own defs under its own
+// prefix (`ns`), so two mounted views never share an id. The rim is the same path drawn over the clip (head.html).
+const FormDefs = ({ ns }) => html`<svg class="ln-defs" width="0" height="0" aria-hidden="true"><defs>
+  ${ORGANIC.map((f) => html`<clipPath key=${f} id=${`ln-${ns}-${f}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(f)} /></clipPath>`)}
+</defs></svg>`;
+const Form = ({ ns, seed, cls, ground, children }) => {
+  const f = shapeOf(seed);
+  return html`<span data-form=${f} class=${`ln-form ${cls}`}>
+    <span class="ln-ground" style=${`clip-path:url(#ln-${ns}-${f})`}>${ground}</span>
+    ${children}
+    <svg class="ln-rim" viewBox="0 0 1 1" aria-hidden="true"><path d=${pathOf(f)} /></svg>
+  </span>`;
+};
+
+const Launch = ({ it, t, loc, S, ns, i = 0 }) => html`<button type="button" data-launch=${it.id} style=${`--i:${i}`}
+  class="flex items-center gap-2.5 py-2 w-full text-left min-w-0 ms-press" onClick=${() => S.detail.set(it)}>
+  <${Form} ns=${ns} seed=${it.id} cls="w-10 h-10" ground=${it.thumb
+    ? html`<img src=${it.thumb} alt="" loading="lazy" />`
+    : Icon("lucide:rocket", "text-lg text-muted")} />
   <span class="min-w-0 flex-1">
     <span class="block font-medium truncate">${it.title}</span>
     <span class="block text-sm text-muted truncate">${whenLabel(t, it.net, loc, true, it.precision)}</span>
@@ -52,15 +66,18 @@ export function pads({ S }) {
   const pick = ({ point }) => { if (point) { setSel(point.key); setFocus({ lat: point.lat, lon: point.lon }); } };
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-sites=${sites.length} data-site=${sel || ""}>
+    <${FormDefs} ns="p" />
     <${Globe} points=${points} focus=${focus} onPick=${pick} spin=${!sel} height=${300} />
     ${sites.length
       ? html`<${Panel} title=${T(t, "sites")} data-pads=${sites.length}>
           <div class="divide-y divide-base-300/40">
             ${sites.map((s) => html`<div key=${s.key}>
               <button type="button" data-site-row=${s.key} aria-expanded=${s.key === sel}
-                class="flex items-center gap-2.5 py-2 w-full text-left min-w-0" onClick=${() => choose(s)}>
+                class="flex items-center gap-2.5 py-2 w-full text-left min-w-0 ms-press" onClick=${() => choose(s)}>
                 ${""}
-                <span class="w-9 h-9 shrink-0 rounded-[var(--ms-r-in)] sf-inset grid place-items-center font-mono text-[0.68rem] font-semibold tracking-wider">${s.country || "—"}</span>
+                <${Form} ns="p" seed=${s.key} cls="w-9 h-9">
+                  <span class="ln-code font-mono text-[0.68rem] font-semibold tracking-wider">${s.country || "—"}</span>
+                <//>
                 <span class="min-w-0 flex-1">
                   <span class="block font-medium truncate">${s.pad || s.place}</span>
                   <span class="block text-sm text-muted truncate">${s.place}</span>
@@ -68,9 +85,9 @@ export function pads({ S }) {
                 <span class="font-mono tabular-nums text-sm text-base-content/70 shrink-0">${s.list.length}</span>
               </button>
               ${s.key === sel
-                ? html`<div class="pb-2 pl-11 flex flex-col min-w-0">
+                ? html`<div class="pb-2 pl-11 flex flex-col min-w-0 ms-stagger">
                     <span data-coords class=${LABEL}>${coords(s.lat, s.lon)}</span>
-                    ${s.list.map((it) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} key=${it.id} />`)}
+                    ${s.list.map((it, i) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} ns="p" i=${i + 1} key=${it.id} />`)}
                   </div>`
                 : null}
             </div>`)}
@@ -105,6 +122,7 @@ export function agenda({ S }) {
     : T(t, "calMonth");
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-agenda=${ym} data-day=${inMonth ? day : ""}>
+    <${FormDefs} ns="a" />
     <${Panel}>
       <${Calendar} month=${ym} onMonth=${goMonth} marks=${marks} value=${inMonth ? day : null} pick="marked"
         min=${months[0]} max=${months[months.length - 1]} locale=${loc}
@@ -112,13 +130,14 @@ export function agenda({ S }) {
     <//>
     ${shown.length
       ? html`<${Panel} title=${heading} data-agenda-list=${shown.length}>
-          <div class="divide-y divide-base-300/40">${shown.map((it) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} key=${it.id} />`)}</div>
+          ${/* a fresh key per day / month replays the stagger: a picked day is a filter switch */ ""}
+          <div key=${inMonth ? day : ym} class="divide-y divide-base-300/40 ms-stagger">${shown.map((it, i) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} ns="a" i=${i} key=${it.id} />`)}</div>
         <//>`
       : data.loading ? null : Nothing(t, data.error ? "statusError" : items.length ? "calNone" : "mapEmpty")}
     ${""}
     ${fuzzy.length
       ? html`<${Panel} title=${T(t, "calFuzzy")} data-agenda-fuzzy=${fuzzy.length}>
-          <div class="divide-y divide-base-300/40">${fuzzy.map((it) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} key=${it.id} />`)}</div>
+          <div key=${ym} class="divide-y divide-base-300/40 ms-stagger">${fuzzy.map((it, i) => html`<${Launch} it=${it} t=${t} loc=${loc} S=${S} ns="a" i=${i} key=${it.id} />`)}</div>
         <//>`
       : null}
   </div>`;
