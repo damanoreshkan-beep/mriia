@@ -1,5 +1,45 @@
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
-import { fetchResumable, startTask, taskKey, pace, TaskError } from "../task.js";
+import { fetchResumable, startTask, followTask, taskKey, pace, TaskError } from "../task.js";
+
+// the edge's stream answers (edge streams.js): a JSON batch or a 204, with the protocol headers
+const answer = (items, { next, closed = false, cursor = "" } = {}) => new Response(items ? JSON.stringify(items) : null, {
+  status: items ? 200 : 204,
+  headers: { "content-type": "application/json", "stream-next-offset": next, ...(cursor ? { "stream-cursor": cursor } : {}), ...(closed ? { "stream-closed": "true" } : {}) },
+});
+
+Deno.test("task: events and EOF in ONE answer still reach the caller — the finished voice that read «Нічого не повернулось»", async () => {
+  const seen = [], urls = [];
+  await followTask("t1", (ev) => seen.push(ev.t), { fetchFn: async (u) => { urls.push(u); return answer([{ t: "progress" }, { t: "ready", name: "result" }], { next: "2", closed: true }); } });
+  assertEquals(seen, ["progress", "ready"]);
+  assertEquals(urls.length, 1);
+  assert(urls[0].endsWith("/task/t1?offset=-1"));
+});
+
+Deno.test("task: long-polls resume from the next offset with the cursor, a 204 is an empty poll, closed is EOF", async () => {
+  const seen = [], urls = [];
+  const replies = [answer([{ t: "progress" }], { next: "1" }), answer(null, { next: "1", cursor: "c9" }), answer([{ t: "ready" }], { next: "2", cursor: "c10" }), answer(null, { next: "2", closed: true })];
+  await followTask("t2", (ev) => seen.push(ev.t), { fetchFn: async (u) => { urls.push(u); return replies.shift(); } });
+  assertEquals(seen, ["progress", "ready"]);
+  assert(urls[1].includes("offset=1&live=long-poll") && !urls[1].includes("cursor"));
+  assert(urls[2].includes("offset=1&live=long-poll&cursor=c9"));
+  assert(urls[3].includes("offset=2&live=long-poll&cursor=c10"));
+});
+
+Deno.test("task: a forgotten task (404) rejects; a poll cut mid-body is read again from the same offset, nothing doubled", async () => {
+  await assertRejects(() => followTask("t3", () => {}, { fetchFn: async () => new Response("gone", { status: 404 }) }), TaskError);
+  const seen = [], urls = [];
+  const replies = [
+    () => new Response("[{\"t\":\"progress\"", { status: 200, headers: { "stream-next-offset": "1" } }),   // cut mid-body
+    () => answer([{ t: "ready" }], { next: "1", closed: true }),
+  ];
+  const ac = new AbortController();
+  globalThis.dispatchEvent?.(new Event("online"));
+  const run = followTask("t4", (ev) => seen.push(ev.t), { signal: ac.signal, fetchFn: async (u) => { urls.push(u); return replies.shift()(); } });
+  await run;
+  assertEquals(seen, ["ready"]);
+  assertEquals(urls.length, 2);
+  assert(urls[1].endsWith("offset=-1"), "the cut answer is read again from the same offset");
+});
 
 const bytes = (n, from = 0) => Uint8Array.from({ length: n }, (_, i) => (from + i) % 251);
 // a body that delivers `chunk` and then dies the way a dead zone kills a socket (error() in start() would

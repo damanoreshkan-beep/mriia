@@ -2,15 +2,17 @@
 // слабому зв'язку"). Three moves, each of which survives the connection dying under it:
 //   · startTask  — the POST that starts the job carries the client's own key `k`; a reply lost on the way is
 //                  sent again with the same key and the edge answers the SAME task (edge remix.js).
-//   · followTask — the job's events from its Durable Stream (edge streams.js, durablestreams.com), read by the
-//                  protocol's own client: every event has an offset, a dropped poll resumes "after N".
+//   · followTask — the job's events from its Durable Stream (edge streams.js, durablestreams.com): every event
+//                  has an offset, a dropped poll resumes "after N". Read by the few lines below, not the
+//                  protocol's client (2026-10-11, vidlunnia «голос не генерується»: @durable-streams/client 0.2.7
+//                  resolved `closed` on a stream whose events and close came in one answer WITHOUT handing the
+//                  events to subscribeJson — so `ready` never reached the app and every finished voice read
+//                  «Нічого не повернулось». Measured in the page: closed ok, streamClosed=true, 0 batches).
 //   · fetchResumable — a file pulled with Range: a download cut at 5 MB continues from 5 MB, not from zero.
 // No call here has a deadline. A result or an error arrives as an event; the only waiting is the retry pace,
 // which an `online` event cuts short. Measured before (the remix, three sealed GETs with a 110 s abort):
 // 24.7 MB on the wire for 18.2 MB of mp3 and 110.7 s at the phone's 225 KB/s — one bad minute lost it all.
 import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
-
-const DS_CLIENT = "https://esm.sh/@durable-streams/client@0.2.7";   // loaded on the first task, not at boot
 
 /** A key for one tap: the same key re-sent is the same task on the edge. */
 export const taskKey = () => crypto.randomUUID().replaceAll("-", "").slice(0, 24);
@@ -46,24 +48,33 @@ export async function startTask(route, body, { signal, fetchFn = (...a) => fetch
 }
 
 /** Every event of task `id`, in order, to `onEvent`; resolves at the stream's EOF. A gone task rejects (404). */
-export async function followTask(id, onEvent, { signal } = {}) {
-  const { stream } = await import(DS_CLIENT);
-  let n = 0;
-  const res = await stream({
-    url: `${VPS_PROXY}/task/${id}`, live: "long-poll", signal,
-    // A 404/410 is the task forgotten (the media worker restarted): stop and say so. Anything else retries — but
-    // the client re-dials the moment this returns ({} = "again", read off its source), so the pace is ours.
-    onError: async (e) => {
-      if (e?.status === 404 || e?.status === 410) return undefined;
+export async function followTask(id, onEvent, { signal, fetchFn = (...a) => fetch(...a) } = {}) {
+  // The protocol as the edge speaks it: the first read is `offset=-1` (everything so far), then long-polls from
+  // `stream-next-offset` with the `stream-cursor` it hands back; a JSON array of events, or 204 when a poll ends
+  // empty; `stream-closed: true` is EOF. Events are handed on only once their answer parsed whole, so a poll cut
+  // mid-body is simply read again from the same offset — nothing is seen twice, nothing skipped.
+  let offset = "-1", cursor = "", n = 0;
+  for (;;) {
+    const q = new URLSearchParams({ offset });
+    if (offset !== "-1") { q.set("live", "long-poll"); if (cursor) q.set("cursor", cursor); }
+    let r, items = null;
+    try {
+      r = await fetchFn(`${VPS_PROXY}/task/${id}?${q}`, { signal });
+      // A 404/410 is the task forgotten (the media worker restarted): stop and say so
+      if (r.status === 404 || r.status === 410) throw new TaskError(404, "task gone");
+      if (!r.ok) { if (final(r.status)) throw new TaskError(r.status); throw new Error(`http ${r.status}`); }
+      if (r.status !== 204) { items = await r.json(); if (!Array.isArray(items)) throw new Error("not a batch"); }
+    } catch (e) {
+      if (e instanceof TaskError || signal?.aborted) throw e;
       await pace(n++, signal);
-      return {};
-    },
-  });
-  await new Promise((done, fail) => {
-    res.subscribeJson(async (batch) => { for (const ev of batch.items) onEvent(ev); });
-    res.closed.then(done, fail);
-  });
-  if (!res.streamClosed && !signal?.aborted) throw new TaskError(404, "task gone");
+      continue;
+    }
+    n = 0;
+    for (const ev of items || []) onEvent(ev);
+    offset = r.headers.get("stream-next-offset") || offset;
+    cursor = r.headers.get("stream-cursor") || cursor;
+    if (r.headers.get("stream-closed") === "true") return;
+  }
 }
 
 // The live mirror a screen reads (stage, phase, step, steps, eta, pct, got, elapsed): progress events merge into
