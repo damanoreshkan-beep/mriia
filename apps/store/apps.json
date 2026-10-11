@@ -28,7 +28,7 @@
     "bg": "#07070C",
     "fg": "#9F8CF6",
     "href": "./outpost/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "sound",
     "needs": []
   },
@@ -61,7 +61,7 @@
     "bg": "#000000",
     "fg": "#B9C8F2",
     "href": "./vydyvo/",
-    "version": "1.45",
+    "version": "1.46",
     "category": "creative",
     "needs": [
       "auth",
@@ -134,7 +134,7 @@
     "bg": "#000000",
     "fg": "#F0B27A",
     "href": "./vidlunnia/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "creative",
     "needs": [
       "microphone"
@@ -212,7 +212,7 @@
     "bg": "#0A0A0B",
     "fg": "#5BA6E8",
     "href": "./globe/",
-    "version": "1.27",
+    "version": "1.28",
     "category": "science",
     "needs": []
   },
@@ -323,7 +323,7 @@
     "bg": "#0A0A0F",
     "fg": "#A78BFA",
     "href": "./horoscope/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "esoterica",
     "needs": []
   },
@@ -356,7 +356,7 @@
     "bg": "#0A1413",
     "fg": "#4FC2B3",
     "href": "./breathe/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "wellness",
     "needs": []
   },
@@ -425,7 +425,7 @@
     "bg": "#000000",
     "fg": "#F2B84B",
     "href": "./spirit/",
-    "version": "1.22",
+    "version": "1.23",
     "category": "esoterica",
     "needs": [],
     "added": "2026-09-02"
@@ -498,7 +498,7 @@
     "bg": "#0d1512",
     "fg": "#10b981",
     "href": "./habits/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "wellness",
     "needs": []
   },
@@ -570,7 +570,7 @@
     "bg": "#0E1416",
     "fg": "#57C4C0",
     "href": "./grain/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "sound",
     "needs": [
       "microphone",
@@ -607,7 +607,7 @@
     "bg": "#17262A",
     "fg": "#8FE3D8",
     "href": "./zir/",
-    "version": "1.25",
+    "version": "1.27",
     "category": "creative",
     "needs": [
       "camera"
@@ -710,7 +710,7 @@
     "bg": "#1A1410",
     "fg": "#E0A94B",
     "href": "./kalimba/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "sound",
     "needs": []
   },
@@ -743,7 +743,7 @@
     "bg": "#0B0B10",
     "fg": "#E7E7EA",
     "href": "./cam/",
-    "version": "1.27",
+    "version": "1.28",
     "category": "creative",
     "needs": [
       "camera",
@@ -853,7 +853,7 @@
     "bg": "#0F0D08",
     "fg": "#C9A227",
     "href": "./iching/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "esoterica",
     "needs": []
   },
@@ -1001,7 +1001,7 @@
     "bg": "#0A0A0B",
     "fg": "#9F8CF6",
     "href": "./launches/",
-    "version": "1.27",
+    "version": "1.28",
     "category": "science",
     "needs": []
   },
@@ -1034,7 +1034,7 @@
     "bg": "#0A0A0B",
     "fg": "#F0A93B",
     "href": "./crypto/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "money",
     "needs": []
   },
@@ -1070,7 +1070,7 @@
     "bg": "#1f2430",
     "fg": "#f0b429",
     "href": "./rates/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "money",
     "needs": []
   },
@@ -1136,7 +1136,7 @@
     "bg": "#120A08",
     "fg": "#E2932F",
     "href": "./kp/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "science",
     "needs": []
   },
@@ -1211,7 +1211,7 @@
     "bg": "#0A0A0F",
     "fg": "#9F8CF6",
     "href": "./pendulum/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "esoterica",
     "needs": []
   },
@@ -1247,7 +1247,7 @@
     "bg": "#120E08",
     "fg": "#F2B84B",
     "href": "./muzak/",
-    "version": "1.20",
+    "version": "1.24",
     "category": "sound",
     "needs": [
       "auth"
@@ -1319,7 +1319,7 @@
     "bg": "#1B1114",
     "fg": "#C4687A",
     "href": "./persona/",
-    "version": "1.28",
+    "version": "1.29",
     "category": "creative",
     "needs": [
       "auth"
@@ -1505,7 +1505,7 @@
     "bg": "#000000",
     "fg": "#E6C98A",
     "href": "./podoba/",
-    "version": "1.19",
+    "version": "1.21",
     "category": "creative",
     "needs": [
       "camera",
@@ -1542,7 +1542,7 @@
     "bg": "#000000",
     "fg": "#F2B84B",
     "href": "./portal/",
-    "version": "1.34",
+    "version": "1.35",
     "category": "creative",
     "needs": [
       "camera",
@@ -1579,7 +1579,7 @@
     "bg": "#0A0A0F",
     "fg": "#5FD0F0",
     "href": "./flux/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "creative",
     "needs": [
       "camera",
@@ -1615,7 +1615,7 @@
     "bg": "#0A0A0B",
     "fg": "#F7931A",
     "href": "./btcflow/",
-    "version": "1.23",
+    "version": "1.24",
     "category": "money",
     "needs": []
   },
@@ -1797,7 +1797,7 @@
     "bg": "#1F120C",
     "fg": "#F2784B",
     "href": "./rukh/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "creative",
     "needs": [
       "camera"
@@ -1836,7 +1836,7 @@
     "bg": "#0A0A0B",
     "fg": "#C6B6FF",
     "href": "./sigil/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "esoterica",
     "needs": [
       "orientation"
@@ -1871,7 +1871,7 @@
     "bg": "#0A0A0F",
     "fg": "#9F8CF6",
     "href": "./synesth/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "sound",
     "needs": [
       "camera",
@@ -1910,7 +1910,7 @@
     "bg": "#12100A",
     "fg": "#D8A43A",
     "href": "./hoard/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "money",
     "needs": []
   },
@@ -1949,7 +1949,7 @@
     "bg": "#0D1018",
     "fg": "#5B8DEF",
     "href": "./sonar/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "science",
     "needs": [
       "microphone",
@@ -1985,7 +1985,7 @@
     "bg": "#0A0A0B",
     "fg": "#F5B94D",
     "href": "./sun/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "science",
     "needs": [
       "compass",
@@ -2022,7 +2022,7 @@
     "bg": "#231708",
     "fg": "#e8c874",
     "href": "./sopilka/",
-    "version": "1.26",
+    "version": "1.28",
     "category": "sound",
     "needs": []
   },
@@ -2212,7 +2212,7 @@
     "bg": "#0B0B10",
     "fg": "#B8FF2E",
     "href": "./takt/",
-    "version": "1.8",
+    "version": "1.9",
     "category": "sound",
     "needs": [
       "wakeLock"
@@ -2248,7 +2248,7 @@
     "bg": "#0A0A0F",
     "fg": "#C084FC",
     "href": "./tarot/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "esoterica",
     "needs": [
       "orientation"
@@ -2292,7 +2292,7 @@
     "bg": "#0E0B1A",
     "fg": "#C0A9F5",
     "href": "./transit/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "science",
     "needs": []
   },
@@ -2372,7 +2372,7 @@
     "bg": "#0A0A0F",
     "fg": "#C084FC",
     "href": "./imagine/",
-    "version": "1.27",
+    "version": "1.28",
     "category": "creative",
     "needs": [
       "camera"
@@ -2483,7 +2483,7 @@
     "bg": "#0C1014",
     "fg": "#E0B24E",
     "href": "./handpan/",
-    "version": "1.27",
+    "version": "1.28",
     "category": "sound",
     "needs": [
       "compass",
@@ -2586,7 +2586,7 @@
     "bg": "#08120F",
     "fg": "#41C06F",
     "href": "./air/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "science",
     "needs": [
       "geo"
@@ -2624,7 +2624,7 @@
     "bg": "#0A0510",
     "fg": "#FF3EB5",
     "href": "./afterdark/",
-    "version": "1.53",
+    "version": "1.54",
     "category": "creative",
     "needs": [
       "auth",
@@ -2698,7 +2698,7 @@
     "bg": "#1f2430",
     "fg": "#7ee0a6",
     "href": "./dou/",
-    "version": "1.23",
+    "version": "1.24",
     "category": "feeds",
     "needs": []
   },
@@ -3064,7 +3064,7 @@
     "bg": "#221C29",
     "fg": "#C9A7E0",
     "href": "./mirage/",
-    "version": "1.36",
+    "version": "1.37",
     "category": "creative",
     "needs": [
       "camera"
@@ -3108,6 +3108,43 @@
     "needs": [
       "auth"
     ]
+  },
+  {
+    "id": "prism",
+    "title": "Prism",
+    "titles": {
+      "uk": "Prism",
+      "en": "Prism"
+    },
+    "tagline": "Поділись картинкою — і вона постане в кожному матеріалі Мрії одразу. Свої стилі зберігаються з тобою.",
+    "taglines": {
+      "uk": "Поділись картинкою — і вона постане в кожному матеріалі Мрії одразу. Свої стилі зберігаються з тобою.",
+      "en": "Share a picture and it appears in every Mriia material at once. Your own styles stay with you."
+    },
+    "glyph": "lucide:triangle",
+    "art": "<path d=\"M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z\"/>",
+    "icon": true,
+    "screens": {
+      "uk": [
+        "Призма"
+      ],
+      "en": [
+        "Prism"
+      ]
+    },
+    "shots": [
+      "split"
+    ],
+    "bg": "#16122A",
+    "fg": "#B9A2FF",
+    "href": "./prism/",
+    "version": "1.0",
+    "category": "creative",
+    "needs": [
+      "auth",
+      "camera"
+    ],
+    "added": "2026-10-11"
   },
   {
     "id": "prox",
@@ -3289,7 +3326,7 @@
     "bg": "#111619",
     "fg": "#5E8CA8",
     "href": "./trail/",
-    "version": "1.26",
+    "version": "1.27",
     "category": "creative",
     "needs": []
   },

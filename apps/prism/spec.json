@@ -1,0 +1,42 @@
+{
+  "id": "prism",
+  "theme": "signal",
+  "category": "creative",
+  "accent": "#B9A2FF",
+  "share": {
+    "files": [
+      "image/*"
+    ]
+  },
+  "tabs": [
+    {
+      "id": "split",
+      "type": "tool",
+      "icon": "lucide:triangle",
+      "label": "tabSplit",
+      "view": "prism",
+      "needs": [
+        "camera",
+        "auth"
+      ]
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:triangle",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "permissions": [
+      "camera"
+    ],
+    "account": "any"
+  },
+  "added": "2026-10-11"
+}
