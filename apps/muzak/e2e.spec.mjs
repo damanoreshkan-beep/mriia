@@ -2,22 +2,29 @@ const ready = async (h) => { for (let i = 0; i < 20; i++) { if ((await h.count("
 
 export default [
   {
-    name: "пісня: поле посилання, картка з назвою, виконавцем і тривалістю, кнопка mp3", run: async (h) => {
+    name: "пісня: картка з назвою, виконавцем і тривалістю; слухати, у Фонотеку, поділитися, мікс — і жодного «скачати»", run: async (h) => {
       await ready(h); await h.wait(300);
       h.expect((await h.count("[data-link]")) === 1, "немає поля посилання");
       h.expect((await h.attr("[data-muzak]", "data-song")) === "dQw4w9WgXcQ", "картка пісні не показана під гейтом");
       h.expect(/Never Gonna Give You Up/.test(await h.text("[data-song-title]")), "немає назви пісні");
       h.expect(/Rick Astley · Whenever You Need Somebody · 1987/.test(await h.bodyText()), "немає рядка виконавець · альбом · рік");
       h.expect(/3:33/.test(await h.bodyText()), "немає тривалості");
-      h.expect((await h.count("[data-save]")) === 1, "немає кнопки mp3");
+      h.expect((await h.count("[data-listen]")) === 1, "немає «Слухати»");
+      for (const a of ["keep", "share", "mix"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
+      h.expect((await h.count("[data-save], [data-dl], a[download]")) === 0, "кнопка скачування лишилась");
       h.expect((await h.count(".loading")) === 0, "крутилка на екрані");
     },
   },
   {
-    name: "скачати: тап зберігає і каже «Збережено»", run: async (h) => {
+    name: "слухати: тап грає, другий ставить на паузу; «У Фонотеку» каже, що пісня там", run: async (h) => {
       await ready(h);
-      await h.tap("[data-save]"); await h.wait(400);
-      h.expect(/Збережено|Saved/.test(await h.bodyText()), "немає підтвердження");
+      await h.tap("[data-listen]"); await h.wait(250);
+      h.expect((await h.attr("[data-muzak]", "data-playing")) === "true", "не грає");
+      h.expect((await h.count("[data-listen]")) === 0 && (await h.count("[data-muzak] [data-transport]")) === 1, "плеєр не заступив «Слухати» — дві паузи");
+      await h.tap("[data-muzak] #play"); await h.wait(250);
+      h.expect(!(await h.attr("[data-muzak]", "data-playing")), "не стало на паузу");
+      await h.tap("[data-muzak] [data-keep]"); await h.wait(400);
+      h.expect(/Є у Фонотеці|In Fonoteka/.test(await h.bodyText()), "немає підтвердження");
     },
   },
   {
@@ -40,18 +47,21 @@ export default [
     },
   },
   {
-    name: "вподобане: пісні з YouTube списком, у кожної своя кнопка mp3, тап на назву відкриває пісню", run: async (h) => {
+    name: "вподобане: плеєр над списком, тап на пісню грає її, у кожної «У Фонотеку», список довантажується сам", run: async (h) => {
       await h.click('[data-tab="likes"]'); await h.wait(250);
       h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом");
+      h.expect((await h.count("[data-player]")) === 1, "немає плеєра");
       h.expect((await h.count("[data-like]")) === 4, "не 4 пісні");
-      h.expect((await h.count("[data-dl]")) === 4, "не в кожної пісні своя кнопка");
+      h.expect((await h.count("[data-like] [data-keep]")) === 4, "не в кожної пісні «У Фонотеку»");
+      for (const a of ["share", "mix"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
+      h.expect((await h.count("[data-dl], [data-save], a[download]")) === 0, "кнопка скачування лишилась");
       h.expect(/YouTube · Оксана/i.test(await h.bodyText()), "немає рядка, чий це YouTube");   // the label is uppercase by CSS, and innerText carries it
-      h.expect((await h.count("[data-more]")) === 1, "немає «Показати ще»");
+      h.expect((await h.count("[data-tail]")) === 1, "немає довантаження в кінці списку");
       h.expect((await h.count("[data-yt-off]")) === 1, "немає «Відключити»");
-      await h.tap('[data-dl="kXYiU_JCYtU"]'); await h.wait(400);
-      h.expect(/Збережено|Saved/.test(await h.bodyText()), "немає підтвердження");
-      await h.click('[data-open="fJ9rUzIMcZQ"]'); await h.wait(300);
-      h.expect((await h.prop("[data-link]", "value")).includes("fJ9rUzIMcZQ"), "пісня не відкрилась у вкладці «Пісня»");
+      await h.tap('[data-play="fJ9rUzIMcZQ"]'); await h.wait(300);
+      h.expect((await h.attr('[data-play="fJ9rUzIMcZQ"]', "aria-pressed")) === "true", "пісня не стала поточною");
+      h.expect((await h.attr("[data-likes]", "data-playing")) === "true", "не грає");
+      h.expect(/Bohemian Rhapsody/.test(await h.text("[data-player]")), "плеєр не назвав пісню");
     },
   },
   {

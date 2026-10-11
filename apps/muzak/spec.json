@@ -8,7 +8,7 @@
     {
       "id": "song",
       "type": "tool",
-      "icon": "lucide:download",
+      "icon": "lucide:link",
       "label": "tabSong",
       "view": "muzak"
     },
@@ -29,7 +29,7 @@
     }
   ],
   "profile": {
-    "icon": "lucide:download",
+    "icon": "lucide:music-2",
     "theme": true,
     "lang": true,
     "install": true,

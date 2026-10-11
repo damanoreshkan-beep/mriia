@@ -782,7 +782,7 @@
     "bg": "#0f0f12",
     "fg": "#f4b942",
     "href": "./cinema/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "feeds",
     "needs": []
   },
@@ -1222,12 +1222,12 @@
       "en": "Muzak",
       "uk": "Музак"
     },
-    "tagline": "Вставив посилання з YouTube Music — отримав пісню як mp3 з обкладинкою. Назва, виконавець і альбом уже всередині файлу.",
+    "tagline": "Посилання з YouTube Music або твої вподобання звідти — і пісня грає тут. Сподобалась — у Фонотеку, друзям — посиланням, а з будь-якої можна зробити мікс.",
     "taglines": {
-      "en": "Paste a YouTube Music link and get the song as an mp3 with its cover. Title, artist and album are already inside the file.",
-      "uk": "Вставив посилання з YouTube Music — отримав пісню як mp3 з обкладинкою. Назва, виконавець і альбом уже всередині файлу."
+      "en": "A YouTube Music link, or your likes from there, and the song plays here. Love it: into Fonoteka. For friends: a link. And any song can become a mix.",
+      "uk": "Посилання з YouTube Music або твої вподобання звідти — і пісня грає тут. Сподобалась — у Фонотеку, друзям — посиланням, а з будь-якої можна зробити мікс."
     },
-    "glyph": "lucide:download",
+    "glyph": "lucide:music-2",
     "art": "<path d=\"M12 3v12\"/><path d=\"m7 11 5 5 5-5\"/><path d=\"M5 20h14\"/>",
     "icon": true,
     "screens": {
@@ -1247,7 +1247,7 @@
     "bg": "#120E08",
     "fg": "#F2B84B",
     "href": "./muzak/",
-    "version": "1.15",
+    "version": "1.17",
     "category": "sound",
     "needs": [
       "auth"

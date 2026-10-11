@@ -23,11 +23,11 @@ export const FIXTURE_LINK = "https://music.youtube.com/watch?v=dQw4w9WgXcQ";
 export const FIXTURE_LIKES = {
   connected: true, channel: "Оксана", next: "more",
   songs: [
-    { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", dur: 213, cover: null, url: "https://music.youtube.com/watch?v=dQw4w9WgXcQ" },
-    { id: "fJ9rUzIMcZQ", title: "Bohemian Rhapsody", artist: "Queen", dur: 355, cover: null, url: "https://music.youtube.com/watch?v=fJ9rUzIMcZQ" },
-    { id: "kXYiU_JCYtU", title: "Numb", artist: "Linkin Park", dur: 187, cover: null, url: "https://music.youtube.com/watch?v=kXYiU_JCYtU" },
-    { id: "pAgnJDJN4VA", title: "Back In Black", artist: "AC/DC", dur: 255, cover: null, url: "https://music.youtube.com/watch?v=pAgnJDJN4VA" },
+    { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", dur: 213, cover: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg", url: "https://music.youtube.com/watch?v=dQw4w9WgXcQ" },
+    { id: "fJ9rUzIMcZQ", title: "Bohemian Rhapsody", artist: "Queen", dur: 355, cover: "https://i.ytimg.com/vi/fJ9rUzIMcZQ/mqdefault.jpg", url: "https://music.youtube.com/watch?v=fJ9rUzIMcZQ" },
+    { id: "kXYiU_JCYtU", title: "Numb", artist: "Linkin Park", dur: 187, cover: "https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg", url: "https://music.youtube.com/watch?v=kXYiU_JCYtU" },
+    { id: "pAgnJDJN4VA", title: "Back In Black", artist: "AC/DC", dur: 255, cover: "https://i.ytimg.com/vi/pAgnJDJN4VA/mqdefault.jpg", url: "https://music.youtube.com/watch?v=pAgnJDJN4VA" },
   ],
 };
 
-export const FIXTURE_META ={ id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", album: "Whenever You Need Somebody", year: 1987, duration: 213, cover: null };
+export const FIXTURE_META = { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley", album: "Whenever You Need Somebody", year: 1987, duration: 213, cover: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg" };
