@@ -19,6 +19,20 @@ export default [
     },
   },
   {
+    name: "куля — форма техніки, що перетікає у форму обраної", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-orb] .br-rim path")) === 3, "у кулі немає обідка");
+      h.expect(!!(await h.attr("[data-orb] .br-rim .e", "d")), "обідок не намальований");
+      h.expect((await h.count("#play.tp-form")) === 1, "кнопка старту не форма");
+      const was = await h.attr("[data-orb]", "data-form");
+      h.expect(!!was, "форма техніки не задана");
+      // whichever technique is on now (the previous test leaves 4-7-8), pick a different one
+      const next = (await h.attr("[data-breathe]", "data-tech-sel")) === "calm" ? "box" : "calm";
+      await h.click(`[data-tech="${next}"]`); await h.wait(150);
+      h.expect((await h.attr("[data-orb]", "data-form")) !== was, "форма не змінилась з технікою");
+    },
+  },
+  {
     name: "пауза перемикає стан", run: async (h) => {
       await ready(h);
       const a0 = await h.attr("#play", "aria-label");

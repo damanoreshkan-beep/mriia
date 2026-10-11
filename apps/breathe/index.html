@@ -53,19 +53,29 @@
   }
   </script>
   <style>
-    /* THE ORB — the one object on the screen, so it is the one place the app's accent becomes a surface.
-       A sphere shaded from a lit near-white on the upper-left through the accent to its own shadow, all
-       derived from --app-accent by color-mix (no hex: the pair of light is the product's, not this app's).
-       The glow is the material's own bloom — --lm-bloom-hi is the accent at 55 % at night and the deep
-       cool pole on paper, where a wide amber glow would be a smear — so it inverts with the theme for free.
-       will-change:transform stays inline: the rAF loop scales this element sixty times a second. */
-    .br-orb{
-      background:radial-gradient(circle at 38% 32%,
-        color-mix(in oklch,var(--app-accent) 35%,white),
-        var(--app-accent) 56%,
-        color-mix(in oklch,var(--app-accent) 55%,black));
-      box-shadow:0 0 0 1px var(--lm-rim-hi),0 0 70px -6px var(--lm-bloom-hi);
-    }
+    /* THE ORB — the one object on the screen, and it is the chosen technique's FORM, not a sphere (owner
+       2026-10-09: «досить будувати квадратики, потрібні форми довільні»): its own shape (core shape.js, pinned
+       per technique in view.js), the theme's material through it, an edge of light. Picking another technique
+       flows it into that one's form (one-shot, ~320ms). The rAF loop scales the whole orb — fill and rim with it —
+       as a compositor transform; will-change:transform stays inline for that reason. */
+    .br-orb{position:relative}
+    /* the theme's fill texture (1024, made to be seen inside a free form) over the page tone; a theme without a
+       fill falls back to its scatter, so the app needs no per-theme art */
+    .br-fill{position:absolute;inset:0;background:var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat,var(--color-base-100)}
+    /* the rim is the clip's path in an SVG over it, so the light can spill OUTSIDE the form */
+    .br-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+    .br-rim path{fill:none;vector-effect:non-scaling-stroke;transition:stroke var(--t-state) var(--ease-out),opacity var(--t-state) var(--ease-out)}
+    .br-rim .e{stroke:var(--lm-rim-hi, color-mix(in oklch,var(--color-base-content) 30%,transparent));stroke-width:1.25}
+    .br-rim .b1{stroke:var(--app-accent);stroke-width:12;opacity:0}
+    .br-rim .b2{stroke:var(--app-accent);stroke-width:4;opacity:0}
+    /* breathing: the rim is lit in the app's accent (where the old sphere's bloom was); paused, it goes quiet */
+    [data-breathe][data-playing="1"] .br-rim .e{stroke:color-mix(in oklch,var(--app-accent) 85%,white)}
+    [data-breathe][data-playing="1"] .br-rim .b1{opacity:.07}
+    [data-breathe][data-playing="1"] .br-rim .b2{opacity:.22}
+    /* paper: a glow on white is a smear — the lit rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .br-rim .e{stroke:color-mix(in oklch,var(--color-base-content) 22%,transparent)}
+    [data-theme="signal-light"] [data-breathe][data-playing="1"] .br-rim .e{stroke:var(--color-secondary);stroke-width:1.75}
+    [data-theme="signal-light"] .br-rim .b1,[data-theme="signal-light"] .br-rim .b2{display:none}
   </style>
 </head>
 <body class="bg-base-200 min-h-dvh">

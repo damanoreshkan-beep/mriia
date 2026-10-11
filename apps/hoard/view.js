@@ -10,6 +10,7 @@ import { Sheet, Segmented, Island, Panel, FROST } from "/_rt/ui.js";
 import { GlStage } from "/_rt/glstage.js";
 import { collection } from "/_rt/db.js";
 import { fitText } from "/_rt/fittext.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import {
   CURRENCIES, MODES, DEFAULTS, normRate, perSecond, earned, hoardFill, lifetimeDepth,
   rateDp, fmtAmount, fmtSpan, vaultTotals,
@@ -47,6 +48,19 @@ async function loadSessions() {
   }
 }
 if (gate && !started()) $startedAt.set(String(Date.now() - FIXTURE_STARTED));
+
+// A banked session is a coin in its own form (shapeOf its id); the hoard of a currency gets a form pinned to it —
+// UAH and USD totals can stand side by side, and plain shapeOf may hand both the same one. The forms are clip
+// defs in objectBoundingBox units, so a coin of any size takes them without measuring (store's tiles do the same).
+const SIGN = { UAH: "₴", USD: "$" };
+const HOARD_FORM = { UAH: "Cookie12Sided", USD: "Sunny" };
+const Forms = () => html`<svg aria-hidden="true" class="hd-forms" width="0" height="0"><defs>${ORGANIC.map((n) => html`<clipPath key=${"c" + n} id=${`hd-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath><path key=${"p" + n} id=${`hd-p-${n}`} d=${pathOf(n)} vector-effect="non-scaling-stroke" />`)}</defs></svg>`;
+const Coin = (form, currency, hoard = false, rest = {}) => html`<span ...${rest} data-form=${form} aria-hidden="true" class=${`hd-coin ${hoard ? "hd-hoard" : ""}`}>
+  <span class="hd-fill" style=${`clip-path:url(#hd-c-${form})`}>${SIGN[currency] || SIGN[CURRENCIES[0]]}</span>
+  <svg class="hd-rim" viewBox="0 0 1 1">${hoard
+    ? ["b1", "b2", "e"].map((c) => html`<use key=${c} class=${c} href=${`#hd-p-${form}`} />`)
+    : html`<use href=${`#hd-p-${form}`} />`}</svg>
+</span>`;
 
 const GOLD = [0.847, 0.643, 0.227];
 const env = { fill: 0.1, heat: 0, glint: 0, phase: 0, depth: 0 };
@@ -137,7 +151,7 @@ export function flow({ t, S, toast }) {
       ${""}
       <div class="shrink-0 flex justify-center">
         <button data-rate type="button" aria-label=${T(t, "aRate")} onClick=${() => S.screen.set("rate")}
-          class=${`btn btn-ghost btn-sm h-auto min-h-0 py-1.5 px-3 rounded-full font-mono uppercase tracking-wide text-[length:var(--ms-label)] max-w-full ${FROST}`}>
+          class=${`btn btn-ghost btn-sm h-auto min-h-0 py-1.5 px-3 rounded-full font-mono uppercase tracking-wide text-[length:var(--ms-label)] max-w-full ms-press ${FROST}`}>
           <span class="truncate">${rateLine}</span>
           <iconify-icon icon="lucide:chevron-down" class="shrink-0"></iconify-icon>
         </button>
@@ -162,7 +176,7 @@ export function flow({ t, S, toast }) {
       ${""}
       <${Island} className="shrink-0" tone="frost">
         <button data-run type="button" onClick=${running ? bank : start}
-          class="btn btn-primary btn-block h-[var(--ms-ctl)] min-h-0 rounded-[var(--ms-r-in)] gap-2">
+          class="btn btn-primary btn-block h-[var(--ms-ctl)] min-h-0 rounded-[var(--ms-r-in)] gap-2 ms-press">
           <iconify-icon icon=${running ? "lucide:hand-coins" : "lucide:play"} class="text-[length:var(--ms-icon)]"></iconify-icon>
           ${T(t, running ? "bank" : "start")}
         </button>
@@ -184,7 +198,7 @@ function RateSheet({ t, loc, S, open, rate }) {
     <span class="font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70 truncate">${label}</span>
     <textarea rows="1" data-line ...${extra} inputmode="decimal" value=${draft[key] ?? ""}
       onInput=${(e) => set(key, e.target.value)}
-      class="input w-full min-w-0 font-mono tabular-nums rounded-[var(--ms-r-in)]"></textarea>
+      class="input sf-inset w-full min-w-0 font-mono tabular-nums rounded-[var(--ms-r-in)]"></textarea>
   </label>`;
 
   return html`<${Sheet} id="ratesheet" open=${open} onClose=${close} locale=${loc} tone="frost"
@@ -205,7 +219,7 @@ function RateSheet({ t, loc, S, open, rate }) {
       items=${CURRENCIES.map((c) => ({ id: c, label: c === "UAH" ? "₴" : "$" }))} />
 
     <button data-save-rate type="button" onClick=${save}
-      class="btn btn-primary btn-block h-[var(--ms-ctl)] min-h-0 rounded-[var(--ms-r-in)]">${T(t, "rateDone")}</button>
+      class="btn btn-primary btn-block h-[var(--ms-ctl)] min-h-0 rounded-[var(--ms-r-in)] ms-press">${T(t, "rateDone")}</button>
   <//>`;
 }
 
@@ -231,20 +245,27 @@ export function vault({ t, S, undo }) {
     </div>`;
   }
 
+  // the hoard's coin takes the left edge, so the count and the time move under the sum: the sum keeps the
+  // whole remaining width and is not squeezed by a side column
   return html`<${Fragment}>
+    <${Forms} />
     ${totals.map((v) => html`<${Panel} key=${v.currency} title=${T(t, "vaultTotal")} data-total=${v.currency}>
-      <div class="flex items-end justify-between gap-3">
-        <div class="font-mono tabular-nums font-semibold text-2xl min-w-0 truncate">${fmtAmount(v.sum, v.currency, 2)}</div>
-        <div class="font-mono uppercase tracking-wide text-[length:var(--ms-label)] text-base-content/70 shrink-0 text-right">
-          ${T(t, "vaultCount")} · ${v.count}<br/>${fmtSpan(v.ms)}
+      <div class="flex items-center gap-3">
+        ${Coin(HOARD_FORM[v.currency], v.currency, true, { "data-hoard": v.currency })}
+        <div class="min-w-0 flex-1">
+          <div class="font-mono tabular-nums font-semibold text-2xl min-w-0 truncate">${fmtAmount(v.sum, v.currency, 2)}</div>
+          <div class="font-mono uppercase tracking-wide text-[length:var(--ms-label)] text-base-content/70">
+            ${T(t, "vaultCount")} · ${v.count} · ${fmtSpan(v.ms)}
+          </div>
         </div>
       </div>
     <//>`)}
 
     <${Panel}>
-      <div class="flex flex-col">
-        ${sessions.map((s, i) => html`<div key=${s.id} data-session=${s.id}
+      <div class="ms-stagger flex flex-col">
+        ${sessions.map((s, i) => html`<div key=${s.id} data-session=${s.id} style=${`--i:${i}`}
           class=${`flex items-center gap-3 py-2 ${i ? "border-t border-base-content/10" : ""}`}>
+          ${Coin(shapeOf(s.id), s.currency, false, { "data-coin": "" })}
           <div class="min-w-0 flex-1">
             <div class="font-mono tabular-nums font-semibold truncate">${fmtAmount(s.amount, s.currency, 2)}</div>
             <div class="font-mono uppercase tracking-wide text-[length:var(--ms-label)] text-base-content/70 truncate">
@@ -252,7 +273,7 @@ export function vault({ t, S, undo }) {
             </div>
           </div>
           <button data-del=${s.id} type="button" data-haptic="bump" aria-label=${T(t, "remove")}
-            class="btn btn-ghost btn-sm btn-circle shrink-0 text-base-content/70" onClick=${() => remove(s)}>
+            class="btn btn-ghost btn-sm btn-circle shrink-0 text-base-content/70 ms-press" onClick=${() => remove(s)}>
             <iconify-icon icon="lucide:trash-2" class="text-lg"></iconify-icon>
           </button>
         </div>`)}

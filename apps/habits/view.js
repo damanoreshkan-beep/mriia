@@ -8,6 +8,7 @@ import { haptic } from "/_rt/sensors.js";
 import { collection, idbSupported } from "/_rt/db.js";
 import { downloadBlob } from "/_rt/apk.js";
 import { Panel, Sheet } from "/_rt/ui.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
@@ -44,6 +45,19 @@ function monthRate(id, marks) {
   const now = new Date(), done = [];
   for (let i = 0; i < now.getDate(); i++) if (marks[id + "|" + ymd(addDays(now, -i))]) done.push(1);
   return Math.round((done.length / now.getDate()) * 100);
+}
+
+// A habit's own form (core shape.js), pinned distinct: shapeOf(id) alone gives three habits a shared form about
+// one time in five, and they sit side by side. A taken form passes to the next free one in creation order, so
+// a habit keeps its form as long as the habits made before it stay.
+function formsOf(hs) {
+  const used = new Set(), out = {};
+  for (const h of hs) {
+    let i = ORGANIC.indexOf(shapeOf(h.id));
+    for (let n = 0; n < ORGANIC.length && used.has(ORGANIC[i]); n++) i = (i + 1) % ORGANIC.length;
+    out[h.id] = ORGANIC[i]; used.add(ORGANIC[i]);
+  }
+  return out;
 }
 
 async function loadAll() {
@@ -100,7 +114,7 @@ const Dots = ({ h, marks, onToggle, t }) => {
     const on = !!marks[h.id + "|" + d];
     return html`<button key=${d} type="button" onClick=${() => onToggle(h.id, d)} aria-pressed=${on}
       aria-label=${`${d} ${on ? T(t, "done") : T(t, "notDone")}`}
-      class=${`w-6 h-6 rounded-[var(--ms-r-in)] shrink-0 transition-transform active:scale-90 ${on ? "sf-e2" : "sf-inset"}`}
+      class=${`hb-cell ms-press w-6 h-6 rounded-[var(--ms-r-in)] shrink-0 ${on ? "sf-e2" : "sf-inset"}`}
       style=${on ? `background:${h.color}` : ""}></button>`;
   })}</div></div>`;
 };
@@ -115,7 +129,7 @@ function Heatmap({ h, marks, onToggle, t }) {
       const d = ymd(addDays(start, w * 7 + r)), future = between(today(), d) > 0, on = !!marks[h.id + "|" + d];
       cells.push(html`<button key=${d} type="button" disabled=${future} onClick=${() => onToggle(h.id, d)}
         aria-label=${`${d} ${on ? T(t, "done") : T(t, "notDone")}`}
-        class=${`w-3.5 h-3.5 rounded-[3px] ${future ? "opacity-0" : "active:scale-90"} ${on ? "" : "sf-inset"}`}
+        class=${`hb-cell w-3.5 h-3.5 rounded-[3px] ${future ? "opacity-0" : "ms-press"} ${on ? "" : "sf-inset"}`}
         style=${`${on ? "background:" + h.color + ";" : ""}${d === today() ? "outline:1px solid " + h.color + ";outline-offset:1px" : ""}`}></button>`);
     }
     cols.push(html`<div class="flex flex-col gap-[3px]" key=${w}>${cells}</div>`);
@@ -137,7 +151,7 @@ function AddSheet({ open, onClose, t }) {
       <div class=${LABEL}>${T(t, "icon")}</div>
       <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2" id="h-icons">${ICONS.map((ic) => html`<button key=${ic} type="button" aria-label=${ic} aria-pressed=${draft.icon === ic}
         onClick=${() => $draft.set({ ...draft, icon: ic })}
-        class="w-10 h-10 rounded-[var(--ms-r-in)] flex items-center justify-center transition-colors"
+        class="hb-pick ms-press w-10 h-10 rounded-[var(--ms-r-in)] flex items-center justify-center"
         style=${draft.icon === ic ? `color:${draft.color}` : ""}>${Icon(ic, "text-lg")}</button>`)}</div>
     </div>
     <div class="flex flex-col gap-1.5">
@@ -145,7 +159,7 @@ function AddSheet({ open, onClose, t }) {
       ${""}
       <div class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-wrap gap-2">${COLORS.map((c) => html`<button key=${c} type="button" aria-label=${c} aria-pressed=${draft.color === c}
         onClick=${() => $draft.set({ ...draft, color: c })}
-        class="w-8 h-8 rounded-full transition-transform"
+        class="hb-pick ms-press w-8 h-8 rounded-full"
         style=${`background:${c};${draft.color === c ? `outline:2px solid ${c};outline-offset:2px` : ""}`}></button>`)}</div>
     </div>
     <button id="h-save" class="btn btn-primary mt-1" disabled=${!draft.name.trim()} onClick=${save}>${T(t, "add")}</button>
@@ -161,8 +175,16 @@ function DetailSheet({ open, id, t, onClose, confirm }) {
     verb: T(t, "delete"),
     onConfirm: async () => { await removeHabit(h.id); onClose(); },
   });
+  const form = h ? formsOf(habits)[h.id] : null, done = h ? !!marks[h.id + "|" + today()] : false;
   return html`<${Sheet} id="h-detail" open=${open && !!h} onClose=${onClose} title=${h ? h.name : null} icon=${h ? h.icon : null}>
     ${h ? html`<${Fragment}>
+      ${/* the habit as an object: the theme's material through its own form, the rim lit once today is done.
+           objectBoundingBox takes the 0..1 path as is, so the clip needs no measuring. Static: nothing draws at rest. */""}
+      <div data-orb data-form=${form} data-done=${done ? "true" : "false"} class="hb-orb" style=${`--hb:${h.color}`} aria-hidden="true">
+        <svg class="hb-defs" width="0" height="0"><clipPath id="hb-clip" clipPathUnits="objectBoundingBox"><path d=${pathOf(form)} /></clipPath></svg>
+        <div class="hb-fill"></div>
+        <svg class="hb-rim" viewBox="0 0 1 1"><path class="b1" d=${pathOf(form)} /><path class="b2" d=${pathOf(form)} /><path class="e" d=${pathOf(form)} /></svg>
+      </div>
       <${Panel}><div class="flex">
         <${Stat} n=${streak(h.id, marks)} label=${T(t, "streak")} />
         <${Stat} n=${longest(h.id, marks)} label=${T(t, "best")} />
@@ -181,6 +203,7 @@ export function habits({ S, closeScreen, confirm }) {
   useEffect(() => { loadAll(); }, []);
 
   const detailId = typeof screen === "string" && screen.startsWith("habit:") ? screen.slice(6) : null;
+  const forms = formsOf(hs);
 
   return html`<${Fragment}>
     ${!ready ? null : hs.length === 0 ? html`
@@ -190,18 +213,20 @@ export function habits({ S, closeScreen, confirm }) {
         <button id="empty-add" class="btn btn-primary gap-2 mt-1" onClick=${() => S.sheet.set(true)}>${Icon("lucide:plus")} ${T(t, "addFirst")}</button>
         ${idbSupported ? null : html`<div class="text-sm text-muted mt-2">${T(t, "noStore")}</div>`}
       </div>` : html`
-      <div data-habits=${hs.length} class="flex flex-col gap-2.5">
-        ${hs.map((h) => { const done = !!marks[h.id + "|" + today()]; const s = streak(h.id, marks); return html`<${Panel} key=${h.id} data-habit=${h.id}>
+      <div data-habits=${hs.length} class="ms-stagger flex flex-col gap-2.5">
+        ${/* the habits arrive one after another (.ms-stagger, --i per card) */""}
+        ${hs.map((h, i) => { const done = !!marks[h.id + "|" + today()]; const s = streak(h.id, marks); return html`<${Panel} key=${h.id} data-habit=${h.id} data-done=${done ? "true" : "false"} style=${`--i:${i}`}>
             <div class="flex items-center gap-3">
-              <button data-open type="button" class="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70" aria-label=${`${h.name} — ${T(t, "open")}`} onClick=${() => S.screen.set("habit:" + h.id)}>
-                <span class="w-9 h-9 rounded-[var(--ms-r-in)] flex items-center justify-center shrink-0" style=${`background:${h.color}1a;color:${h.color}`}>${Icon(h.icon, "text-lg")}</span>
+              <button data-open type="button" class="flex items-center gap-3 flex-1 min-w-0 text-left ms-press" aria-label=${`${h.name} — ${T(t, "open")}`} onClick=${() => S.screen.set("habit:" + h.id)}>
+                ${/* the habit's own form where a rounded box stood, in the habit's colour */""}
+                <span data-form=${forms[h.id]} class="hb-form" style=${`--hb:${h.color}`}><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(forms[h.id])} /></svg>${Icon(h.icon, "text-lg")}</span>
                 <span class="min-w-0"><span class="font-semibold block truncate">${h.name}</span>
                   <span class="text-sm text-muted flex items-center gap-1">${s > 0 ? html`${Icon("lucide:flame", "text-[0.9em]")} ${T(t, "dayStreak", { n: s })}` : T(t, "noStreak")}</span></span>
               </button>
               ${""}
               ${""}
               ${""}
-              <button data-today type="button" class=${`w-9 h-9 rounded-full shrink-0 flex items-center justify-center active:scale-90 transition-transform ${done ? "sf-e3" : "sf-raised"}`}
+              <button data-today type="button" class=${`hb-check ms-press w-9 h-9 rounded-full shrink-0 flex items-center justify-center ${done ? "sf-e3" : "sf-raised"}`}
                 aria-pressed=${done} aria-label=${`${h.name} ${T(t, "todayToggle")}`}
                 style=${done ? `background:${h.color};color:var(--color-base-100)` : `color:${h.color}`}
                 data-haptic="off" onClick=${() => toggle(h.id, today())}>${Icon("lucide:check", "text-lg")}</button>
@@ -209,7 +234,7 @@ export function habits({ S, closeScreen, confirm }) {
             <${Dots} h=${h} marks=${marks} onToggle=${toggle} t=${t} />
           </${Panel}>`; })}
 
-        <div class="flex items-center gap-2 mt-1">
+        <div class="flex items-center gap-2 mt-1" style=${`--i:${hs.length}`}>
           <button id="add-habit" class="btn btn-primary flex-1 gap-2" onClick=${() => S.sheet.set(true)}>${Icon("lucide:plus")} ${T(t, "newHabit")}</button>
           <button class="btn btn-square" aria-label=${T(t, "export")} onClick=${exportData}>${Icon("lucide:download")}</button>
           <label class="btn btn-square" aria-label=${T(t, "import")}>${Icon("lucide:upload")}

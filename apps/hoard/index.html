@@ -52,6 +52,34 @@
     }
   }
   </script>
+  <style>
+    /* HOARD — onto the farm's free forms (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's identity
+       is the BANKED SESSION: a piece of work turned into a coin in the vault. Each banked session is a coin in its own
+       form (core shape.js, seeded by its id), gold with the theme's texture through it, its currency's sign struck on
+       it; the vault's total per currency is the hoard, a larger coin in a form pinned to that currency (two currencies
+       can sit side by side, so they never share a form). The Flow screen keeps its gold field as is: the field IS the
+       hoard's picture and the live sum is the working surface. Static paths: nothing draws at rest. */
+    .hd-forms { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    .hd-coin { position: relative; flex: none; width: 2.5rem; aspect-ratio: 1; }
+    .hd-hoard { width: 3.5rem; }
+    /* gold is the material in both themes — the texture rides on top of it, the way fonoteka's rides on the surface */
+    .hd-fill { position: absolute; inset: 0; display: grid; place-items: center;
+      background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat,
+        radial-gradient(circle at 34% 30%, color-mix(in oklch, var(--app-accent) 62%, white), var(--app-accent) 52%, color-mix(in oklch, var(--app-accent) 62%, black));
+      color: color-mix(in oklch, var(--app-accent) 18%, black); font-family: var(--font-mono, ui-monospace, monospace); font-weight: 700; font-size: 1.05rem; line-height: 1; }
+    .hd-hoard .hd-fill { font-size: 1.5rem; }
+    /* the rim: the same path as the clip, drawn over it so the light sits ON the edge */
+    .hd-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .hd-rim use { fill: none; stroke: var(--lm-rim-hi); stroke-width: 1; }
+    [data-theme="signal-light"] .hd-rim use { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    /* the hoard glows — fonoteka's lit orb: a wide faint bloom, a narrow brighter one, a crisp edge. Paper: a glow on
+       white is a smear, so the edge is the deep pole and the bloom is dropped. */
+    .hd-hoard .hd-rim .e { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 1.25; }
+    .hd-hoard .hd-rim .b1 { stroke: var(--app-accent); stroke-width: 10; opacity: .08; }
+    .hd-hoard .hd-rim .b2 { stroke: var(--app-accent); stroke-width: 3.5; opacity: .24; }
+    [data-theme="signal-light"] .hd-hoard .hd-rim .e { stroke: var(--color-secondary); stroke-width: 1.5; }
+    [data-theme="signal-light"] .hd-hoard .hd-rim .b1, [data-theme="signal-light"] .hd-hoard .hd-rim .b2 { display: none; }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Скарб</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

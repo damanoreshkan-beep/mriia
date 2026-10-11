@@ -26,6 +26,9 @@ export default [
       await h.click("[data-open]"); await h.wait(250);
       h.expect((await h.prop("#h-detail", "open")) === true, "деталі не відкрились");
       h.expect(/Рекорд|Останні 13/i.test(await h.bodyText()), "немає статистики/heatmap");
+      // the orb is the habit's own form (the same as its badge), lit: the check-in above made today done
+      h.expect((await h.attr("#h-detail [data-orb]", "data-form")) === (await h.attr("[data-habit] [data-form]", "data-form")), "орб не у формі звички");
+      h.expect((await h.attr("#h-detail [data-orb]", "data-done")) === "true", "орб не світиться після чек-іну");
       await h.back(); await h.wait(250);
       h.expect((await h.prop("#h-detail", "open")) !== true, "Back не закрив деталі");
     },
@@ -38,6 +41,14 @@ export default [
       await h.click('#h-icons button:nth-child(2)'); await h.wait(80);
       await h.click("#h-save"); await h.wait(300);
       h.expect((await h.count("[data-habit]")) === before + 1, "друга звичка не додалась");
+    },
+  },
+  {
+    name: "кожна звичка у своїй формі, форми не повторюються", run: async (h) => {
+      const n = await h.count("[data-habit]"), forms = [];
+      for (let k = 1; k <= n; k++) forms.push(await h.attr(`[data-habits] > [data-habit]:nth-child(${k}) [data-form]`, "data-form"));
+      h.expect(n >= 2 && forms.every(Boolean), "звичка без форми");
+      h.expect(new Set(forms).size === n, `форми повторюються: ${forms.join(", ")}`);
     },
   },
   {
