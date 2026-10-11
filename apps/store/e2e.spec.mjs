@@ -69,6 +69,7 @@ export default [
       h.expect((await h.count("#install-app")) === 1, "немає кнопки Встановити на сторінці апки");
       h.expect((await h.count("#appsheet img[src*='shot-tide']")) === 1, "немає скріншота на сторінці апки");
       h.expect(/v\d/.test(await h.text("#appsheet")), "немає версії на сторінці апки");
+      h.expect((await h.count("#appsheet .st-tile.lit[data-form]")) === 1, "плитка на сторінці апки не у своїй формі з освітленим обідком");
       await h.back(); await h.wait(250);
       h.expect((await h.prop("#appsheet", "open")) !== true, "Back не закрив сторінку апки");
       h.expect((await h.count("[data-app] .btn")) >= 10, "рядки без кнопки Відкрити");
@@ -83,6 +84,20 @@ export default [
       h.expect(cards <= slides * 3 && cards > (slides - 1) * 3, `${cards} карток на ${slides} слайдах — не по 3`);
       h.expect((await h.text("[data-fresh-card]")).trim().length >= 30, "картка новинки без опису");
       if (slides > 1) h.expect(new RegExp(`1\\s*/\\s*${slides}`).test(await h.text("[data-fresh-page]")), "немає лічильника сторінок");
+    },
+  },
+  {
+    name: "вільні форми: кожна апка у своїй формі з обідком, хмара — лише Mriia, герой — орб", run: async (h) => {
+      await ready(h);
+      const rows = await h.count("div[data-app]");
+      h.expect((await h.count("div[data-app] .st-tile[data-form]")) === rows, "рядок застосунку без власної форми");
+      h.expect((await h.count("div[data-app] .st-rim use")) === rows, "форма без обідка — чорна іконка зникає на чорному");
+      h.expect((await h.count('[data-app] [data-form="Puffy"]')) === 0, "хмара Mriia дісталась застосунку");
+      h.expect(/url\(/.test(await h.css("div[data-app] .st-tile-art", "clip-path")), "іконка не обрізана формою");
+      h.expect((await h.count(".st-hero [data-hero-orb]")) === 1, "герой без орба");
+      h.expect(!/^(|Puffy)$/.test(await h.attr("[data-hero-orb]", "data-form")), "орб героя не у формі застосунку");
+      h.expect(/^path\(/.test(await h.css("[data-hero-orb] .st-orb-art", "clip-path")), "орб не обрізаний формою");
+      h.expect((await h.count(`[data-hero-orb] img[src$="/${await h.attr("[data-featured]", "data-app")}/icon.webp"]`)) === 1, "в орбі не мистецтво застосунку-лідера");
     },
   },
   {

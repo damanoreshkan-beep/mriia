@@ -1,9 +1,10 @@
 import { html } from "htm/preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Sheet } from "/_rt/ui.js";
 import { collection } from "/_rt/db.js";
+import { ORGANIC, shapeOf, pathOf, scalePath, morphTo } from "/_rt/shape.js";
 import apps from "./apps.json" with { type: "json" };
 import spec from "./spec.json" with { type: "json" };
 
@@ -15,7 +16,54 @@ const AppArt = (a, size) => a.icon
   : a.art
   ? html`<svg viewBox="0 0 24 24" style=${`width:${size};height:${size};color:var(--color-base-content)`} fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: a.art }}></svg>`
   : Icon(a.glyph, "", `font-size:${size};color:var(--color-base-content)`);
-const Tile = (a, cls) => html`<div class=${`relative shrink-0 rounded-[22%] overflow-hidden bg-black sf-raised sf-e2 flex items-center justify-center ${cls}`}>${AppArt(a, a.icon ? "100%" : "46%")}</div>`;
+// FREE FORMS (owner 2026-10-11: the store is the face of Mriia, so it wears the farm's free forms). Every app
+// owns one organic form, the same on every phone (core shapeOf, seeded by its id), and its icon is seen through
+// it, edged with a rim. The tile set is the organic set minus the three that cut deepest into a centred icon:
+// Flower, PuffyDiamond and Puffy keep an inscribed radius under .35 of the box, the other ten .37–.44, so the
+// art every icon centres survives its form. Puffy, the cloud, is kept for Mriia herself (the hero's arrival).
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const BRAND = "Puffy";
+const formOf = (a) => shapeOf(a.id, FORMS);
+// One set of clip paths for the page: objectBoundingBox takes the 0..1 path as is, so a tile of any size clips
+// without measuring and ninety rows share ten paths. A zero-size svg, not display:none — a clipPath inside a
+// display:none svg does not clip in every engine.
+const Forms = () => html`<svg aria-hidden="true" class="st-forms" width="0" height="0"><defs>${FORMS.map((n) => html`<clipPath key=${"c" + n} id=${`st-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath><path key=${"p" + n} id=${`st-p-${n}`} d=${pathOf(n)} vector-effect="non-scaling-stroke" />`)}</defs></svg>`;
+const Tile = (a, cls, lit = false) => { const f = formOf(a); return html`<div data-form=${f} class=${`st-tile ${lit ? "lit" : ""} ${cls}`}>
+  <div class="st-tile-art" style=${`clip-path:url(#st-c-${f})`}>${AppArt(a, a.icon ? "100%" : "46%")}</div>
+  <svg aria-hidden="true" class="st-rim" viewBox="0 0 1 1"><use href=${`#st-p-${f}`} /></svg>
+</div>`; };
+// THE HERO ORB — the lead app's art seen through its own form, its edge a rim of light (fonoteka's orb with the
+// app's icon as the material). It ARRIVES once per visit: Mriia's cloud becomes the app's form, one morph on the
+// focal clock, begun when the card's own rise has landed (an event, not a delay) so it plays after the boot
+// curtain has lifted. On every later mount the form is simply there. Instant under reduced motion and in the
+// gate (core morphTo); at rest nothing is drawn.
+let arrived = false;
+function HeroOrb({ a }) {
+  const orb = useRef(), art = useRef(), rim = useRef(), to = formOf(a);
+  useLayoutEffect(() => {
+    let w = orb.current.offsetWidth, last = "", stop = () => {}, alive = true;
+    const lay = (d) => {
+      last = d;
+      if (w) art.current.style.clipPath = `path("${scalePath(d, w)}")`;
+      for (const p of rim.current.children) p.setAttribute("d", d);
+    };
+    if (arrived) lay(pathOf(to));
+    else {
+      arrived = true;
+      lay(pathOf(BRAND));
+      const go = () => { if (alive) stop = morphTo(BRAND, to, { ms: 560, onFrame: lay }); };
+      const rise = orb.current.closest(".ms-stagger > *")?.getAnimations?.()[0];
+      if (rise) rise.finished.then(go, go); else go();
+    }
+    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
+    ro.observe(orb.current);
+    return () => { alive = false; ro.disconnect(); stop(); };
+  }, [to]);
+  return html`<div ref=${orb} data-hero-orb data-form=${to} class="st-orb" aria-hidden="true">
+    <div ref=${art} class="st-orb-art"><img src=${`../${a.id}/icon.webp`} alt="" decoding="async" fetchpriority="high" /></div>
+    <svg ref=${rim} class="st-orb-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
+  </div>`;
+}
 const SEEN = collection("seen");
 const CATALOG = collection("catalog");
 const appUrl = (id, install = false) => `../${id}/${install ? "?install=1" : ""}`;
@@ -71,14 +119,14 @@ export function store({ S, openScreen, closeScreen }) {
   const tag = (b) => b === "new" ? html`<span class=${`${LABEL} inline-flex items-center gap-1 shrink-0`}>${DOT()}${T(t, "newBadge")}</span>` : b === "upd" ? html`<span class=${`${LABEL} inline-flex items-center gap-1 shrink-0`}>${DOT(true)}${T(t, "updBadge")}</span>` : null;
   const needsUsb = (a) => (a.needs || []).includes("usb");
   const tap = (a) => (installed(a) ? launch(a) : openScreen(a.id));
-  const pill = (a, extra = "") => html`<button class=${`btn btn-xs rounded-full px-3.5 min-h-7 h-7 bg-base-300 border-0 text-base-content font-bold shrink-0 ${extra}`} aria-label=${`${T(t, "openApp")} — ${nameOf(a)}`} onClick=${(e) => { e.stopPropagation(); launch(a); }}>${installed(a) ? Icon("lucide:external-link", "text-sm") : T(t, "openApp")}</button>`;
+  const pill = (a, extra = "") => html`<button class=${`btn btn-xs rounded-full px-3.5 min-h-7 h-7 bg-base-300 border-0 text-base-content font-bold shrink-0 ms-press ${extra}`} aria-label=${`${T(t, "openApp")} — ${nameOf(a)}`} onClick=${(e) => { e.stopPropagation(); launch(a); }}>${installed(a) ? Icon("lucide:external-link", "text-sm") : T(t, "openApp")}</button>`;
 
   const sel = screen ? apps.find((a) => a.id === screen) : null;
   const page = html`<${Sheet} id="appsheet" size="lg" open=${!!sel} onClose=${closeScreen} title=${sel ? nameOf(sel) : ""}>
     ${sel ? (() => { const b = badgeOf(sel), scr = screensOf(sel), shots = sel.shots || [], desc = taglineOf(sel), long = desc.length > 180; return html`<div class="flex flex-col gap-6 pb-2">
       ${""}
       <div class="flex items-start gap-4">
-        ${Tile(sel, "w-28 h-28")}
+        ${Tile(sel, "w-28 h-28", true)}
         <div class="min-w-0 flex-1 flex flex-col gap-1 pt-0.5">
           <div class="font-bold text-[1.35rem] leading-tight break-words">${nameOf(sel)}</div>
           <div class="text-sm text-muted leading-snug line-clamp-2">${subtitleOf(sel)}</div>
@@ -128,26 +176,21 @@ export function store({ S, openScreen, closeScreen }) {
   const rtf = new Intl.RelativeTimeFormat(locale === "uk" ? "uk" : "en", { numeric: "auto" });
   const whenOf = (a) => { const d = ageDays(a); return d < 7 ? rtf.format(-d, "day") : rtf.format(-Math.round(d / 7), "week"); };
   const eyebrowOf = (a) => `${isNewborn(a) ? whenOf(a) : T(t, "premium")} · ${T(t, catKey(a.category))}`;
-  const Featured = (a) => { const tab = a.shots?.[0]; const slogan = sloganOf(a); return html`<article key=${a.id} class="st-hero relative rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
+  // The lead card: words on the left, the app's orb on the right — the orb IS its icon, so the name stands alone.
+  const Featured = (a) => { const slogan = sloganOf(a); return html`<article key=${a.id} class="st-hero relative rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden ms-press">
     <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
     <div class="st-hero-body relative flex items-stretch gap-3 p-[var(--ms-pad)] pointer-events-none">
       <div class="st-hero-text min-w-0 flex-1 flex flex-col gap-1.5">
         <div class=${`${LABEL} flex items-center gap-1.5 min-w-0`}>${isNewborn(a) ? DOT() : null}<span class="truncate">${eyebrowOf(a)}</span></div>
-        <div class="flex items-center gap-2.5 min-w-0">
-          ${Tile(a, "w-10 h-10")}
-          <span class="st-hero-name font-bold text-[1.05rem] leading-tight truncate">${nameOf(a)}</span>
-        </div>
+        <span class="st-hero-name font-bold text-[1.05rem] leading-tight truncate">${nameOf(a)}</span>
         ${slogan ? html`<div data-slogan class="st-hero-slogan font-bold tracking-tight">${slogan}</div>` : null}
         <p class="text-[0.8rem] text-muted leading-snug line-clamp-3">${subtitleOf(a)}</p>
         <div class="mt-auto pt-1">${pill(a, "pointer-events-auto")}</div>
       </div>
-      ${tab ? html`<div class="st-hero-shots shrink-0 self-center flex items-center gap-2">
-        <div class="st-hero-shot aspect-[384/832] rounded-[var(--ms-r-in)] overflow-hidden bg-black sf-raised sf-e2"><img src=${shotUrl(a, tab, light)} alt="" loading="lazy" decoding="async" class="w-full h-full block" /></div>
-        <div class="st-hero-shot st-hero-shot2 aspect-[384/832] rounded-[var(--ms-r-in)] overflow-hidden bg-black sf-raised sf-e2"><img src=${shotUrl(a, tab, !light)} alt="" loading="lazy" decoding="async" class="w-full h-full block" /></div>
-      </div>` : null}
+      <${HeroOrb} a=${a} />
     </div>
   </article>`; };
-  const FeaturedTall = (a) => { const shot = firstShot(a); return html`<article key=${a.id} class="relative h-full rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden">
+  const FeaturedTall = (a) => { const shot = firstShot(a); return html`<article key=${a.id} class="relative h-full rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden ms-press">
     <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
     <div class="relative h-full flex items-stretch gap-2.5 p-3 pointer-events-none">
       ${shot ? html`<div class="shrink-0 self-center w-14 aspect-[384/832] rounded-[var(--ms-r-in)] overflow-hidden bg-black sf-raised sf-e2"><img src=${shot} alt="" loading="lazy" decoding="async" class="w-full h-full block" /></div>` : null}
@@ -160,7 +203,7 @@ export function store({ S, openScreen, closeScreen }) {
     </div>
   </article>`; };
   const Row = (a) => { const b = badgeOf(a); return html`<div data-app=${a.id} key=${a.id} class="flex items-center gap-3 py-2">
-    <button aria-label=${nameOf(a)} onClick=${() => tap(a)} class="flex items-center gap-3 flex-1 min-w-0 text-left">
+    <button aria-label=${nameOf(a)} onClick=${() => tap(a)} class="flex items-center gap-3 flex-1 min-w-0 text-left ms-press">
       ${Tile(a, "w-[3.25rem] h-[3.25rem]")}
       <div class="min-w-0 flex-1 flex flex-col gap-0.5">
         <span class="font-semibold text-[0.9rem] leading-tight truncate flex items-center gap-2">${nameOf(a)}${b ? tag(b) : null}${isFeatured(a) ? Icon("lucide:sparkles", "text-[0.8em] shrink-0", "color:var(--app-accent)") : null}</span>
@@ -201,7 +244,7 @@ export function store({ S, openScreen, closeScreen }) {
   const [slide, setSlide] = useState(0);
   const onRail = () => { const el = railRef.current; if (!el || el.children.length < 2) return; const step = el.children[1].offsetLeft - el.children[0].offsetLeft; setSlide(Math.max(0, Math.min(SLIDES.length - 1, Math.round(el.scrollLeft / step)))); };
   const goSlide = (i) => { const el = railRef.current; if (!el?.children[i]) return; el.scrollTo({ left: el.children[i].offsetLeft - el.children[0].offsetLeft, behavior: "smooth" }); };
-  const Fresh = (a, i) => { const life = Math.max(0.12, 1 - ageDays(a) / FRESH_DAYS); return html`<button key=${a.id} data-app=${a.id} data-fresh-card aria-label=${nameOf(a)} onClick=${() => tap(a)} style=${`--life:${life.toFixed(2)};--i:${i}`} class="st-fresh relative w-full text-left rounded-[calc(var(--ms-r)*.8)] sf-raised sf-e2 overflow-hidden flex items-center gap-3 p-2.5 pl-3.5">
+  const Fresh = (a, i) => { const life = Math.max(0.12, 1 - ageDays(a) / FRESH_DAYS); return html`<button key=${a.id} data-app=${a.id} data-fresh-card aria-label=${nameOf(a)} onClick=${() => tap(a)} style=${`--life:${life.toFixed(2)};--i:${i}`} class="st-fresh relative w-full text-left rounded-[calc(var(--ms-r)*.8)] sf-raised sf-e2 overflow-hidden flex items-center gap-3 p-2.5 pl-3.5 ms-press">
     <span aria-hidden="true" class="st-fresh-life"></span>
     ${Tile(a, "w-11 h-11")}
     <span class="min-w-0 flex-1 flex flex-col gap-0.5">
@@ -229,6 +272,7 @@ export function store({ S, openScreen, closeScreen }) {
     return html`<div class="flex flex-col gap-4" data-store-mode="search" data-store-search=${searchOpen ? "open" : "folded"} data-store-found=${found.length}>${headRow}
       <div class="ms-stagger flex flex-col" key=${query}>${found.length ? rows(found) : noResults}</div>
       ${page}
+      <${Forms} />
     </div>`;
   }
 
@@ -246,5 +290,6 @@ export function store({ S, openScreen, closeScreen }) {
       </div>`;
     })}
     ${page}
+    <${Forms} />
   </div>`;
 }
