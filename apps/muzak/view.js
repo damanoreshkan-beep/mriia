@@ -131,7 +131,18 @@ function share(s, toast, t) {
   navigator.share(data).catch((e) => { if (e?.name !== "AbortError") copy(); });
 }
 
-function mix(s) { if (!gate) location.assign(`/remix/?sh_text=${encodeURIComponent(s.url)}`); }
+const MIX = ["slowed", "deep"];
+const $mixed = atom({});   
+async function mix(s, toast, t) {
+  if ($mixed.get()[s.id]) return;
+  $mixed.set({ ...$mixed.get(), [s.id]: "busy" }); $err.set("");
+  toast?.(T(t, "mixing"));
+  const done = gate ? MIX.length
+    : (await Promise.allSettled(MIX.map((v) => taskCall("/library/keeptask", { url: s.url, v })))).filter((r) => r.status === "fulfilled").length;
+  if (!done) { const m = { ...$mixed.get() }; delete m[s.id]; $mixed.set(m); $err.set("errMix"); return; }
+  $mixed.set({ ...$mixed.get(), [s.id]: "done" });
+  toast?.(T(t, done === MIX.length ? "mixed" : "mixedPart"));
+}
 
 const $dl = atom("");   
 async function mp3(s) {
@@ -154,17 +165,17 @@ async function save(s, toast, t) {
   finally { $dl.set(""); }
 }
 
-const actionsFor = (s, kept, dl, t, toast) => [
+const actionsFor = (s, kept, dl, t, toast, mixed) => [
   { id: "download", icon: dl === s.id ? "lucide:hourglass" : "lucide:download", label: T(t, dl === s.id ? "preparingFile" : "download"), onClick: () => save(s, toast, t), pulse: dl === s.id, disabled: !!dl, attr: { "data-save": s.id } },
   { id: "keep", icon: kept === "done" ? "lucide:library-big" : "lucide:library", label: T(t, kept === "done" ? "keptA" : "aKeep"), onClick: () => keep(s, toast, t), active: kept === "done", pulse: kept === "busy", disabled: kept === "busy", attr: { "data-keep": s.id } },
   { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => share(s, toast, t), attr: { "data-share": s.id } },
-  { id: "mix", icon: "lucide:sparkles", label: T(t, "aMix"), onClick: () => mix(s), attr: { "data-mix": s.id } },
+  { id: "mix", icon: "lucide:sparkles", label: T(t, mixed === "done" ? "mixedA" : "aMix"), onClick: () => mix(s, toast, t), active: mixed === "done", pulse: mixed === "busy", disabled: mixed === "busy", attr: { "data-mix": s.id } },
 ];
 
 export function muzak({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
-  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl);
+  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
   const input = useRef();
   useEffect(() => { if (!gate && !meta) input.current?.focus(); }, []);
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   
@@ -210,13 +221,13 @@ export function muzak({ S, toast }) {
       ${on ? html`<div class="flex flex-col gap-1">
         ${loading ? html`<div data-preparing role="status" class="text-xs text-base-content/70 animate-pulse">${T(t, "preparing")}</div>` : null}
         <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
-          actions=${actionsFor(song, kept[song.id], dl, t, toast)} />
+          actions=${actionsFor(song, kept[song.id], dl, t, toast, mixed[song.id])} />
       </div>` : html`<div class="flex items-center gap-1">
         <button data-listen onClick=${() => toggle(song, [song])}
           class="btn btn-primary flex-1 min-w-0 h-[var(--ms-ctl)] min-h-0 gap-2 sf-e3">
           ${Icon("lucide:play", "text-[length:var(--ms-icon)]")}<span>${T(t, "listen")}</span>
         </button>
-        ${actionsFor(song, kept[song.id], dl, t, toast).map((a) => html`<button key=${a.id} ...${a.attr} aria-label=${a.label} disabled=${a.disabled} onClick=${a.onClick}
+        ${actionsFor(song, kept[song.id], dl, t, toast, mixed[song.id]).map((a) => html`<button key=${a.id} ...${a.attr} aria-label=${a.label} disabled=${a.disabled} onClick=${a.onClick}
           class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${a.active ? "text-primary" : "text-base-content/70"} ${a.pulse ? "animate-pulse" : ""}`}>${Icon(a.icon, "text-[length:var(--ms-icon)]")}</button>`)}
       </div>`}
     <//>` : null}
@@ -309,7 +320,7 @@ export function likes({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const sid = useStore(session)?.sid || "";
   const l = useStore($likes), busy = useStore($lBusy), err = useStore($lErr), playErr = useStore($err);
-  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl);
+  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
   
   useEffect(() => { if (!gate) restore().then((s) => { if (!s) $likes.set({ connected: false }); }).catch(() => {}); }, []);
   useEffect(() => { if (sid && !gate) readLikes(); }, [sid]);   
@@ -355,7 +366,7 @@ export function likes({ S, toast, confirm }) {
         <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle(now ? null : songs[0], now ? null : songs)} className="w-full pt-1"
           onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           title=${shown ? shown.title : ""} subtitle=${now && loading ? T(t, "preparing") : shown ? [shown.artist, clock(shown.dur)].filter(Boolean).join(" · ") : ""}
-          actions=${shown ? actionsFor(shown, kept[shown.id], dl, t, toast).filter((a) => a.id !== "download") : []} />
+          actions=${shown ? actionsFor(shown, kept[shown.id], dl, t, toast, mixed[shown.id]).filter((a) => a.id !== "download") : []} />
       </section>` : null}
 
       <section aria-labelledby="mz-likes" class="flex flex-col gap-[var(--ms-gap)]">
@@ -365,7 +376,7 @@ export function likes({ S, toast, confirm }) {
         </div>
         <div class="flex flex-col gap-1">
           ${songs.map((s) => {
-            const here = cur === s.id, k = kept[s.id];
+            const here = cur === s.id, k = kept[s.id], mx = mixed[s.id];
             return html`<div key=${s.id} data-like=${s.id} class="mz-row flex items-center gap-1">
               <button data-play=${s.id} aria-pressed=${here ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${s.title}`} onClick=${() => toggle(s, songs)}
                 class="flex-1 min-w-0 flex items-center gap-3 text-left px-1 py-1.5 min-h-0 rounded-[var(--ms-r-in)] ms-press">
@@ -380,6 +391,8 @@ export function likes({ S, toast, confirm }) {
               </button>
               <button data-keep=${s.id} aria-label=${T(t, k === "done" ? "keptA" : "aKeep")} disabled=${k === "busy"} onClick=${() => keep(s, toast, t)}
                 class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${k === "done" ? "text-primary" : "text-base-content/70"} ${k === "busy" ? "animate-pulse" : ""}`}>${Icon(k === "done" ? "lucide:library-big" : "lucide:library", "text-[length:var(--ms-icon)]")}</button>
+              <button data-mix=${s.id} aria-label=${`${T(t, mx === "done" ? "mixedA" : "aMix")}: ${s.title}`} disabled=${mx === "busy"} onClick=${() => mix(s, toast, t)}
+                class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${mx === "done" ? "text-primary" : "text-base-content/70"} ${mx === "busy" ? "animate-pulse" : ""}`}>${Icon("lucide:sparkles", "text-[length:var(--ms-icon)]")}</button>
               <button data-save=${s.id} aria-label=${`${T(t, "download")}: ${s.title}`} disabled=${!!dl && dl !== s.id} onClick=${() => save(s, toast, t)}
                 class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${dl === s.id ? "text-primary animate-pulse" : "text-base-content/70"}`}>${Icon(dl === s.id ? "lucide:hourglass" : "lucide:download", "text-[length:var(--ms-icon)]")}</button>
             </div>`;
