@@ -51,7 +51,7 @@ function Compare({ before, after, ratio, caption, t, onOpen }) {
     <span aria-hidden="true" class="absolute top-2 left-2 rounded-full bg-black/50 px-2 py-0.5 font-mono uppercase tracking-wide text-[0.62rem] text-white pointer-events-none">${T(t, "after")}</span>
     <span aria-hidden="true" class="absolute top-2 right-2 rounded-full bg-black/50 px-2 py-0.5 font-mono uppercase tracking-wide text-[0.62rem] text-white pointer-events-none">${T(t, "before")}</span>
   </div>
-  <button data-view aria-label=${T(t, "view")} class="absolute bottom-2 right-2 btn btn-circle btn-xs bg-black/50 text-white border-0" onClick=${onOpen}>${Icon("lucide:maximize-2", "text-sm")}</button>
+  <button data-view aria-label=${T(t, "view")} class="absolute bottom-2 right-2 btn btn-circle btn-xs bg-black/50 text-white border-0 ms-press" onClick=${onOpen}>${Icon("lucide:maximize-2", "text-sm")}</button>
   </div>
   ${caption ? html`<div data-px class="shrink-0 pointer-events-none" style=${`height:${CAPTION_H}px`}><span class="font-mono text-[0.68rem] leading-[22px] uppercase tracking-[0.14em] tabular-nums whitespace-nowrap text-base-content/70">${fit.narrow ? caption.split("→").pop().trim() : caption}</span></div>` : null}
   </div>`;
@@ -94,12 +94,13 @@ export function zir({ S, toast }) {
   const stage = () => {
     if (st.phase === "empty") return html`<${Chooser} loc=${loc} onPick=${M.setSource} onCamera=${() => M.patch({ phase: "camera" })} />`;
     if (st.phase === "camera") return html`<${Camera} loc=${loc} reason=${T(t, "primeReason")} privacy=${T(t, "primePrivacy")} onSettings=${() => S.screen.set("perms")} onCapture=${M.setSource} onClose=${() => M.patch({ phase: "empty" })} />`;
+    // the picture landing is the app's one focal moment (once per job): it fades in, never slides
     if (hasResult) return html`<div class="absolute inset-0 p-[var(--ms-gap)]">
-      <div class="relative w-full h-full"><${Compare} before=${st.src} after=${st.out.url} ratio=${st.inW && st.inH ? st.inW / st.inH : 0} caption=${px} t=${t} onOpen=${() => S.screen.set("view")} /></div>
+      <div data-arrive class="relative w-full h-full ms-reveal"><${Compare} before=${st.src} after=${st.out.url} ratio=${st.inW && st.inH ? st.inW / st.inH : 0} caption=${px} t=${t} onOpen=${() => S.screen.set("view")} /></div>
     </div>`;
     return html`<div class="absolute inset-0 flex items-center justify-center p-[var(--ms-gap)] pb-6">
       <div class="relative max-w-full max-h-full">
-        <img data-result src=${st.src} alt="" class=${`${frame} ${working ? "opacity-70" : ""} transition-opacity`} onClick=${() => S.screen.set("view")} />
+        <img data-result src=${st.src} alt="" class=${`${frame} ${working ? "opacity-70" : ""} transition-opacity duration-[var(--t-state)] ease-[var(--ease-out)]`} onClick=${() => S.screen.set("view")} />
         ${working ? html`<${Fragment}>
           <div aria-hidden="true" class="absolute inset-0 rounded-[var(--ms-r)] overflow-hidden pointer-events-none"><div class="zr-scan"></div></div>
           <div data-working class="absolute inset-x-0 bottom-3 flex flex-col items-center gap-1 pointer-events-none text-white">
@@ -111,16 +112,16 @@ export function zir({ S, toast }) {
     </div>`;
   };
 
-  const act = (id, icon, lab, onClick) => html`<button data-act=${id} class="btn btn-sm btn-circle shrink-0" aria-label=${lab} title=${lab} onClick=${onClick}>${Icon(icon, "text-base")}</button>`;
+  const act = (id, icon, lab, onClick, i) => html`<button data-act=${id} style=${`--i:${i}`} class="btn btn-sm btn-circle shrink-0 ms-press" aria-label=${lab} title=${lab} onClick=${onClick}>${Icon(icon, "text-base")}</button>`;
 
   return html`<${Fragment}>
     <style>${CSS}</style>
     <${GlStage} shader=${new URL("zir.frag", import.meta.url)} seed=${0.37} tex=${shown} vary=${vary} texReady=${(r) => { chan.ready = r; }} zClass="z-0" />
 
     ${""}
-    ${screen === "view" && shown ? html`<div data-lightbox class="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick=${() => S.screen.set(null)}>
+    ${screen === "view" && shown ? html`<div data-lightbox class="fixed inset-0 z-50 bg-black flex items-center justify-center ms-reveal" onClick=${() => S.screen.set(null)}>
       <img src=${shown} alt="" class="max-w-full max-h-full object-contain" />
-      <button data-lightbox-close aria-label=${T(t, "view")} class="absolute top-3 right-3 btn btn-circle btn-sm bg-black/50 text-white border-0" onClick=${() => S.screen.set(null)}>${Icon("lucide:x", "text-base")}</button>
+      <button data-lightbox-close aria-label=${T(t, "view")} class="absolute top-3 right-3 btn btn-circle btn-sm bg-black/50 text-white border-0 ms-press" onClick=${() => S.screen.set(null)}>${Icon("lucide:x", "text-base")}</button>
     </div>` : null}
 
     <${Sheet} id="opts" open=${screen === "opts"} onClose=${() => S.screen.set(null)} title=${T(t, "options")} icon="lucide:sliders-horizontal" locale=${loc}>
@@ -128,7 +129,7 @@ export function zir({ S, toast }) {
         ${""}
         <div class="flex items-center justify-between gap-2">
           <div class=${label}>${T(t, "model")}</div>
-          <button data-models-check aria-label=${T(t, "modelCheck")} class="btn btn-ghost btn-xs btn-circle text-base-content/70" disabled=${models.loading} onClick=${() => M.loadModels(true)}>${Icon("lucide:refresh-cw", `text-base ${models.loading ? "animate-spin" : ""}`)}</button>
+          <button data-models-check aria-label=${T(t, "modelCheck")} class="btn btn-ghost btn-xs btn-circle text-base-content/70 ms-press" disabled=${models.loading} onClick=${() => M.loadModels(true)}>${Icon("lucide:refresh-cw", `text-base ${models.loading ? "animate-spin" : ""}`)}</button>
         </div>
         <${Segmented} attr="data-model" label=${T(t, "model")} scroll value=${modelSel} onChange=${(id) => M.setOpts({ model: id || "auto" })}
           items=${[{ id: "auto", label: T(t, "modelAuto"), icon: "lucide:sparkles" }, ...modelList.map((m) => ({ id: m.id, label: shortName(m.id), title: m.id, dot: m.alive ? "var(--color-success)" : "color-mix(in oklch, var(--color-base-content) 35%, transparent)", meta: m.tier === "fast" ? "CPU" : null }))]} />
@@ -143,18 +144,22 @@ export function zir({ S, toast }) {
         <div class="flex items-center gap-[var(--ms-gap)]">
           <${Segmented} attr="data-q" label=${T(t, "quality")} value=${opts.quality} onChange=${(q) => M.setOpts({ quality: q })}
             items=${[{ id: "hd", label: T(t, "qHd"), icon: "lucide:gem" }, { id: "fast", label: T(t, "qFast"), icon: "lucide:zap" }]} />
-          <button data-opts aria-label=${T(t, "options")} class=${`${tool} ${modelSel !== "auto" ? "ring-1 ring-[var(--app-accent)]" : ""}`} onClick=${() => { M.loadModels(); S.screen.set("opts"); }}>${Icon("lucide:sliders-horizontal", "text-lg")}</button>
+          <button data-opts aria-label=${T(t, "options")} class=${`${tool} ms-press ${modelSel !== "auto" ? "ring-1 ring-[var(--app-accent)]" : ""}`} onClick=${() => { M.loadModels(); S.screen.set("opts"); }}>${Icon("lucide:sliders-horizontal", "text-lg")}</button>
         </div>
-        ${""}
+        ${/* No free form, no Transport, no «одна по колу» (owner 2026-10-11: «розповсюджувати нову дизайн систему»): the
+             app's object is the photo given sight, and the photo IS the working surface — a form would clip the very
+             picture Save writes and the before/after slider needs its edges. Enlarge is a one-shot job, not a play key,
+             and there is no sequence to go on to. What moves: presses give (.ms-press), the result fades in, and its
+             three actions arrive one after another (.ms-stagger) — once per job, never at rest. */""}
         <div class="@container flex items-center gap-1.5 min-w-0">
-          ${st.src ? html`<button data-new aria-label=${T(t, "newPhoto")} class=${tool} disabled=${working} onClick=${M.clearSource}>${Icon("lucide:image-plus", "text-lg")}</button>` : null}
-          ${hasResult ? html`<${Fragment}>
-            ${act("again", "lucide:repeat", T(t, "again"), M.again)}
-            ${act("save", "lucide:download", T(t, "save"), save)}
-            ${act("share", "lucide:share-2", T(t, "share"), share)}
-          </${Fragment}>` : null}
+          ${st.src ? html`<button data-new aria-label=${T(t, "newPhoto")} class=${`${tool} ms-press`} disabled=${working} onClick=${M.clearSource}>${Icon("lucide:image-plus", "text-lg")}</button>` : null}
+          ${hasResult ? html`<div data-acts class="flex items-center gap-1.5 ms-stagger">
+            ${act("again", "lucide:repeat", T(t, "again"), M.again, 0)}
+            ${act("save", "lucide:download", T(t, "save"), save, 1)}
+            ${act("share", "lucide:share-2", T(t, "share"), share, 2)}
+          </div>` : null}
           <div class="flex-1"></div>
-          <button data-go aria-label=${working ? T(t, "stop") : T(t, "go")} aria-busy=${working ? "true" : null} class="btn btn-primary rounded-full gap-2 px-4 @max-[20rem]:btn-circle @max-[20rem]:px-0 shrink-0" disabled=${!st.src || st.phase === "camera"} onClick=${go}>
+          <button data-go aria-label=${working ? T(t, "stop") : T(t, "go")} aria-busy=${working ? "true" : null} class="btn btn-primary rounded-full gap-2 px-4 @max-[20rem]:btn-circle @max-[20rem]:px-0 shrink-0 ms-press" disabled=${!st.src || st.phase === "camera"} onClick=${go}>
             ${Icon(working ? "lucide:square" : "lucide:scan-eye", "text-xl")}<span class="@max-[20rem]:hidden">${working ? T(t, "stop") : T(t, "go")}</span>
           </button>
         </div>

@@ -9,10 +9,29 @@ import { CamStage } from "/_rt/camstage.js";
 import { GodotStage, godotAvailable, godotSave } from "/_rt/godotstage.js";
 import { downloadUrl } from "/_rt/apk.js";
 import { report } from "/_rt/telemetry.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { PRESETS, IDS, KNOBS, ENGINE_KNOBS, tuned, knobValue, buildChain } from "./presets.js";
 import { createGraph } from "./graph.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+// THE MATERIAL'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's identity is the
+// MATERIAL the camera is seen through; each one owns an organic form (core shapeOf, seeded by its id, the same on
+// every phone) and its picture is seen through it, edged with a rim that lights on the chosen one. The previews
+// are centred compositions on black, so the set leaves out the three forms that cut deepest into a centred
+// picture (Flower, PuffyDiamond, Puffy — measured for the store). The camera stage itself stays the camera.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+// shapeOf alone lands the 12 materials on only 6 of the 10 forms (lum, veil and plain all Sunny), so the strip
+// read as a pattern, not 12 materials. A material whose seeded form an earlier one already holds steps to the
+// next free form: all 10 forms are used and only the last two repeat. Fixed by IDS order — the same on every phone.
+const FORM = IDS.reduce((m, id) => {
+  const s = FORMS.indexOf(shapeOf(id, FORMS)), used = Object.values(m);
+  return { ...m, [id]: FORMS.map((_, k) => FORMS[(s + k) % FORMS.length]).find((n) => !used.includes(n)) || FORMS[s] };
+}, {});
+const formOf = (id) => FORM[id];
+// One set of clip paths for the strip: objectBoundingBox takes the 0..1 path as is, so no tile is measured. A
+// zero-size svg, not display:none — a clipPath inside a display:none svg does not clip in every engine.
+const USED = [...new Set(IDS.map(formOf))];
+const Forms = () => html`<svg aria-hidden="true" class="pt-forms" width="0" height="0"><defs>${USED.map((n) => html`<clipPath key=${n} id=${`pt-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>`;
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 const thumb = (id) => new URL(`assets/style-${id}.webp`, import.meta.url).href;
 const texUrl = (id) => new URL(`assets/tex-${id}.webp`, import.meta.url).href;
@@ -145,11 +164,16 @@ export function portal({ S, toast, screen, closeScreen }) {
       <div class="shrink-0 relative z-[2]">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
         ${""}
-        <div data-strip role="group" aria-label=${T(t, "material")} class="overflow-x-auto flex items-start gap-1 -mx-1 px-1">
-          ${IDS.map((id) => { const p = PRESETS[id], active = preset === id; return html`<button key=${id} data-mat=${id} aria-pressed=${active} aria-label=${T(t, p.key)}
-              class="shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => pick(id)}>
-            ${p.thumb ? html`<img src=${thumb(p.thumb)} alt="" loading="lazy" decoding="async" class=${`w-11 h-11 rounded-full object-cover bg-black ring-2 ${active ? "ring-[var(--app-accent)]" : "ring-transparent"}`} />`
-              : html`<span aria-hidden="true" class=${`pt-swatch w-11 h-11 rounded-full ring-2 ${active ? "ring-[var(--app-accent)]" : "ring-transparent"}`}></span>`}
+        <${Forms} />
+        ${/* the strip arrives once per mount (ms-stagger); a material pick re-renders it without replaying */""}
+        <div data-strip role="group" aria-label=${T(t, "material")} class="ms-stagger overflow-x-auto flex items-start gap-1 -mx-1 px-1">
+          ${IDS.map((id, i) => { const p = PRESETS[id], active = preset === id, f = formOf(id); return html`<button key=${id} data-mat=${id} aria-pressed=${active} aria-label=${T(t, p.key)} style=${`--i:${i}`}
+              class="ms-press shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => pick(id)}>
+            <span data-form=${f} aria-hidden="true" class="pt-mat w-11 h-11">
+              <span class="pt-mat-art" style=${`clip-path:url(#pt-c-${f})`}>${p.thumb ? html`<img src=${thumb(p.thumb)} alt="" loading="lazy" decoding="async" />`
+                : html`<span class="pt-swatch"></span>`}</span>
+              <svg class="pt-rim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg>
+            </span>
             <span class=${`font-mono uppercase tracking-wide text-[0.58rem] leading-none truncate max-w-full ${active ? "text-base-content" : "text-base-content/70"}`}>${T(t, p.key)}</span>
           </button>`; })}
         </div>

@@ -9,6 +9,7 @@ import { CHARACTERS, avatarUrl } from "./characters.js";
 import { MOVES, DEFAULT_MOVES, loadCatalog, getCatalog } from "./dances.js";
 import { CoinSheet } from "/_rt/coinsheet.js";
 import { Pixels } from "/_rt/skeleton.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { $cast, $moves, getCast, getMoves, toggleChar, toggleMove, setCast, setMoves, mixCast, DEFAULT_CAST, MAX_CAST, $myChars, getMyChars, removeMyChar, $genCharLoading, $genCharPct, $genCharError, $newChar, GEN_PRICE, wallet } from "./state.js";
 import { generateCharacter, cancelGenerate, genElapsed } from "./genchar.js";
 
@@ -16,9 +17,26 @@ const $section = persistentAtom("afterdark:castTab", "chars");
 const TIER_TINT = { light: "#8B5CF6", groove: "#39FF6A", drive: "#FF3EB5" };
 const SHOW_MAX = 400;
 const norm = (s) => String(s || "").toLowerCase();
-const chip = (on) => `btn btn-sm rounded-full h-auto min-h-0 py-1.5 gap-1.5 normal-case font-normal ${on ? "btn-primary" : "btn-ghost border border-base-content/15"}`;
+const chip = (on) => `ms-press btn btn-sm rounded-full h-auto min-h-0 py-1.5 gap-1.5 normal-case font-normal ${on ? "btn-primary" : "btn-ghost border border-base-content/15"}`;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const STAGE_KEY = { picture: "gPicture", queued: "gQueued", mesh: "gMesh", rig: "gRig", store: "gStore" };
+
+// THE DANCER'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»): a character's portrait is seen
+// through its own organic form (core shapeOf, seeded by its id — the same dancer, the same form on every phone),
+// its rim lit in the character's tint while it is on stage. Persona's set: the three forms that cut deepest into a
+// centred face (inscribed radius under .35 of the box) are left out — an avatar is a face in the middle. The clips
+// live once in the grid's defs (objectBoundingBox, so no measuring), not once per avatar: 105 avatars, 10 forms.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const FormDefs = () => html`<svg class="ad-defs" width="0" height="0" aria-hidden="true"><defs>
+  ${FORMS.map((f) => html`<clipPath key=${f} id=${`ad-c-${f}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(f)} /></clipPath>`)}
+</defs></svg>`;
+const Portrait = (g, cls) => {
+  const f = shapeOf(g.id, FORMS), d = pathOf(f);
+  return html`<span data-form=${f} aria-hidden="true" class=${`ad-face ${cls}`} style=${`--tint:${g.tint}`}>
+    <span class="ad-art" style=${`clip-path:url(#ad-c-${f})`}><img src=${avatarUrl(g.id)} alt="" width="72" height="72" loading="lazy" decoding="async" /></span>
+    <svg class="ad-rim" viewBox="0 0 1 1"><path class="b" d=${d} /><path class="e" d=${d} /></svg>
+  </span>`;
+};
 
 function GenSheet({ t, loc, open, onClose, onTopUp }) {
   const stage = useStore($genCharLoading), pct = useStore($genCharPct), error = useStore($genCharError), w = useStore(wallet.$wallet);
@@ -41,7 +59,7 @@ function GenSheet({ t, loc, open, onClose, onTopUp }) {
         <${Segmented} attr="data-gen-kind" size="sm" variant="ghost" label=${T(t, "kind")} value=${kind} onChange=${setKind}
           items=${[{ id: "human", label: T(t, "kindHuman"), icon: "lucide:user" }, { id: "creature", label: T(t, "kindCreature"), icon: "lucide:ghost" }]} />
       </div>
-      ${stage ? html`<div data-gen-progress class="rounded-2xl bg-base-content/5 p-3 flex items-center gap-3">
+      ${stage ? html`<div data-gen-progress class="rounded-2xl sf-inset p-3 flex items-center gap-3">
           <${Pixels} cls="w-10 h-10 rounded-xl shrink-0" />
           <div class="flex-1 min-w-0">
             <div class="text-[0.9rem] leading-tight">${T(t, STAGE_KEY[stage] || "gQueued")}${pct ? ` · ${pct}%` : ""}</div>
@@ -115,18 +133,19 @@ export function castView({ S }) {
         <div class="ml-auto"><${Segmented} attr="data-kind" size="sm" variant="ghost" label=${T(t, "kind")} value=${kind} onChange=${setKind}
           items=${[{ id: "all", label: T(t, "all"), icon: "lucide:users" }, { id: "human", label: T(t, "kindHuman"), icon: "lucide:user" }, { id: "creature", label: T(t, "kindCreature"), icon: "lucide:ghost" }]} /></div>
       </div>
-      <p data-cap-hint class=${`text-[0.82rem] text-warning transition-opacity duration-300 ${capHint ? "opacity-100" : "opacity-0"}`} aria-live="polite">${T(t, "capHint")}</p>
-      <div data-char-grid class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-2 gap-y-4 pt-1">
-        ${chars.map((g) => { const on = onStage.has(g.id), own = !!g.glb; return html`<div key=${g.id} class="relative min-w-0">
+      <p data-cap-hint class=${`text-[0.82rem] text-warning transition-opacity duration-[var(--t-state)] ease-[var(--ease-out)] ${capHint ? "opacity-100" : "opacity-0"}`} aria-live="polite">${T(t, "capHint")}</p>
+      <${FormDefs} />
+      ${/* the crowd arrives avatar by avatar (core .ms-stagger, capped past the fold); keyed by the kind filter, so a
+           switch replays it and a tap on a dancer never does */""}
+      <div key=${kind} data-char-grid class="ms-stagger grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-x-2 gap-y-4 pt-1">
+        ${chars.map((g, i) => { const on = onStage.has(g.id), own = !!g.glb; return html`<div key=${g.id} style=${`--i:${i}`} class="relative min-w-0">
           <button data-char=${g.id} type="button" aria-pressed=${on ? "true" : "false"} aria-label=${g.name} onClick=${() => tap(g.id)}
-            class=${`w-full flex flex-col items-center gap-1.5 min-w-0 rounded-2xl p-1 active:scale-[.96] transition-[transform,opacity] ${on ? "" : "opacity-60 hover:opacity-100"}`}>
-            <span class=${`rounded-full p-0.5 transition-shadow duration-200 bg-base-content/5 ${g.id === newChar ? "animate-pulse" : ""}`} style=${on ? `box-shadow:0 0 0 2.5px ${g.tint},0 0 16px ${g.tint}66` : ""}>
-              <img src=${avatarUrl(g.id)} alt="" width="72" height="72" loading="lazy" decoding="async" class="w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-full object-cover block" />
-            </span>
+            class=${`ad-char ms-press w-full flex flex-col items-center gap-1.5 min-w-0 rounded-2xl p-1 ${on ? "" : "opacity-60 hover:opacity-100"}`}>
+            ${Portrait(g, `w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] ${g.id === newChar ? "animate-pulse" : ""}`)}
             <span class="text-[0.7rem] leading-tight truncate max-w-full text-base-content/80">${g.name}</span>
           </button>
           ${own ? html`<button data-char-remove=${g.id} type="button" aria-label=${T(t, "remove")} title=${T(t, "remove")} onClick=${() => removeMyChar(g.id)}
-            class="absolute top-0 right-0 w-6 h-6 rounded-full bg-base-100 border border-base-content/15 text-base-content/70 flex items-center justify-center text-sm leading-none">×</button>` : null}
+            class="ms-press absolute top-0 right-0 w-6 h-6 rounded-full sf-raised text-base-content/70 flex items-center justify-center text-sm leading-none">×</button>` : null}
         </div>`; })}
       </div>
       <${GenSheet} t=${t} loc=${loc} open=${genOpen} onClose=${() => setGenOpen(false)} onTopUp=${() => { setGenOpen(false); setCoinOpen(true); }} />
@@ -146,7 +165,7 @@ export function castView({ S }) {
         <h3 class="text-[0.78rem] font-medium text-muted pt-4 pb-1.5">${T(t, "moreMoves")} · ${rest.length}</h3>
         <div data-more-list class="flex flex-wrap gap-1.5">${rest.slice(0, SHOW_MAX).map((m) => html`<${MoveChip} key=${m.id} m=${m} on=${onFloor.has(m.id)} name=${m.name} />`)}</div>
         ${rest.length > SHOW_MAX ? html`<p class="text-[0.82rem] text-muted py-3">${T(t, "narrowSearch")}</p>` : null}`
-        : html`<button data-more type="button" class="btn btn-ghost btn-sm rounded-full mt-4 gap-1.5 border border-base-content/15" onClick=${() => setMore(true)}>
+        : html`<button data-more type="button" class="ms-press btn btn-ghost btn-sm rounded-full mt-4 gap-1.5 border border-base-content/15" onClick=${() => setMore(true)}>
             <iconify-icon icon="lucide:plus"></iconify-icon>${T(t, "more")} +${libRest.length}</button>`}`}
   </div>`;
 }

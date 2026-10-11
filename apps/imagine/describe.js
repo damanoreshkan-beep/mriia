@@ -19,7 +19,7 @@ const ASK = {
   en: { read: "Describe this image in English: 2–3 sentences on what is in it and its mood, then, on a separate line, up to 5 key tags separated by commas.", q: "Answer in English, briefly and to the point, from this image alone. Question: " },
 };
 const gateText = "Гірське озеро на світанку: дзеркальна вода віддзеркалює рожеві піки, над берегом стелиться легкий туман. Тиша, прохолода і золоте світло перших променів.\n\nгори, озеро, світанок, туман, тиша";
-const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
+const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70 ms-press";
 const oneLine = (s) => s.replace(/\s*\n+\s*/g, ". ").replace(/\.\s*\./g, ".").trim();
 
 export function describe({ S, toast }) {
@@ -81,7 +81,7 @@ export function describe({ S, toast }) {
         onCapture=${(d) => { buzz(14); loadSource(d); }} onClose=${backToChooser} onSettings=${() => S.screen.set("perms")} />` : null}
 
       ${showStage && srcUrl ? html`<${Fragment}>
-        <img data-result src=${srcUrl} alt="" class=${`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${phase === "reading" ? "opacity-40" : "opacity-100"}`} />
+        <img data-result src=${srcUrl} alt="" class=${`absolute inset-0 w-full h-full object-contain transition-opacity duration-[var(--t-state)] ease-[var(--ease-out)] ${phase === "reading" ? "opacity-40" : "opacity-100"}`} />
         <button data-new aria-label=${T(t, "newImg")} class="absolute top-3 left-3 btn btn-circle btn-sm im-chip border-0" onClick=${backToChooser}>${Icon("lucide:x", "text-base")}</button>
       </${Fragment}>` : null}
     </div>
@@ -95,12 +95,12 @@ export function describe({ S, toast }) {
           <p data-text class="text-[0.95rem] leading-relaxed whitespace-pre-line">${body}</p>
           ${tags.length ? html`<div data-tags class="flex flex-wrap gap-1.5">${tags.map((tg) => html`<span key=${tg} class="badge badge-ghost rounded-full font-mono text-[length:var(--ms-label)] uppercase tracking-wider">${tg}</span>`)}</div>` : null}
           <div class="flex gap-2">
-            <button data-to-make class="btn btn-sm btn-primary flex-1 min-w-0 rounded-full gap-1.5" onClick=${toMake}>${Icon("lucide:sparkles", "text-base shrink-0")}<span class="truncate">${T(t, "toMake")}</span></button>
-            <button data-to-edit class="btn btn-sm flex-1 min-w-0 rounded-full gap-1.5" onClick=${toEdit}>${Icon("lucide:wand-sparkles", "text-base shrink-0")}<span class="truncate">${T(t, "toEdit")}</span></button>
+            <button data-to-make class="btn btn-sm btn-primary flex-1 min-w-0 rounded-full gap-1.5 ms-press" onClick=${toMake}>${Icon("lucide:sparkles", "text-base shrink-0")}<span class="truncate">${T(t, "toMake")}</span></button>
+            <button data-to-edit class="btn btn-sm flex-1 min-w-0 rounded-full gap-1.5 ms-press" onClick=${toEdit}>${Icon("lucide:wand-sparkles", "text-base shrink-0")}<span class="truncate">${T(t, "toEdit")}</span></button>
           </div>
           <div class="flex justify-center gap-2">
-            <button data-copy class="btn btn-ghost btn-sm rounded-full gap-1.5" onClick=${copy}>${Icon("lucide:copy", "text-base")}${T(t, "copy")}</button>
-            <button data-ask class="btn btn-ghost btn-sm rounded-full gap-1.5" onClick=${askAgain}>${Icon("lucide:message-circle-question", "text-base")}${T(t, "askMore")}</button>
+            <button data-copy class="btn btn-ghost btn-sm rounded-full gap-1.5 ms-press" onClick=${copy}>${Icon("lucide:copy", "text-base")}${T(t, "copy")}</button>
+            <button data-ask class="btn btn-ghost btn-sm rounded-full gap-1.5 ms-press" onClick=${askAgain}>${Icon("lucide:message-circle-question", "text-base")}${T(t, "askMore")}</button>
           </div>
         </${Fragment}>`}
     <//>
@@ -116,7 +116,7 @@ export function describe({ S, toast }) {
           <button data-new aria-label=${T(t, "newImg")} class=${tool} onClick=${backToChooser}>${Icon("lucide:image-plus", "text-lg")}</button>
           <button data-history aria-label=${T(t, "history")} class=${tool} onClick=${() => S.screen.set("hist")}>${Icon("lucide:history", "text-lg")}</button>
           <div class="flex-1"></div>
-          <button data-read-go class="btn btn-primary btn-sm rounded-full gap-1.5 shrink-0" onClick=${read}>${Icon("lucide:scan-eye", "text-base")}${T(t, question.trim() ? "answer" : phase === "error" ? "dsAgain" : "readBtn")}</button>
+          <button data-read-go class="btn btn-primary btn-sm rounded-full gap-1.5 shrink-0 ms-press" onClick=${read}>${Icon("lucide:scan-eye", "text-base")}${T(t, question.trim() ? "answer" : phase === "error" ? "dsAgain" : "readBtn")}</button>
         </div>
       </div>
       ${phase === "error" ? html`<p data-error role="alert" class="text-sm text-error px-1">${T(t, error || "dsFailed")}</p>` : null}

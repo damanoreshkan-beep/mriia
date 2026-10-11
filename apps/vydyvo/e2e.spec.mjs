@@ -60,6 +60,20 @@ export default [
     },
   },
   {
+    name: "персонажі: кожен у власній формі, вибір форму не міняє", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-chars] [data-char] [data-form] .vy-art img")) === 12, "не кожен персонаж у своїй формі");
+      const forms = new Set();
+      for (const id of ["lum", "paper", "ink", "mercury", "smoke", "thread"]) forms.add(await h.attr(`[data-char="${id}"] [data-form]`, "data-form"));
+      h.expect(forms.size > 1, "усі персонажі в одній формі");
+      const f = await h.attr('[data-char="ink"] [data-form]', "data-form");
+      h.expect((await h.count(`#vy-c-${f}`)) === 1, `немає обрису форми ${f}`);
+      await h.tap("[data-char='ink']"); await h.wait(400);
+      await h.back(); await h.wait(300);
+      h.expect((await h.attr('[data-char="ink"] [data-form]', "data-form")) === f, "форма змінилась разом із вибором");
+    },
+  },
+  {
     name: "промпт зберігається, хрестик стирає і зникає", run: async (h) => {
       await h.type("[data-prompt]", "туман над рікою"); await h.wait(200);
       h.expect(((await h.storage("ms:vydyvo:opts")) || "").includes("туман"), "промпт не збережено");

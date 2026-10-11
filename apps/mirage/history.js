@@ -1,5 +1,5 @@
 import { html } from "htm/preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 import { Sheet } from "/_rt/ui.js";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
@@ -22,11 +22,22 @@ export function usePromptHistory(ns) {
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
+// How many times a sheet has opened. Its list is keyed by this count: a fresh key on each open replays the arrival
+// (.ms-stagger), and the list stays mounted while the sheet closes, so the box rides its close animation whole
+// instead of collapsing to the title.
+export function useOpens(open) {
+  const s = useRef({ n: 0, was: false });
+  if (open && !s.current.was) s.current.n++;
+  s.current.was = open;
+  return s.current.n;
+}
+
 export function HistorySheet({ id = "hist-sheet", open, onClose, items, onPick, t, locale }) {
+  const opens = useOpens(open);
   return html`<${Sheet} id=${id} open=${open} onClose=${onClose} title=${T(t, "history")} icon="lucide:history" locale=${locale}>
-    ${items.length
-      ? html`<div data-hist-list class="flex flex-col gap-1.5">
-          ${items.map((line, i) => html`<button key=${line} data-hist-item=${i} type="button" class="text-left rounded-2xl sf-inset px-4 py-3 text-[0.95rem] leading-snug active:scale-[.99] transition-transform" onClick=${() => { onPick(line); onClose(); }}>${line}</button>`)}
+    ${!opens ? null : items.length
+      ? html`<div key=${opens} data-hist-list class="flex flex-col gap-1.5 ms-stagger">
+          ${items.map((line, i) => html`<button key=${line} data-hist-item=${i} type="button" style=${`--i:${i}`} class="text-left rounded-2xl sf-inset px-4 py-3 text-[0.95rem] leading-snug ms-press" onClick=${() => { onPick(line); onClose(); }}>${line}</button>`)}
         </div>`
       : html`<div data-hist-empty class="flex flex-col items-center gap-2 py-8 text-center text-muted">${Icon("lucide:history", "text-3xl")}<div class="text-sm">${T(t, "historyEmpty")}</div></div>`}
   </${Sheet}>`;

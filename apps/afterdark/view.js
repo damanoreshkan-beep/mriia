@@ -296,9 +296,10 @@ const CSS = `
 :root:not([data-theme$="-light"]) header.navbar{background:rgba(10,6,18,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.07)}
 :root:not([data-theme$="-light"]) header.navbar [data-title],:root:not([data-theme$="-light"]) header.navbar [data-battery]{color:rgba(255,255,255,.92)!important}
 :root:not([data-theme$="-light"]) header.navbar [data-title]{text-shadow:0 1px 2px #0A0510,0 0 14px #0A0510}
-/* the transport's primary key on dark glass is the cream key (the light theme's black primary on dark
+/* the transport's play form on dark glass is the cream key (the light theme's black primary on dark
    glass was a black disc on black, measured 2026-09-11); by day the theme's own primary is right */
-:root:not([data-theme$="-light"]) [data-rave] .btn-primary{background:#F2EEE6;border-color:#F2EEE6;color:#0A0510}
+:root:not([data-theme$="-light"]) [data-rave] .tp-form{color:#0A0510}
+:root:not([data-theme$="-light"]) [data-rave] .tp-form > svg path{fill:#F2EEE6}
 .dk-bg{background:radial-gradient(120% 90% at 50% 8%, #1A0A22 0%, #0C0614 46%, #050308 100%)}
 .dk-ink{color:rgba(255,255,255,.92)}.dk-ink-2{color:rgba(255,255,255,.82)}.dk-ink-3{color:rgba(255,255,255,.6)}
 .dk-line{background:rgba(255,255,255,.2)}
@@ -310,12 +311,12 @@ const CSS = `
 .dk-enter{background:rgba(0,0,0,.5);color:#fff}
 /* THE FOLD: the island collapses into its one key. Two animatable things do it — the content's grid row goes
    1fr → 0fr (a real height animation without a magic max-height) and the island's max-width shrinks to the
-   key's; padding follows. Reduced motion = an instant fold. */
-.dk-dock{max-width:28rem;transition:max-width .45s cubic-bezier(.4,0,.2,1),padding .45s cubic-bezier(.4,0,.2,1)}
-.dk-fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .45s cubic-bezier(.4,0,.2,1),opacity .3s ease .1s;opacity:1}
+   key's; padding follows. Reduced motion = an instant fold. On the core motion clock: a move on screen. */
+.dk-dock{max-width:28rem;transition:max-width var(--t-move) var(--ease-in-out),padding var(--t-move) var(--ease-in-out)}
+.dk-fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--t-move) var(--ease-in-out),opacity var(--t-state) var(--ease-out) var(--t-press);opacity:1}
 .dk-fold-in{min-height:0;overflow:hidden}
 .dk-dock[data-dock="folded"]{max-width:3.75rem;padding:.25rem;gap:0}
-.dk-dock[data-dock="folded"] .dk-fold{grid-template-rows:0fr;opacity:0;pointer-events:none;transition:grid-template-rows .45s cubic-bezier(.4,0,.2,1),opacity .2s ease}
+.dk-dock[data-dock="folded"] .dk-fold{grid-template-rows:0fr;opacity:0;pointer-events:none;transition:grid-template-rows var(--t-move) var(--ease-in-out),opacity var(--t-state) var(--ease-out)}
 @media(prefers-reduced-motion:reduce){.dk-dock,.dk-fold{transition:none}}
 /* the void owns the finger: no browser pan/zoom, the drag orbits and the pinch zooms the 3D camera */
 .dk-void{touch-action:none;overscroll-behavior:contain}
@@ -341,7 +342,7 @@ const CSS = `
 .dk-chip{scroll-snap-align:center}
 /* FULLSCREEN (the transport's maximize key): the runtime's navbar/dock fade so the rave fills the glass; our
    island stays — the minimize key lives on it. Nothing is removed (axe/e2e still see it). */
-:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity .5s ease}
+:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock],:root[data-immersive] [data-dock-fade]{opacity:0;pointer-events:none;transition:opacity var(--t-focal) var(--ease-out)}
 @media(prefers-reduced-motion:reduce){[data-enter] .dk-enter-ring{animation:none!important}:root[data-immersive] header.navbar,:root[data-immersive] nav[data-dock]{transition:none}}`;
 
 export function afterdark({ S }) {
@@ -410,7 +411,7 @@ export function afterdark({ S }) {
         ${""}
         ${!entered ? html`<div class="absolute inset-0 flex flex-col items-center justify-start pt-[6%] gap-4 pointer-events-none">
           <button data-enter aria-label=${T(t, "enter")} onClick=${enter}
-            class="pointer-events-auto flex flex-col items-center gap-3 select-none group">
+            class="ms-press pointer-events-auto flex flex-col items-center gap-3 select-none group">
             <span class="dk-enter dk-enter-ring w-24 h-24 rounded-full backdrop-blur-md flex items-center justify-center">
               <iconify-icon icon="lucide:play" class="text-4xl translate-x-0.5"></iconify-icon>
             </span>
@@ -422,14 +423,17 @@ export function afterdark({ S }) {
       ${""}
       <${Island} tone="dark" className="dk-isle dk-dock shrink-0 flex flex-col gap-[var(--ms-gap)] w-full mx-auto" data-dock=${dockOpen ? "open" : "folded"}>
         <div class="dk-fold"><div class="dk-fold-in flex flex-col gap-[var(--ms-gap)]">
-        <${Transport} locale=${loc} playing=${playing} onToggle=${onToggle} stopIcon=${true}
+        ${/* the kit's free-form play key (owner 2026-10-11: «розповсюджувати нову дизайн систему»). No orb: the
+             rave field and the 3D crowd ARE this screen's form, and the dancers carry their own forms in the cast.
+             No loop toggle and no seek: one live stream all night — nothing ends, nothing to go on to or scrub. */""}
+        <${Transport} form locale=${loc} playing=${playing} onToggle=${onToggle} stopIcon=${true}
           actions=${[
             { id: "mute", icon: mute ? "lucide:volume-x" : "lucide:volume-2", label: T(t, mute ? "aUnmute" : "aMute"), active: mute, pressed: mute, onClick: () => setMuted(!mute), attr: { "data-mute": "" } },
             { id: "fs", icon: fs ? "lucide:minimize" : "lucide:maximize", label: T(t, fs ? "aExitFs" : "aFs"), active: fs, pressed: fs, onClick: toggleFullscreen, attr: { "data-fs-key": "" } },
           ]} />
         </div></div>
         <button data-dock-toggle type="button" aria-expanded=${dockOpen ? "true" : "false"} aria-label=${T(t, dockOpen ? "aFold" : "aUnfold")} onClick=${() => $dock.set(dockOpen ? "0" : "1")}
-          class="dk-dock-key btn btn-ghost btn-sm btn-circle mx-auto dk-ink-2">
+          class="dk-dock-key ms-press btn btn-ghost btn-sm btn-circle mx-auto dk-ink-2">
           <iconify-icon icon=${dockOpen ? "lucide:chevron-down" : "lucide:chevron-up"} class="text-xl"></iconify-icon>
         </button>
       </${Island}>

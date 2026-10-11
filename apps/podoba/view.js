@@ -10,6 +10,7 @@ import { CamStage } from "/_rt/camstage.js";
 import { MAX_SIDE } from "/_rt/intake.js";
 import { downloadUrl, shareFile } from "/_rt/apk.js";
 import { STYLES, styleIndex } from "/_rt/styles.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import * as M from "./state.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -18,7 +19,14 @@ const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 const mono = "font-mono uppercase tracking-[0.14em] text-[length:var(--ms-label)] tabular-nums";
 const thumb = (id) => new URL(`assets/style-${id}.webp`, import.meta.url).href;
 const GAIN_MS = 250;
-const CSS = `.ly-in{animation:lyIn 1.2s ease-out both}@keyframes lyIn{from{opacity:0;transform:scale(1.02)}to{opacity:1;transform:none}}
+// Each material sample is seen through the material's own form. The set MUST stay mirage's (and persona's, cam's,
+// portal's): the organic forms minus the three that cut deepest into a centred picture — so a material from
+// rt/styles.js keeps one form in every app (default ORGANIC gave lum Puffy here and Sunny in mirage). One clip per
+// form; objectBoundingBox takes the 0..1 path as is, so nothing is measured.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const FORM = Object.fromEntries(STYLES.map((s) => [s.id, shapeOf(s.id, FORMS)]));
+const CLIPS = [...new Set(Object.values(FORM))];
+const CSS = `.ly-in{animation:lyIn var(--t-focal) var(--ease-out) both}@keyframes lyIn{from{opacity:0;transform:scale(1.02)}to{opacity:1;transform:none}}
 .ly-sh{background:linear-gradient(90deg,rgba(255,255,255,.45) 0%,#fff 50%,rgba(255,255,255,.45) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:lySweep 2.2s linear infinite}
 @keyframes lySweep{from{background-position:200% 0}to{background-position:-200% 0}}
 .ly-scrim{height:calc(var(--hdr-h,3.5rem) * 1.9);background:linear-gradient(to bottom,light-dark(rgba(246,244,238,.72),rgba(0,0,0,.62)) 0%,light-dark(rgba(246,244,238,.36),rgba(0,0,0,.32)) 35%,light-dark(rgba(246,244,238,.08),rgba(0,0,0,.07)) 75%,transparent 100%)}
@@ -121,9 +129,13 @@ export function podoba({ S, toast }) {
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
         ${""}
         <div data-strip role="group" aria-label=${T(t, "material")} class="ly-strip overflow-x-auto flex items-start gap-1 -mx-1 px-1">
-          ${STYLES.map((s) => { const active = st.mat === s.id; return html`<button key=${s.id} data-mat=${s.id} aria-pressed=${active} aria-label=${T(t, s.key)}
-              class="shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => M.setMat(s.id)}>
-            <img src=${thumb(s.id)} alt="" loading="lazy" decoding="async" class=${`w-11 h-11 rounded-full object-cover bg-black ring-2 ${active ? "ring-[var(--app-accent)]" : "ring-transparent"}`} />
+          <svg aria-hidden="true" class="ly-defs" width="0" height="0"><defs>${CLIPS.map((f) => html`<clipPath key=${f} id=${`ly-c-${f}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(f)} /></clipPath>`)}</defs></svg>
+          ${STYLES.map((s) => { const active = st.mat === s.id, f = FORM[s.id]; return html`<button key=${s.id} data-mat=${s.id} aria-pressed=${active} aria-label=${T(t, s.key)}
+              class="ms-press shrink-0 w-[3.7rem] h-[4.2rem] flex flex-col items-center justify-start gap-1 rounded-[var(--ms-r-in)] pt-1" onClick=${() => M.setMat(s.id)}>
+            <span data-form=${f} aria-hidden="true" class="ly-sw w-11 h-11">
+              <img src=${thumb(s.id)} alt="" loading="lazy" decoding="async" style=${`clip-path:url(#ly-c-${f})`} />
+              <svg class="ly-rim" viewBox="0 0 1 1"><path class="b" d=${pathOf(f)} /><path class="e" d=${pathOf(f)} /></svg>
+            </span>
             <span class=${`font-mono uppercase tracking-wide text-[0.58rem] leading-none truncate max-w-full ${active ? "text-base-content" : "text-base-content/70"}`}>${T(t, s.key)}</span>
           </button>`; })}
         </div>
@@ -136,7 +148,7 @@ export function podoba({ S, toast }) {
           </div>
           <div class="flex items-center justify-center">
             ${live ? html`<button data-shutter aria-label=${T(t, "shoot")} title=${T(t, "shoot")} disabled=${!armed} onClick=${shoot}
-                class="w-[3.9rem] h-[3.9rem] rounded-full bg-white/10 sf-e3 flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40">
+                class="ms-press w-[3.9rem] h-[3.9rem] rounded-full bg-white/10 sf-e3 flex items-center justify-center disabled:opacity-40">
               <span class="w-[3rem] h-[3rem] rounded-full bg-primary border-4 border-base-100"></span>
             </button>` : null}
             ${working || enhancing ? html`<span data-working class=${`${mono} ${gate ? "text-base-content" : "ly-sh"}`}>${T(t, enhancing ? "enhancing" : lv.key)} · ${fmt(elapsed)}</span>` : null}

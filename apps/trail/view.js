@@ -190,10 +190,13 @@ export function trailToday({ t, S }) {
     ${today.lost ? html`<p class=${`shrink-0 ${NOTE}`}>${T(t, "lostBody")}</p>` : null}
     ${err ? html`<p class="shrink-0 text-sm text-error">${err}</p>` : null}
 
+    ${/* No <Transport form>: this key starts and stops a RECORDING, not a playback — the kit's play glyph would
+         promise sound, and there is no track, seek or «одна по колу» here. A recording day is a held state, so it
+         reads in the material instead: the primary at rest, pressed into the face while it records (head.html). */""}
     <button
       data-rec=${rec ? "on" : "off"}
       data-haptic=${rec ? "bump" : null}
-      class=${`shrink-0 btn rounded-full w-full gap-2 ${rec ? "btn-outline" : "btn-primary"}`}
+      class=${`shrink-0 btn rounded-full w-full gap-2 ms-press tr-rec ${rec ? "sf-pressed" : "btn-primary"}`}
       onClick=${() => (rec ? stopDay() : startDay(t))}>
       ${Icon(rec ? "lucide:square" : "lucide:circle-dot")}${T(t, rec ? "stop" : "start")}
     </button>
@@ -208,7 +211,7 @@ const Stat = (label, value, unit) => html`<div class="rounded-[var(--ms-r)] sf-i
 const Gate = (t, titleKey, bodyKey, ctaKey, onCta) => html`<div class="h-full min-h-0 flex flex-col justify-center">
   <${Panel} title=${T(t, titleKey)}>
     <p class=${NOTE}>${T(t, bodyKey)}</p>
-    ${ctaKey ? html`<button class="btn btn-primary rounded-full mt-3 gap-2 w-full" onClick=${onCta}>
+    ${ctaKey ? html`<button class="btn btn-primary rounded-full mt-3 gap-2 w-full ms-press" onClick=${onCta}>
       ${Icon("lucide:settings")}${T(t, ctaKey)}</button>` : null}
   <//>
 </div>`;
@@ -264,25 +267,30 @@ export function trailMonth({ t, S, screen, openScreen, closeScreen, toast, confi
 
   return html`<div class="flex flex-col gap-[var(--ms-gap)]">
     <div class="flex items-center gap-2">
-      <button class="btn btn-ghost btn-sm btn-circle" aria-label=${T(t, "monthPrev")} onClick=${() => shift(-1)}>${Icon("lucide:chevron-left")}</button>
+      <button class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press" aria-label=${T(t, "monthPrev")} onClick=${() => shift(-1)}>${Icon("lucide:chevron-left")}</button>
       <div class="flex-1 min-w-0">
         <div class="font-medium truncate">${label}</div>
         <div class="font-mono text-[length:var(--ms-label)] text-base-content/70 tabular-nums">${km(total)} km · ${inMonth.length} ${T(t, "days")}</div>
       </div>
-      <button class="btn btn-ghost btn-sm btn-circle" aria-label=${T(t, "monthNext")} onClick=${() => shift(1)}>${Icon("lucide:chevron-right")}</button>
+      <button class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press" aria-label=${T(t, "monthNext")} onClick=${() => shift(1)}>${Icon("lucide:chevron-right")}</button>
     </div>
 
     ${inMonth.length === 0
       ? html`<${Panel} title=${T(t, "emptyTitle")}><p class=${NOTE}>${T(t, "emptyBody")}</p><//>`
-      : html`<div data-month-grid class="grid grid-cols-7 gap-1.5">
+      : html`<div key=${month} data-month-grid class="ms-stagger grid grid-cols-7 gap-1.5">
+          ${/* No free form on a day (owner 2026-10-11: «розповсюджувати нову дизайн систему»): the line IS the
+               day's own form. A shape.js clip would crop the drawing and break the one shared scale, and a form
+               beside it would be a second, invented picture of the same day. The month arrives week by week
+               (--i = the row, keyed by month so a new month plays it again); a cell gives on the press clock. */""}
           ${Array.from({ length: lead }, (_, i) => html`<div key=${`p${i}`} aria-hidden="true"></div>`)}
           ${Array.from({ length: count }, (_, i) => {
             const id = `${month}-${pad2(i + 1)}`;
             const d = days.get(id);
             const has = d && d.points.length > 0;
-            if (!has) return html`<div key=${id} class="aspect-square rounded-[var(--ms-r-in)] sf-inset" aria-hidden="true"></div>`;
-            return html`<button key=${id} data-day=${id} aria-label=${id}
-              class="aspect-square rounded-[var(--ms-r-in)] sf-raised sf-e2 active:scale-95 transition-transform p-0.5"
+            const row = `--i:${Math.floor((lead + i) / 7)}`;
+            if (!has) return html`<div key=${id} style=${row} class="aspect-square rounded-[var(--ms-r-in)] sf-inset" aria-hidden="true"></div>`;
+            return html`<button key=${id} data-day=${id} aria-label=${id} style=${row}
+              class="aspect-square rounded-[var(--ms-r-in)] sf-raised sf-e2 ms-press p-0.5"
               onClick=${() => openScreen(`day:${id}`)}>
               ${isHome(d.points)
                 ? html`<svg viewBox="0 0 100 100" class="w-full h-full" aria-hidden="true"><circle cx="50" cy="50" r="9" fill="var(--app-accent)"/></svg>`
@@ -293,7 +301,7 @@ export function trailMonth({ t, S, screen, openScreen, closeScreen, toast, confi
 
     ${inMonth.length ? html`<p class=${NOTE}>${T(t, "legend")}</p>` : null}
 
-    ${inMonth.length ? html`<button class="btn btn-outline rounded-full gap-2" onClick=${() => exportMonth(inMonth, span, label, total, t, toast)}>
+    ${inMonth.length ? html`<button class="btn btn-outline rounded-full gap-2 ms-press" onClick=${() => exportMonth(inMonth, span, label, total, t, toast)}>
       ${Icon("lucide:download")}${T(t, "export")}</button>` : null}
 
     <${Sheet} id="day" open=${!!open} onClose=${closeScreen} title=${openId || ""}
@@ -327,9 +335,9 @@ function DayDetail(day, t, toast, confirm, closeScreen) {
     ${day.lost ? html`<p class=${NOTE}>${T(t, "lostBody")}</p>` : null}
 
     <div class="flex gap-2">
-      <button class="btn btn-outline flex-1 rounded-full gap-2" onClick=${() => exportDay(day, box, toast)}>
+      <button class="btn btn-outline flex-1 rounded-full gap-2 ms-press" onClick=${() => exportDay(day, box, toast)}>
         ${Icon("lucide:download")}${T(t, "exportDay")}</button>
-      <button class="btn btn-ghost text-error rounded-full gap-2" data-haptic="bump"
+      <button class="btn btn-ghost text-error rounded-full gap-2 ms-press" data-haptic="bump"
         onClick=${() => confirm({
           title: T(t, "deleteTitle"), body: T(t, "deleteBody"), verb: T(t, "deleteVerb"),
           onConfirm: async () => { await removeDay(day.id); closeScreen(); toast?.("deleted"); },

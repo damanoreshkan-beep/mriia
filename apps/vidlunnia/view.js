@@ -1,10 +1,11 @@
 import { html } from "htm/preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { Sheet, Segmented, Island, Stage, Transport } from "/_rt/ui.js";
 import { MicPrime } from "/_rt/camprime.js";
 import { permRequest } from "/_rt/permissions.js";
+import { ORGANIC, shapeOf, pathOf, shaper } from "/_rt/shape.js";
 import { $take, $rec, $words, $style, $primed, $gen, $echo, $echoes, $player, $voice, $presetView, $catalog, $voiceLang,
   CLONES, CHARACTERS, BARS, TAKE_MAX, isClone, namedOf, characterOf,
   boot, startRecord, stopRecord, playTake, removeTake, generate, toggle, seek, selectEcho, selectVoice, selectStyle, share, save, removeEcho } from "./state.js";
@@ -15,8 +16,24 @@ const LANG_KEY = { uk: "lUk", en: "lEn" };
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const card = (id) => new URL(`./assets/ch-${id}.webp`, import.meta.url).href;
 
-function Ring({ bars, live, sealed, idle }) {
+// THE VOICE'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's identity is the VOICE that
+// says the words: its seal inside the ring is the voice's own organic form (core shapeOf, seeded by the voice id —
+// the same voice, the same form on every phone), flowing into the next voice's form when the voice changes (one-shot
+// shaper morph; nothing draws at rest). An echo in the list wears the form of the voice that said it. The set leaves
+// out the three forms that cut deepest into the centre (as persona's portrait): the record key and the status sit
+// there. The bars stay on their circle — they are the live level, the working surface.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const formOf = (voice) => shapeOf(voice || "mine", FORMS);
+
+function Ring({ bars, live, sealed, idle, form }) {
   const R0 = 64, cx = 100, cy = 100;
+  // the path has no `d` prop: the shaper owns it, and the ring re-renders every frame while recording
+  const seal = useRef(), shape = useRef();
+  useLayoutEffect(() => {
+    shape.current = shaper(form, (d) => seal.current?.setAttribute("d", d));
+    return () => shape.current.stop();
+  }, []);
+  useLayoutEffect(() => { shape.current?.to(form); }, [form]);
   const lines = [];
   for (let i = 0; i < BARS; i++) {
     const v = bars[i] ?? 0, a = (i / BARS) * Math.PI * 2 - Math.PI / 2, len = idle ? 4 : 5 + 28 * v;
@@ -25,7 +42,7 @@ function Ring({ bars, live, sealed, idle }) {
   }
   return html`<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true"
     class=${`vd-ring block w-full h-full ${live || sealed ? "vd-ring-on" : "text-base-content"}`} data-ring-state=${live ? "live" : sealed ? "sealed" : "idle"}>
-    <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.22" />
+    <svg x="40" y="40" width="120" height="120" viewBox="0 0 1 1" overflow="visible" class="vd-seal" data-form=${form}><path ref=${seal} /></svg>
     <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" opacity=${idle ? 0.3 : 0.9}>${lines}</g>
   </svg>`;
 }
@@ -66,7 +83,7 @@ export function vidlunnia({ t, S, screen, closeScreen, toast, undo }) {
         denied=${rec.err === "denied"} unavailable=${rec.err === "unavailable" || rec.err === "unsupported"}
         onEnable=${() => { $primed.set("1"); startRecord(); }} onSettings=${() => permRequest("microphone")} />` : null}
       <div data-take=${take ? "" : null} data-live=${take ? "" : null} class="vd-box relative h-full w-full max-w-[min(100%,26rem)] mx-auto">
-        <${Ring} bars=${bars} live=${recording} sealed=${sealed} idle=${!sealed && !recording} />
+        <${Ring} bars=${bars} live=${recording} sealed=${sealed} idle=${!sealed && !recording} form=${formOf(recording ? "mine" : voice)} />
         <div class="vd-centre absolute inset-0 flex flex-col items-center justify-center gap-1.5 pointer-events-none">
           ${recording
             ? html`<button data-record data-state="recording" class="btn btn-circle btn-lg btn-error pointer-events-auto" aria-label=${T(t, "stop")} onClick=${stopRecord}>${Icon("lucide:square", "text-2xl")}</button>`
@@ -92,7 +109,7 @@ export function vidlunnia({ t, S, screen, closeScreen, toast, undo }) {
           onInput=${(e) => $words.set(e.currentTarget.value.slice(0, 400))}
           class="vd-words w-full min-w-0 resize-none bg-transparent text-[0.95rem] leading-snug focus:outline-none placeholder:text-base-content/45"></textarea>
         ${""}
-        <button data-voice-pick class="flex items-center gap-2 w-full min-w-0 text-left h-[var(--ms-ctl)]" onClick=${() => S.screen.set("voices")}>
+        <button data-voice-pick class="ms-press flex items-center gap-2 w-full min-w-0 text-left h-[var(--ms-ctl)]" onClick=${() => S.screen.set("voices")}>
           <span class=${`${label} shrink-0`}>${T(t, "voice")}</span>
           <span data-voice-name class="truncate text-sm">${voiceName(t, voice)}</span>
           ${named ? html`<span class=${`${label} shrink-0`}>${T(t, LANG_KEY[named.lang] || "lUk")}</span>` : null}
@@ -100,12 +117,12 @@ export function vidlunnia({ t, S, screen, closeScreen, toast, undo }) {
         </button>
         ${""}
         ${clone ? html`<div data-styles class="vd-cards flex gap-2 overflow-x-auto min-w-0 -mx-1 px-1 pb-1" role="group" aria-label=${T(t, "style")}>
-          <button data-style="" aria-pressed=${!style} class=${`vd-card shrink-0 ${!style ? "vd-card-on" : ""}`} onClick=${() => selectStyle("")}>
+          <button data-style="" aria-pressed=${!style} class=${`vd-card ms-press shrink-0 ${!style ? "vd-card-on" : ""}`} onClick=${() => selectStyle("")}>
             <span class="vd-card-pic grid place-items-center">${Icon("lucide:user-round", "text-xl")}</span>
             <span class="vd-card-name">${T(t, "sAsIs")}</span>
           </button>
           ${CHARACTERS.map((c) => html`<button key=${c.id} data-style=${c.id} aria-pressed=${style === c.id} title=${T(t, "chd_" + c.id)}
-            class=${`vd-card shrink-0 ${style === c.id ? "vd-card-on" : ""}`} onClick=${() => selectStyle(c.id)}>
+            class=${`vd-card ms-press shrink-0 ${style === c.id ? "vd-card-on" : ""}`} onClick=${() => selectStyle(c.id)}>
             <img class="vd-card-pic" src=${card(c.id)} alt="" loading="lazy" decoding="async" />
             <span class="vd-card-name">${T(t, "ch_" + c.id)}</span>
           </button>`)}
@@ -116,7 +133,9 @@ export function vidlunnia({ t, S, screen, closeScreen, toast, undo }) {
           <span class="vd-st">${T(t, clone ? "working" : "speaking")}<span class="vd-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
           ${gen.eta ? html`<span class="ml-auto tabular-nums normal-case">${Math.max(0, Math.round(gen.eta - (gen.elapsed || 0)))} s</span>` : null}
         </div>` : null}
-        ${echo && !working ? html`<${Transport} locale=${loc} size="sm" playing=${player.playing} onToggle=${toggle} pos=${player.pos} dur=${player.dur} onSeek=${seek}
+        ${/* the kit's free-form play key and filament seek. No loop toggle: one echo is on the transport, never a
+             sequence — an echo from the list is picked by hand and played once. */""}
+        ${echo && !working ? html`<${Transport} form locale=${loc} size="sm" playing=${player.playing} onToggle=${toggle} pos=${player.pos} dur=${player.dur} onSeek=${seek}
           title=${echo.words} subtitle=${`${voiceName(t, echo.voice) || echo.voice} · ${styleName(echo.style)}`} actions=${actions} keep=${3}
           moreOpen=${screen === "more"} onMore=${() => S.screen.set("more")} onMoreClose=${closeScreen} />` : null}
         <button data-generate class="btn btn-primary rounded-full w-full gap-2" disabled=${!canSay} onClick=${generate}>${Icon("lucide:sparkles", "text-lg")}${T(t, "generate")}</button>
@@ -144,9 +163,11 @@ export function vidlunnia({ t, S, screen, closeScreen, toast, undo }) {
     <//>
 
     <${Sheet} id="vd-echoes" open=${screen === "echoes"} onClose=${closeScreen} title=${T(t, "echoes")} icon="lucide:history" locale=${loc}>
-      ${echoes.length ? html`<ul data-echo-list class="flex flex-col divide-y divide-base-content/10">
-        ${echoes.map((e) => html`<li key=${e.id} data-echo-row=${e.id} class="flex items-center gap-2 py-2 min-w-0">
-          <button data-echo-play class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "echo")} onClick=${() => { selectEcho(e.id); closeScreen(); }}>${Icon("lucide:play", "text-base")}</button>
+      ${echoes.length ? html`<ul data-echo-list class="ms-stagger flex flex-col divide-y divide-base-content/10">
+        ${echoes.map((e, i) => html`<li key=${e.id} data-echo-row=${e.id} style=${`--i:${i}`} class="flex items-center gap-2 py-2 min-w-0">
+          ${/* the play key is the form of the voice that said it (the ring's seal); the secondary while on the transport */""}
+          <button data-echo-play data-form=${formOf(e.voice)} data-on=${echo?.id === e.id ? "true" : "false"} class="vd-echo ms-press" aria-label=${T(t, "echo")}
+            onClick=${() => { selectEcho(e.id); closeScreen(); }}><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(formOf(e.voice))} /></svg>${Icon("lucide:play", "text-base")}</button>
           <div class="min-w-0 flex-1">
             <div class="truncate text-sm">${e.words}</div>
             <div class=${`${label} truncate`}>${voiceName(t, e.voice) || e.voice} · ${styleName(e.style)} · ${fmt.format(new Date(e.ts))}</div>

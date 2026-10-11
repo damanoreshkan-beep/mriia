@@ -28,7 +28,7 @@ const gateDream = "перетвори на олійний живопис";
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 const EST = 40;
 const BASE = `${VPS_PROXY}/image/edit`;
-const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
+const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70 ms-press";
 
 export function retouch({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
@@ -159,11 +159,11 @@ export function retouch({ S, toast }) {
         ${slides.map((x, i) => html`<div key=${x.url} class="w-full h-full shrink-0 snap-center bg-black"><img data-result data-slide=${i} src=${x.url} alt=${prompt} class="w-full h-full object-contain" onClick=${() => S.screen.set("view")} /></div>`)}
       </div>` : null}
       ${isDone && (slides.length > 1 || more) ? html`<div data-dots class="absolute inset-x-0 bottom-3 flex justify-center items-center gap-1.5 pointer-events-none text-white">
-        ${slides.map((x, i) => html`<span key=${x.url} class=${`rounded-full bg-current transition-[width,opacity] ${i === idx ? "w-4 h-1.5" : "w-1.5 h-1.5 opacity-45"}`}></span>`)}
+        ${slides.map((x, i) => html`<span key=${x.url} class=${`rounded-full bg-current transition-[width,opacity] duration-[var(--t-state)] ease-[var(--ease-out)] ${i === idx ? "w-4 h-1.5" : "w-1.5 h-1.5 opacity-45"}`}></span>`)}
         ${more ? html`<span class="w-1.5 h-1.5 rounded-full bg-current im-more"></span>` : null}
       </div>` : null}
       ${(phase === "ready" || phase === "editing" || phase === "done" || phase === "error") && srcUrl ? html`<${Fragment}>
-        ${isDone ? null : html`<img data-result src=${srcUrl} alt="" class=${`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${phase === "editing" ? "opacity-30" : "opacity-100"}`} onClick=${() => phase === "ready" && S.screen.set("view")} />`}
+        ${isDone ? null : html`<img data-result src=${srcUrl} alt="" class=${`absolute inset-0 w-full h-full object-contain transition-opacity duration-[var(--t-state)] ease-[var(--ease-out)] ${phase === "editing" ? "opacity-30" : "opacity-100"}`} onClick=${() => phase === "ready" && S.screen.set("view")} />`}
         ${isDone ? html`<button data-new aria-label=${T(t, "newImg")} class="absolute top-3 left-3 btn btn-circle btn-sm im-chip border-0" onClick=${() => { revert(); setPhase("empty"); }}>${Icon("lucide:x", "text-base")}</button>` : null}
       </${Fragment}>` : null}
 
@@ -178,9 +178,9 @@ export function retouch({ S, toast }) {
     ${phase === "ready" || phase === "editing" || phase === "error" || isDone ? html`<div class="shrink-0 p-[var(--ms-gap)]">
     <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
       ${isDone ? html`<div data-actions class="@container flex items-center gap-1.5">
-        <button data-keep class="btn btn-sm btn-primary rounded-full flex-1 min-w-0 gap-1.5" onClick=${keep}>${Icon("lucide:wand-sparkles", "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${T(t, "keep")}</span></button>
-        <button data-revert class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5" onClick=${revert}>${Icon("lucide:undo-2", "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${T(t, "revert")}</span></button>
-        <button data-save class="btn btn-sm btn-circle shrink-0" aria-label=${T(t, "save")} title=${T(t, "save")} onClick=${save}>${Icon("lucide:download", "text-base")}</button>
+        <button data-keep class="btn btn-sm btn-primary rounded-full flex-1 min-w-0 gap-1.5 ms-press" onClick=${keep}>${Icon("lucide:wand-sparkles", "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${T(t, "keep")}</span></button>
+        <button data-revert class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5 ms-press" onClick=${revert}>${Icon("lucide:undo-2", "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${T(t, "revert")}</span></button>
+        <button data-save class="btn btn-sm btn-circle shrink-0 ms-press" aria-label=${T(t, "save")} title=${T(t, "save")} onClick=${save}>${Icon("lucide:download", "text-base")}</button>
       </div>` : html`<${Fragment}>
         <div data-field class="sf-inset rounded-[var(--ms-r-in)] p-2 flex flex-col gap-1 focus-within:ring-1 focus-within:ring-base-content/25">
           <textarea id="prompt" rows="2" aria-label=${placeholder}
@@ -192,8 +192,8 @@ export function retouch({ S, toast }) {
             <button data-history aria-label=${T(t, "history")} class=${tool} onClick=${() => S.screen.set("hist")}>${Icon("lucide:history", "text-lg")}</button>
             <div class="flex-1"></div>
             ${phase === "editing"
-              ? html`<button data-cancel class="btn btn-sm rounded-full gap-1.5 shrink-0" onClick=${cancel}>${Icon("lucide:square", "text-base")}${sys("cancel", loc)}</button>`
-              : html`<button data-edit class="btn btn-primary btn-sm rounded-full gap-1.5 shrink-0" disabled=${!prompt.trim()} onClick=${edit}>${Icon("lucide:wand-sparkles", "text-base")}${T(t, phase === "error" ? "edAgain" : "editBtn")}</button>`}
+              ? html`<button data-cancel class="btn btn-sm rounded-full gap-1.5 shrink-0 ms-press" onClick=${cancel}>${Icon("lucide:square", "text-base")}${sys("cancel", loc)}</button>`
+              : html`<button data-edit class="btn btn-primary btn-sm rounded-full gap-1.5 shrink-0 ms-press" disabled=${!prompt.trim()} onClick=${edit}>${Icon("lucide:wand-sparkles", "text-base")}${T(t, phase === "error" ? "edAgain" : "editBtn")}</button>`}
           </div>
         </div>
         ${phase === "error" ? html`<p data-error role="alert" class="text-sm text-error px-1">${T(t, error || "edFailed")}</p>` : null}

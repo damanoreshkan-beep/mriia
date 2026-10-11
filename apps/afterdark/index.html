@@ -52,6 +52,35 @@
     }
   }
   </script>
+  <style>
+    /* AFTERDARK on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The
+       stage is the screen's form already (the shader field + the 3D crowd), so it gets no orb; the play key is the
+       kit's (<Transport form>). The DANCER is the identity: in the cast grid each portrait is seen through the
+       character's own organic form (core shape.js, seeded by its id — cast.js Portrait), its edge a rim of light.
+       On stage the rim lights in the character's tint, where the round ring was; at rest nothing draws. */
+    .ad-face { position: relative; display: block; flex: none; }
+    /* one zero-size svg holds the clip of every form, not display:none — a clipPath inside a display:none svg does
+       not clip in every engine */
+    .ad-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    /* the theme's material under the picture, seen only while the avatar loads */
+    .ad-art { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    .ad-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* the rim: the clip's path drawn in an SVG over it, so the light can spill OUTSIDE the form */
+    .ad-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .ad-rim path { fill: none; vector-effect: non-scaling-stroke; transition: stroke var(--t-state) var(--ease-out), stroke-width var(--t-state) var(--ease-out), opacity var(--t-state) var(--ease-out); }
+    .ad-rim .e { stroke: var(--lm-rim-hi); stroke-width: 1.25; }
+    .ad-rim .b { stroke: var(--tint); stroke-width: 7; opacity: 0; }
+    [aria-pressed="true"] .ad-rim .e { stroke: var(--tint); stroke-width: 2.5; }
+    [aria-pressed="true"] .ad-rim .b { opacity: .3; }
+    /* paper: a glow on white is a smear — the on-stage rim is the tint alone, no bloom, and deepened: half the cast
+       is neon (#FACC15, #39FF6A, #22D3EE) that is ~1.5:1 on white, a rim nobody would see */
+    [data-theme="signal-light"] .ad-rim .e { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    [data-theme="signal-light"] [aria-pressed="true"] .ad-rim .e { stroke: color-mix(in oklch, var(--tint) 62%, black); stroke-width: 2.5; }
+    [data-theme="signal-light"] .ad-rim .b { display: none; }
+    /* a dancer tap: the kit's press give (.ms-press scale) plus the off-stage dim, both on the motion clock —
+       one transition list, so the opacity does not drop the press */
+    .ad-char { transition: scale var(--t-press) var(--ease-out), opacity var(--t-state) var(--ease-out); }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">afterdark</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

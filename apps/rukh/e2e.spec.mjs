@@ -7,6 +7,7 @@ export default [
       h.expect((await h.count("[data-frame][data-live]")) === 1, "немає кліпу на сцені");
       h.expect((await h.count("video[data-clip]")) === 1, "немає <video> з кліпом");
       h.expect((await h.count("[data-transport]")) === 1, "немає транспорту");
+      h.expect((await h.count("#play.tp-form")) === 1, "кнопка грати не на формі (<Transport form>)");
       h.expect((await h.attr("[data-rk-phase]", "data-rk-phase")) === "done", "фаза не done");
       h.expect(/\d:\d\d/.test(await h.text("[data-clip-meta]")), "у підписі кадру немає тривалості");
       h.expect((await h.attr('[data-model="auto"]', "aria-pressed")) === "true", "Авто не стандарт");
@@ -54,6 +55,21 @@ export default [
       await h.click("[data-first-frame]"); await h.wait(300);
       h.expect((await h.count("[data-picture]")) === 1, "чіп не повернув фото");
       await h.tap("[data-remove-picture]"); await h.wait(300);
+    },
+  },
+  {
+    name: "кліп — своя форма: ключ кожного кліпу є його формою, кліп на сцені підсвічений, тап ставить кліп на сцену", run: async (h) => {
+      await ready(h);
+      await h.click("[data-clips]"); await h.wait(300);
+      const n = await h.count("[data-clip-row]");
+      h.expect(n >= 2, "у колекції менше двох кліпів");
+      h.expect((await h.count("[data-clip-row] [data-clip-play] svg path")) === n, "не в кожного кліпу своя форма");
+      h.expect((await h.count('[data-clip-play][data-on="true"]')) === 1, "кліп на сцені не підсвічений");
+      const id = await h.attr("[data-clip-row]:last-child", "data-clip-row");
+      await h.tap("[data-clip-row]:last-child [data-clip-play]"); await h.wait(300);
+      h.expect((await h.prop("#rk-clips", "open")) !== true, "тап по кліпу не закрив колекцію");
+      h.expect((await h.attr("video[data-clip]", "data-clip")) === id, "тап не поставив кліп на сцену");
+      h.expect((await h.count("#play.tp-form")) === 1, "немає транспорту-форми на кліпі");
     },
   },
   {

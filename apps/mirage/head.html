@@ -1,0 +1,28 @@
+  <style>
+    /* MIRAGE on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The
+       conjured PICTURE is the identity and the working surface, so it stays whole — no clip crops what was made.
+       A STYLE owns a form: its sample seen through the style's own form (core shapeOf, seeded by its id — view.js
+       StyleForm), edged with a rim that lights for the chosen one, as the store's tiles and fonoteka's orb do.
+       The go key is the kit's play form (core .tp-form). Static paths: at rest nothing draws. */
+    .mg-forms { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    .mg-form { position: relative; display: grid; place-items: center; flex: none; aspect-ratio: 1; }
+    /* the sample's own black is the ground inside the form, in both themes — the samples are made on black */
+    .mg-form-art { position: absolute; inset: 0; background: #000; }
+    .mg-form-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* the rim: the same path as the clip, drawn over it so the light can sit ON the edge */
+    .mg-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .mg-rim use { fill: none; stroke: var(--lm-rim-hi); stroke-width: 1;
+      transition: stroke var(--t-state) var(--ease-out), stroke-width var(--t-state) var(--ease-out); }
+    [data-theme="signal-light"] .mg-rim use { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    /* «no style» has no sample: the empty form, its edge drawn in dashes where the other forms are filled */
+    .mg-form.none .mg-rim use { stroke: color-mix(in oklch, var(--color-base-content) 35%, transparent); stroke-dasharray: 4 3; }
+    /* the chosen style: its rim lit in the accent with a bloom; paper lights with the deep pole, no bloom */
+    .mg-form.lit .mg-rim use { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 2; stroke-dasharray: none; }
+    [data-theme="signal"] .mg-form.lit .mg-rim { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] .mg-form.lit .mg-rim use { stroke: var(--color-secondary); }
+    /* a touch lights the form's rim before the sheet closes (the press itself is .ms-press, the kit's 3% give) */
+    .mg-style:active .mg-rim use { stroke: var(--app-accent); }
+    [data-theme="signal-light"] .mg-style:active .mg-rim use { stroke: var(--color-secondary); }
+    .mg-style[aria-pressed="true"] > span:last-child { font-weight: 600; }
+    .mg-style:focus-visible { outline: 2px solid var(--color-base-content); outline-offset: 2px; border-radius: var(--ms-r-in); }
+  </style>

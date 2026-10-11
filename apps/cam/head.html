@@ -1,0 +1,22 @@
+  <style>
+    /* CAM on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The SHOT is
+       the identity: the last one lands beside the shutter, seen through its own organic form (core shape.js, seeded by
+       the shot's id — view.js ShotForm), its edge a rim of light. The viewfinder stays a plain screen and the shutter
+       stays round: one is the working surface, the other the camera's own control. At rest nothing draws. */
+    .cm-shot { position: relative; flex: none; }
+    /* a zero-size svg, not display:none — a clipPath inside a display:none svg does not clip in every engine */
+    .cm-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    /* the theme's material through the form: all of the empty slot, and the ground under a shot while it decodes */
+    .cm-art { position: absolute; inset: 0; background: var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100); }
+    [data-empty="true"] .cm-art { opacity: .55; }
+    .cm-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* a new shot lands once — a few times a session, so a short settle, never a flight across the screen */
+    @keyframes cmLand { from { opacity: 0; scale: .95; } to { opacity: 1; scale: 1; } }
+    .cm-art img { animation: cmLand var(--t-move) var(--ease-out) both; }
+    @media (prefers-reduced-motion: reduce) { .cm-art img { animation: none; } }
+    /* the rim: the same path as the clip, in an SVG over it so the light can spill OUTSIDE the form */
+    .cm-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .cm-rim path { fill: none; vector-effect: non-scaling-stroke; stroke: var(--lm-rim-hi); stroke-width: 1.25; }
+    /* paper: the white highlight vanishes on white — the rim is the ink, faint */
+    [data-theme="signal-light"] .cm-rim path { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+  </style>

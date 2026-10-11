@@ -22,6 +22,16 @@ export default [
     },
   },
   {
+    name: "рух: результат з'являється плавно, три дії приходять одна за одною, натиск відповідає", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-arrive].ms-reveal [data-compare]")) === 1, "результат не з'являється плавно");
+      h.expect((await h.count("[data-acts].ms-stagger > [data-act]")) === 3, "дії не приходять одна за одною");
+      for (const s of ["[data-go]", "[data-new]", "[data-opts]", "[data-act=save]"]) h.expect(/\bms-press\b/.test(await h.attr(s, "class")), `${s} не відповідає на натиск`);
+      await h.click("[data-act=again]"); await h.wait(200);
+      h.expect((await h.count("[data-acts]")) === 0, "дії лишилися без результату");
+    },
+  },
+  {
     name: "роздільник посередині, «після» обрізане до нього", run: async (h) => {
       await ready(h);
       h.expect(await h.attr("[data-compare]", "aria-valuenow") === "50", "роздільник не посередині");

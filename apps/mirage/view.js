@@ -1,6 +1,6 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useRef, useEffect, useState } from "preact/hooks";
+import { useRef, useEffect, useLayoutEffect, useState } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
@@ -10,9 +10,10 @@ import { Segmented, Island, Sheet, Stage } from "/_rt/ui.js";
 import { suggestPrompt } from "/_rt/ai-text.js";
 import { downloadUrl, shareFile } from "/_rt/apk.js";
 import { Lightbox } from "./lightbox.js";
-import { usePromptHistory, HistorySheet } from "./history.js";
+import { usePromptHistory, HistorySheet, useOpens } from "./history.js";
 import { Chooser, Camera } from "/_rt/intake.js";
 import { STYLES, styleOf, styleThumb } from "./styles.js";
+import { ORGANIC, shapeOf, pathOf, shaper } from "/_rt/shape.js";
 import * as M from "./state.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
@@ -31,6 +32,25 @@ const SHIMMER = `.mg-sh{background:linear-gradient(90deg,rgba(255,255,255,.45) 0
 @keyframes mgSweep{from{background-position:200% 0}to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.mg-sh{animation:none}}`;
 
+// FREE FORMS (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The picture is the app's identity and its
+// working surface, so it stays a whole rectangle — a clip would crop what was conjured. What owns a form is a STYLE:
+// a named look with its own sample, seen through the style's own form (core shapeOf, seeded by its id), edged with a
+// rim that lights for the chosen one — the store's tile, with the style's sample as the material. The store's set:
+// the organic forms minus the three that cut deepest into a centred picture. One set of clip paths for the page
+// (objectBoundingBox takes the 0..1 path as is, so a 20 px chip and a sheet tile clip without measuring); a
+// zero-size svg, not display:none — a clipPath inside a display:none svg does not clip in every engine. The rim's
+// non-scaling-stroke sits on the referenced path itself: vector-effect is not inherited, so set on the <use> it never
+// reaches the clone, and a 1-unit stroke in a 0..1 viewBox would wash the whole form.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const Forms = () => html`<svg aria-hidden="true" class="mg-forms" width="0" height="0"><defs>${FORMS.map((n) => html`<clipPath key=${"c" + n} id=${`mg-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath><path key=${"p" + n} id=${`mg-p-${n}`} d=${pathOf(n)} vector-effect="non-scaling-stroke" />`)}</defs></svg>`;
+const StyleForm = (id, src, cls, lit = false) => { const f = shapeOf(id, FORMS); return html`<span data-form=${f} class=${`mg-form ${lit ? "lit" : ""} ${src ? "" : "none"} ${cls}`}>
+  ${src ? html`<span class="mg-form-art" style=${`clip-path:url(#mg-c-${f})`}><img src=${src} alt="" loading="lazy" decoding="async" /></span>` : Icon("lucide:ban", "text-xl text-base-content/40")}
+  <svg aria-hidden="true" class="mg-rim" viewBox="0 0 1 1"><use href=${`#mg-p-${f}`} /></svg>
+</span>`; };
+// The go key starts and stops a conjuring, the role a play key has: it wears the kit's play form (<Transport form>,
+// core ui.js) — a lively cookie that invites, a calm one while the picture is being made, one morph between them.
+const GO_IDLE = "Cookie7Sided", GO_BUSY = "Cookie4Sided";
+
 export function mirage({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
   const mode = useStore(M.$mode);
@@ -39,6 +59,12 @@ export function mirage({ S, toast }) {
   const twoSlot = M.TWO_SLOT.includes(mode);
   const slides = mode === "read" ? [] : st.slides, cur = slides[st.idx] || slides[0] || null;
   const working = st.phase === "working";
+  // the go key's form follows whether the mode on screen is working: drawn at once, then one chained morph per start/stop (core shaper —
+  // a tap mid-flight retargets, never jumps). The markup's `d` is constant, so a re-render never undoes a frame.
+  const goPath = useRef(), goForm = useRef();
+  useLayoutEffect(() => { const f = shaper(working ? GO_BUSY : GO_IDLE, (d) => goPath.current?.setAttribute("d", d)); goForm.current = f; return () => f.stop(); }, []);
+  useLayoutEffect(() => { goForm.current?.to(working ? GO_BUSY : GO_IDLE); }, [working]);
+  const styleOpens = useOpens(screen === "styles");
   const anyBusy = [make, edit, read, blendSt, styleSt].some((s) => s.phase === "working");
   const shown = cur?.url || st.src || st.a || null;
   const text = mode === "read" ? st.question : st.prompt;
@@ -120,7 +146,7 @@ export function mirage({ S, toast }) {
       ${mode === "edit" ? html`<button data-compare aria-label=${T(t, "compare")} class="absolute top-3 left-3 z-10 btn btn-sm rounded-full gap-1.5 bg-black/50 text-white border-0 font-mono uppercase tracking-wide text-[0.68rem] select-none"
         onPointerDown=${() => setHold(true)} onPointerUp=${() => setHold(false)} onPointerLeave=${() => setHold(false)} onPointerCancel=${() => setHold(false)} onContextMenu=${(e) => e.preventDefault()}>${Icon("lucide:eye", "text-sm")}${T(t, "original")}</button>` : null}
       ${slides.length > 1 || st.more ? html`<div data-dots class="absolute inset-x-0 bottom-1.5 flex justify-center items-center gap-1.5 pointer-events-none">
-        ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full transition-[width,background-color] ${i === st.idx ? "w-4 h-1.5 bg-base-content/80" : "w-1.5 h-1.5 bg-base-content/35"}`}></span>`)}
+        ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full transition-[width,background-color] duration-[var(--t-state)] ease-[var(--ease-out)] ${i === st.idx ? "w-4 h-1.5 bg-base-content/80" : "w-1.5 h-1.5 bg-base-content/35"}`}></span>`)}
         ${st.more ? html`<span class="w-1.5 h-1.5 rounded-full bg-base-content/35 animate-pulse"></span>` : null}
       </div>` : null}
     </${Fragment}>`;
@@ -135,20 +161,21 @@ export function mirage({ S, toast }) {
       </div>`)}
     </div>`;
     if (st.src) return html`<${Fragment}>
-      ${slot(html`<img data-result src=${st.src} alt="" class=${`${frame} ${working ? "opacity-50" : ""} transition-opacity`} onClick=${() => S.screen.set("view")} />`)}
+      ${slot(html`<img data-result src=${st.src} alt="" class=${`${frame} ${working ? "opacity-50" : ""} transition-opacity duration-[var(--t-state)] ease-[var(--ease-out)]`} onClick=${() => S.screen.set("view")} />`)}
       ${mode === "read" && read.text && !working ? html`<button data-read-open class="absolute bottom-[var(--ms-pad)] left-1/2 -translate-x-1/2 btn btn-sm rounded-full gap-1.5 bg-black/50 text-white border-0" onClick=${() => S.screen.set("read")}>${Icon("lucide:scan-eye", "text-base")}${T(t, "readTitle")}</button>` : null}
       ${working ? html`<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="rounded-full bg-black/55 px-4 py-2 text-white"><span class=${`font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums ${gate ? "" : "mg-sh"}`}>${T(t, mode === "read" ? "reading" : live.key)} · ${fmt(elapsed)}</span></div></div>` : null}
     </${Fragment}>`;
     return null;
   };
 
-  const act = (id, icon, label, onClick) => html`<button data-act=${id} class="btn btn-sm btn-circle shrink-0" aria-label=${label} title=${label} onClick=${onClick}>${Icon(icon, "text-base")}</button>`;
-  const handoff = (id, icon, label, onClick) => html`<button data-act=${id} class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5" aria-label=${label} onClick=${onClick}>${Icon(icon, "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${label}</span></button>`;
+  const act = (id, icon, label, onClick) => html`<button data-act=${id} class="btn btn-sm btn-circle shrink-0 ms-press" aria-label=${label} title=${label} onClick=${onClick}>${Icon(icon, "text-base")}</button>`;
+  const handoff = (id, icon, label, onClick) => html`<button data-act=${id} class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5 ms-press" aria-label=${label} onClick=${onClick}>${Icon(icon, "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${label}</span></button>`;
   const hasResult = !!cur && st.phase === "done";
   const modeItems = M.MODES.map((m) => ({ id: m, label: T(t, "mode" + m[0].toUpperCase() + m.slice(1)), icon: ICONS[m] }));
 
   return html`<${Fragment}>
     <style>${SHIMMER}</style>
+    <${Forms} />
     <${GlStage} shader=${new URL("mirage.frag", import.meta.url)} seed=${((cur?.seed || 3) % 97) / 97}
       tex=${shown} vary=${vary} texReady=${(r) => { chan.ready = r; }} zClass="z-0" />
 
@@ -179,18 +206,20 @@ export function mirage({ S, toast }) {
 
     ${""}
     <${Sheet} id="styles" open=${screen === "styles"} onClose=${() => S.screen.set(null)} title=${T(t, "styleSheet")} icon="lucide:paintbrush" locale=${loc}>
-      <div class="grid grid-cols-3 gap-2.5">
+      ${/* a style is a form, not a card: its sample seen through the style's own form, the chosen one's rim lit
+           (the ring it had). Keyed by the sheet's opens (history.js useOpens): the arrival plays on every open. */""}
+      ${styleOpens ? html`<div key=${styleOpens} class="grid grid-cols-3 gap-2.5 ms-stagger">
         <button data-style="none" aria-pressed=${!styleSel} onClick=${() => { M.setOpts({ style: "none" }); S.screen.set(null); }}
-            class=${`flex flex-col items-center gap-1.5 rounded-[var(--ms-r-in)] p-2 sf-inset ${!styleSel ? "ring-2 ring-[var(--app-accent)]" : ""}`}>
-          <span class="w-full aspect-square rounded-[0.6rem] border border-dashed border-base-content/25 flex items-center justify-center">${Icon("lucide:ban", "text-xl text-base-content/40")}</span>
+            class="mg-style ms-press flex flex-col items-center gap-1.5 p-1.5" style="--i:0">
+          ${StyleForm("none", null, "w-full", !styleSel)}
           <span class="text-[0.68rem] leading-tight text-center">${T(t, "styleNone")}</span>
         </button>
-        ${STYLES.map((s) => html`<button data-style=${s.id} key=${s.id} aria-pressed=${opts.style === s.id} onClick=${() => { M.setOpts({ style: s.id }); S.screen.set(null); }}
-            class=${`flex flex-col items-center gap-1.5 rounded-[var(--ms-r-in)] p-2 sf-inset ${opts.style === s.id ? "ring-2 ring-[var(--app-accent)]" : ""}`}>
-          <img src=${styleThumb(s.id)} alt="" loading="lazy" decoding="async" class="w-full aspect-square rounded-[0.6rem] object-cover bg-black" />
+        ${STYLES.map((s, i) => html`<button data-style=${s.id} key=${s.id} aria-pressed=${opts.style === s.id} onClick=${() => { M.setOpts({ style: s.id }); S.screen.set(null); }}
+            class="mg-style ms-press flex flex-col items-center gap-1.5 p-1.5" style=${`--i:${i + 1}`}>
+          ${StyleForm(s.id, styleThumb(s.id), "w-full", opts.style === s.id)}
           <span class="text-[0.68rem] leading-tight text-center">${T(t, s.key)}</span>
         </button>`)}
-      </div>
+      </div>` : null}
     <//>
 
     <${Sheet} id="read" open=${screen === "read"} onClose=${() => S.screen.set(null)} title=${T(t, "readTitle")} icon="lucide:scan-eye" locale=${loc}>
@@ -218,7 +247,7 @@ export function mirage({ S, toast }) {
           ${mode === "edit" ? handoff("keep", "lucide:wand-sparkles", T(t, "keep"), M.keepEditing) : handoff("to-edit", "lucide:wand-sparkles", T(t, "toEdit"), () => M.toEdit(cur.url))}
           ${""}
           ${(() => { const busy = enh.phase === "working" && enh.mode === mode; const hd = !!cur?.hd; const eta = busy && enh.live?.eta ? Math.max(0, Math.round(enh.live.eta - (enh.live.elapsed || 0))) : null;
-            return html`<button data-act="enhance" aria-busy=${busy ? "true" : null} aria-pressed=${hd ? "true" : "false"} disabled=${hd || busy || working} class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5"
+            return html`<button data-act="enhance" aria-busy=${busy ? "true" : null} aria-pressed=${hd ? "true" : "false"} disabled=${hd || busy || working} class="btn btn-sm rounded-full flex-1 min-w-0 gap-1.5 ms-press"
               aria-label=${T(t, hd ? "enhanced" : busy ? "enhancing" : "enhance")} onClick=${() => M.enhance(mode)}>${Icon(hd ? "lucide:check" : "lucide:scan-eye", "text-base shrink-0")}<span class="truncate @max-[15rem]:hidden">${T(t, hd ? "enhanced" : busy ? "enhancing" : "enhance")}${eta != null ? html` <span class="tabular-nums font-mono text-xs opacity-70">${eta} s</span>` : ""}</span></button>`; })()}
           ${act("save", "lucide:download", T(t, "save"), save)}
           ${act("share", "lucide:share-2", T(t, "share"), share)}
@@ -234,12 +263,12 @@ export function mirage({ S, toast }) {
             ${mode !== "read" ? html`<button data-dream aria-label=${T(t, "surprise")} class=${tool} disabled=${working} onClick=${dream}>${Icon("lucide:dices", "text-lg")}</button>` : null}
             <button data-history aria-label=${T(t, "history")} class=${tool} onClick=${() => S.screen.set("hist")}>${Icon("lucide:history", "text-lg")}</button>
             ${mode === "make" ? html`<button data-styles aria-label=${T(t, "styleSheet")} title=${styleSel ? T(t, styleSel.key) : T(t, "styleSheet")} class=${`${tool} ${styleSel ? "ring-1 ring-[var(--app-accent)]" : ""}`} disabled=${working} onClick=${() => S.screen.set("styles")}>
-              ${styleSel ? html`<img src=${styleThumb(styleSel.id)} alt="" class="w-5 h-5 rounded-md object-cover" />` : Icon("lucide:paintbrush", "text-lg")}
+              ${styleSel ? StyleForm(styleSel.id, styleThumb(styleSel.id), "w-5 h-5") : Icon("lucide:paintbrush", "text-lg")}
             </button>` : null}
             <button data-opts aria-label=${T(t, "options")} class="btn btn-ghost btn-sm rounded-full gap-1.5 text-base-content/70 px-2.5" onClick=${() => { M.loadModels(); S.screen.set("opts"); }}>${Icon("lucide:sliders-horizontal", "text-lg")}${optsMeta ? html`<span class="font-mono text-[0.68rem] uppercase tracking-wide">${optsMeta}</span>` : null}</button>
             ${mode !== "make" && st.src ? html`<button data-new aria-label=${T(t, "newPhoto")} class=${tool} disabled=${working} onClick=${() => M.clearSource(mode)}>${Icon("lucide:image-plus", "text-lg")}</button>` : null}
             <div class="flex-1"></div>
-            <button data-go aria-label=${goLabel} aria-busy=${working ? "true" : null} class="btn btn-primary btn-circle shrink-0" disabled=${!canGo} onClick=${go}>${Icon(goIcon, "text-xl")}</button>
+            <button data-go aria-label=${goLabel} aria-busy=${working ? "true" : null} class="tp-form ms-press w-12 h-12 shrink-0" disabled=${!canGo} onClick=${go}><svg aria-hidden="true" viewBox="0 0 1 1"><path ref=${goPath} d=${pathOf(GO_IDLE)} /></svg>${Icon(goIcon, "text-xl")}</button>
           </div>
         </div>
         ${st.error ? html`<p data-error role="alert" class="text-sm text-error px-1">${T(t, st.error)}</p>` : null}

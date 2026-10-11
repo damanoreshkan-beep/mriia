@@ -7,8 +7,25 @@ import { Segmented, Panel, Slider } from "/_rt/ui.js";
 import { CamStage } from "/_rt/camstage.js";
 import { gate } from "/_rt/gate.js";
 import { downloadBlob } from "/_rt/apk.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+
+// THE SHOT'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The camera's identity object is the
+// shot: the last one lands beside the shutter seen through its own organic form (core shapeOf, seeded by the shot's
+// id), its edge a rim of light. Before the first shot the slot is the app's own form filled with the theme's
+// material — where the shot will land. The viewfinder stays a plain screen: it is the working surface. Like
+// persona, the three forms that cut deepest into a centred picture are left out — a frame's subject sits in the
+// middle. objectBoundingBox takes the 0..1 path as is, so the clip needs no measuring.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const ShotForm = (shot) => {
+  const f = shapeOf(shot ? shot.id : "cam", FORMS), d = pathOf(f);
+  return html`<div data-shot data-form=${f} data-empty=${shot ? null : "true"} aria-hidden="true" class="cm-shot w-11 h-11">
+    <svg class="cm-defs" width="0" height="0"><defs><clipPath id=${`cm-c-${f}`} clipPathUnits="objectBoundingBox"><path d=${d} /></clipPath></defs></svg>
+    <div class="cm-art" style=${`clip-path:url(#cm-c-${f})`}>${shot ? html`<img key=${shot.id} src=${shot.url} alt="" decoding="async" />` : null}</div>
+    <svg class="cm-rim" viewBox="0 0 1 1"><path d=${d} /></svg>
+  </div>`;
+};
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
 
@@ -66,8 +83,8 @@ export function cam({ S }) {
       const scale = Math.max(ow / src, oh / src), dw = src * scale, dh = src * scale;
       ctx.drawImage(v, sx, sy, src, src, (ow - dw) / 2, (oh - dh) / 2, dw, dh);
       out.toBlob((blob) => {
-        if (!blob) return; const url = URL.createObjectURL(blob); setShot((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
-        const file = new File([blob], `cam-${Date.now()}.jpg`, { type: "image/jpeg" });
+        if (!blob) return; const id = Date.now(), url = URL.createObjectURL(blob); setShot((prev) => { if (prev) URL.revokeObjectURL(prev.url); return { id, url }; });
+        const file = new File([blob], `cam-${id}.jpg`, { type: "image/jpeg" });
         if (navigator.canShare?.({ files: [file] })) { navigator.share({ files: [file] }).catch(() => {}); }
         else { downloadBlob(blob, file.name); S.toast?.(T(t, "aSaved")); }
       }, "image/jpeg", 0.92);
@@ -127,7 +144,7 @@ export function cam({ S }) {
             </div>
             ${""}
             ${count > 0 ? html`<div class="absolute inset-0 flex items-center justify-center"><div class="text-[length:var(--ms-hero)] font-bold tabular-nums text-white drop-shadow-lg">${count}</div></div>` : null}
-            <div class=${`absolute inset-0 bg-white pointer-events-none transition-opacity duration-150 ${flash ? "opacity-80" : "opacity-0"}`}></div>
+            <div class=${`absolute inset-0 bg-white pointer-events-none transition-opacity duration-[var(--t-press)] ease-[var(--ease-out)] ${flash ? "opacity-80" : "opacity-0"}`}></div>
           </div>
         </div>
 
@@ -156,9 +173,9 @@ export function cam({ S }) {
           <!-- shutter row -->
           <div class="flex items-center justify-between px-2 pt-0.5">
             ${""}
-            <div class="w-11 h-11 rounded-[var(--ms-r-in)] sf-inset overflow-hidden shrink-0">${shot ? html`<img src=${shot} alt="" class="w-full h-full object-cover" />` : null}</div>
+            ${ShotForm(shot)}
             ${""}
-            <button data-shutter aria-label=${T(t, "aShutter")} onClick=${shoot} class="w-[4.6rem] h-[4.6rem] rounded-full sf-raised flex items-center justify-center active:scale-95 transition-transform sf-e3">
+            <button data-shutter aria-label=${T(t, "aShutter")} onClick=${shoot} class="w-[4.6rem] h-[4.6rem] rounded-full sf-raised flex items-center justify-center ms-press sf-e3">
               <span class="w-[3.6rem] h-[3.6rem] rounded-full bg-primary border-4 border-base-100"></span>
             </button>
             <div class="w-11 h-11 shrink-0"></div>

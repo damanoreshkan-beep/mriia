@@ -127,23 +127,28 @@ export function flux({ S }) {
     <div class="relative flex-1 min-h-0 overflow-hidden bg-black">
       <${CamStage} loc=${loc} reason=${T(t, "primeReason")} onSettings=${() => S.screen.set("perms")} primeFull
           facing="environment" still=${null} show=${true} fullscreen=${false} gestures=${false}
-          picClassName=${`transition-opacity duration-300 ${ghost ? "opacity-20" : "opacity-0"}`}
+          picClassName=${`fx-pic ${ghost ? "opacity-20" : "opacity-0"}`}
           onVideo=${(el) => setCam(el)} onState=${(s) => { setReady(!!s.ready); setErr(s.err || null); }}>
         <canvas ref=${sampleRef} class="hidden"></canvas>
         <canvas ref=${paintRef} class="absolute inset-0 z-[2] w-full h-full"></canvas>
         ${ready && !err ? html`<div class="absolute top-3 left-3 right-3 z-[2] flex items-center pointer-events-none">
-          <div data-readout class="h-1.5 flex-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full rounded-full bg-white/70 transition-[width] duration-150" style=${`width:${Math.round(energy * 100)}%`}></div></div>
+          <div data-readout class="h-1.5 flex-1 rounded-full bg-white/15 overflow-hidden">${/* the energy changes every frame: a compositor scale (head.html .fx-level), not a width that relays out */""}<div class="fx-level h-full rounded-full bg-white/70" style=${`scale:${energy.toFixed(2)} 1`}></div></div>
         </div>` : null}
       <//>
     </div>
 
     ${""}
     <${Island} pinned className="flex items-center justify-center gap-[var(--ms-gap)]">
-      ${""}
-      <button data-ghost aria-label=${T(t, "ghost")} aria-pressed=${ghost} onClick=${() => setGhost((g) => !g)} class=${`btn btn-circle btn-sm ${ghost ? "btn-primary" : "btn-ghost"}`}>${Icon(ghost ? "lucide:eye" : "lucide:eye-off", "text-lg")}</button>
-      <button data-sound aria-label=${T(t, "sound")} aria-pressed=${sound} onClick=${toggleSound} class=${`btn btn-circle btn-sm ${sound ? "btn-primary" : "btn-ghost"}`}>${Icon(sound ? "lucide:volume-2" : "lucide:volume-x", "text-lg")}</button>
-      <button data-clear aria-label=${T(t, "clear")} data-haptic="bump" onClick=${clear} class="btn btn-ghost btn-sm btn-circle">${Icon("lucide:trash-2", "text-lg")}</button>
-      <button data-save aria-label=${T(t, "save")} onClick=${save} class="btn btn-primary btn-sm rounded-full gap-2 px-5">${Icon("lucide:download")}${T(t, "save")}</button>
+      ${/* No free form, no Transport, no «одна по колу» (owner 2026-10-11: «розповсюджувати нову дизайн систему»): the
+           painting is the canvas itself, edge to edge, and there is nothing to play, pause or go on to — the sound is
+           a drone the movement steers. Ghost and sound are held states, so they read in the material (sopilka's
+           overblow): pressed into the island while on, the glyph lit (head.html). Save stays the one ink action. btn-ghost
+           stays on in both states: core's `.btn:not(.btn-ghost)…` raised drop outranks `.sf-pressed` and would
+           paint the held key lifted. Every key is --ms-ctl tall (44px), not btn-sm's 32px. */""}
+      <button data-ghost aria-label=${T(t, "ghost")} aria-pressed=${ghost} onClick=${() => setGhost((g) => !g)} class=${`btn btn-ghost btn-circle w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press ${ghost ? "sf-pressed" : ""}`}>${Icon(ghost ? "lucide:eye" : "lucide:eye-off", "fx-glyph text-lg")}</button>
+      <button data-sound aria-label=${T(t, "sound")} aria-pressed=${sound} onClick=${toggleSound} class=${`btn btn-ghost btn-circle w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press ${sound ? "sf-pressed" : ""}`}>${Icon(sound ? "lucide:volume-2" : "lucide:volume-x", "fx-glyph text-lg")}</button>
+      <button data-clear aria-label=${T(t, "clear")} data-haptic="bump" onClick=${clear} class="btn btn-ghost btn-circle w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press">${Icon("lucide:trash-2", "text-lg")}</button>
+      <button data-save aria-label=${T(t, "save")} onClick=${save} class="btn btn-primary rounded-full h-[var(--ms-ctl)] min-h-0 gap-2 px-5 ms-press">${Icon("lucide:download")}${T(t, "save")}</button>
     <//>
   </div>`;
 }

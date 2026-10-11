@@ -1,0 +1,21 @@
+  <style>
+    /* PORTAL on the motion-and-free-forms system (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The
+       MATERIAL is the identity: its preview is seen through the material's own organic form (core shape.js, seeded
+       by its id — view.js formOf) where a circle stood, edged with a rim of light; the chosen material's rim is lit
+       in the accent where the ring was. The camera stage is untouched. Static paths: at rest nothing draws. */
+    .pt-forms { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    .pt-mat { position: relative; display: block; flex: none; }
+    /* the previews are made on black, so black is the ground inside the form in both themes */
+    .pt-mat-art { position: absolute; inset: 0; display: block; background: #000; }
+    .pt-mat-art > img, .pt-mat-art > .pt-swatch { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* the rim: the same path as the clip, drawn over it so the light sits ON the edge */
+    .pt-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .pt-rim path { fill: none; vector-effect: non-scaling-stroke; stroke: var(--lm-rim-hi); stroke-width: 1;
+      transition: stroke var(--t-state) var(--ease-out), stroke-width var(--t-state) var(--ease-out); }
+    [data-theme="signal-light"] .pt-rim path { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    /* the chosen material: its rim lit, as the playing song's is in fonoteka */
+    [aria-pressed="true"] > .pt-mat .pt-rim path { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 2; }
+    [data-theme="signal"] [aria-pressed="true"] > .pt-mat .pt-rim { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    /* paper: a glow on white is a smear — the chosen rim is the deep pole, no bloom */
+    [data-theme="signal-light"] [aria-pressed="true"] > .pt-mat .pt-rim path { stroke: var(--color-secondary); }
+  </style>

@@ -1,0 +1,19 @@
+  <style>
+    /* the material strip: each sample through its material's form (view.js FORM), the rim lit on the chosen one.
+       aria-pressed is the only switch; static paths, nothing draws at rest. */
+    .ly-sw { position: relative; display: block; flex: none; }
+    .ly-sw img { display: block; width: 100%; height: 100%; object-fit: cover; background: #000; }
+    /* a zero-size svg, not display:none — a clipPath inside a display:none svg does not clip in every engine */
+    .ly-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+    /* the rim: the clip's own path drawn over it, so the light can spill OUTSIDE the form */
+    .ly-rim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .ly-rim path { fill: none; vector-effect: non-scaling-stroke; transition: stroke var(--t-state) var(--ease-out), stroke-width var(--t-state) var(--ease-out), opacity var(--t-state) var(--ease-out); }
+    .ly-rim .e { stroke: var(--lm-rim-hi); stroke-width: 1.25; }
+    .ly-rim .b { stroke: var(--app-accent); stroke-width: 5; opacity: 0; }
+    [aria-pressed="true"] .ly-rim .e { stroke: var(--app-accent); stroke-width: 2; }
+    [aria-pressed="true"] .ly-rim .b { opacity: .22; }
+    /* paper: a glow on white is a smear — the chosen rim is the deep pole, no bloom */
+    [data-theme="signal-light"] .ly-rim .e { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    [data-theme="signal-light"] [aria-pressed="true"] .ly-rim .e { stroke: var(--color-secondary); stroke-width: 2; }
+    [data-theme="signal-light"] .ly-rim .b { display: none; }
+  </style>

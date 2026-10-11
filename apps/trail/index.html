@@ -52,6 +52,22 @@
     }
   }
   </script>
+  <style>
+    /* TRAIL — onto the farm's free forms (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's identity
+       is the DAY: a walk drawn as one line. That line IS the day's own form, so no shape.js form here (view.js says
+       why at the grid); what moves over is the material and the clock — presses, the month arriving week by week.
+       RECORDING is a held state, so it reads in the material: the start key is the primary at rest and pressed into
+       the face while the day records (sf-pressed, view.js), its stop glyph lit. A day starts about once — the change
+       may be seen, on the state clock. Paper: a glow on white is a smear — the deep pole, no bloom. */
+    /* The kit's `.btn:not(.btn-ghost):not(.btn-link):not(:disabled)` puts the RAISED drop on every button and
+       outranks a bare `.sf-pressed` (0,4,0 over 0,1,0), so without this the recording key kept the press face
+       but lost the accent rim and the inner well: it read raised, not pressed. */
+    .btn.tr-rec.sf-pressed:not(.btn-link):not(:disabled){box-shadow:var(--sf-press)}
+    button.tr-rec{transition:scale var(--t-press) var(--ease-out),background-color var(--t-state) var(--ease-out),box-shadow var(--t-state) var(--ease-out),color var(--t-state) var(--ease-out)}
+    .tr-rec > iconify-icon{transition:color var(--t-state) var(--ease-out),filter var(--t-state) var(--ease-out)}
+    .tr-rec[data-rec="on"] > iconify-icon{color:var(--app-accent);filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
+    [data-theme="signal-light"] .tr-rec[data-rec="on"] > iconify-icon{color:var(--color-secondary);filter:none}
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">trail</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

@@ -8,14 +8,18 @@ export default [
       h.expect((await h.count("canvas")) >= 1, "немає полотна");
       h.expect((await h.count("[data-save]")) === 1, "немає Зберегти");
       h.expect((await h.count("[data-clear]")) === 1, "немає Очистити");
+      const lvl = await h.attr("[data-readout] > .fx-level", "style");
+      h.expect(/scale:/.test(lvl) && !/width:/.test(lvl), "meter не на компоновщику (scale), а на ширині");
     },
   },
   {
     name: "ghost тогл", run: async (h) => {
       await ready(h);
       h.expect((await h.count('[data-ghost][aria-pressed="true"]')) === 1, "ghost не увімкнений спочатку");
+      h.expect(/\bsf-pressed\b/.test(await h.attr("[data-ghost]", "class")), "увімкнений ghost не втиснутий в поверхню");
       await h.tap("[data-ghost]"); await h.wait(150);
       h.expect((await h.count('[data-ghost][aria-pressed="false"]')) === 1, "ghost не перемкнувся");
+      h.expect(!/\bsf-pressed\b/.test(await h.attr("[data-ghost]", "class")), "вимкнений ghost лишився втиснутим");
     },
   },
   {
@@ -24,6 +28,7 @@ export default [
       h.expect((await h.count('[data-sound][aria-pressed="false"]')) === 1, "немає кнопки звуку");
       await h.tap("[data-sound]"); await h.wait(200);
       h.expect((await h.count('[data-sound][aria-pressed="true"]')) === 1, "звук не увімкнувся");
+      h.expect(/\bsf-pressed\b/.test(await h.attr("[data-sound]", "class")), "увімкнений звук не втиснутий в поверхню");
     },
   },
   {

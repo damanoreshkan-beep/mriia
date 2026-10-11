@@ -33,7 +33,7 @@
     /* the island's status line: each state ENTERS (a soft rise, replayed on remount — the countdown is
        keyed once so ticking seconds do not re-run it), and the working state breathes through three
        staggered dots — a typographic pulse, never a spinner */
-    .vy-st{animation:vy-stin .35s ease}
+    .vy-st{animation:vy-stin var(--t-state) var(--ease-out)}
     @keyframes vy-stin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
     .vy-dots span{display:inline-block;animation:vy-dot 1.2s ease-in-out infinite;opacity:.2}
     .vy-dots span:nth-child(2){animation-delay:.2s}
@@ -42,12 +42,14 @@
     /* text arrives as a wave — one beat per character, capped so long lines land within a second;
        words stay whole (.vy-w) so the wave never invents a mid-word break */
     .vy-w{display:inline-block;white-space:nowrap}
-    .vy-ch{display:inline-block;opacity:0;animation:vy-ch .7s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:min(calc(var(--ci)*.035s),.9s)}
+    .vy-ch{display:inline-block;opacity:0;animation:vy-ch var(--t-focal) var(--ease-out) forwards;animation-delay:min(calc(var(--ci)*.035s),.9s)}
     @keyframes vy-ch{from{opacity:0;transform:translateY(.35em)}to{opacity:1;transform:none}}
     @media(prefers-reduced-motion:reduce){.vy-ch{animation-duration:.01s;animation-delay:0s}.vy-amb{animation:none}[data-veiled]{animation:none}.vy-st{animation:none}.vy-dots span{animation:none;opacity:.6}}
     /* THE CHARACTERS (owner 2026-09-04: "окремий вибір персонажів мікрокартинками … сіткою, тикаємо і відкривається
        на весь екран"): a grid of square micro-pictures over the living stage, one per character in the phone's
-       mode; the chosen one wears the accent ring; a tap opens the show. Tiles arrive with a short stagger. */
+       mode; a tap opens the show. Tiles arrive on the kit's stagger (.ms-stagger) and give on the press (.ms-press).
+       Owner 2026-10-11 («розповсюджувати нову дизайн систему»): each picture is seen through the character's own form
+       (view.js CharGrid), the name under it; the chosen one's rim is lit where the accent ring stood. */
     .vy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.5rem,2.2vw,.8rem)}
     @media(min-width:640px){.vy-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
     @media(min-width:900px){.vy-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
@@ -57,19 +59,34 @@
     @media(max-height:480px),(max-width:340px){
       .vy-grid{display:flex;align-items:flex-start;gap:.5rem;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;overscroll-behavior-y:auto;scrollbar-width:none;margin:0 calc(-1*var(--ms-pad));padding:0 var(--ms-pad) .25rem}
       .vy-grid::-webkit-scrollbar{display:none}
-      /* width AND height, aspect-ratio off: a stretched flex item with an aspect ratio grows its main size from the
-         stretched cross size (measured 222 px on the see pod) — explicit both ways is what a tile is here */
-      .vy-grid>.vy-tile{flex:0 0 auto;width:clamp(88px,30vmin,132px);height:clamp(88px,30vmin,132px);aspect-ratio:auto;scroll-snap-align:start}
-      .vy-grid>.vy-tile .vy-name{font-size:.62rem;padding:.4rem .45rem .4rem}
+      /* a fixed width and the form square by its own aspect ratio; the name sits under it, so the tile's height is
+         the form plus one line — never set, so it cannot stretch */
+      .vy-grid>.vy-tile{flex:0 0 auto;width:clamp(76px,26vmin,112px);scroll-snap-align:start}
+      .vy-grid>.vy-tile .vy-form{width:100%}
+      .vy-grid>.vy-tile .vy-name{font-size:.62rem}
       .vy-grid>.vy-tile .vy-side{display:none}
     }
-    .vy-tile{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:var(--radius-box,1rem);overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset;animation:vy-tilein .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--ti,0)*.04s);-webkit-tap-highlight-color:transparent}
-    .vy-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
-    .vy-tile:active img{transform:scale(1.04)}
-    .vy-tile[data-on]{box-shadow:0 0 0 2px var(--color-accent,#F2B84B),0 0 18px rgba(0,0,0,.35)}
-    /* the scrim is stronger than the show's (.72): a day picture is pale, and the name must read on it too */
-    .vy-tile .vy-name{position:absolute;left:0;right:0;bottom:0;padding:.55rem .6rem .5rem;color:#fff;font-size:.72rem;line-height:1.15;font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,.7);background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,.35) 60%,transparent)}
-    .vy-tile .vy-side{display:block;font-family:var(--font-mono);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-top:.15rem}
-    @keyframes vy-tilein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-    @media(prefers-reduced-motion:reduce){.vy-tile{animation:none}.vy-tile img{transition:none}}
+    .vy-forms{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+    .vy-tile{display:flex;flex-direction:column;align-items:center;gap:.35rem;width:100%;min-width:0;text-align:center;-webkit-tap-highlight-color:transparent}
+    /* the form is a touch narrower than its cell, so twelve named forms still sit over the stage on a phone */
+    .vy-form{position:relative;display:block;width:88%;aspect-ratio:1;flex:none}
+    /* the theme's material under the picture, seen only while it loads (or if it fails) */
+    .vy-art{position:absolute;inset:0;background:var(--ds-fill, var(--ds-scatter, none)) center / 125% auto no-repeat, var(--color-base-100)}
+    .vy-art img{display:block;width:100%;height:100%;object-fit:cover}
+    /* the rim: the clip's path drawn in an SVG over it, so the light sits ON the edge — on true black it is what
+       draws a night picture's form at all; on paper the form draws itself and the rim stays faint */
+    .vy-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+    .vy-rim use{fill:none;stroke:var(--lm-rim-hi);stroke-width:1;transition:stroke var(--t-press) var(--ease-out),stroke-width var(--t-state) var(--ease-out)}
+    [data-theme="signal-light"] .vy-rim use{stroke:color-mix(in oklch, var(--color-base-content) 22%, transparent)}
+    /* a touch lights the rim in the accent (the give itself is .ms-press); the chosen one keeps it lit */
+    .vy-tile:active .vy-rim use{stroke:var(--app-accent)}
+    .vy-tile[data-on] .vy-rim use{stroke:color-mix(in oklch, var(--app-accent) 85%, white);stroke-width:1.75}
+    [data-theme="signal"] .vy-tile[data-on] .vy-rim{filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
+    /* paper: a glow on white is a smear — the pressed and the chosen rim are the deep pole, no bloom */
+    [data-theme="signal-light"] .vy-tile:active .vy-rim use,[data-theme="signal-light"] .vy-tile[data-on] .vy-rim use{stroke:var(--color-secondary)}
+    /* the name stands on the living stage, not on a scrim: the theme's ink with a cast of the theme's ground, so it
+       reads over any frame in both modes (night: light ink on a black cast; day: dark ink on a paper cast) */
+    .vy-name{display:block;max-width:100%;color:var(--color-base-content);font-size:.72rem;line-height:1.15;font-weight:500;text-shadow:0 1px 2px var(--color-base-100),0 0 10px var(--color-base-100);overflow-wrap:break-word}
+    .vy-side{display:block;font-family:var(--font-mono);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-top:.15rem}
+    .vy-tile[data-on] .vy-name{font-weight:600}
   </style>

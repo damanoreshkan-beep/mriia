@@ -5,6 +5,8 @@ export default [
       h.expect((await h.count("[data-month-grid]")) === 1, "сітка місяця не змонтувалась");
       const cells = await h.count("[data-day]");
       h.expect(cells >= 12, `очікував посіяний місяць, знайшов ${cells} днів`);
+      h.expect((await h.count("[data-month-grid].ms-stagger")) === 1, "місяць не приходить тижнями (.ms-stagger)");
+      h.expect((await h.count("[data-day].ms-press")) === cells, "не кожен день відповідає на дотик (.ms-press)");
 
       const head = await h.text("main");
       h.expect(/\d/.test(head), "у заголовку місяця немає жодного числа");
@@ -34,6 +36,22 @@ export default [
       h.expect((await h.count("[data-rec]")) === 1, "немає кнопки запису");
       const rec = await h.attr("[data-rec]", "data-rec");
       h.expect(rec === "on" || rec === "off", `нерозпізнаний стан запису: ${rec}`);
+    },
+  },
+  {
+    name: "today: a recording day is pressed into the face, a stopped one is the primary key", run: async (h) => {
+      await h.tap('[data-tab="today"]'); await h.wait(500);
+      const pressed = async () => /\bsf-pressed\b/.test(await h.attr("[data-rec]", "class"));
+      const before = await h.attr("[data-rec]", "data-rec");
+      h.expect((await pressed()) === (before === "on"), `матеріал не збігся зі станом запису: ${before}`);
+
+      await h.tap("[data-rec]"); await h.wait(300);
+      const after = await h.attr("[data-rec]", "data-rec");
+      h.expect(after !== before, `дотик не перемкнув запис: ${before} → ${after}`);
+      h.expect((await pressed()) === (after === "on"), `матеріал не пішов за станом запису: ${after}`);
+
+      await h.tap("[data-rec]"); await h.wait(300);
+      h.expect((await h.attr("[data-rec]", "data-rec")) === before, "другий дотик не повернув стан");
     },
   },
 ];

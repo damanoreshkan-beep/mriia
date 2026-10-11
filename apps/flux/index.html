@@ -52,6 +52,22 @@
     }
   }
   </script>
+  <style>
+    /* FLUX — onto the farm's motion and surfaces (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The app's
+       identity is the PAINTING: light your movement leaves on a black canvas. It has no free form on purpose — the
+       canvas is the working surface and the exported picture, edge to edge; a clip would cut the very image Save
+       writes. What moves here: the ghost picture fades on the state clock, the meter rides the compositor. */
+    .fx-pic { transition: opacity var(--t-state) var(--ease-out); }
+    /* the motion meter is fed every frame: a scale from the left edge, eased on the press clock, never a width that
+       re-lays-out the bar sixty times a second */
+    .fx-level { transform-origin: left; transition: scale var(--t-press) var(--ease-out); }
+    /* GHOST / SOUND ON — a held state reads in the material (as sopilka's overblow): the key is pressed into the
+       island and its glyph takes the app's light. Paper: a glow on white is a smear — the deep pole, no bloom. */
+    .fx-glyph { transition: color var(--t-state) var(--ease-out), filter var(--t-state) var(--ease-out); }
+    [data-ghost][aria-pressed="true"] .fx-glyph, [data-sound][aria-pressed="true"] .fx-glyph { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] [data-ghost][aria-pressed="true"] .fx-glyph, [data-theme="signal-light"] [data-sound][aria-pressed="true"] .fx-glyph { color: var(--color-secondary); filter: none; }
+    @media (prefers-reduced-motion: reduce) { .fx-pic, .fx-level, .fx-glyph { transition: none; } }
+  </style>
 </head>
 <body class="bg-base-200 min-h-dvh">
   <div id="boot" aria-hidden="true"><div class="bh"><span class="bm">Потік</span></div><div class="bb"><i></i></div><div class="bd"></div></div>

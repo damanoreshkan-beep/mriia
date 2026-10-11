@@ -35,7 +35,7 @@ const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart
 const W = 768, H = 1024;
 const EST = { fast: 18, "2k": 32 };
 const ASPECTS = [["screen", "lucide:smartphone"], ["square", "lucide:square"], ["portrait", "lucide:rectangle-vertical"], ["landscape", "lucide:rectangle-horizontal"]];
-const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
+const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70 ms-press";
 
 export function imagine({ S, toast }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
@@ -187,7 +187,7 @@ export function imagine({ S, toast }) {
 
       ${""}
       ${phase === "done" && (slides.length > 1 || more) ? html`<div data-dots class="flex justify-center items-center gap-1.5 pb-2 text-white">
-        ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full bg-current transition-[width,opacity] ${i === idx ? "w-4 h-1.5" : "w-1.5 h-1.5 opacity-45"}`}></span>`)}
+        ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full bg-current transition-[width,opacity] duration-[var(--t-state)] ease-[var(--ease-out)] ${i === idx ? "w-4 h-1.5" : "w-1.5 h-1.5 opacity-45"}`}></span>`)}
         ${more ? html`<span class="w-1.5 h-1.5 rounded-full bg-current im-more"></span>` : null}
       </div>` : null}
 
@@ -212,10 +212,10 @@ export function imagine({ S, toast }) {
             <button data-dream aria-label=${T(t, "dream")} aria-busy=${suggesting ? "true" : null} class=${tool} disabled=${suggesting || phase === "generating"} onClick=${dream}>${Icon("lucide:dices", "text-lg")}</button>
             <button data-history aria-label=${T(t, "history")} class=${tool} onClick=${() => S.screen.set("hist")}>${Icon("lucide:history", "text-lg")}</button>
             <div class="flex-1"></div>
-            ${phase === "done" && cur ? html`<button data-save aria-label=${T(t, "save")} title=${T(t, "save")} class="btn btn-sm btn-circle shrink-0" onClick=${save}>${Icon("lucide:download", "text-base")}</button>` : null}
+            ${phase === "done" && cur ? html`<button data-save aria-label=${T(t, "save")} title=${T(t, "save")} class="btn btn-sm btn-circle shrink-0 ms-press" onClick=${save}>${Icon("lucide:download", "text-base")}</button>` : null}
             ${phase === "generating"
-              ? html`<button data-cancel class="btn btn-sm rounded-full gap-1.5 shrink-0" onClick=${cancel}>${Icon("lucide:square", "text-base")}${sys("cancel", loc)}</button>`
-              : html`<button id="go" data-go class="btn btn-primary btn-sm rounded-full gap-1.5 shrink-0" disabled=${!prompt.trim()} onClick=${generate}>${Icon("lucide:sparkles", "text-base")}${T(t, phase === "done" || phase === "error" ? "again" : "generate")}</button>`}
+              ? html`<button data-cancel class="btn btn-sm rounded-full gap-1.5 shrink-0 ms-press" onClick=${cancel}>${Icon("lucide:square", "text-base")}${sys("cancel", loc)}</button>`
+              : html`<button id="go" data-go class="btn btn-primary btn-sm rounded-full gap-1.5 shrink-0 ms-press" disabled=${!prompt.trim()} onClick=${generate}>${Icon("lucide:sparkles", "text-base")}${T(t, phase === "done" || phase === "error" ? "again" : "generate")}</button>`}
           </div>
         </div>
         ${phase === "error" ? html`<p data-error role="alert" class="text-sm text-error px-1">${T(t, error || "eFailed")}</p>` : null}

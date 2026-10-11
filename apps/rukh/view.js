@@ -5,6 +5,7 @@ import { T } from "/_rt/i18n.js";
 import { Sheet, Island, Stage, Transport, Segmented } from "/_rt/ui.js";
 import { Chooser, Camera } from "/_rt/intake.js";
 import { permRequest } from "/_rt/permissions.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
 import { $src, $words, $model, $models, $job, $clip, $clips, $player, WORDS_MAX,
   boot, setSrc, removeSrc, generate, attachVideo, toggle, seek, selectClip, share, save, removeClip, loadModels, modelsFor, setModel, playList } from "./state.js";
 import { $reel, $reelJob, $length, LENGTHS, CHUNK_SEC, runReel, stopReel } from "./reel.js";
@@ -55,7 +56,7 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
               onClick=${() => { const restore = removeSrc(); undo && undo(restore, T(t, "pictureRemoved")); }}>${Icon("lucide:x", "text-base")}</button>
             <div class=${`absolute bottom-3 left-3 ${frameLabel} pointer-events-none`}>${T(t, "picture")}</div>`
           : showClip ? html`<${"div"} class="contents">
-              ${clip?.pic ? html`<button data-first-frame aria-label=${T(t, "picture")} title=${T(t, "picture")} class="rk-thumb absolute top-3 left-3 z-10 overflow-hidden" onClick=${() => setSrc(clip.pic)}>
+              ${clip?.pic ? html`<button data-first-frame aria-label=${T(t, "picture")} title=${T(t, "picture")} class="rk-thumb ms-press absolute top-3 left-3 z-10 overflow-hidden" onClick=${() => setSrc(clip.pic)}>
                 <img src=${clip.pic} alt="" class="w-full h-full object-cover" />
               </button>` : null}
               ${""}
@@ -90,7 +91,7 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
         ${reel.map((c) => html`<button key=${c.i} data-chunk=${c.i} data-chunk-status=${c.status}
           disabled=${c.status !== "done"} onClick=${() => c.url && playList([c.url])}
           title=${c.beat}
-          class=${`rk-tile relative shrink-0 w-14 h-14 rounded-[calc(var(--ms-r)*0.6)] overflow-hidden border ${
+          class=${`rk-tile ms-press relative shrink-0 w-14 h-14 rounded-[calc(var(--ms-r)*0.6)] overflow-hidden border ${
             c.status === "filming" ? "border-primary" : c.status === "done" ? "border-base-content/20" : "border-base-content/10"} ${
             c.status === "waiting" ? "opacity-40" : ""}`}>
           ${c.thumb ? html`<img src=${c.thumb} alt="" class="absolute inset-0 w-full h-full object-cover" />` : null}
@@ -125,7 +126,10 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
           ${reeling && reelJob.of ? html`<span data-reel-at class="ml-auto tabular-nums normal-case">${reelJob.at} ${T(t, "reelOf")} ${reelJob.of}</span>`
             : job.eta ? html`<span class="ml-auto tabular-nums normal-case">${Math.max(0, Math.round(job.eta - (job.elapsed || 0)))} s</span>` : null}
         </div>` : null}
-        ${clip && showClip && !working ? html`<${Transport} locale=${loc} size="sm" playing=${player.playing && !player.muted} onToggle=${toggle} pos=${player.pos} dur=${player.dur} onSeek=${seek}
+        ${/* the kit's free-form play key + filament seek (owner 2026-10-11: «розповсюджувати нову дизайн систему»);
+             the frame above stays a plain film frame — it is the picture, not a place for a form. No loop toggle:
+             one clip loops by itself (<video loop>) and a montage is ONE film in chunks, not a list of tracks. */""}
+        ${clip && showClip && !working ? html`<${Transport} form locale=${loc} playing=${player.playing && !player.muted} onToggle=${toggle} pos=${player.pos} dur=${player.dur} onSeek=${seek}
           title=${clip.words || T(t, "clip")} subtitle=${origin(clip)} actions=${actions} keep=${3}
           moreOpen=${screen === "more"} onMore=${() => S.screen.set("more")} onMoreClose=${closeScreen} />` : null}
         ${""}
@@ -145,9 +149,12 @@ export function rukh({ t, S, screen, closeScreen, toast, undo }) {
     </div>
 
     <${Sheet} id="rk-clips" open=${screen === "clips"} onClose=${closeScreen} title=${T(t, "clips")} icon="lucide:film" locale=${loc}>
-      ${clips.length ? html`<ul data-clip-list class="flex flex-col divide-y divide-base-content/10">
-        ${clips.map((c) => html`<li key=${c.id} data-clip-row=${c.id} class="flex items-center gap-2 py-2 min-w-0">
-          <button data-clip-play class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "clip")} onClick=${() => { selectClip(c.id); closeScreen(); }}>${Icon("lucide:play", "text-base")}</button>
+      ${/* the collection arrives one clip after another (.ms-stagger, --i per row; the dialog's reopen replays it) */""}
+      ${clips.length ? html`<ul data-clip-list class="ms-stagger flex flex-col divide-y divide-base-content/10">
+        ${clips.map((c, i) => html`<li key=${c.id} data-clip-row=${c.id} style=${`--i:${i}`} class="flex items-center gap-2 py-2 min-w-0">
+          ${/* a clip's play key is the clip's OWN form (core shape.js, seeded by its id): the same clip, the same form
+               on every phone; the secondary while it is the clip on the stage. A static path — nothing draws at rest. */""}
+          <button data-clip-play data-on=${clip?.id === c.id ? "true" : "false"} class="rk-take ms-press" aria-label=${T(t, "clip")} onClick=${() => { selectClip(c.id); closeScreen(); }}><svg aria-hidden="true" viewBox="0 0 1 1"><path d=${pathOf(shapeOf(c.id))} /></svg>${Icon("lucide:play", "text-base")}</button>
           <div class="min-w-0 flex-1">
             <div class="truncate text-sm">${c.words || T(t, "clip")}</div>
             <div class=${`${label} truncate`}>${origin(c)} · ${mmss(c.dur || 0)} · ${fmt.format(new Date(c.ts))}</div>

@@ -9,6 +9,7 @@ import { wakeLock } from "/_rt/sensors.js";
 import { downloadBlob } from "/_rt/apk.js";
 import { gate } from "/_rt/gate.js";
 import { GlStage, hasWebGL2 } from "/_rt/glstage.js";
+import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { LINES, WORLDS, nameOf, thumbOf } from "./worlds.js";
 import { $opts, setOpts, $frames, $stage, $gen, EVERY, startLoop, skip, unshown, nudge, generateNow, activeWorld, ensureSeed } from "./state.js";
 
@@ -42,15 +43,31 @@ function ShowType({ t, loc, frame }) {
   </div>`;
 }
 
+// THE CHARACTER'S FORM (owner 2026-10-11: «розповсюджувати нову дизайн систему»). The stage's picture is the working
+// surface and stays a whole rectangle; what owns a form is the CHARACTER — who speaks. Its micro-picture is seen
+// through its own organic form (core shapeOf, seeded by its id, so the day and the night side share one form on
+// every phone), edged with a rim that lights for the chosen one, where the accent ring stood. The store's set: the
+// organic forms minus the three that cut deepest into a centred picture. One set of clips for the grid
+// (objectBoundingBox takes the 0..1 path as is, so a tile of any size clips without measuring); a zero-size svg,
+// not display:none — a clipPath inside a display:none svg does not clip in every engine. The rim's non-scaling-stroke
+// sits on the referenced path itself: vector-effect is not inherited, so set on the <use> it never reaches the clone,
+// and a 1-unit stroke in a 0..1 viewBox would wash the whole form. The form never morphs.
+const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
+const Forms = () => html`<svg aria-hidden="true" class="vy-forms" width="0" height="0"><defs>${FORMS.map((n) => html`<clipPath key=${"c" + n} id=${`vy-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath><path key=${"p" + n} id=${`vy-p-${n}`} d=${pathOf(n)} vector-effect="non-scaling-stroke" />`)}</defs></svg>`;
+
 function CharGrid({ t, loc, mode, picked, onPick }) {
-  return html`<div data-chars class="mb-3">
+  return html`<div data-chars class="mb-3 mt-auto">
+    <${Forms} />
     <div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70 mb-2">${T(t, "whoSpeaks")}</div>
-    <div class="vy-grid">
-      ${Object.keys(WORLDS).map((id, i) => html`<button key=${id} type="button" data-char=${id} data-on=${picked === id ? "1" : null} class="vy-tile" style=${`--ti:${i}`}
+    <div class="vy-grid ms-stagger">
+      ${Object.keys(WORLDS).map((id, i) => { const f = shapeOf(id, FORMS); return html`<button key=${id} type="button" data-char=${id} data-on=${picked === id ? "1" : null} class="vy-tile ms-press" style=${`--i:${i}`}
         aria-label=${`${nameOf(id, mode, loc)} · ${nameOf(id, mode === "light" ? "dark" : "light", loc)}`} aria-pressed=${picked === id ? "true" : "false"} onClick=${() => onPick(id)}>
-        <img src=${thumbOf(id, mode)} alt="" decoding="async" loading=${i < 6 ? "eager" : "lazy"} onError=${(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+        <span data-form=${f} class="vy-form">
+          <span class="vy-art" style=${`clip-path:url(#vy-c-${f})`}><img src=${thumbOf(id, mode)} alt="" decoding="async" loading=${i < 6 ? "eager" : "lazy"} onError=${(e) => { e.currentTarget.style.visibility = "hidden"; }} /></span>
+          <svg aria-hidden="true" class="vy-rim" viewBox="0 0 1 1"><use href=${`#vy-p-${f}`} /></svg>
+        </span>
         <span class="vy-name">${nameOf(id, mode, loc)}<span class="vy-side">${nameOf(id, mode === "light" ? "dark" : "light", loc)}</span></span>
-      </button>`)}
+      </button>`; })}
     </div>
   </div>`;
 }
@@ -138,7 +155,9 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
 
     <div class="relative z-10 flex-1 min-h-0 flex flex-col p-[var(--ms-pad)]">
       ${""}
-      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col justify-end">
+      ${/* the grid sits at the foot by its own mt-auto, not justify-end: the named forms are taller than the old
+           tiles, and an overflowing justify-end column pushes its top out of the scroll's reach */""}
+      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <${CharGrid} t=${t} loc=${loc} mode=${docMode} picked=${wid}
           onPick=${(id) => { if (id !== wid) { setOpts({ char: id }); generateNow(); } S.screen.set("show"); }} />
       </div>
@@ -153,20 +172,20 @@ export function vydyvo({ t, S, screen, closeScreen, toast }) {
             }}
             onKeyDown=${(e) => { if (e.key === "Enter") { e.currentTarget.blur(); generateNow(); } }}
             class="flex-1 min-w-0 min-h-[var(--ms-ctl)] leading-6 py-2.5 border-0 bg-transparent text-[0.95rem] focus:outline-none placeholder:text-base-content/45"></textarea>
-          ${opts.prompt ? html`<button data-clear class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "clearPrompt")}
+          ${opts.prompt ? html`<button data-clear class="btn btn-ghost btn-sm btn-circle shrink-0 ms-press" aria-label=${T(t, "clearPrompt")}
             onClick=${() => { setOpts({ prompt: "" }); generateNow(); }}>${Icon("lucide:x", "text-base")}</button>` : null}
-          <button data-show-btn class="btn btn-sm btn-primary rounded-full gap-1.5 shrink-0" onClick=${() => S.screen.set("show")}>${Icon("lucide:expand", "text-base")}${T(t, "show")}</button>
+          <button data-show-btn class="btn btn-sm btn-primary rounded-full gap-1.5 shrink-0 ms-press" onClick=${() => S.screen.set("show")}>${Icon("lucide:expand", "text-base")}${T(t, "show")}</button>
         </div>
         <div class="flex items-center gap-2 min-w-0">
-          <button data-settings class=${`flex items-center gap-2 min-w-0 flex-1 text-left ${label}`} onClick=${() => S.screen.set("settings")}>
+          <button data-settings class=${`flex items-center gap-2 min-w-0 flex-1 text-left ms-press ${label}`} onClick=${() => S.screen.set("settings")}>
             ${""}
             <span data-status key=${counting ? "count" : status} class=${`vy-st truncate ${counting ? "tabular-nums" : "font-sans normal-case tracking-normal text-sm"}`}>${status}${working ? html`<span class="vy-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>` : null}</span>
             ${Icon("lucide:sliders-horizontal", "ml-auto text-base shrink-0")}
           </button>
           ${""}
-          <button data-save class="btn btn-ghost btn-sm btn-circle shrink-0" aria-label=${T(t, "saveFrame")} disabled=${!cur}
+          <button data-save class="btn btn-ghost btn-sm btn-circle shrink-0 ms-press" aria-label=${T(t, "saveFrame")} disabled=${!cur}
             onClick=${async () => { try { const b = await (await fetch(cur.url)).blob(); await downloadBlob(b, `vydyvo-${cur.preset}-${cur.id}.${b.type.includes("png") ? "png" : b.type.includes("webp") ? "webp" : "jpg"}`); toast?.(T(t, "savedFrame")); } catch { toast?.(T(t, "eFailed")); } }}>${Icon("lucide:download", "text-base")}</button>
-          <button data-gen-now class=${`btn btn-ghost btn-sm btn-circle shrink-0 ${gen.phase === "working" ? "text-secondary" : ""}`} aria-label=${T(t, "genNow")} onClick=${generateNow}>${Icon("lucide:wand-sparkles", "text-base")}</button>
+          <button data-gen-now class=${`btn btn-ghost btn-sm btn-circle shrink-0 ms-press ${gen.phase === "working" ? "text-secondary" : ""}`} aria-label=${T(t, "genNow")} onClick=${generateNow}>${Icon("lucide:wand-sparkles", "text-base")}</button>
         </div>
       <//>
     </div>

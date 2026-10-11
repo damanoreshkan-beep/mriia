@@ -15,4 +15,7 @@
     .so-wind{transition:color var(--t-state) var(--ease-out),filter var(--t-state) var(--ease-out)}
     #over[aria-pressed="true"] .so-wind{color:var(--app-accent);filter:drop-shadow(0 0 6px var(--lm-bloom-hi))}
     [data-theme="signal-light"] #over[aria-pressed="true"] .so-wind{color:var(--color-secondary);filter:none}
+    /* the core's `.btn:not(.btn-link):not(:disabled)` shadow outranks a bare `.sf-pressed` (0,4,0 over 0,1,0),
+       so without this the held overblow key kept its raised face (same fix as trail's record key) */
+    .btn#over.sf-pressed:not(.btn-link):not(:disabled){box-shadow:var(--sf-press)}
   </style>
