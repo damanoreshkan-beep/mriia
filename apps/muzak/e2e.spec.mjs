@@ -45,7 +45,7 @@ export default [
       h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом");
       h.expect((await h.count("[data-like]")) === 4, "не 4 пісні");
       h.expect((await h.count("[data-dl]")) === 4, "не в кожної пісні своя кнопка");
-      h.expect(/YouTube · Оксана/.test(await h.bodyText()), "немає рядка, чий це YouTube");
+      h.expect(/YouTube · Оксана/i.test(await h.bodyText()), "немає рядка, чий це YouTube");   // the label is uppercase by CSS, and innerText carries it
       h.expect((await h.count("[data-more]")) === 1, "немає «Показати ще»");
       h.expect((await h.count("[data-yt-off]")) === 1, "немає «Відключити»");
       await h.tap('[data-dl="kXYiU_JCYtU"]'); await h.wait(400);

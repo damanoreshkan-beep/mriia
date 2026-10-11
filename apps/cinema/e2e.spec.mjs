@@ -23,7 +23,9 @@ export default [
     name: "play відкриває плеєр рантайму", run: async (h) => {
       await ready(h);
       await h.click(firstCard); await h.wait(400);
-      await h.click("[data-play]"); await h.wait(600);
+      await h.click("[data-play]");
+      // the player module is lazy: the FIRST play in a session imports it cold, so wait for the element, not a clock
+      for (let i = 0; i < 30 && (await h.count("video")) === 0; i++) await h.wait(200);
       h.expect((await h.count("video")) === 1, "кнопка play не змонтувала <video> — контракт не працює");
       h.expect((await h.count("#player-back")) === 1, "плеєр без своєї шапки");
     },
