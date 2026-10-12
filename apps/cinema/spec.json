@@ -17,6 +17,7 @@
       "search": true,
       "card": {
         "layout": "feed",
+        "form": "id",
         "title": "title",
         "body": "desc",
         "image": "thumb",
@@ -39,6 +40,7 @@
       "label": "tabSaved",
       "card": {
         "layout": "feed",
+        "form": "id",
         "title": "title",
         "body": "desc",
         "image": "thumb"

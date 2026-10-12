@@ -76,6 +76,7 @@
       "paginate": true,
       "card": {
         "layout": "gallery",
+        "form": "id",
         "title": "title",
         "subtitle": "owner",
         "image": "icon",
@@ -102,6 +103,7 @@
       },
       "card": {
         "layout": "gallery",
+        "form": "id",
         "title": "title",
         "subtitle": "owner",
         "image": "icon",

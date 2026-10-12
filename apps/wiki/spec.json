@@ -99,6 +99,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "id",
         "image": "thumb",
         "imageFit": "contain",
         "title": "title",
@@ -122,6 +123,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "id",
         "image": "thumb",
         "imageFit": "contain",
         "title": "title",

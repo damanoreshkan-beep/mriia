@@ -163,6 +163,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "owner",
         "title": "name",
         "subtitle": "owner",
         "body": "desc",
@@ -206,6 +207,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "owner",
         "title": "name",
         "subtitle": "owner",
         "body": "desc",
