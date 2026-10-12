@@ -2,15 +2,16 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<!-- the link preview (site/og.jpg): shot at 1200×630 by the eye, never deployed itself; {{LIGHT_APPS}} is filled by
-     hand at the shot the way tools/site.mjs fills it on the page ("92 легкі застосунки") -->
+<!-- the link preview (site/og.jpg): shot at 1200×630 by the eye, never deployed itself; and as site/og-en.jpg
+     in English. {{H1A}} {{H1B}} are the page's h1a/h1b (site/i18n), {{P}} its shareDescription with the count filled,
+     {{SHOT}} "" or "--en" for the screens; all filled by hand at the shot -->
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #000; color: #F2EEE6; font-family: "Geist", system-ui, sans-serif; }
   .glow { position: absolute; right: -60px; top: 40px; width: 760px; height: 600px; background: radial-gradient(closest-side, rgb(242 184 75 / .32), transparent 70%), radial-gradient(closest-side at 75% 80%, rgb(92 228 220 / .2), transparent 70%); filter: blur(30px); }
   .copy { position: absolute; left: 72px; top: 92px; width: 560px; }
   .mark { font-weight: 650; font-size: 34px; letter-spacing: -.02em; }
-  h1 { margin: 64px 0 0; font-weight: 640; font-size: 58px; line-height: 1.02; letter-spacing: -.035em; }
+  h1 { margin: 64px 0 0; font-weight: 640; font-size: 58px; line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; }
   h1 span { color: #F2B84B; }
   p { margin: 26px 0 0; font-size: 25px; color: #A39E94; line-height: 1.4; }
   .ph { position: absolute; width: 214px; height: 464px; border-radius: 34px; overflow: hidden; box-shadow: 0 0 0 1px rgb(242 238 230 / .14), 0 30px 70px -20px rgb(0 0 0 / .7); }
@@ -24,11 +25,11 @@
   <div class="glow"></div>
   <div class="copy">
     <div class="mark">Mriia</div>
-    <h1>Усе для твого дня.<br><span>Навіть без мережі.</span></h1>
-    <p>Пісні, що грають у метро. Погода зранку. Ефір з усього світу ввечері. {{LIGHT_APPS}} українською.</p>
+    <h1>{{H1A}}<br><span>{{H1B}}</span></h1>
+    <p>{{P}}</p>
   </div>
-  <div class="ph a"><img src="/store/assets/shot-remix--mix.webp" alt=""></div>
-  <div class="ph b"><img src="/store/assets/shot-fonoteka--songs.webp" alt=""></div>
-  <div class="ph c"><img src="/store/assets/shot-tarot--read.webp" alt=""></div>
+  <div class="ph a"><img src="/store/assets/shot-remix--mix{{SHOT}}.webp" alt=""></div>
+  <div class="ph b"><img src="/store/assets/shot-fonoteka--songs{{SHOT}}.webp" alt=""></div>
+  <div class="ph c"><img src="/store/assets/shot-tarot--read{{SHOT}}.webp" alt=""></div>
 </body>
 </html>

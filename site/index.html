@@ -1,35 +1,50 @@
 <!doctype html>
-<html lang="uk">
+<html lang="{{LANG}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Mriia: {{APPS}} українською для телефона, що працюють без мережі</title>
-<meta name="description" content="Музика, що грає без інтернету, погода й повітря зранку, прямий ефір з усього світу ввечері. {{LIGHT_APPS}} українською, які ставляться на телефон одним дотиком.">
+<script>
+// the reader's language, before anything paints (owner 2026-10-12: «автоматично дивись на локаль браузера»): a choice
+// made in the footer wins, else a Ukrainian browser reads "/" and every other one "/en/"; a crawler is never moved, so
+// each page is indexed as itself and the hreflang pair below tells search which one to show whom
+(function () { try {
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit/i.test(navigator.userAgent || "")) return;
+  var pick = null; try { pick = localStorage.getItem("mriia:site-lang"); } catch (e) {}
+  if (pick !== "uk" && pick !== "en") pick = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""]).some(function (l) { return /^uk\b/i.test(l); }) ? "uk" : "en";
+  if (pick !== "{{LANG}}") location.replace(pick === "uk" ? "/" : "/en/");
+} catch (e) {} })();
+</script>
+<title>{{t title}}</title>
+<meta name="description" content="{{t description}}">
 <meta name="robots" content="index,follow,max-image-preview:large">
-<link rel="canonical" href="https://mriia.si/">
+<link rel="canonical" href="{{URL}}">
+<link rel="alternate" hreflang="uk" href="https://mriia.si/">
+<link rel="alternate" hreflang="en" href="https://mriia.si/en/">
+<link rel="alternate" hreflang="x-default" href="https://mriia.si/en/">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F6F4EE" media="(prefers-color-scheme: light)">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Mriia">
-<meta property="og:locale" content="uk_UA">
-<meta property="og:url" content="https://mriia.si/">
-<meta property="og:title" content="Mriia: усе для твого дня, навіть без мережі">
-<meta property="og:description" content="Пісні, що грають у метро, погода зранку, ефір з усього світу ввечері. {{LIGHT_APPS}} українською.">
-<meta property="og:image" content="https://mriia.si/og.jpg">
+<meta property="og:locale" content="{{OG_LOCALE}}">
+<meta property="og:locale:alternate" content="{{OG_LOCALE_ALT}}">
+<meta property="og:url" content="{{URL}}">
+<meta property="og:title" content="{{t shareTitle}}">
+<meta property="og:description" content="{{t shareDescription}}">
+<meta property="og:image" content="{{OG_IMAGE}}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Mriia: екрани застосунків на телефоні">
+<meta property="og:image:alt" content="{{t ogAlt}}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Mriia: усе для твого дня, навіть без мережі">
-<meta name="twitter:description" content="Пісні, що грають у метро, погода зранку, ефір з усього світу ввечері. {{LIGHT_APPS}} українською.">
-<meta name="twitter:image" content="https://mriia.si/og.jpg">
+<meta name="twitter:title" content="{{t shareTitle}}">
+<meta name="twitter:description" content="{{t shareDescription}}">
+<meta name="twitter:image" content="{{OG_IMAGE}}">
 <link rel="icon" href="/store/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/store/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="/store/assets/shot-{{HERO_FRONT}}.webp" media="(prefers-color-scheme: dark)">
-<link rel="preload" as="image" href="/store/assets/shot-{{HERO_FRONT}}--light.webp" media="(prefers-color-scheme: light)">
+<link rel="preload" as="image" href="{{HERO_FRONT_SRC}}" media="(prefers-color-scheme: dark)">
+<link rel="preload" as="image" href="{{HERO_FRONT_SRC_LIGHT}}" media="(prefers-color-scheme: light)">
 <script type="application/ld+json">{{JSONLD}}</script>
 <style>
 /* MRIIA'S FRONT DOOR — the luminous material (dreamstudio rt/theme-lum.css): true black, warm ink, light as the
@@ -151,6 +166,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: 
 footer nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 footer a { text-decoration: none; color: var(--muted); }
 footer a:hover { color: var(--ink); }
+footer .langs a[aria-current] { color: var(--ink); }
 
 /* motion: things arrive once, where they are; nothing loops */
 @media (prefers-reduced-motion: no-preference) {
@@ -166,16 +182,16 @@ footer a:hover { color: var(--ink); }
 <body>
 <script>document.documentElement.classList.add("js")</script>
 <header class="top"><div class="wrap">
-  <a class="mark" href="/" aria-label="Mriia, на головну">Mriia</a>
-  <a class="cta sm" href="/store/">Відкрити каталог</a>
+  <a class="mark" href="{{HOME}}" aria-label="{{t home}}">Mriia</a>
+  <a class="cta sm" href="{{STORE}}">{{t cta}}</a>
 </div></header>
 
 <main>
 <section class="hero" aria-labelledby="h-hero"><div class="wrap">
   <div>
-    <h1 id="h-hero" class="rise"><span class="ln">Усе для твого дня.</span> <span class="ln lit">Навіть без мережі.</span></h1>
-    <p class="lede rise" style="--d:80ms">Пісні, що грають у метро. Погода, поки закипає чайник. Прямий ефір з іншого кінця світу. {{LIGHT_APPS}} українською, які ставляться на телефон одним дотиком.</p>
-    <a class="cta rise" style="--d:160ms" href="/store/">Відкрити каталог {{ICON arrow-right}}</a>
+    <h1 id="h-hero" class="rise"><span class="ln">{{t h1a}}</span> <span class="ln lit">{{t h1b}}</span></h1>
+    <p class="lede rise" style="--d:80ms">{{t lede}}</p>
+    <a class="cta rise" style="--d:160ms" href="{{STORE}}">{{t cta}} {{ICON arrow-right}}</a>
   </div>
   <div class="phones">
     <div class="phone back rise" style="--d:120ms">{{HERO_BACK_IMG}}</div>
@@ -184,41 +200,46 @@ footer a:hover { color: var(--ink); }
 </div></section>
 
 <section aria-labelledby="h-rail"><div class="wrap">
-  <h2 id="h-rail" class="rise">Від першої кави до останнього треку</h2>
+  <h2 id="h-rail" class="rise">{{t railTitle}}</h2>
   <div class="rail">{{RAIL}}</div>
 </div></section>
 
 <section aria-labelledby="h-shelves"><div class="wrap">
-  <h2 id="h-shelves" class="rise">На кожен настрій своя полиця</h2>
+  <h2 id="h-shelves" class="rise">{{t shelvesTitle}}</h2>
   <div class="bento">{{BENTO}}</div>
 </div></section>
 
 <section class="lives" aria-labelledby="h-lives"><div class="wrap">
   <div class="phone rise lives-phone">{{LIVES_IMG}}</div>
   <div>
-    <h2 id="h-lives" class="rise">Поруч, навіть коли зникла мережа</h2>
+    <h2 id="h-lives" class="rise">{{t livesTitle}}</h2>
     <div class="facts">
       <div class="fact rise"><div class="ic" aria-hidden="true">{{ICON wifi-off}}</div>
-        <div><h3>У метро, в укритті, коли вимкнули світло</h3><p>Застосунок живе в телефоні, тож відкривається завжди. Інтернет потрібен тільки для свіжого: новин, погоди, ефіру.</p></div></div>
+        <div><h3>{{t offlineTitle}}</h3><p>{{t offlineText}}</p></div></div>
       <div class="fact rise" style="--d:80ms"><div class="ic" aria-hidden="true">{{ICON smartphone}}</div>
-        <div><h3>Ставиш, як звичайний застосунок</h3><p>Натиснув «Встановити», і він уже на головному екрані поруч з улюбленими. Без магазину і без очікування.</p></div></div>
+        <div><h3>{{t installTitle}}</h3><p>{{t installText}}</p></div></div>
       <div class="fact rise" style="--d:160ms"><div class="ic" aria-hidden="true">{{ICON languages}}</div>
-        <div><h3>Говорить українською</h3><p>Від першого екрана до останньої кнопки. А для друга з-за кордону англійська вмикається в профілі.</p></div></div>
+        <div><h3>{{t langTitle}}</h3><p>{{t langText}}</p></div></div>
     </div>
   </div>
 </div></section>
 
 <section class="end" aria-labelledby="h-end"><div class="wrap">
   <p class="big rise" aria-hidden="true">Mriia</p>
-  <h2 id="h-end" class="rise">З чого почнеш свій день?</h2>
-  <a class="cta rise" href="/store/">Відкрити каталог {{ICON arrow-right}}</a>
+  <h2 id="h-end" class="rise">{{t endTitle}}</h2>
+  <a class="cta rise" href="{{STORE}}">{{t cta}} {{ICON arrow-right}}</a>
 </div></section>
 </main>
 
 <footer><div class="wrap">
   <span class="muted">© {{YEAR}} Mriia</span>
-  <nav aria-label="Документи"><a href="/store/privacy.html">Конфіденційність</a><a href="/store/terms.html">Умови</a></nav>
+  <nav aria-label="{{t languages}}" class="langs"><a href="/" hreflang="uk" lang="uk" data-lang="uk"{{CUR_UK}}>Українська</a><a href="/en/" hreflang="en" lang="en" data-lang="en"{{CUR_EN}}>English</a></nav>
+  <nav aria-label="{{t docs}}"><a href="/store/privacy.html">{{t privacy}}</a><a href="/store/terms.html">{{t terms}}</a></nav>
 </div></footer>
+<script>
+// a language picked here is remembered, so the redirect in the head never sends this reader back
+document.querySelectorAll("[data-lang]").forEach((a) => a.addEventListener("click", () => { try { localStorage.setItem("mriia:site-lang", a.dataset.lang); } catch { } }));
+</script>
 
 <script>
 // each block rises once as it comes into view; with reduced motion the CSS above never hides it
