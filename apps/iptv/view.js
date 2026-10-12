@@ -7,6 +7,9 @@ import { T } from "/_rt/i18n.js";
 import { Player } from "/_rt/video.js";
 import { Segmented } from "/_rt/ui.js";
 import { Pixels } from "/_rt/skeleton.js";
+import { gate } from "/_rt/gate.js";
+import { VPS_PROXY } from "/_rt/feed.js";
+import { sealedFrameUrl } from "/_rt/sealedfetch.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
@@ -36,14 +39,22 @@ function parseM3U(text) {
   return out;
 }
 
+async function listOf(code) {
+  if (!gate) {
+    try {
+      const r = await fetch(`${VPS_PROXY}/tvlist?c=${code}`);
+      if (r.ok) { const j = await r.json(); if (Array.isArray(j.channels)) return j.channels.map((c, i) => ({ ...c, id: String(i) + "|" + c.name })); }
+    } catch {  }
+  }
+  return parseM3U(await (await fetch(`https://iptv-org.github.io/iptv/countries/${code}.m3u`)).text());
+}
+
 async function loadCountry(code) {
   $err.set(false); $cat.set(""); $query.set("");
   if (cache.has(code)) { $channels.set(cache.get(code)); $loading.set(false); return; }
   $loading.set(true);
-  try {
-    const text = await (await fetch(`https://iptv-org.github.io/iptv/countries/${code}.m3u`)).text();
-    const ch = parseM3U(text); cache.set(code, ch); $channels.set(ch);
-  } catch { $channels.set([]); $err.set(true); }
+  try { const ch = await listOf(code); cache.set(code, ch); $channels.set(ch); }
+  catch { $channels.set([]); $err.set(true); }
   $loading.set(false);
 }
 
@@ -67,7 +78,10 @@ export function iptv({ S }) {
   const q = query.trim().toLowerCase();
   const filtered = channels.filter((c) => (!cat || c.group === cat) && (!q || c.name.toLowerCase().includes(q)));
   const shown = filtered.slice(0, CAP);
-  const play = (ch) => { $sel.set(ch); S.screen.set("play"); };
+  const play = async (ch) => {
+    const src = gate ? null : await sealedFrameUrl(ch.url, ch.ref || null, "tv").catch(() => null);
+    $sel.set({ ...ch, src }); S.screen.set("play");
+  };
 
   return html`<${Fragment}>
     <div class="flex flex-col gap-2.5">
@@ -95,6 +109,6 @@ export function iptv({ S }) {
         </${Fragment}>`}
     </div>
 
-    ${screen === "play" && sel ? html`<${Player} url=${sel.url} title=${sel.name} locale=${loc} onClose=${() => S.screen.set(null)} />` : null}
+    ${screen === "play" && sel ? html`<${Player} url=${sel.src || sel.url} type=${sel.src ? "hls" : undefined} title=${sel.name} locale=${loc} onClose=${() => S.screen.set(null)} />` : null}
   </${Fragment}>`;
 }
