@@ -35,7 +35,7 @@ const $step = gate ? atom(DEFAULT_STEP) : persistentAtom("remix:step", DEFAULT_S
 const $cur = atom(gate ? DEFAULT_STEP : "");         
 const $playing = atom(false);
 const $pos = atom(0), $dur = atom(0);
-let seq = 0, audio = null;
+let seq = 0, audio = null, loaded = "";               
 const runs = new Set();                              
 const $kept = atom({});                              
 const $repeat = persistentAtom("remix:repeat", "all");
@@ -138,7 +138,6 @@ function select(v, link) {
 }
 function show(v) { if ($playing.get()) play(v); else $cur.set(v); }
 
-let loaded = "";   
 function ensure() {
   if (audio) return audio;
   audio = new Audio();
