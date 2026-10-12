@@ -183,7 +183,7 @@ footer .langs a[aria-current] { color: var(--ink); }
 <script>document.documentElement.classList.add("js")</script>
 <header class="top"><div class="wrap">
   <a class="mark" href="{{HOME}}" aria-label="{{t home}}">Mriia</a>
-  <a class="cta sm" href="{{STORE}}">{{t cta}}</a>
+  <a class="cta sm" href="{{STORE}}" data-ga="cta_clicked" data-ga-location="header" data-ga-lang="{{LANG}}">{{t cta}}</a>
 </div></header>
 
 <main>
@@ -191,7 +191,7 @@ footer .langs a[aria-current] { color: var(--ink); }
   <div>
     <h1 id="h-hero" class="rise"><span class="ln">{{t h1a}}</span> <span class="ln lit">{{t h1b}}</span></h1>
     <p class="lede rise" style="--d:80ms">{{t lede}}</p>
-    <a class="cta rise" style="--d:160ms" href="{{STORE}}">{{t cta}} {{ICON arrow-right}}</a>
+    <a class="cta rise" style="--d:160ms" href="{{STORE}}" data-ga="cta_clicked" data-ga-location="hero" data-ga-lang="{{LANG}}">{{t cta}} {{ICON arrow-right}}</a>
   </div>
   <div class="phones">
     <div class="phone back rise" style="--d:120ms">{{HERO_BACK_IMG}}</div>
@@ -227,13 +227,13 @@ footer .langs a[aria-current] { color: var(--ink); }
 <section class="end" aria-labelledby="h-end"><div class="wrap">
   <p class="big rise" aria-hidden="true">Mriia</p>
   <h2 id="h-end" class="rise">{{t endTitle}}</h2>
-  <a class="cta rise" href="{{STORE}}">{{t cta}} {{ICON arrow-right}}</a>
+  <a class="cta rise" href="{{STORE}}" data-ga="cta_clicked" data-ga-location="end" data-ga-lang="{{LANG}}">{{t cta}} {{ICON arrow-right}}</a>
 </div></section>
 </main>
 
 <footer><div class="wrap">
   <span class="muted">© {{YEAR}} Mriia</span>
-  <nav aria-label="{{t languages}}" class="langs"><a href="/" hreflang="uk" lang="uk" data-lang="uk"{{CUR_UK}}>Українська</a><a href="/en/" hreflang="en" lang="en" data-lang="en"{{CUR_EN}}>English</a></nav>
+  <nav aria-label="{{t languages}}" class="langs"><a href="/" hreflang="uk" lang="uk" data-lang="uk" data-ga="language_switched" data-ga-to="uk"{{CUR_UK}}>Українська</a><a href="/en/" hreflang="en" lang="en" data-lang="en" data-ga="language_switched" data-ga-to="en"{{CUR_EN}}>English</a></nav>
   <nav aria-label="{{t docs}}"><a href="/store/privacy.html">{{t privacy}}</a><a href="/store/terms.html">{{t terms}}</a></nav>
 </div></footer>
 <script>

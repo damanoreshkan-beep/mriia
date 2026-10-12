@@ -45,6 +45,8 @@ jobs:
         # Replaces the build's redirect at dist/index.html with site/index.html filled from apps.json and the
         # store's captures (tools/site.mjs). The noindex on every other path is the web server's (edge web/nginx.conf).
         run: deno run --allow-read --allow-write tools/site.mjs dist
+      - name: Google Analytics 4 on every page (tools/ga.mjs; a no-op until site/analytics.json has the id)
+        run: deno run --allow-read --allow-write tools/ga.mjs dist
       - name: Eye on dist (real Chromium, measured)
         timeout-minutes: 20
         env:
