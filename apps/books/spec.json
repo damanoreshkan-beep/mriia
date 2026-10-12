@@ -70,6 +70,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "author",
         "href": "url",
         "title": "title",
         "subtitle": "author",
@@ -100,6 +101,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "author",
         "href": "url",
         "title": "title",
         "subtitle": "author",

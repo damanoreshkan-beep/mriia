@@ -59,6 +59,7 @@
       "paginate": true,
       "card": {
         "layout": "feed",
+        "form": "author",
         "href": "url",
         "title": "title",
         "body": "desc",
@@ -102,6 +103,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "author",
         "href": "url",
         "title": "title",
         "body": "desc",

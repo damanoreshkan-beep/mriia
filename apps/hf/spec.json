@@ -6,7 +6,7 @@
     "desc"
   ],
   "enrich": {
-    "url": "url",
+    "url": "readme",
     "body": "desc"
   },
   "fav": {
@@ -172,6 +172,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "author",
         "title": "name",
         "subtitle": "author",
         "body": "desc",
@@ -215,6 +216,7 @@
       },
       "card": {
         "layout": "feed",
+        "form": "author",
         "title": "name",
         "subtitle": "author",
         "body": "desc",

@@ -1247,7 +1247,7 @@
     "bg": "#120E08",
     "fg": "#F2B84B",
     "href": "./muzak/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "sound",
     "needs": [
       "auth"
@@ -1727,7 +1727,7 @@
     "bg": "#160A12",
     "fg": "#FF7AB6",
     "href": "./remix/",
-    "version": "1.14",
+    "version": "1.15",
     "category": "sound",
     "needs": [],
     "added": "2026-10-07"

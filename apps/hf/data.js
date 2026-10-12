@@ -16,6 +16,8 @@ export async function load(filters = {}) {
   const params = new URLSearchParams({ sort, direction: "-1", limit: "40" });
   if (q) params.set("search", q);
   if (cat) params.set("filter", cat);
+  // `gated` is not in the list's default fields, and `expand` replaces the defaults — so every field read below is named
+  if (!spaces) for (const f of ["downloads", "likes", "pipeline_tag", "library_name", "createdAt", "gated"]) params.append("expand[]", f);
   const data = await fetchJson(`https://huggingface.co/api/${kind}?${params}`, { array: true });
   const items = (Array.isArray(data) ? data : []).map((m) => {
     const id = m.id || m.modelId || "";
@@ -31,6 +33,9 @@ export async function load(filters = {}) {
       likes: compact(m.likes),
       createdAt: m.createdAt ? Date.parse(m.createdAt) : 0,
       url: spaces ? `https://huggingface.co/spaces/${id}` : `https://huggingface.co/${id}`,
+      // what spec `enrich` reads the card's prose from: a gated model's README answers 401 to a browser without a
+      // grant (meta-llama, FLUX — 24 failed loads a list), so a gated model is not asked
+      readme: m.gated ? "" : (spaces ? `https://huggingface.co/spaces/${id}` : `https://huggingface.co/${id}`),
     };
   }).filter((it) => it.id);
   return { items, meta: {} };
