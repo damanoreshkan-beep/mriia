@@ -14,6 +14,7 @@ import { takeShared, firstLink } from "/_rt/share.js";
 import { videoId, clock, byline } from "/_rt/muzak.js";
 import { report } from "/_rt/telemetry.js";
 import { haptic } from "/_rt/sensors.js";
+import { useLikes, LikesConnect, LikesHead, LikeRow, LikesSkeleton } from "/_rt/ytlikes.js";
 import { STEPS, DEFAULT_STEP, ORIGINAL_AT, carryTime, remixFile, roomKey, presetLine, whyKeys, parseTags, groundSong, errorKey, FIXTURE_LINK, FIXTURE_META, FIXTURE_ANALYSIS, FIXTURE_TAGS } from "/_rt/remix.js";
 import { startTask, followTask, fetchResumable, taskKey, taskCall } from "/_rt/task.js";
 
@@ -54,7 +55,14 @@ const $kept = atom({});                              // step → "" | "busy" | "
 const $repeat = persistentAtom("remix:repeat", "all");
 const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
 const shownRepeat = (r) => (r === "one" ? "one" : "off");
-takeShared((s) => { const link = firstLink(s) || String(s.text || "").trim(); if (link) { $link.set(link); find(link); } });
+// A shared link is a song for the Ремікс tab, not the likes the app opens on: the runtime picks its first tab from
+// ?tab= on the first render, and a text share arrives earlier, while this module evaluates — so it sets the address.
+takeShared((s) => {
+  const link = firstLink(s) || String(s.text || "").trim();
+  if (!link) return;
+  try { const u = new URL(location.href); u.searchParams.set("tab", "mix"); window.history.replaceState(window.history.state, "", u.pathname + u.search + u.hash); } catch { }
+  $link.set(link); find(link);
+});
 
 // a new song forgets the last one's files and its "already in Fonoteka" marks
 function reset() { for (const ac of runs) ac.abort(); runs.clear(); stop(); $ana.set(null); $tags.set(null); for (const t of Object.values($tracks.get())) if (t.url) URL.revokeObjectURL(t.url); $tracks.set({}); $cur.set(""); $kept.set({}); }
@@ -278,6 +286,41 @@ function Stepper({ t, step, tracks, onPreview, onPick }) {
   </div>`;
 }
 
+// ── tab «Вподобане» (owner 2026-10-12: «у реміксі додай кнопку підключити ютуб і переюзай те саме що у музаці той же
+// список я обираю і все. тобто інпут резолвер url це не основна фіча апки»): the person's YouTube likes — muzak's own
+// list, rt/ytlikes.js, one grant for both apps — and a tap is the whole choice: the song goes to the Ремікс tab and its
+// remix starts at the remembered step. The link field stays on that tab for a song that is not in the likes.
+const songMeta = (s) => ({ id: s.id, title: s.title, artist: s.artist || "", duration: s.dur || 0, cover: s.cover || null });
+function pickLiked(s, S, locale) {
+  $err.set(""); $busy.set("");   // a pick replaces whatever was being made (mix() aborts it; seq drops its replies)
+  $link.set(s.url); $meta.set(songMeta(s));
+  S.tab.set("mix");
+  mix(s.url, $meta.get(), locale);
+}
+
+export function likes({ S, toast, confirm }) {
+  const t = useStore(S.t), locale = useStore(S.locale), meta = useStore($meta), busy = useStore($busy);
+  const { l, busy: lBusy, err, songs, on, reading, tail } = useLikes();
+  return html`<div data-likes data-connected=${on ? "true" : l ? "false" : null} data-songs=${on ? songs.length : null}
+    class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
+    ${err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
+    ${reading ? html`<${LikesSkeleton} />`
+    : !on ? html`<${LikesConnect} t=${t} app="remix" expired=${l?.expired} />`
+    : html`<section aria-labelledby="rx-likes" class="flex flex-col gap-[var(--ms-gap)]">
+      <${LikesHead} t=${t} l=${l} id="rx-likes" toast=${toast} confirm=${confirm} />
+      <div class="flex flex-col gap-1">
+        ${songs.map((s) => html`<${LikeRow} key=${s.id} s=${s} here=${meta?.id === s.id} busy=${meta?.id === s.id && !!busy}
+          label=${`${T(t, "aRemix")}: ${s.title}`} onPick=${() => pickLiked(s, S, locale)} attr=${{ "data-pick-song": s.id }} />`)}
+        ${lBusy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
+      </div>
+      ${l.next ? html`<div ref=${tail} data-tail aria-hidden="true" class="h-px"></div>` : null}
+      ${!songs.length ? html`<div data-none class="py-6 flex flex-col items-center gap-1 text-center">
+        <div class="font-semibold text-sm">${T(t, "likesEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "likesEmptyHint")}</div>
+      </div>` : null}
+    </section>`}
+  </div>`;
+}
+
 export function remix({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
@@ -294,8 +337,9 @@ export function remix({ S, toast }) {
   const words = ana ? whyKeys(ana.why).map((k) => T(t, k)) : [];
   const st = tracks[step]?.state || "", p = ana?.presets?.[step], pct = tracks[step]?.pct || 0;
 
-  return html`<div data-remix data-busy=${busy || null} data-song=${meta ? meta.id : null} data-playing=${playing ? "true" : null} class="flex flex-col gap-[var(--ms-gap)] p-[var(--ms-pad)]">
-    <${Panel} title=${T(t, "link")}>
+  // the link is the second way in (owner 2026-10-12: «інпут резолвер url це не основна фіча апки»): on top while there
+  // is no song, under the remix once there is one
+  const linkPanel = html`<${Panel} title=${T(t, "link")}>
       <form class="flex items-center gap-2" onSubmit=${(e) => { e.preventDefault(); find(link); }}>
         <textarea rows="1" data-line ref=${input} data-link inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
           class="input input-bordered sf-inset min-w-0 flex-1 font-mono text-sm"
@@ -306,8 +350,11 @@ export function remix({ S, toast }) {
         <button type="submit" data-find aria-label=${T(t, "aFind")} disabled=${!link || busy === "meta"}
           class="btn btn-primary btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 sf-e3">${Icon("lucide:search", "text-[length:var(--ms-icon)]")}</button>
       </form>
-      ${err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
-    <//>
+    <//>`;
+
+  return html`<div data-remix data-busy=${busy || null} data-song=${meta ? meta.id : null} data-playing=${playing ? "true" : null} class="flex flex-col gap-[var(--ms-gap)] p-[var(--ms-pad)]">
+    ${err ? html`<div data-err role="alert" class="text-sm text-error px-1">${T(t, err)}</div>` : null}
+    ${meta ? null : linkPanel}
 
     ${busy === "meta" ? html`<${Panel} title=${T(t, "song")}>
       <div class="flex gap-[var(--ms-gap)] items-start">
@@ -380,5 +427,6 @@ export function remix({ S, toast }) {
           onPrev=${() => walk(-1)} onNext=${() => walk(1)} pos=${pos} dur=${dur} onSeek=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat} />
       </div>` : null}
     <//>` : null}
+    ${meta ? linkPanel : null}
   </div>`;
 }

@@ -27,6 +27,16 @@
     #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
     [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
 
+    /* THE LIKES LIST (rt/ytlikes.js LikeRow, the same list muzak plays from — its classes and these rules are muzak's
+       head.html, mirrored): a row's cover, the song being remixed ringed in the accent; a new row arrives, once. */
+    .mz-cover { position: relative; width: 3rem; height: 3rem; flex: none; border-radius: var(--ms-r-in); overflow: hidden; }
+    [aria-pressed="true"] .mz-cover { box-shadow: 0 0 0 2px var(--app-accent); }
+    [data-theme="signal"] [aria-pressed="true"] .mz-cover { box-shadow: 0 0 0 2px var(--app-accent), 0 0 14px var(--lm-bloom-hi); }
+    [data-theme="signal-light"] [aria-pressed="true"] .mz-cover { box-shadow: 0 0 0 2px var(--color-secondary); }
+    .mz-row { transition: opacity var(--t-state) var(--ease-out), translate var(--t-state) var(--ease-out); }
+    @starting-style { .mz-row { opacity: 0; translate: 0 6px; } }
+    @media (prefers-reduced-motion: reduce) { .mz-row { transition: none; } }
+
     /* THE STEPPER (view.js Stepper) — the transport's filament (core .tp-filament): a hairline, the six steps on it as
        their own forms, the stretch from 1× to the pick lit with a bloom, a transparent native range over it doing the
        work. --rx-k is the range thumb AND the node pitch's inset: the thumb's centre runs from k/2 to 100% − k/2,

@@ -10,7 +10,7 @@
   "ytAs": "YouTube · {name}",
   "ytOffBtn": "Disconnect",
   "offTitle": "Disconnect YouTube?",
-  "offBody": "The list leaves Muzak. Your likes on YouTube stay as they are.",
+  "offBody": "The list leaves Muzak and Remix. Your likes on YouTube stay as they are.",
   "offYes": "Disconnect",
   "ytOff": "YouTube disconnected",
   "ytExpired": "Google closed access to your likes. Connect YouTube again and the list comes back.",

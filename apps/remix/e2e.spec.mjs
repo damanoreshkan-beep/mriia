@@ -1,4 +1,5 @@
-const ready = async (h) => { for (let i = 0; i < 20; i++) { if ((await h.count("[data-remix]")) > 0) break; await h.wait(300); } };
+// the app opens on «Вподобане» (spec tabs[0]); the remix screen is its own tab
+const ready = async (h) => { for (let i = 0; i < 20; i++) { if ((await h.count("[data-remix]")) > 0) break; if ((await h.count('[data-tab="mix"]')) > 0) await h.click('[data-tab="mix"]'); await h.wait(300); } };
 // under the gate the fixture song arrives already mixed at deep, slowed and nightcore (view.js MIXED)
 const mixed = async (h) => { await ready(h); if ((await h.count("[data-mix]")) > 0) { await h.tap("[data-mix]"); await h.wait(400); } };
 // a slide on the stepper: the drag (input) previews, the release (change) picks — rt/remix.js STEPS order
@@ -103,7 +104,10 @@ export default [
   },
   {
     name: "шерінг: посилання з іншого застосунку лягає в поле і одразу шукається", run: async (h) => {
-      await h.goto("sh_text=" + encodeURIComponent("дивись https://youtu.be/dQw4w9WgXcQ"), 800); await ready(h); await h.wait(300);
+      await h.goto("sh_text=" + encodeURIComponent("дивись https://youtu.be/dQw4w9WgXcQ"), 800);
+      for (let i = 0; i < 20 && (await h.count("[data-remix]")) === 0; i++) await h.wait(300);
+      h.expect((await h.count("[data-remix]")) === 1, "посилання відкрило не вкладку «Ремікс»");
+      await h.wait(300);
       h.expect((await h.prop("[data-link]", "value")).includes("youtu.be/dQw4w9WgXcQ"), "посилання не лягло в поле");
       h.expect((await h.attr("[data-remix]", "data-song")) === "dQw4w9WgXcQ", "картка не знайшлась");
     },
@@ -118,6 +122,22 @@ export default [
       h.expect(["off", "one"].includes(was) && ["off", "one"].includes(now) && was !== now, `перемикач не перемкнувся (${was} → ${now})`);   // "off" is how «далі» is SHOWN (view.js shownRepeat)
       await h.tap("[data-remix] #repeat"); await h.wait(150);
       h.expect((await h.attr("[data-remix] #repeat", "data-repeat")) === was, "другий тап не повернув режим");
+    },
+  },
+  {
+    name: "вподобане: застосунок відкривається списком з YouTube, тап по пісні — вкладка «Ремікс» і її ремікс", run: async (h) => {
+      await h.goto("", 800);
+      for (let i = 0; i < 20 && (await h.count("[data-likes]")) === 0; i++) await h.wait(300);
+      h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом першим");
+      h.expect((await h.count("[data-pick-song]")) === 4, "не чотири пісні з фікстури");
+      h.expect((await h.count("[data-yt-off]")) === 1, "немає «Відключити»");
+      await h.tap('[data-pick-song="fJ9rUzIMcZQ"]'); await h.wait(500);
+      h.expect((await h.attr("[data-remix]", "data-song")) === "fJ9rUzIMcZQ", "тап не відкрив ремікс цієї пісні");
+      h.expect(/Bohemian Rhapsody/.test(await h.text("[data-song-title]")), "картка не тієї пісні");
+      h.expect((await h.count('[data-node][data-state="ready"]')) >= 1, "ремікс не почався сам");
+      h.expect((await h.count("[data-mix]")) === 0, "після вибору ще треба тиснути кнопку");
+      await h.click('[data-tab="likes"]'); await h.wait(250);
+      h.expect((await h.attr('[data-pick-song="fJ9rUzIMcZQ"]', "aria-pressed")) === "true", "у списку не позначено пісню в реміксі");
     },
   },
   {
