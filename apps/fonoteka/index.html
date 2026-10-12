@@ -105,15 +105,30 @@
     .fk-row { transition: opacity var(--t-state) var(--ease-out), translate var(--t-state) var(--ease-out); }
     @starting-style { .fk-row { opacity: 0; translate: 0 6px; } }
 
-    /* THE MINI ORB — the screen's ONLY island (owner 2026-10-10): when the player scrolls away, the playing song
-       follows above the dock: a pill (a full round has no corner to reconcile), the song's glyph lit, its title,
-       play/pause. Shown by an IntersectionObserver flipping one attribute; the move is one transition. */
-    .fk-mini { position: fixed; z-index: 30; left: 50%; bottom: calc(var(--dock-h) + env(safe-area-inset-bottom) + .5rem);
-      width: min(22rem, calc(100vw - 2rem)); translate: -50% .75rem; opacity: 0; pointer-events: none;
-      transition: opacity var(--t-state) var(--ease-out), translate var(--t-state) var(--ease-out); }
-    .fk-mini[data-show="true"] { translate: -50% 0; opacity: 1; pointer-events: auto; }
+    /* THE ALBUMS (owner 2026-10-12: «альбомчики форми сіткою гарною, а не банальним списком»): a song is a tile —
+       its cover, read from the file itself, inside the song's own form; a song with no picture shows the theme's
+       material in the same form. The rim is the orb's, small: a hairline at rest, lit while the song is current. */
+    .fk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (min-width: 40rem) { .fk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .fk-album { position: relative; display: block; width: 100%; aspect-ratio: 1; }
+    .fk-art { position: absolute; inset: 0; overflow: hidden;
+      background: var(--ds-fill, var(--ds-scatter, none)) center / 140% auto no-repeat, var(--color-base-200); }
+    .fk-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .fk-arim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .fk-arim path { fill: none; stroke: var(--lm-rim-hi); stroke-width: 1.25; vector-effect: non-scaling-stroke;
+      transition: stroke var(--t-state) var(--ease-out); }
+    [aria-pressed="true"] .fk-arim path { stroke: color-mix(in oklch, var(--app-accent) 85%, white); stroke-width: 2; }
+    [data-theme="signal"] [aria-pressed="true"] .fk-arim { filter: drop-shadow(0 0 8px var(--lm-bloom-hi)); }
+    [data-theme="signal-light"] .fk-arim path { stroke: color-mix(in oklch, var(--color-base-content) 22%, transparent); }
+    [data-theme="signal-light"] [aria-pressed="true"] .fk-arim path { stroke: var(--color-secondary); }
+    /* the current song's mark at the album's heart: what it is doing, on a disc of frosted page */
+    .fk-now { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 2.75rem; height: 2.75rem; border-radius: 9999px;
+      display: grid; place-items: center; color: var(--app-accent);
+      background: color-mix(in oklch, var(--color-base-100) 72%, transparent); backdrop-filter: blur(6px); }
+    [data-theme="signal-light"] .fk-now { color: var(--color-secondary); }
+
+    /* the mini island is the kit's MiniPlayer (runtime.css .ms-mini) since 2026-10-11 */
     @media (prefers-reduced-motion: reduce) {
-      .fk-mini { translate: -50% 0; }
       .fk-row { transition: none; }
     }
   </style>

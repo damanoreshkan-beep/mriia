@@ -54,6 +54,7 @@
     "/_rt/horoscope.js": "./rt/horoscope.js",
     "/_rt/hunt.js": "./rt/hunt.js",
     "/_rt/iching.js": "./rt/iching.js",
+    "/_rt/id3.js": "./rt/id3.js",
     "/_rt/ism433.js": "./rt/ism433.js",
     "/_rt/langid.js": "./rt/langid.js",
     "/_rt/lora.js": "./rt/lora.js",

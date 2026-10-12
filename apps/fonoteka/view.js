@@ -19,6 +19,7 @@ import { report } from "/_rt/telemetry.js";
 import { clock } from "/_rt/muzak.js";
 import { isAudio, songLine, usageLine, titleOf, errorKey, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
 import { songStore, keeper } from "/_rt/songstore.js";
+import { coverBlob } from "/_rt/id3.js";
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
 const $songs = atom(gate ? FIXTURE_SONGS : null);   // null until the shelf is read
@@ -45,6 +46,27 @@ const keep = gate ? null : keeper({
   store, urlOf: (id) => sealedUrl("/library/get", { id }), onHeld: (h) => $held.set(h),
   onFail: (e, s) => report("keep.fail", { status: e?.status || 0, err: String(e?.message || e).slice(0, 120), size: s.size }),
 });
+// ALBUMS (owner 2026-10-12: «Фонотека альбомами — роби в самій Фонотеці»; «не вистачає обложок … альбомчики форми
+// сіткою гарною, а не банальним списком»). A song's cover is the picture INSIDE its file (rt/id3.js), read from the
+// copy the phone keeps — no server, no network, the tag's bytes only — one song after another in the background,
+// once per launch. A song with no picture shows the theme's material in its form instead.
+const $covers = atom(gate ? { [FIXTURE_SONGS[0].id]: "/_rt/theme-lum.webp" } : {});   // id → object URL | "" (none)
+let coverRun = Promise.resolve();
+function readCovers() {
+  if (!store) return;
+  const known = $covers.get(), held = $held.get();
+  for (const s of $songs.get() || []) {
+    if (!held.has(s.id) || s.id in known) continue;
+    coverRun = coverRun.then(async () => {
+      if (s.id in $covers.get()) return;
+      const blob = await store.blob(s.id).catch(() => null);
+      const pic = blob ? await coverBlob(blob).catch(() => null) : null;
+      $covers.set({ ...$covers.get(), [s.id]: pic ? URL.createObjectURL(pic) : "" });
+    });
+  }
+}
+if (!gate) { $songs.listen(readCovers); $held.listen(readCovers); }
+
 // A shelf the edge confirmed: keep the phone in step with it and remember it for a start with no network.
 function confirmed(list) {
   $songs.set(list);
@@ -291,7 +313,7 @@ function pickFiles(files) { for (const f of files || []) { if (isAudio(f)) uploa
 
 export function fonoteka({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
-  const songs = useStore($songs), usage = useStore($usage), uploads = useStore($uploads), err = useStore($err), held = useStore($held);
+  const songs = useStore($songs), usage = useStore($usage), uploads = useStore($uploads), err = useStore($err), held = useStore($held), covers = useStore($covers);
   const onPhone = songs ? songs.filter((s) => held.has(s.id)).length : 0;
   const cur = useStore($cur), playing = useStore($playing), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
   toastFn = toast; tNow = t;
@@ -371,26 +393,34 @@ export function fonoteka({ S, toast, confirm }) {
           </span>
           <span class="min-w-0 flex-1 flex flex-col leading-tight"><span class="font-semibold text-sm truncate">${u.name}</span><span class=${`text-xs ${u.state === "err" ? "text-error" : "text-muted"}`}>${u.state === "up" ? `${T(t, "uploading")}${u.pct ? ` · ${u.pct}%` : ""}` : T(t, "errUpload")}</span></span>
         </div>`)}
-        ${songs === null ? [0, 1, 2].map((i) => html`<div key=${i} class="flex items-center gap-3 px-2 h-[var(--ms-ctl)]"><div class="skeleton w-7 h-7 rounded-full"></div><div class="flex-1 flex flex-col gap-1.5"><div class="skeleton h-3.5 w-2/3"></div><div class="skeleton h-3 w-1/3"></div></div></div>`)
-          : songs.map((s) => {
-            const on = cur === s.id;
-            return html`<div key=${s.id} data-song=${s.id} class="fk-row flex items-center gap-1">
-              <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${() => (on ? toggle() : play(s.id))}
-                class="flex-1 min-w-0 flex items-center gap-3 text-left px-2 h-[calc(var(--ms-ctl)+.5rem)] min-h-0 ms-press">
-                ${glyph(s.id)}
-                <span class="min-w-0 flex-1 flex flex-col leading-tight gap-0.5">
-                  <span class="font-semibold text-sm truncate">${titleOf(s)}</span>
-                  <span class="font-mono text-xs tabular-nums text-muted truncate">${songLine(s, clock)}</span>
-                </span>
-              </button>
-              <button data-del=${s.id} data-haptic="bump" aria-label=${`${T(t, "aDelete")}: ${titleOf(s)}`} onClick=${() => askDelete(s)}
-                class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 text-muted">${Icon("lucide:trash-2", "text-[length:var(--ms-icon)]")}</button>
-            </div>`;
-          })}
         ${songs && !songs.length && !uploads.length ? html`<div data-none class="py-6 flex flex-col items-center gap-1 text-center">
           <div class="font-semibold text-sm">${T(t, "empty")}</div><div class="text-sm text-muted">${T(t, "emptyHint")}</div>
         </div>` : null}
       </div>
+      ${/* THE ALBUMS: every song a tile — its cover (or the theme's material) inside the song's own form, its rim lit
+           while it plays, the name under it. Two columns on a phone, three on a wide screen. */""}
+      <div data-albums class="fk-grid ms-stagger grid gap-x-[var(--ms-gap)] gap-y-5">
+        ${songs === null ? [0, 1, 2, 3].map((i) => html`<div key=${i} class="flex flex-col gap-2"><div class="skeleton aspect-square rounded-full"></div><div class="skeleton h-3.5 w-2/3"></div></div>`)
+          : songs.map((s, i) => {
+            const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
+            return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`} class="flex flex-col gap-2 min-w-0">
+              <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${() => (on ? toggle() : play(s.id))} class="fk-album ms-press">
+                <span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${cov ? html`<img src=${cov} alt="" decoding="async" />` : null}</span>
+                <svg aria-hidden="true" class="fk-arim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg>
+                ${on ? html`<span class="fk-now" aria-hidden="true">${Icon(playing ? "lucide:audio-lines" : "lucide:play", "text-xl")}</span>` : null}
+              </button>
+              <div class="flex items-start gap-1 min-w-0">
+                <div class="min-w-0 flex-1 px-0.5">
+                  <div class=${`font-semibold text-sm leading-snug line-clamp-2 ${on ? "text-[var(--app-accent)]" : ""}`}>${titleOf(s)}</div>
+                  <div class="font-mono text-xs tabular-nums text-muted truncate mt-0.5">${songLine(s, clock)}</div>
+                </div>
+                <button data-del=${s.id} data-haptic="bump" aria-label=${`${T(t, "aDelete")}: ${titleOf(s)}`} onClick=${() => askDelete(s)}
+                  class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 -mt-2 -mr-2 text-muted">${Icon("lucide:trash-2", "text-base")}</button>
+              </div>
+            </div>`;
+          })}
+      </div>
+      <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
     </section>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
