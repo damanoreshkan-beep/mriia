@@ -43,7 +43,9 @@ const $step = gate ? atom(DEFAULT_STEP) : persistentAtom("remix:step", DEFAULT_S
 const $cur = atom(gate ? DEFAULT_STEP : "");         // the step in the transport (the last picked one that is ready)
 const $playing = atom(false);
 const $pos = atom(0), $dur = atom(0);
-let seq = 0, audio = null;
+// Everything reset() touches is declared HERE, above takeShared: a link shared into the app runs find → reset → stop
+// while this module is still evaluating, and a `let` below that line is in its dead zone (CI: "Cannot access 'loaded'").
+let seq = 0, audio = null, loaded = "";               // loaded: the step whose file is in the element
 const runs = new Set();                              // the AbortController of every step task in flight
 const $kept = atom({});                              // step → "" | "busy" | "done" (У Фонотеку)
 // ONE VERSION ON A LOOP or on through the three (owner 2026-10-11: «я слухаю їх як медитацію по колу в основному»,
@@ -159,7 +161,6 @@ function select(v, link) {
 function show(v) { if ($playing.get()) play(v); else $cur.set(v); }
 
 // ── one element, a file per made step ─────────────────────────────────────────────────────────────────────
-let loaded = "";   // the step whose file is in the element
 function ensure() {
   if (audio) return audio;
   audio = new Audio();
