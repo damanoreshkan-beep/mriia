@@ -9,13 +9,13 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const byId = Object.fromEntries(apps.map((a) => [a.id, a]));
 
 const SHOWCASE = [
-  ["fonoteka", "songs", "Твоя полиця пісень, що завжди з тобою."],
-  ["remix", "mix", "Будь-яка пісня від super slowed до super sped up."],
-  ["muzak", "likes", "Пісні з твоїх вподобань YouTube у власному плеєрі."],
-  ["iptv", "watch", "Прямий ефір тисяч каналів з усього світу."],
-  ["tarot", "read", "Карта дня і розклади з тлумаченням українською."],
-  ["weather", "now", "Погода зараз, по годинах і на тиждень."],
-  ["air", "now", "Повітря довкола наживо, з прогнозом пилку."],
+  ["weather", "now", "07:10", "Ще в ліжку, а вже знаєш, чи брати шапку."],
+  ["air", "now", "07:40", "Перед пробіжкою видно, чим сьогодні дихає місто."],
+  ["tarot", "read", "08:30", "Одна карта на день і хвилина подумати про своє."],
+  ["fonoteka", "songs", "09:00", "Метро, сигналу нема, а твої пісні грають далі."],
+  ["muzak", "likes", "13:00", "Усе, що ти лайкнув на YouTube, звучить тут, у твоєму плеєрі."],
+  ["iptv", "watch", "20:00", "Вечір, диван і прямий ефір з будь-якої країни."],
+  ["remix", "mix", "01:00", "Улюблений трек повільно й з луною. Саме те о першій ночі."],
 ];
 for (const [id] of SHOWCASE) if (!byId[id]) throw new Error(`showcase app "${id}" is not in apps/store/apps.json`);
 
@@ -28,10 +28,11 @@ for (const [id, tab] of [...SHOWCASE.map(([i, t]) => [i, t]), ["store", "apps"]]
   }
 }
 
-const rail = SHOWCASE.map(([id, tab, line], i) => {
+const rail = SHOWCASE.map(([id, tab, when, line], i) => {
   const a = byId[id];
-  return `<a class="app rise" style="--d:${Math.min(i, 3) * 70}ms" href="/${id}/"><div class="phone">${shot(`${id}--${tab}`, `${a.title}: екран застосунку`)}</div>` +
-    `<div class="who"><img src="/${id}/icon.webp" alt="" width="40" height="40" loading="lazy"><div><b>${esc(a.title)}</b><span>${esc(line)}</span></div></div></a>`;
+  return `<a class="app rise" style="--d:${Math.min(i, 3) * 70}ms" href="/${id}/"><div class="phone">${shot(`${id}--${tab}`, `${a.title}: ${line}`)}</div>` +
+    `<div class="moment"><time class="when mono">${when}</time><p>${esc(line)}</p>` +
+    `<span class="who"><img src="/${id}/icon.webp" alt="" width="24" height="24" loading="lazy">${esc(a.title)}</span></div></a>`;
 }).join("");
 
 const cats = Object.entries(apps.reduce((m, a) => ((m[a.category] ||= []).push(a), m), {})).sort((x, y) => y[1].length - x[1].length);
@@ -49,7 +50,7 @@ const jsonld = JSON.stringify({
   "@graph": [
     { "@type": "Organization", "@id": `${SITE}/#org`, name: "Mriia", url: `${SITE}/`, logo: `${SITE}/store/icons/apple-touch-icon.png` },
     { "@type": "WebSite", "@id": `${SITE}/#site`, name: "Mriia", url: `${SITE}/`, inLanguage: "uk", publisher: { "@id": `${SITE}/#org` } },
-    { "@type": "ItemList", name: "Застосунки Mriia", numberOfItems: SHOWCASE.length, itemListElement: SHOWCASE.map(([id, , line], i) => ({
+    { "@type": "ItemList", name: "Застосунки Mriia", numberOfItems: SHOWCASE.length, itemListElement: SHOWCASE.map(([id, , , line], i) => ({
       "@type": "ListItem", position: i + 1,
       item: { "@type": "WebApplication", name: byId[id].title, url: `${SITE}/${id}/`, description: line, applicationCategory: "LifestyleApplication", operatingSystem: "Android, iOS, Windows, macOS, Linux", inLanguage: ["uk", "en"], image: `${SITE}/${id}/icon.webp` },
     })) },
@@ -60,7 +61,6 @@ const icon = (name) => read(`site/icons/${name}.svg`).replace("<svg ", '<svg ari
 let html = read("site/index.html")
   .replaceAll("{{APPS}}", count("застосунок", "застосунки", "застосунків"))
   .replaceAll("{{LIGHT_APPS}}", count("легкий застосунок", "легкі застосунки", "легких застосунків"))
-  .replaceAll("{{SHELVES_N}}", cats.length === 10 ? "Десять" : String(cats.length))
   .replaceAll("{{YEAR}}", String(new Date().getUTCFullYear()))
   .replace("{{JSONLD}}", jsonld)
   .replaceAll("{{HERO_FRONT}}", "fonoteka--songs")
