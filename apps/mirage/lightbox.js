@@ -1,6 +1,7 @@
 import { html } from "htm/preact";
 import { useEffect, useRef } from "preact/hooks";
 import { sys } from "/_rt/i18n.js";
+import { edgeStep } from "/_rt/edgetap.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const fsSupported = typeof document !== "undefined" && !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
@@ -47,7 +48,15 @@ export function Lightbox({ open, slides, src, index = 0, alt = "", onIndex, onCl
          style="scrollbar-width:none"
          onPointerDown=${(e) => { drag.current = { from: e.currentTarget.scrollLeft, moved: false }; }}
          onScroll=${onScroll}
-         onClick=${() => { if (!drag.current.moved) onClose?.(); }}>
+         onClick=${(e) => {
+           if (drag.current.moved) return;
+           // stories-style: the edges step through the slides, the middle closes, as a tap always did here
+           const el = e.currentTarget, r = el.getBoundingClientRect();
+           const step = list.length > 1 ? edgeStep(e.clientX ? e.clientX - r.left : null, r.width) : 0;
+           if (!step) { onClose?.(); return; }
+           const n = index + step;
+           if (n >= 0 && n < list.length) el.scrollTo({ left: n * el.clientWidth, behavior: "smooth" });
+         }}>
       ${list.map((s, i) => html`<div key=${s.url} class="w-full h-full shrink-0 snap-center flex items-center justify-center">
         <img src=${s.url} alt=${alt} class="max-w-full max-h-full w-full h-full object-contain" loading=${i > 1 ? "lazy" : "eager"} />
       </div>`)}

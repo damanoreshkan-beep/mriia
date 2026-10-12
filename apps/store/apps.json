@@ -1319,7 +1319,7 @@
     "bg": "#1B1114",
     "fg": "#C4687A",
     "href": "./persona/",
-    "version": "1.29",
+    "version": "1.30",
     "category": "creative",
     "needs": [
       "auth"

@@ -10,6 +10,7 @@ import { Segmented, Island, Sheet, Stage } from "/_rt/ui.js";
 import { suggestPrompt } from "/_rt/ai-text.js";
 import { downloadUrl, shareFile } from "/_rt/apk.js";
 import { Lightbox } from "./lightbox.js";
+import { edgeStep } from "/_rt/edgetap.js";
 import { usePromptHistory, HistorySheet, useOpens } from "./history.js";
 import { Chooser, Camera } from "/_rt/intake.js";
 import { STYLES, styleOf, styleThumb } from "./styles.js";
@@ -107,6 +108,15 @@ export function mirage({ S, toast }) {
   const share = async () => { if (!shown) return; try { const r = await shareFile(await (await fetch(shown)).blob(), `mirage-${cur?.seed || Date.now()}.${cur?.ext || "jpg"}`); if (r === "saved") toast?.(T(t, "saved")); } catch { toast?.(T(t, "eNetwork")); } };
   const copy = async () => { try { await navigator.clipboard.writeText(read.text); toast?.(T(t, "copied")); } catch { toast?.(T(t, "eNetwork")); } };
   const onScroll = (e) => { const el = e.currentTarget; const n = Math.round(el.scrollLeft / Math.max(1, el.clientWidth)); if (n !== st.idx && n >= 0 && n < slides.length) M.patch(mode, { idx: n }); };
+  // stories-style: the left third steps back, the right third forward (the scroll lands it, onScroll sets idx), the
+  // middle opens the picture full size; a swipe still moves the slides as before
+  const onSlidesTap = (e) => {
+    const el = e.currentTarget, r = el.getBoundingClientRect();
+    const step = slides.length > 1 ? edgeStep(e.clientX ? e.clientX - r.left : null, r.width) : 0;
+    if (!step) { S.screen.set("view"); return; }
+    const n = st.idx + step;
+    if (n >= 0 && n < slides.length) el.scrollTo({ left: n * el.clientWidth, behavior: "smooth" });
+  };
   const onKey = (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } };
   const canGo = working || (mode === "make" ? !!st.prompt.trim() : mode === "edit" ? !!(st.prompt.trim() && st.src) : twoSlot ? !!(st.prompt.trim() && st.a && st.b) : !!st.src);
   const goIcon = working ? "lucide:square" : ICONS[mode];
@@ -137,9 +147,9 @@ export function mirage({ S, toast }) {
       ${live.step ? html`<div class="font-mono text-[0.68rem] text-white/70 tabular-nums">${live.step}</div>` : null}
     </div>` : null;
     if (slides.length) return html`<${Fragment}>
-      <div data-slides tabindex="0" role="region" aria-label=${T(t, "slides")} class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory outline-none" style="scrollbar-width:none" onScroll=${onScroll}>
+      <div data-slides tabindex="0" role="region" aria-label=${T(t, "slides")} class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory outline-none" style="scrollbar-width:none" onScroll=${onScroll} onClick=${onSlidesTap}>
         ${slides.map((s, i) => html`<div key=${s.url} class="w-full h-full shrink-0 snap-center flex items-center justify-center p-[var(--ms-gap)] pb-6">
-          <img data-result data-slide=${i} src=${s.url} alt=${st.prompt} class=${frame} loading=${i > 1 ? "lazy" : "eager"} onClick=${() => S.screen.set("view")} />
+          <img data-result data-slide=${i} src=${s.url} alt=${st.prompt} class=${frame} loading=${i > 1 ? "lazy" : "eager"} />
         </div>`)}
       </div>
       ${mode === "edit" && hold ? slot(html`<img src=${st.original} alt=${T(t, "original")} class=${`${frame} pointer-events-none`} />`) : null}
