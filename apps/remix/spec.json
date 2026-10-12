@@ -6,6 +6,13 @@
   "share": true,
   "tabs": [
     {
+      "id": "likes",
+      "type": "tool",
+      "icon": "lucide:heart",
+      "label": "tabLikes",
+      "view": "likes"
+    },
+    {
       "id": "mix",
       "type": "tool",
       "icon": "lucide:disc-3",

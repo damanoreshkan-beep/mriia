@@ -1702,29 +1702,32 @@
       "en": "Remix",
       "uk": "Ремікс"
     },
-    "tagline": "Пісня з YouTube Music на повзунку швидкості: від super slowed + reverb до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.",
+    "tagline": "Твої вподобані пісні з YouTube на повзунку швидкості, від super slowed до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.",
     "taglines": {
-      "en": "A YouTube Music song on a speed slider: from super slowed + reverb to super sped up. Tempo and space are chosen for the song itself; mp3 files with the cover.",
-      "uk": "Пісня з YouTube Music на повзунку швидкості: від super slowed + reverb до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою."
+      "en": "Your liked YouTube songs on a speed slider, from super slowed to super sped up. Tempo and space are chosen for the song itself; mp3 files with the cover.",
+      "uk": "Твої вподобані пісні з YouTube на повзунку швидкості, від super slowed до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою."
     },
     "glyph": "lucide:disc-3",
     "art": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M6 12c0-1.7.7-3.2 1.8-4.2\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M18 12c0 1.7-.7 3.2-1.8 4.2\"/>",
     "icon": true,
     "screens": {
       "en": [
+        "Liked",
         "Remix"
       ],
       "uk": [
+        "Вподобане",
         "Ремікс"
       ]
     },
     "shots": [
+      "likes",
       "mix"
     ],
     "bg": "#160A12",
     "fg": "#FF7AB6",
     "href": "./remix/",
-    "version": "1.12",
+    "version": "1.14",
     "category": "sound",
     "needs": [],
     "added": "2026-10-07"

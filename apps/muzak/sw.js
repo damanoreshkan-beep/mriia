@@ -1,6 +1,6 @@
 self.MS = {
   app: "muzak",
-  version: "14563f890b",
+  version: "f118a14f26",
   precache: [
     "./",
     "./i18n/en.json",
@@ -72,6 +72,7 @@ self.MS = {
     "/_rt/video.js",
     "/_rt/watch.js",
     "/_rt/weather.js",
+    "/_rt/ytlikes.js",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4",
     "https://cdn.jsdelivr.net/npm/daisyui@5",
     "https://cdn.jsdelivr.net/npm/daisyui@5/themes.css",
