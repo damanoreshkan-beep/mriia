@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mriia: {{APPS}} для телефона, що працюють без інтернету</title>
+<meta name="description" content="{{LIGHT_APPS}} українською: музика, фото, наука, ефір і корисні дрібниці. Ставляться на телефон в один дотик і відкриваються без інтернету.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://mriia.si/">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F4EE" media="(prefers-color-scheme: light)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mriia">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:url" content="https://mriia.si/">
+<meta property="og:title" content="Mriia: застосунки, що живуть у твоєму телефоні">
+<meta property="og:description" content="{{LIGHT_APPS}} українською. Ставляться в один дотик і відкриваються без інтернету.">
+<meta property="og:image" content="https://mriia.si/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Mriia: екрани застосунків на телефоні">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mriia: застосунки, що живуть у твоєму телефоні">
+<meta name="twitter:description" content="{{LIGHT_APPS}} українською. Ставляться в один дотик і відкриваються без інтернету.">
+<meta name="twitter:image" content="https://mriia.si/og.jpg">
+<link rel="icon" href="/store/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/store/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="/store/assets/shot-{{HERO_FRONT}}.webp" media="(prefers-color-scheme: dark)">
+<link rel="preload" as="image" href="/store/assets/shot-{{HERO_FRONT}}--light.webp" media="(prefers-color-scheme: light)">
+<script type="application/ld+json">{{JSONLD}}</script>
+<style>
+/* MRIIA'S FRONT DOOR — the luminous material (dreamstudio rt/theme-lum.css): true black, warm ink, light as the
+   structure, amber the warm pole and cyan the cool one; paper for the light mode, where a glow would be a smear and
+   the deep pole lights instead. One radius ladder: phones 44, tiles 28, pills full. */
+:root {
+  color-scheme: dark;
+  --bg: #000000; --raise: #0B0B0D; --ink: #F2EEE6; --muted: #A39E94; --hair: rgb(242 238 230 / .11);
+  --amber: #F2B84B; --cyan: #5CE4DC; --mark: #F2B84B; --bloom: rgb(242 184 75 / .30); --bloom-2: rgb(92 228 220 / .18);
+  --cta-bg: #F2EEE6; --cta-ink: #000000;
+  --r-phone: 44px; --r-tile: 28px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --pad: clamp(1.25rem, 4vw, 3rem);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #F6F4EE; --raise: #EFEBE2; --ink: #141210; --muted: #5E5A52; --hair: rgb(20 18 16 / .12);
+    --mark: #6F4800; --bloom: transparent; --bloom-2: transparent;
+    --cta-bg: #141210; --cta-ink: #F6F4EE;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1rem/1.55 "Geist", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+img { display: block; max-width: 100%; height: auto; }
+.wrap { width: min(1240px, 100%); margin-inline: auto; padding-inline: var(--pad); }
+.mono { font-family: "Geist Mono", ui-monospace, monospace; }
+.muted { color: var(--muted); }
+:focus-visible { outline: 2px solid var(--mark); outline-offset: 3px; border-radius: 12px; }
+
+/* header: the wordmark only, and the one action */
+.top { position: sticky; top: 0; z-index: 10; background: color-mix(in oklch, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--hair); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.mark { font-weight: 650; font-size: 1.3rem; letter-spacing: -.02em; text-decoration: none; }
+.cta { display: inline-flex; align-items: center; gap: .55rem; height: 48px; padding: 0 1.4rem; border-radius: 999px; background: var(--cta-bg); color: var(--cta-ink); font-weight: 600; text-decoration: none; white-space: nowrap; box-shadow: 0 0 0 1px var(--hair), 0 10px 40px -10px var(--bloom); transition: transform .2s var(--ease), box-shadow .3s var(--ease); }
+.cta:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px var(--hair), 0 14px 50px -8px var(--bloom); }
+.cta:active { transform: scale(.98); }
+.cta.sm { height: 40px; padding: 0 1.05rem; font-size: .93rem; }
+.cta svg { width: 1.05em; height: 1.05em; }
+
+/* hero: the claim on the left, the real screens on the right */
+.hero { padding-block: clamp(2.5rem, 7vw, 5.5rem) clamp(3rem, 8vw, 6rem); }
+.hero .wrap { display: grid; gap: clamp(2.5rem, 6vw, 4rem); align-items: center; }
+@media (min-width: 900px) { .hero .wrap { grid-template-columns: 1.08fr .92fr; } }
+h1 { margin: 0; font-weight: 640; font-size: clamp(2.5rem, 6.4vw, 4.75rem); line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; }
+h1 .lit { color: var(--mark); }
+.lede { margin: 1.4rem 0 2.1rem; max-width: 34rem; font-size: clamp(1.06rem, 1.6vw, 1.22rem); color: var(--muted); text-wrap: pretty; }
+.phones { position: relative; height: clamp(440px, 62vw, 620px); }
+.phones::before { content: ""; position: absolute; inset: 12% 6% 4%; background: radial-gradient(closest-side, var(--bloom), transparent 70%), radial-gradient(closest-side at 70% 70%, var(--bloom-2), transparent 70%); filter: blur(30px); pointer-events: none; }
+/* a phone: a bezel of the raised ground around the screen, so the screen's own corners never cut the app's header */
+.phone { position: absolute; width: clamp(210px, 28vw, 290px); aspect-ratio: 384 / 832; padding: 7px; border-radius: var(--r-phone); background: var(--raise); box-shadow: 0 0 0 1px var(--hair), inset 0 1px 0 rgb(255 255 255 / .07), 0 30px 80px -30px rgb(0 0 0 / .55); }
+.phone picture, .phone img { display: block; width: 100%; height: 100%; }
+.phone img { object-fit: cover; object-position: top; border-radius: calc(var(--r-phone) - 7px); }
+.phone.back { left: 4%; top: 0; transform: rotate(-5deg); }
+.phone.front { right: 4%; bottom: 0; transform: rotate(4deg); }
+@media (max-width: 899px) { .phones { height: clamp(420px, 120vw, 600px); } .phone { width: min(56vw, 270px); } .phone.back { left: 2%; } .phone.front { right: 2%; } }
+
+/* sections */
+section { padding-block: clamp(3.5rem, 9vw, 7rem); }
+h2 { margin: 0 0 2.2rem; font-weight: 620; font-size: clamp(1.85rem, 4vw, 3rem); line-height: 1.06; letter-spacing: -.03em; max-width: 22ch; text-wrap: balance; }
+
+/* the rail: real screens, flick through */
+.rail { display: grid; grid-auto-flow: column; grid-auto-columns: clamp(220px, 26vw, 280px); gap: 1.25rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .5rem var(--pad) 1.5rem; margin-inline: calc(-1 * var(--pad)); scrollbar-width: none; overscroll-behavior-x: contain; }
+.rail::-webkit-scrollbar { display: none; }
+.app { scroll-snap-align: start; text-decoration: none; display: grid; gap: .9rem; }
+.app .phone { position: relative; width: 100%; transform: none; transition: transform .35s var(--ease), box-shadow .35s var(--ease); }
+.app:hover .phone { transform: translateY(-4px); box-shadow: 0 0 0 1px color-mix(in oklch, var(--mark) 55%, transparent), 0 24px 60px -24px var(--bloom); }
+.app .who { display: flex; align-items: center; gap: .7rem; }
+.app .who img { width: 40px; height: 40px; border-radius: 12px; }
+.app b { display: block; font-weight: 600; }
+.app span { display: block; font-size: .92rem; color: var(--muted); line-height: 1.35; }
+
+/* the shelves: every category, as many tiles as there are */
+.bento { display: grid; gap: .85rem; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 760px) { .bento { grid-template-columns: repeat(4, 1fr); gap: 1rem; } .shelf.big { grid-column: span 2; } }
+/* a phone: the wide shelves across, the rest two by two, low tiles, four faces at most (tools/site.mjs picks how many
+   are wide so both grids close their last row) */
+@media (max-width: 759px) {
+  .shelf, .shelf.big { min-height: 140px; padding: 1.1rem; }
+  .shelf.big { grid-column: span 2; min-height: 160px; }
+  .shelf .icons img { width: 34px; height: 34px; }
+  .shelf:not(.big) .icons img:nth-child(n+5) { display: none; }
+}
+.shelf { position: relative; overflow: hidden; border-radius: var(--r-tile); padding: 1.35rem 1.35rem 1.2rem; background: var(--raise); box-shadow: 0 0 0 1px var(--hair), inset 0 1px 0 rgb(255 255 255 / .05); text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; min-height: 168px; transition: box-shadow .3s var(--ease); }
+.shelf:hover { box-shadow: 0 0 0 1px color-mix(in oklch, var(--mark) 50%, transparent), 0 18px 50px -24px var(--bloom); }
+.shelf.big { min-height: 210px; }
+.shelf .n { font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 600; letter-spacing: -.03em; line-height: 1; }
+.shelf .t { margin-top: .35rem; font-weight: 560; }
+.shelf .icons { display: flex; margin-top: 1.1rem; }
+.shelf .icons img { width: 38px; height: 38px; border-radius: 11px; box-shadow: 0 0 0 2px var(--raise); }
+.shelf .icons img + img { margin-left: -8px; }
+.shelf.lit { background: radial-gradient(120% 90% at 100% 0%, color-mix(in oklch, var(--amber) 22%, transparent), transparent 60%), var(--raise); }
+.shelf.cool { background: radial-gradient(120% 90% at 0% 100%, color-mix(in oklch, var(--cyan) 18%, transparent), transparent 60%), var(--raise); }
+@media (prefers-color-scheme: light) { .shelf.lit, .shelf.cool { background: var(--raise); } }
+
+/* how it lives: one tall screen beside the three facts */
+.lives .wrap { display: grid; gap: clamp(2rem, 6vw, 5rem); align-items: center; }
+@media (min-width: 900px) { .lives .wrap { grid-template-columns: .8fr 1.2fr; } }
+.lives .phone { position: relative; transform: none; margin-inline: auto; width: min(300px, 58vw); }
+@media (max-width: 899px) { .lives .phone { width: min(230px, 56vw); } }
+.facts { display: grid; gap: 2.2rem; }
+.fact { display: grid; grid-template-columns: 52px 1fr; gap: 1.1rem; align-items: start; }
+.fact .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--raise); box-shadow: 0 0 0 1px var(--hair); color: var(--mark); }
+.fact .ic svg { width: 24px; height: 24px; }
+.fact h3 { margin: .2rem 0 .35rem; font-size: 1.22rem; font-weight: 600; letter-spacing: -.015em; }
+.fact p { margin: 0; color: var(--muted); max-width: 46ch; }
+
+/* the last word */
+.end { text-align: center; }
+.end h2 { margin-inline: auto; max-width: 18ch; }
+.end .big { font-weight: 660; font-size: clamp(4rem, 15vw, 11rem); letter-spacing: -.05em; line-height: .9; margin: 0 0 2.5rem; background: linear-gradient(180deg, var(--ink) 30%, color-mix(in oklch, var(--ink) 25%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+footer { border-top: 1px solid var(--hair); padding-block: 2rem 2.6rem; font-size: .92rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; align-items: center; }
+footer nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+footer a { text-decoration: none; color: var(--muted); }
+footer a:hover { color: var(--ink); }
+
+/* motion: things arrive once, where they are; nothing loops */
+@media (prefers-reduced-motion: no-preference) {
+  .js .rise { opacity: 0; transform: translateY(18px); transition: opacity .7s var(--ease), transform .7s var(--ease); transition-delay: var(--d, 0ms); }
+  .js .rise.in { opacity: 1; transform: none; }
+  .js .phone.back.rise { transform: translateY(26px) rotate(-5deg); }
+  .js .phone.back.rise.in { transform: rotate(-5deg); }
+  .js .phone.front.rise { transform: translateY(34px) rotate(4deg); }
+  .js .phone.front.rise.in { transform: rotate(4deg); }
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add("js")</script>
+<header class="top"><div class="wrap">
+  <a class="mark" href="/" aria-label="Mriia, на головну">Mriia</a>
+  <a class="cta sm" href="/store/">Відкрити каталог</a>
+</div></header>
+
+<main>
+<section class="hero" aria-labelledby="h-hero"><div class="wrap">
+  <div>
+    <h1 id="h-hero" class="rise">Застосунки, що живуть у <span class="lit">твоєму телефоні</span></h1>
+    <p class="lede rise" style="--d:80ms">{{LIGHT_APPS}} українською: музика, фото, наука, ефір і корисні дрібниці. Ставляться в один дотик і відкриваються без інтернету.</p>
+    <a class="cta rise" style="--d:160ms" href="/store/">Відкрити каталог {{ICON arrow-right}}</a>
+  </div>
+  <div class="phones">
+    <div class="phone back rise" style="--d:120ms">{{HERO_BACK_IMG}}</div>
+    <div class="phone front rise" style="--d:260ms">{{HERO_FRONT_IMG}}</div>
+  </div>
+</div></section>
+
+<section aria-labelledby="h-rail"><div class="wrap">
+  <h2 id="h-rail" class="rise">Кожен робить одну річ і робить її добре</h2>
+  <div class="rail">{{RAIL}}</div>
+</div></section>
+
+<section aria-labelledby="h-shelves"><div class="wrap">
+  <h2 id="h-shelves" class="rise">{{SHELVES_N}} полиць, {{APPS}}</h2>
+  <div class="bento">{{BENTO}}</div>
+</div></section>
+
+<section class="lives" aria-labelledby="h-lives"><div class="wrap">
+  <div class="phone rise lives-phone">{{LIVES_IMG}}</div>
+  <div>
+    <h2 id="h-lives" class="rise">Ставиться як застосунок, лишається з тобою</h2>
+    <div class="facts">
+      <div class="fact rise"><div class="ic" aria-hidden="true">{{ICON smartphone}}</div>
+        <div><h3>Один дотик до головного екрана</h3><p>Відкрив, натиснув «Встановити», і застосунок стоїть поруч з іншими. Без магазину і без очікування.</p></div></div>
+      <div class="fact rise" style="--d:80ms"><div class="ic" aria-hidden="true">{{ICON wifi-off}}</div>
+        <div><h3>Відкривається без інтернету</h3><p>Застосунок зберігається на телефоні, тож запускається і в метро, і в полі. Мережа потрібна лише для свіжих даних.</p></div></div>
+      <div class="fact rise" style="--d:160ms"><div class="ic" aria-hidden="true">{{ICON languages}}</div>
+        <div><h3>Українською й англійською</h3><p>Кожен застосунок говорить обома мовами. Мова перемикається в профілі одним дотиком.</p></div></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="end" aria-labelledby="h-end"><div class="wrap">
+  <p class="big rise" aria-hidden="true">Mriia</p>
+  <h2 id="h-end" class="rise">Обери свій перший застосунок</h2>
+  <a class="cta rise" href="/store/">Відкрити каталог {{ICON arrow-right}}</a>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span class="muted">© {{YEAR}} Mriia</span>
+  <nav aria-label="Документи"><a href="/store/privacy.html">Конфіденційність</a><a href="/store/terms.html">Умови</a></nav>
+</div></footer>
+
+<script>
+// each block rises once as it comes into view; with reduced motion the CSS above never hides it
+const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }, { rootMargin: "0px 0px -8% 0px" });
+document.querySelectorAll(".rise").forEach((el) => io.observe(el));
+</script>
+</body>
+</html>

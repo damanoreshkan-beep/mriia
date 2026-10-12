@@ -41,6 +41,10 @@ jobs:
         # mriia.si link opens the installed APK shell instead of the browser. Must ship in the
         # same dist/ the rsync below deploys (Android verifies it at install time).
         run: deno run --allow-read --allow-write tools/gen-assetlinks.mjs
+      - name: The landing at "/" (the one indexed page), robots.txt, sitemap.xml, og.jpg
+        # Replaces the build's redirect at dist/index.html with site/index.html filled from apps.json and the
+        # store's captures (tools/site.mjs). The noindex on every other path is the web server's (edge web/nginx.conf).
+        run: deno run --allow-read --allow-write tools/site.mjs dist
       - name: Eye on dist (real Chromium, measured)
         timeout-minutes: 20
         env:
