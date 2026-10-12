@@ -21,6 +21,7 @@ import "./tests/demod_test.js";
 import "./tests/df_test.js";
 import "./tests/earn_test.js";
 import "./tests/earshot_test.js";
+import "./tests/edgetap_test.js";
 import "./tests/fmradio_test.js";
 import "./tests/genchar_test.js";
 import "./tests/grain_test.js";

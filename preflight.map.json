@@ -44,6 +44,7 @@
     "/_rt/df.js": "./rt/df.js",
     "/_rt/earn.js": "./rt/earn.js",
     "/_rt/earshot.js": "./rt/earshot.js",
+    "/_rt/edgetap.js": "./rt/edgetap.js",
     "/_rt/fixture433.js": "./rt/fixture433.js",
     "/_rt/fmradio.js": "./rt/fmradio.js",
     "/_rt/fonoteka.js": "./rt/fonoteka.js",
