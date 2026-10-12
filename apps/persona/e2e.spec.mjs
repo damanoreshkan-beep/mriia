@@ -12,7 +12,7 @@ export default [
     name: "полиця показує людей із портретами, не порожній екран", run: async (h) => {
       h.expect(await shelf(h), "полиця не змонтувалася");
       h.expect((await h.count(".aw-tap")) >= 5, `на полиці лише ${await h.count(".aw-tap")} карток`);
-      h.expect(/Шерлок Холмс|Sherlock Holmes/.test(await h.bodyText()), "першої особи фікстури немає на полиці");
+      h.expect(/Сократ|Socrates/.test(await h.bodyText()), "першої особи фікстури немає на полиці");
     },
   },
   {
@@ -30,7 +30,7 @@ export default [
       h.expect(await openFirst(h), "розмова не відкрилася");
       for (let i = 0; i < 20; i++) { if ((await h.count("[data-msg]")) > 0 || (await h.count("[data-opener]")) > 0) break; await h.wait(150); }
       const before = await h.count("[data-msg='assistant']");
-      await h.type("[data-input]", "Де мої ключі?"); await h.wait(100);
+      await h.type("[data-input]", "Як зрозуміти, чого я хочу?"); await h.wait(100);
       await h.tap("[data-send]"); await h.wait(200);
       h.expect((await h.count("[data-msg='user']")) >= 1, "репліка читача не з'явилася");
       h.expect(await settled(h), "відповідь так і лишилася в очікуванні");
@@ -44,7 +44,7 @@ export default [
   {
     name: "порожня розмова пропонує три входи; «Почати заново» повертає їх", run: async (h) => {
       h.expect(await shelf(h), "полиця не змонтувалася");
-      await h.tap('.aw-tap[aria-label*="Кало"], .aw-tap[aria-label*="Kahlo"]'); await h.wait(500);
+      await h.tap('.aw-tap[aria-label*="Найтінгейл"], .aw-tap[aria-label*="Nightingale"]'); await h.wait(500);
       for (let i = 0; i < 20; i++) { if ((await h.count("[data-opener]")) > 0) break; await h.wait(150); }
       h.expect((await h.count("[data-opener]")) === 3, `входів у розмову ${await h.count("[data-opener]")}, а не три`);
       await h.tap("[data-opener='openerWho']"); await h.wait(200);
@@ -59,7 +59,7 @@ export default [
   {
     name: "форма: портрет — у власній формі особи, і форма та сама, коли картка стискається в рядок", run: async (h) => {
       h.expect(await shelf(h), "полиця не змонтувалася");
-      await h.tap('.aw-tap[aria-label*="Кало"], .aw-tap[aria-label*="Kahlo"]'); await h.wait(500);
+      await h.tap('.aw-tap[aria-label*="Найтінгейл"], .aw-tap[aria-label*="Nightingale"]'); await h.wait(500);
       for (let i = 0; i < 20; i++) { if ((await h.count("[data-opener]")) > 0 || (await h.count("[data-new-chat]")) > 0) break; await h.wait(150); }
       if ((await h.count("[data-new-chat]")) > 0) { await h.tap("[data-new-chat]"); await h.wait(200); }   // the full card shows on an empty thread
       h.expect((await h.count("[data-intro]:not([data-slim]) [data-portrait] .pn-art img")) === 1, "портрет не всередині форми");
