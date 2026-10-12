@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Mriia: {{APPS}} для телефона, що працюють без інтернету</title>
-<meta name="description" content="{{LIGHT_APPS}} українською: музика, фото, наука, ефір і корисні дрібниці. Ставляться на телефон в один дотик і відкриваються без інтернету.">
+<title>Mriia: {{APPS}} українською для телефона, що працюють без мережі</title>
+<meta name="description" content="Музика, що грає без інтернету, погода й повітря зранку, прямий ефір з усього світу ввечері. {{LIGHT_APPS}} українською, які ставляться на телефон одним дотиком.">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="https://mriia.si/">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -13,15 +13,15 @@
 <meta property="og:site_name" content="Mriia">
 <meta property="og:locale" content="uk_UA">
 <meta property="og:url" content="https://mriia.si/">
-<meta property="og:title" content="Mriia: застосунки, що живуть у твоєму телефоні">
-<meta property="og:description" content="{{LIGHT_APPS}} українською. Ставляться в один дотик і відкриваються без інтернету.">
+<meta property="og:title" content="Mriia: усе для твого дня, навіть без мережі">
+<meta property="og:description" content="Пісні, що грають у метро, погода зранку, ефір з усього світу ввечері. {{LIGHT_APPS}} українською.">
 <meta property="og:image" content="https://mriia.si/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Mriia: екрани застосунків на телефоні">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Mriia: застосунки, що живуть у твоєму телефоні">
-<meta name="twitter:description" content="{{LIGHT_APPS}} українською. Ставляться в один дотик і відкриваються без інтернету.">
+<meta name="twitter:title" content="Mriia: усе для твого дня, навіть без мережі">
+<meta name="twitter:description" content="Пісні, що грають у метро, погода зранку, ефір з усього світу ввечері. {{LIGHT_APPS}} українською.">
 <meta name="twitter:image" content="https://mriia.si/og.jpg">
 <link rel="icon" href="/store/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/store/icons/apple-touch-icon.png">
@@ -77,6 +77,8 @@ img { display: block; max-width: 100%; height: auto; }
 .hero .wrap { display: grid; gap: clamp(2.5rem, 6vw, 4rem); align-items: center; }
 @media (min-width: 900px) { .hero .wrap { grid-template-columns: 1.08fr .92fr; } }
 h1 { margin: 0; font-weight: 640; font-size: clamp(2.5rem, 6.4vw, 4.75rem); line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; }
+/* each sentence of the headline starts its own line and balances on its own ("дня." never hangs alone) */
+h1 .ln { display: block; text-wrap: balance; }
 h1 .lit { color: var(--mark); }
 .lede { margin: 1.4rem 0 2.1rem; max-width: 34rem; font-size: clamp(1.06rem, 1.6vw, 1.22rem); color: var(--muted); text-wrap: pretty; }
 .phones { position: relative; height: clamp(440px, 62vw, 620px); }
@@ -99,10 +101,11 @@ h2 { margin: 0 0 2.2rem; font-weight: 620; font-size: clamp(1.85rem, 4vw, 3rem);
 .app { scroll-snap-align: start; text-decoration: none; display: grid; gap: .9rem; }
 .app .phone { position: relative; width: 100%; transform: none; transition: transform .35s var(--ease), box-shadow .35s var(--ease); }
 .app:hover .phone { transform: translateY(-4px); box-shadow: 0 0 0 1px color-mix(in oklch, var(--mark) 55%, transparent), 0 24px 60px -24px var(--bloom); }
-.app .who { display: flex; align-items: center; gap: .7rem; }
-.app .who img { width: 40px; height: 40px; border-radius: 12px; }
-.app b { display: block; font-weight: 600; }
-.app span { display: block; font-size: .92rem; color: var(--muted); line-height: 1.35; }
+/* the moment leads (the hour, then what happens to the reader), the app's name follows it, small */
+.app .when { display: block; font-size: .78rem; letter-spacing: .08em; color: var(--mark); }
+.app .moment p { margin: .35rem 0 .7rem; font-size: 1.02rem; font-weight: 520; line-height: 1.4; color: var(--ink); text-wrap: pretty; }
+.app .who { display: flex; align-items: center; gap: .5rem; font-size: .88rem; color: var(--muted); }
+.app .who img { width: 24px; height: 24px; border-radius: 7px; }
 
 /* the shelves: every category, as many tiles as there are */
 .bento { display: grid; gap: .85rem; grid-template-columns: repeat(2, 1fr); }
@@ -170,8 +173,8 @@ footer a:hover { color: var(--ink); }
 <main>
 <section class="hero" aria-labelledby="h-hero"><div class="wrap">
   <div>
-    <h1 id="h-hero" class="rise">Застосунки, що живуть у <span class="lit">твоєму телефоні</span></h1>
-    <p class="lede rise" style="--d:80ms">{{LIGHT_APPS}} українською: музика, фото, наука, ефір і корисні дрібниці. Ставляться в один дотик і відкриваються без інтернету.</p>
+    <h1 id="h-hero" class="rise"><span class="ln">Усе для твого дня.</span> <span class="ln lit">Навіть без мережі.</span></h1>
+    <p class="lede rise" style="--d:80ms">Пісні, що грають у метро. Погода, поки закипає чайник. Прямий ефір з іншого кінця світу. {{LIGHT_APPS}} українською, які ставляться на телефон одним дотиком.</p>
     <a class="cta rise" style="--d:160ms" href="/store/">Відкрити каталог {{ICON arrow-right}}</a>
   </div>
   <div class="phones">
@@ -181,33 +184,33 @@ footer a:hover { color: var(--ink); }
 </div></section>
 
 <section aria-labelledby="h-rail"><div class="wrap">
-  <h2 id="h-rail" class="rise">Кожен робить одну річ і робить її добре</h2>
+  <h2 id="h-rail" class="rise">Від першої кави до останнього треку</h2>
   <div class="rail">{{RAIL}}</div>
 </div></section>
 
 <section aria-labelledby="h-shelves"><div class="wrap">
-  <h2 id="h-shelves" class="rise">{{SHELVES_N}} полиць, {{APPS}}</h2>
+  <h2 id="h-shelves" class="rise">На кожен настрій своя полиця</h2>
   <div class="bento">{{BENTO}}</div>
 </div></section>
 
 <section class="lives" aria-labelledby="h-lives"><div class="wrap">
   <div class="phone rise lives-phone">{{LIVES_IMG}}</div>
   <div>
-    <h2 id="h-lives" class="rise">Ставиться як застосунок, лишається з тобою</h2>
+    <h2 id="h-lives" class="rise">Поруч, навіть коли зникла мережа</h2>
     <div class="facts">
-      <div class="fact rise"><div class="ic" aria-hidden="true">{{ICON smartphone}}</div>
-        <div><h3>Один дотик до головного екрана</h3><p>Відкрив, натиснув «Встановити», і застосунок стоїть поруч з іншими. Без магазину і без очікування.</p></div></div>
-      <div class="fact rise" style="--d:80ms"><div class="ic" aria-hidden="true">{{ICON wifi-off}}</div>
-        <div><h3>Відкривається без інтернету</h3><p>Застосунок зберігається на телефоні, тож запускається і в метро, і в полі. Мережа потрібна лише для свіжих даних.</p></div></div>
+      <div class="fact rise"><div class="ic" aria-hidden="true">{{ICON wifi-off}}</div>
+        <div><h3>У метро, в укритті, коли вимкнули світло</h3><p>Застосунок живе в телефоні, тож відкривається завжди. Інтернет потрібен тільки для свіжого: новин, погоди, ефіру.</p></div></div>
+      <div class="fact rise" style="--d:80ms"><div class="ic" aria-hidden="true">{{ICON smartphone}}</div>
+        <div><h3>Ставиш, як звичайний застосунок</h3><p>Натиснув «Встановити», і він уже на головному екрані поруч з улюбленими. Без магазину і без очікування.</p></div></div>
       <div class="fact rise" style="--d:160ms"><div class="ic" aria-hidden="true">{{ICON languages}}</div>
-        <div><h3>Українською й англійською</h3><p>Кожен застосунок говорить обома мовами. Мова перемикається в профілі одним дотиком.</p></div></div>
+        <div><h3>Говорить українською</h3><p>Від першого екрана до останньої кнопки. А для друга з-за кордону англійська вмикається в профілі.</p></div></div>
     </div>
   </div>
 </div></section>
 
 <section class="end" aria-labelledby="h-end"><div class="wrap">
   <p class="big rise" aria-hidden="true">Mriia</p>
-  <h2 id="h-end" class="rise">Обери свій перший застосунок</h2>
+  <h2 id="h-end" class="rise">З чого почнеш свій день?</h2>
   <a class="cta rise" href="/store/">Відкрити каталог {{ICON arrow-right}}</a>
 </div></section>
 </main>
