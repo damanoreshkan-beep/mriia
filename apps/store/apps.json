@@ -1702,10 +1702,10 @@
       "en": "Remix",
       "uk": "Ремікс"
     },
-    "tagline": "Пісня з YouTube Music у трьох версіях: slowed + reverb, deep slowed і nightcore. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.",
+    "tagline": "Пісня з YouTube Music на повзунку швидкості: від super slowed + reverb до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.",
     "taglines": {
-      "en": "A YouTube Music song in three versions: slowed + reverb, deep slowed and nightcore. Tempo and space are chosen for the song itself; mp3 files with the cover.",
-      "uk": "Пісня з YouTube Music у трьох версіях: slowed + reverb, deep slowed і nightcore. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою."
+      "en": "A YouTube Music song on a speed slider: from super slowed + reverb to super sped up. Tempo and space are chosen for the song itself; mp3 files with the cover.",
+      "uk": "Пісня з YouTube Music на повзунку швидкості: від super slowed + reverb до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою."
     },
     "glyph": "lucide:disc-3",
     "art": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M6 12c0-1.7.7-3.2 1.8-4.2\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M18 12c0 1.7-.7 3.2-1.8 4.2\"/>",
@@ -2407,7 +2407,7 @@
     "bg": "#07131A",
     "fg": "#5BC8FF",
     "href": "./fonoteka/",
-    "version": "1.21",
+    "version": "1.23",
     "category": "sound",
     "needs": [],
     "added": "2026-10-07"
@@ -3138,7 +3138,7 @@
     "bg": "#16122A",
     "fg": "#B9A2FF",
     "href": "./prism/",
-    "version": "1.0",
+    "version": "1.1",
     "category": "creative",
     "needs": [
       "auth",

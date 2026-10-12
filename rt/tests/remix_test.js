@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { VARIANTS, remixFile, roomKey, presetLine, whyKeys, parseTags, groundSong, errorKey, FIXTURE_ANALYSIS } from "../remix.js";
+import { STEPS, DEFAULT_STEP, ORIGINAL_AT, TAG, carryTime, remixFile, roomKey, presetLine, whyKeys, parseTags, groundSong, errorKey, FIXTURE_ANALYSIS } from "../remix.js";
 
 Deno.test("remix: the file name carries the variant's words and no path characters", () => {
   assertEquals(remixFile({ id: "x", artist: "Rick Astley", title: "Never Gonna Give You Up" }, "slowed"), "Rick Astley - Never Gonna Give You Up (slowed + reverb).mp3");
@@ -38,5 +38,20 @@ Deno.test("remix: the grounding block names the song and nothing else; the sig i
 
 Deno.test("remix: status → error key, 401 stays silent", () => {
   assertEquals([errorKey(401), errorKey(413), errorKey(429), errorKey(400), errorKey(502)], ["", "errLong", "errBusy", "errLink", "errMeta"]);
-  assertEquals(VARIANTS, ["slowed", "deep", "nightcore"]);
+});
+
+Deno.test("remix: six steps slow → fast, 1× between slowed and sped up, a name and a fixture preset for each", () => {
+  assertEquals(STEPS, ["superslow", "deep", "slowed", "spedup", "nightcore", "superfast"]);
+  assert(STEPS.includes(DEFAULT_STEP));
+  const sp = STEPS.map((v) => FIXTURE_ANALYSIS.presets[v].speed);
+  for (let i = 1; i < sp.length; i++) assert(sp[i] > sp[i - 1], sp.join(" < "));
+  assert(sp[Math.floor(ORIGINAL_AT)] < 1 && sp[Math.ceil(ORIGINAL_AT)] > 1, "1× sits between slowed and sped up");
+  for (const v of STEPS) assert(TAG[v] && !/[\\/:*?"<>|]/.test(TAG[v]), v);
+  assertEquals(remixFile({ id: "x", artist: "Band", title: "Song" }, "superfast"), "Band - Song (super sped up).mp3");
+});
+
+Deno.test("remix: a step change keeps the same spot in the song", () => {
+  assertEquals(carryTime(60, 0.85, 0.85), 60);
+  assert(Math.abs(carryTime(85, 0.85, 1.7) - 42.5) < 1e-9, "twice as fast → half the file time");
+  assertEquals(carryTime(10, 0, 1.2), 0, "an unknown speed restarts rather than guesses");
 });
