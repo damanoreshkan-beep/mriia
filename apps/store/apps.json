@@ -101,7 +101,7 @@
     "bg": "#0d1117",
     "fg": "#7c9cf7",
     "href": "./openapps/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "feeds",
     "needs": []
   },
@@ -173,7 +173,7 @@
     "bg": "#202122",
     "fg": "#ffffff",
     "href": "./wiki/",
-    "version": "1.23",
+    "version": "1.24",
     "category": "feeds",
     "needs": []
   },
@@ -782,7 +782,7 @@
     "bg": "#0f0f12",
     "fg": "#f4b942",
     "href": "./cinema/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "feeds",
     "needs": []
   },
@@ -889,7 +889,7 @@
     "bg": "#1c1917",
     "fg": "#d6b370",
     "href": "./books/",
-    "version": "1.22",
+    "version": "1.23",
     "category": "feeds",
     "needs": []
   },
@@ -1286,7 +1286,7 @@
     "bg": "#1a1a1a",
     "fg": "#FFD21E",
     "href": "./hf/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "feeds",
     "needs": []
   },
@@ -2447,7 +2447,7 @@
     "bg": "#0d1117",
     "fg": "#3fb950",
     "href": "./frontier/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "feeds",
     "needs": []
   },
@@ -2884,7 +2884,7 @@
     "bg": "#1f2430",
     "fg": "#ff6600",
     "href": "./hn/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "feeds",
     "needs": []
   },
@@ -2917,7 +2917,7 @@
     "bg": "#141414",
     "fg": "#ef4444",
     "href": "./iptv/",
-    "version": "1.24",
+    "version": "1.25",
     "category": "feeds",
     "needs": []
   },
