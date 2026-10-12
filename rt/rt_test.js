@@ -29,6 +29,7 @@ import "./tests/hackrf_test.js";
 import "./tests/horoscope_test.js";
 import "./tests/hunt_test.js";
 import "./tests/iching_test.js";
+import "./tests/id3_test.js";
 import "./tests/ism433_test.js";
 import "./tests/langid_test.js";
 import "./tests/lora_test.js";

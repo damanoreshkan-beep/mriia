@@ -16,6 +16,16 @@ export default [
     },
   },
   {
+    name: "альбоми: сітка плиток, кожна у формі своєї пісні; обкладинка з файлу там, де вона є", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-albums] [data-song]")) === 3, "не три альбоми в сітці");
+      h.expect((await h.count("[data-albums] [data-song] .fk-art")) === 3 && (await h.count("[data-albums] .fk-arim path")) === 3, "у альбомів немає форми з обідком");
+      h.expect(/url\("?#fk-c-/.test(await h.css("[data-albums] .fk-art", "clip-path")), "обкладинка не вирізана формою пісні");
+      h.expect((await h.count('[data-song][data-cover="true"] .fk-art img')) === 1, "обкладинка з файлу не показана");
+      h.expect((await h.count('[data-albums] [data-song]:not([data-cover]) .fk-art img')) === 0, "пісня без обкладинки показує картинку");
+    },
+  },
+  {
     name: "плеєр: тап на пісню грає її (aria-pressed, data-playing, назва в транспорті), play/pause, next по колу", run: async (h) => {
       await ready(h);
       await h.tap('[data-play="b2c3d4e5f6071829"]'); await h.wait(200);
