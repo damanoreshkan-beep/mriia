@@ -4,7 +4,7 @@
 
 # Ремікс
 
-**Пісня з YouTube Music у трьох версіях: slowed + reverb, deep slowed і nightcore. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.**
+**Пісня з YouTube Music на повзунку швидкості: від super slowed + reverb до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 

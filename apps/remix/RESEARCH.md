@@ -1,4 +1,4 @@
-# remix — a YouTube Music link → slowed + reverb · deep slowed · nightcore, tuned to the song
+# remix — a YouTube Music link → a speed stepper from super slowed + reverb to super sped up, tuned to the song
 
 Built 2026-10-07. Every number here was measured (ffmpeg 8.1 on the laptop and in the media container), the
 producer heuristics are cited from the guides they came from, and the UNVERIFIED list is at the end.
@@ -75,14 +75,43 @@ app runs it first (15 s race), then `analyze`, then the three `remix` calls toge
 means the base rules — the screen never waits on it alone.
 
 ## The screen
-Three panels on one tab. Link (field, paste, find) and Song (cover, title, byline, length) are muzak's. After
+(The three rows below were replaced by the stepper on 2026-10-12 — see «The stepper».) Three panels on one tab. Link (field, paste, find) and Song (cover, title, byline, length) are muzak's. After
 "Three remixes": the Song panel grows a mono readout — `113 BPM · dense mix · vocal up front · pop` — and the
 AI's one sentence; the Remixes panel lists the three versions, each with `0.85× · 96 BPM · soft space`, a
 skeleton while it renders, a save button when it lands, and the kit's `Transport` (sm) plays the picked one
 through a single `Audio` element — prev/next walk the three via `advance()`. Under the gate the song, the
 analysis and the three versions are fixtures (`rt/remix.js`), so the store card shows the populated screen.
 
+## The stepper (2026-10-12)
+Owner: «замість одночасної генерації усіх 3 зроби краще повзунок степер з super slow - super fast, але збагачуй
+обережно з рісерчем не порушивши поточне рішення по якості».
+- **Six steps, one render per pick**: `superslow · deep · slowed · spedup · nightcore · superfast` (edge `STEPS`,
+  rt `STEPS`). 1× sits between slowed and sped up and is marked on the track; the stretch from 1× to the pick is lit.
+  A drag previews (name + this song's numbers, known from the analysis on), the release or a key picks; a made step
+  is kept for the song and plays at once. A step change mid-listen keeps the spot in the SONG: t' = t · s / s'.
+- **The three old steps are untouched** — `presetsOf` on 7 songs × 9 tag sets: 189 presets byte-identical to the
+  code before (a diff of the two modules, 2026-10-12). An installed app that sends no `v` still gets the three.
+- **The new three are read off their neighbours**, so every cap a song earned carries over (INFERRED synthesis):
+  | | speed | room | master |
+  |---|---|---|---|
+  | super slowed | deep − 0.08, clamp 0.62–0.70 | tail ×1.3 of deep (4–8 s), wet deep + 0.03, LP −1 kHz (≥ 5.5 kHz), pre +10 ms | LP 10 kHz |
+  | sped up | halfway from 1× to this song's nightcore, clamp 1.06–1.15 | dry | bass shelf +1.5 dB |
+  | super sped up | nightcore + 0.10, ≤ 1.40 (rap 1.25, bright vocal 1.30 — the nightcore caps hold) | dry | bass shelf +3 dB |
+  Sources: super slowed — the guides' 0.75 "effect" floor and soundtools' "Vaporwave Aesthetic" 65 % preset
+  (slider 50–100 %); its room grows by the TAIL, not the wet — "a short, dense reverb at 60 % wet sounds cluttered; a
+  long decay at 40 % wet sounds spacious… try a longer reverb size rather than more wet" (soundtools.io/slowed-reverb).
+  Sped up / super sped up — sped-up edits run 10–30 % faster with the pitch (rysupaudio's nightcore maker default
+  125 %; knowyourmeme: 25–30 %); "> 1.35 smears vocals" (§ above) is why the ceiling is 1.40 and only on songs whose
+  nightcore reached 1.30. Varispeed on every step, as before.
+- **Measured in `media` on the reference song** (pop, sung, dense; the edge's own `remixArgs`): super slowed 0.67× →
+  **−14.2 LUFS, −1.0 dBTP, 5.7 s**; deep 0.75× → −14.1 / −1.1, 5.2 s; sped up 1.15× → −13.7 / −1.5, 3.5 s; super
+  sped up 1.40× → −13.4 / −1.4, 2.9 s. The worst case the route allows — 14:12 at super slowed — renders in
+  **21.9 s**, under the 60 s `RENDER_MS`.
+- The edge keeps the downloaded song 10 min from its LAST use (was: from the download), since picks come minutes apart.
+- `step.pick` is reported on every pick: which steps people keep is the number the new rules are re-set from.
+
 ## UNVERIFIED / open
+- The three new steps' numbers are anchored to guides and one reference song, not to listening on a corpus.
 - The density thresholds (flatness 0.03 / 0.06 / 0.1, LRA 5 / 9) come from one song and the guides' words, not
   from a corpus; they are the first numbers to re-set from real use (`x-remix` on every file says what ran).
 - Tempo octave errors (half/double) on sparse or swung material — the prior at 120 BPM is the only guard.

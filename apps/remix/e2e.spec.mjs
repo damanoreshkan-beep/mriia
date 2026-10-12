@@ -1,6 +1,9 @@
 const ready = async (h) => { for (let i = 0; i < 20; i++) { if ((await h.count("[data-remix]")) > 0) break; await h.wait(300); } };
-// under the gate the fixture song arrives already mixed (view.js MIXED), so the card shows the whole screen
-const mixed = async (h) => { await ready(h); if ((await h.count("[data-track]")) === 0) { await h.tap("[data-mix]"); await h.wait(400); } };
+// under the gate the fixture song arrives already mixed at deep, slowed and nightcore (view.js MIXED)
+const mixed = async (h) => { await ready(h); if ((await h.count("[data-mix]")) > 0) { await h.tap("[data-mix]"); await h.wait(400); } };
+// a slide on the stepper: the drag (input) previews, the release (change) picks — rt/remix.js STEPS order
+const STEPS = ["superslow", "deep", "slowed", "spedup", "nightcore", "superfast"];
+const slide = async (h, v) => { const i = String(STEPS.indexOf(v)); await h.type("[data-step-range]", i); await h.select("[data-step-range]", i); await h.wait(450); };
 
 export default [
   {
@@ -14,69 +17,88 @@ export default [
     },
   },
   {
-    name: "ремікси: три версії, кожна зі швидкістю і темпом, плюс що почуто в пісні", run: async (h) => {
-      await mixed(h);
-      h.expect((await h.count("[data-track]")) === 3, "не три версії");
-      h.expect((await h.count('[data-track][data-state="ready"]')) === 3, "версії не готові під гейтом");
-      const body = await h.bodyText();
-      h.expect(/0\.85×/.test(body) && /96 BPM/.test(body), "немає швидкості й нового темпу slowed");
-      h.expect(/1\.30×/.test(body) && /147 BPM/.test(body), "немає швидкості й нового темпу nightcore");
+    name: "повзунок: шість кроків від super slow до super fast, вибраний — зі швидкістю і темпом, плюс що почуто в пісні", run: async (h) => {
+      await mixed(h); await slide(h, "slowed");
+      h.expect((await h.count("[data-stepper] [data-node]")) === 6, "не шість кроків");
+      h.expect((await h.count("[data-step-range]")) === 1, "немає повзунка");
+      h.expect((await h.attr("[data-step-range]", "aria-valuetext")) === "Slowed + reverb", "повзунок не називає крок");
+      h.expect((await h.count('[data-node][data-state="ready"]')) === 3, "під гейтом не три зроблені кроки");
+      h.expect((await h.attr('[data-node="slowed"]', "data-on")) === "true", "вибраний вузол не підсвічений");
+      h.expect(/0\.85×/.test(await h.text("[data-step-line]")) && /96 BPM/.test(await h.text("[data-step-line]")), "немає швидкості й нового темпу slowed");
+      h.expect(/1×/.test(await h.bodyText()), "немає позначки оригіналу");
       h.expect(/113 BPM/.test(await h.text("[data-readout]")), "немає темпу пісні в зчитуванні");
       h.expect(/щільний мікс|dense mix/.test(await h.text("[data-readout]")), "немає слова про щільність");
-      h.expect((await h.count("[data-save]")) === 3, "не три кнопки зберегти");
-      h.expect((await h.count("[data-mix]")) === 0, "кнопка реміксів показана, хоча версії вже готові");
+      h.expect((await h.count("[data-save]")) === 1 && (await h.count("[data-keep]")) === 1, "немає однієї пари зберегти / у Фонотеку");
+      h.expect((await h.count("[data-mix]")) === 0, "кнопка реміксу показана, хоча ремікс уже є");
     },
   },
   {
-    name: "плеєр: вибір версії — aria-pressed, одна кнопка грати перемикає data-playing", run: async (h) => {
+    name: "крок на вимогу: тягнути показує крок, відпустити — робить лише його; краї super slow і super fast", run: async (h) => {
       await mixed(h);
-      h.expect((await h.attr('[data-pick="slowed"]', "aria-pressed")) === "true", "перша версія не вибрана за замовчуванням");
-      await h.tap('[data-pick="nightcore"]'); await h.wait(150);
-      h.expect((await h.attr('[data-pick="nightcore"]', "aria-pressed")) === "true", "вибір не перемкнувся");
-      h.expect((await h.attr('[data-pick="slowed"]', "aria-pressed")) === "false", "стара версія лишилась вибраною");
+      h.expect((await h.count('[data-node="superslow"][data-state]')) === 0, "super slow зроблений до вибору");
+      await h.type("[data-step-range]", "0"); await h.wait(200);
+      h.expect(/Super slowed/.test(await h.text("[data-step-name]")), "перетягування не показало крок");
+      h.expect(/0\.67×/.test(await h.text("[data-step-line]")) && /76 BPM/.test(await h.text("[data-step-line]")), "немає чисел super slow до рендеру");
+      await h.select("[data-step-range]", "0"); await h.wait(450);
+      h.expect((await h.attr('[data-node="superslow"]', "data-state")) === "ready", "відпускання не зробило крок");
+      h.expect((await h.count('[data-node="superfast"][data-state]')) === 0, "зроблено більше, ніж вибрано");
+      await slide(h, "superfast");
+      h.expect(/1\.40×/.test(await h.text("[data-step-line]")) && /158 BPM/.test(await h.text("[data-step-line]")), "немає швидкості й темпу super fast");
+      h.expect((await h.attr('[data-node="superfast"]', "data-state")) === "ready", "super fast не зробився");
+      await slide(h, "slowed");
+    },
+  },
+  {
+    name: "плеєр: одна кнопка грати перемикає data-playing, наступна йде по зроблених кроках і тягне повзунок", run: async (h) => {
+      await mixed(h); await slide(h, "slowed");
       h.expect((await h.count("[data-transport]")) === 1 && (await h.count("#play")) === 1, "немає одного транспорту з однією кнопкою грати");
       await h.tap("#play"); await h.wait(150);
       h.expect((await h.attr("[data-remix]", "data-playing")) === "true", "гра не почалась");
       await h.tap("#play"); await h.wait(150);
       h.expect((await h.attr("[data-remix]", "data-playing")) !== "true", "пауза не спрацювала");
       await h.tap("#next"); await h.wait(150);
-      h.expect((await h.attr('[data-pick="slowed"]', "aria-pressed")) === "true", "наступна після останньої — не перша");
+      const now = await h.prop("[data-step-range]", "value");
+      h.expect(Number(now) > STEPS.indexOf("slowed"), `наступна не пішла швидше за slowed (крок ${now})`);
+      h.expect((await h.attr(`[data-node="${STEPS[Number(now)]}"]`, "data-state")) === "ready", "наступна стала на незроблений крок");
+      await slide(h, "slowed");
     },
   },
   {
-    name: "форма: кожна версія — своя форма в рядку, сфера в плеєрі перетікає у форму вибраної версії", run: async (h) => {
-      await mixed(h);
-      h.expect((await h.count("[data-pick] svg.rx-glyph")) === 3, "не три форми версій у рядках");
+    name: "форма: кожен крок — своя форма на повзунку, сфера в плеєрі перетікає у форму вибраного", run: async (h) => {
+      await mixed(h); await slide(h, "slowed");
+      h.expect((await h.count("[data-node] svg path")) === 6, "не шість форм кроків");
       h.expect((await h.count("[data-remix] [data-orb]")) === 1, "немає сфери в плеєрі");
       h.expect((await h.count("[data-tp-filament]")) === 1, "плеєр не на формі (немає нитки перемотки)");
       const was = await h.attr("[data-orb]", "data-form");
-      await h.tap('[data-pick="nightcore"]'); await h.wait(450);
+      await slide(h, "nightcore");
       const now = await h.attr("[data-orb]", "data-form");
       h.expect(!!was && !!now && was !== now, `сфера не змінила форму (${was} → ${now})`);   // slowed / nightcore seed different forms (core shapeOf)
-      await h.tap('[data-pick="slowed"]'); await h.wait(450);
-      h.expect((await h.attr("[data-orb]", "data-form")) === was, "сфера не повернулась до форми першої версії");
+      await slide(h, "slowed");
+      h.expect((await h.attr("[data-orb]", "data-form")) === was, "сфера не повернулась до форми slowed");
     },
   },
   {
     name: "зберегти: тап каже «Збережено»", run: async (h) => {
-      await mixed(h);
+      await mixed(h); await slide(h, "deep");
       await h.tap('[data-save="deep"]'); await h.wait(400);
       h.expect(/Збережено|Saved/.test(await h.bodyText()), "немає підтвердження");
+      await slide(h, "slowed");
     },
   },
   {
-    name: "посилання: не-YouTube адреса — одна фраза помилки, картка і версії зникають; YouTube-адреса повертає картку з кнопкою «Три ремікси», тап мікшує", run: async (h) => {
+    name: "посилання: не-YouTube адреса — одна фраза помилки, картка і повзунок зникають; YouTube-адреса повертає картку з кнопкою реміксу, тап мікшує", run: async (h) => {
       await ready(h);
       await h.type("[data-link]", "https://example.com/song"); await h.click("[data-find]"); await h.wait(250);
       h.expect((await h.count("[data-err]")) === 1, "немає помилки");
       h.expect(!(await h.attr("[data-remix]", "data-song")), "картка лишилась");
-      h.expect((await h.count("[data-track]")) === 0, "старі версії лишились");
+      h.expect((await h.count("[data-stepper]")) === 0, "повзунок лишився без пісні");
       await h.type("[data-link]", "https://youtu.be/dQw4w9WgXcQ"); await h.click("[data-find]"); await h.wait(300);
       h.expect((await h.count("[data-err]")) === 0, "помилка не зникла");
       h.expect((await h.attr("[data-remix]", "data-song")) === "dQw4w9WgXcQ", "картка не повернулась");
-      h.expect((await h.count("[data-mix]")) === 1, "немає кнопки реміксів для нової пісні");
+      h.expect((await h.count("[data-mix]")) === 1, "немає кнопки реміксу для нової пісні");
+      h.expect((await h.count("[data-stepper]")) === 1 && (await h.count('[data-node][data-state]')) === 0, "до реміксу повзунок не порожній");
       await h.tap("[data-mix]"); await h.wait(400);
-      h.expect((await h.count('[data-track][data-state="ready"]')) === 3, "тап не дав три версії");
+      h.expect((await h.count('[data-node][data-state="ready"]')) >= 1, "тап не дав ремікс");
     },
   },
   {

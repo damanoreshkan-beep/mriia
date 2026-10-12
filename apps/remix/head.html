@@ -27,10 +27,34 @@
     #repeat[aria-pressed="true"] { color: var(--app-accent); filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
     [data-theme="signal-light"] #repeat[aria-pressed="true"] { color: var(--color-secondary); filter: none; }
 
-    /* A VERSION'S GLYPH — its own form, small, in its row: an outline at rest, lit when it is the one picked. */
-    .rx-glyph { width: 1.5rem; height: 1.5rem; flex: none; overflow: visible; }
-    .rx-glyph path { fill: none; stroke: color-mix(in oklch, var(--color-base-content) 38%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke; transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
-    [aria-pressed="true"] .rx-glyph path { fill: var(--app-accent); stroke: var(--app-accent); }
-    [data-theme="signal"] [aria-pressed="true"] .rx-glyph { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
-    [data-theme="signal-light"] [aria-pressed="true"] .rx-glyph path { fill: var(--color-secondary); stroke: var(--color-secondary); }
+    /* THE STEPPER (view.js Stepper) — the transport's filament (core .tp-filament): a hairline, the six steps on it as
+       their own forms, the stretch from 1× to the pick lit with a bloom, a transparent native range over it doing the
+       work. --rx-k is the range thumb AND the node pitch's inset: the thumb's centre runs from k/2 to 100% − k/2,
+       exactly where the nodes sit, so a finger on a node lands on that step. Declared on the wrapper: the caption row
+       under the track places «1×» with it too. */
+    .rx-stepper { --rx-k: 2.75rem; }
+    .rx-st { position: relative; height: var(--ms-ctl); }
+    .rx-st > i { position: absolute; top: 50%; pointer-events: none; }
+    .rx-st-line { left: calc(var(--rx-k) / 2); right: calc(var(--rx-k) / 2); height: 1px; background: color-mix(in oklch, var(--color-base-content) 16%, transparent); }
+    .rx-st-lit { height: 2px; margin-top: -.5px; border-radius: 2px; background: var(--app-accent); box-shadow: 0 0 10px var(--lm-bloom-hi, transparent);
+      transition: left var(--t-state) var(--ease-out), width var(--t-state) var(--ease-out); }
+    .rx-st-one { width: 1px; height: .875rem; margin: -.4375rem 0 0 -.5px; background: color-mix(in oklch, var(--color-base-content) 45%, transparent); }
+    .rx-st-node { width: 1.125rem; height: 1.125rem; margin: -.5625rem 0 0 -.5625rem; transition: scale var(--t-state) var(--ease-out); }
+    .rx-st-node svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    /* the fill is the panel's face, so the hairline does not run through a form */
+    .rx-st-node path { fill: var(--color-base-100); stroke: color-mix(in oklch, var(--color-base-content) 45%, transparent); stroke-width: 1.25; vector-effect: non-scaling-stroke;
+      transition: fill var(--t-state) var(--ease-out), stroke var(--t-state) var(--ease-out); }
+    .rx-st-node[data-state="ready"] path { stroke: var(--app-accent); stroke-width: 1.75; }
+    .rx-st-node[data-on] { scale: 1.6; }
+    .rx-st-node[data-on] path { fill: var(--app-accent); stroke: var(--app-accent); }
+    [data-theme="signal"] .rx-st-node[data-on] { filter: drop-shadow(0 0 6px var(--lm-bloom-hi)); }
+    .rx-st > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; background: none; }
+    .rx-st > input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: var(--rx-k); height: var(--rx-k); }
+    .rx-st > input::-moz-range-thumb { width: var(--rx-k); height: var(--rx-k); border: 0; }
+    .rx-st:has(> input:focus-visible) > .rx-st-node[data-on] { outline: 2px solid var(--color-base-content); outline-offset: 3px; border-radius: 50%; }
+    /* paper: a glow on white is a smear — the deep pole lights the stretch and the pick */
+    [data-theme="signal-light"] .rx-st-lit { background: var(--color-secondary); box-shadow: none; }
+    [data-theme="signal-light"] .rx-st-node[data-state="ready"] path { stroke: var(--color-secondary); }
+    [data-theme="signal-light"] .rx-st-node[data-on] path { fill: var(--color-secondary); stroke: var(--color-secondary); }
+    @media (prefers-reduced-motion: reduce) { .rx-st-lit, .rx-st-node, .rx-st-node path { transition: none; } }
   </style>

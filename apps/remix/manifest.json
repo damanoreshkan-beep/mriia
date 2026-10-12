@@ -1,7 +1,7 @@
 {
   "name": "Ремікс",
   "short_name": "Ремікс",
-  "description": "Пісня з YouTube Music у трьох версіях: slowed + reverb, deep slowed і nightcore. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.",
+  "description": "Пісня з YouTube Music на повзунку швидкості: від super slowed + reverb до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

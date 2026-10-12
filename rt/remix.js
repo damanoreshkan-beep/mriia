@@ -1,8 +1,17 @@
-// remix — what the screen decides without the network: the three variants, how a preset reads in words, the
+// remix — what the screen decides without the network: the stepper's steps, how a preset reads in words, the
 // file a save gets, the producer's tags out of the AI's reply, and the fixtures the gate renders.
-export const VARIANTS = ["slowed", "deep", "nightcore"];
+// THE STEPPER (owner 2026-10-12): six steps, slowest to fastest, one rendered per pick — mirrored in edge remix.js
+// STEPS. The original tempo (1×) sits between slowed and sped up.
+export const STEPS = ["superslow", "deep", "slowed", "spedup", "nightcore", "superfast"];
+export const DEFAULT_STEP = "slowed";
+/** Where 1× falls on the stepper, as a step index: halfway between slowed and sped up. */
+export const ORIGINAL_AT = 2.5;
 // mirrored in edge remix.js TAG — the words the edge puts in the file name and the ID3 title
-export const TAG = { slowed: "slowed + reverb", deep: "deep slowed + reverb", nightcore: "nightcore" };
+export const TAG = { superslow: "super slowed + reverb", slowed: "slowed + reverb", deep: "deep slowed + reverb", spedup: "sped up", nightcore: "nightcore", superfast: "super sped up" };
+
+/** The playhead carried across a step change: the same spot in the SONG, so a slide does not restart the music.
+ *  A file at speed s plays the song's second x at x / s, so t' = t · s / s'. */
+export const carryTime = (t, from, to) => (from > 0 && to > 0 ? t * from / to : 0);
 
 /** "Artist - Title (slowed + reverb).mp3" for the `<a download>`, matching the edge's attachment name. */
 export const remixFile = (m, v) => `${[m.artist, m.title].filter(Boolean).join(" - ") || m.id} (${TAG[v]}).mp3`.replace(/[\\/:*?"<>|]/g, "");
@@ -41,10 +50,14 @@ export const FIXTURE_META = { id: "dQw4w9WgXcQ", title: "Never Gonna Give You Up
 // measured on the song itself (apps/remix/RESEARCH.md): 112.9 BPM, −13 LUFS, a dense bright pop mix with the vocal forward
 export const FIXTURE_ANALYSIS = {
   bpm: 112.9, lufs: -13, lra: 5, tp: -0.3, bright: 3300, flat: 0.108, mid: 0.99, bass: 0.73, density: "dense",
+  // edge presetsOf on this song, 2026-10-12 (the three old ones unchanged by the stepper)
   presets: {
-    slowed: { speed: 0.85, decay: 2.5, wet: 0.22, lp: 10000, hp: 200, pre: 40, master: 0, bass: 0, bpm: 96 },
+    superslow: { speed: 0.67, decay: 5.9, wet: 0.4, lp: 6500, hp: 250, pre: 60, master: 10000, bass: 0, bpm: 76 },
     deep: { speed: 0.75, decay: 4.5, wet: 0.37, lp: 7500, hp: 250, pre: 50, master: 12000, bass: 0, bpm: 85 },
+    slowed: { speed: 0.85, decay: 2.5, wet: 0.22, lp: 10000, hp: 200, pre: 40, master: 0, bass: 0, bpm: 96 },
+    spedup: { speed: 1.15, decay: 0, wet: 0, lp: 0, hp: 0, pre: 0, master: 0, bass: 1.5, bpm: 130 },
     nightcore: { speed: 1.3, decay: 0, wet: 0, lp: 0, hp: 0, pre: 0, master: 0, bass: 2.5, bpm: 147 },
+    superfast: { speed: 1.4, decay: 0, wet: 0, lp: 0, hp: 0, pre: 0, master: 0, bass: 3, bpm: 158 },
   },
   why: ["dense", "vocal", "pop"],
 };
