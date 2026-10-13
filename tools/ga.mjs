@@ -16,6 +16,11 @@ gtag("js",new Date());gtag("config",${JSON.stringify(id)},{app_id:app});
 var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=${id}";document.head.appendChild(s);
 addEventListener("appinstalled",function(){gtag("event","app_installed",{app_id:app})});
 if(matchMedia("(display-mode: standalone)").matches)gtag("event","app_launched",{app_id:app});
+if(app!=="landing"){var ek="ga:eng:"+app,on=0,seen=0,t0=document.hidden?0:Date.now(),sent=false,tm;try{sent=sessionStorage.getItem(ek)==="1"}catch(e){}
+var go=function(){if(sent||!on)return;var left=10000-seen-(t0?Date.now()-t0:0);if(left>0){clearTimeout(tm);if(t0)tm=setTimeout(go,left+50);return}
+sent=true;try{sessionStorage.setItem(ek,"1")}catch(e){}gtag("event","app_engaged",{app_id:app})};
+document.addEventListener("visibilitychange",function(){if(document.hidden){if(t0){seen+=Date.now()-t0;t0=0}clearTimeout(tm)}else{t0=Date.now();go()}});
+var first=function(){on=1;go()};addEventListener("pointerdown",first,{capture:true,once:true});addEventListener("keydown",first,{capture:true,once:true})}
 document.addEventListener("click",function(e){var el=e.target.closest&&e.target.closest("[data-ga]");if(!el)return;var p={app_id:app};
 for(var k in el.dataset)if(k.indexOf("ga")===0&&k.length>2)p[k.slice(2).replace(/^./,function(c){return c.toLowerCase()})]=el.dataset[k];gtag("event",el.dataset.ga,p)},true);
 }catch(e){}})();</script>`;
