@@ -4,7 +4,7 @@
 
 # Mriia
 
-**Усі застосунки Mriia в одному місці. Ставляться на телефон в один дотик і працюють без інтернету.**
+**Усі застосунки Mriia в одному місці. Ставляться просто з сайту на головний екран.**
 
 ![](https://img.shields.io/badge/-app-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
