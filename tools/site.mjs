@@ -5,8 +5,8 @@
 //
 //   deno run -A tools/site.mjs <dist>       after `deno task build`: replaces the build's redirect at <dist>/index.html
 //
-// The numbers and lists are filled from the farm itself — apps/store/apps.json (how many apps, the shelves and their
-// counts, each app's icon and title) — so a page can never claim an app the store does not carry. Its screens are the
+// The lists are filled from the farm itself — apps/store/apps.json (the shelves and their counts, each app's icon
+// and title) — so a page can never claim an app the store does not carry. Its screens are the
 // STORE's captures (apps/store/assets/shot-<app>--<tab>[--light].webp), and for the English page the same screens
 // shot with ?locale=en (shot-<app>--<tab>--en[--light].webp; manifest only reads shot-<app>--<tab>, so these never
 // become tabs). The page picks its language in the head (a footer choice, else the browser's), never for a crawler;
@@ -33,12 +33,11 @@ const SHOWCASE = [["weather", "now", "07:10"], ["air", "now", "07:40"], ["tarot"
 const HERO_BACK = "store--apps", HERO_FRONT = "fonoteka--songs", LIVES = "remix--mix";
 for (const [id] of SHOWCASE) if (!byId[id]) throw new Error(`showcase app "${id}" is not in apps/store/apps.json`);
 
-// the count with its noun in the form the language asks of that number: 91 застосунок, 92 застосунки, 95 застосунків
-const PLURAL = {
-  uk: { APPS: ["застосунок", "застосунки", "застосунків"], LIGHT_APPS: ["легкий застосунок", "легкі застосунки", "легких застосунків"] },
-  en: { APPS: ["app", "apps", "apps"], LIGHT_APPS: ["light app", "light apps", "light apps"] },
-};
-const counted = (lang, key) => { const [one, few, many] = PLURAL[lang][key]; const f = new Intl.PluralRules(lang).select(N); return `${N} ${f === "one" ? one : f === "few" ? few : many}`; };
+// no line of the page says how many apps there are (owner 2026-10-13: «кількість застосунків завжди динамічна, тому
+// давай без слоганів про їх кількість, прибери це системно»): a count in the copy, or the {APPS} placeholder that used
+// to fill one, stops the build. The shelves' numbers below are the store's data, not a line of copy.
+const COUNT = /\{(LIGHT_)?APPS\}|\d+\s+(легк\S*\s+|light\s+)?(застосун|програм|апок|apps?\b)/i;
+const said = (s) => { if (COUNT.test(s)) throw new Error(`site copy names an app count: "${s}"`); return s; };
 
 const LOCALES = {
   uk: { dir: "", url: `${SITE}/`, og: "uk_UA", ogAlt: "en_US", ogImage: "og.jpg", shot: "", q: "" },
@@ -51,8 +50,7 @@ function page(lang) {
   const L = LOCALES[lang];
   const dict = JSON.parse(read(`site/i18n/${lang}.json`));
   const store = JSON.parse(read(`apps/store/i18n/${lang}.json`));
-  const fill = (s) => s.replace(/\{(APPS|LIGHT_APPS)\}/g, (_, k) => counted(lang, k));
-  const t = (k) => { if (!(k in dict)) throw new Error(`site/i18n/${lang}.json has no "${k}"`); return esc(fill(dict[k])); };
+  const t = (k) => { if (!(k in dict)) throw new Error(`site/i18n/${lang}.json has no "${k}"`); return esc(said(dict[k])); };
   const title = (a) => a.titles?.[lang] || a.title;
   const src = (name, light) => `/store/assets/shot-${name}${L.shot}${light ? "--light" : ""}.webp`;
   for (const name of [HERO_BACK, HERO_FRONT, LIVES, ...SHOWCASE.map(([id, tab]) => `${id}--${tab}`)]) for (const l of [false, true]) need(`apps/store/assets${src(name, l).slice("/store/assets".length)}`);
@@ -61,7 +59,7 @@ function page(lang) {
     `<picture><source media="(prefers-color-scheme: light)" srcset="${src(name, true)}"><img src="${src(name, false)}" alt="${esc(alt)}" width="768" height="1664"${eager ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"'}></picture>`;
 
   const rail = SHOWCASE.map(([id, tab, when], i) => {
-    const a = byId[id], line = fill(dict["m_" + id] ?? (() => { throw new Error(`site/i18n/${lang}.json has no "m_${id}"`); })());
+    const a = byId[id], line = said(dict["m_" + id] ?? (() => { throw new Error(`site/i18n/${lang}.json has no "m_${id}"`); })());
     return `<a class="app rise" style="--d:${Math.min(i, 3) * 70}ms" href="/${id}/${L.q}"><div class="phone">${shot(`${id}--${tab}`, `${title(a)}: ${line}`)}</div>` +
       `<div class="moment"><time class="when mono">${when}</time><p>${esc(line)}</p>` +
       `<span class="who"><img src="/${id}/icon.webp" alt="" width="24" height="24" loading="lazy">${esc(title(a))}</span></div></a>`;
@@ -83,10 +81,10 @@ function page(lang) {
     "@graph": [
       { "@type": "Organization", "@id": `${SITE}/#org`, name: "Mriia", url: `${SITE}/`, logo: `${SITE}/store/icons/apple-touch-icon.png` },
       { "@type": "WebSite", "@id": `${SITE}/#site`, name: "Mriia", url: `${SITE}/`, inLanguage: ["uk", "en"], publisher: { "@id": `${SITE}/#org` } },
-      { "@type": "WebPage", "@id": `${L.url}#page`, url: L.url, name: fill(dict.title), inLanguage: lang, isPartOf: { "@id": `${SITE}/#site` } },
+      { "@type": "WebPage", "@id": `${L.url}#page`, url: L.url, name: said(dict.title), inLanguage: lang, isPartOf: { "@id": `${SITE}/#site` } },
       { "@type": "ItemList", name: lang === "uk" ? "Застосунки Mriia" : "Mriia apps", numberOfItems: SHOWCASE.length, itemListElement: SHOWCASE.map(([id], i) => ({
         "@type": "ListItem", position: i + 1,
-        item: { "@type": "WebApplication", name: title(byId[id]), url: `${SITE}/${id}/`, description: fill(dict["m_" + id]), applicationCategory: "LifestyleApplication", operatingSystem: "Android, iOS, Windows, macOS, Linux", inLanguage: ["uk", "en"], image: `${SITE}/${id}/icon.webp` },
+        item: { "@type": "WebApplication", name: title(byId[id]), url: `${SITE}/${id}/`, description: said(dict["m_" + id]), applicationCategory: "LifestyleApplication", operatingSystem: "Android, iOS, Windows, macOS, Linux", inLanguage: ["uk", "en"], image: `${SITE}/${id}/icon.webp` },
       })) },
     ],
   }).replace(/</g, "\\u003c");
@@ -103,9 +101,9 @@ function page(lang) {
     .replaceAll("{{YEAR}}", String(new Date().getUTCFullYear()))
     .replace("{{JSONLD}}", jsonld)
     .replace("{{HERO_FRONT_SRC}}", src(HERO_FRONT, false)).replace("{{HERO_FRONT_SRC_LIGHT}}", src(HERO_FRONT, true))
-    .replace("{{HERO_BACK_IMG}}", shot(HERO_BACK, fill(dict.heroBackAlt)))
-    .replace("{{HERO_FRONT_IMG}}", shot(HERO_FRONT, fill(dict.heroFrontAlt), true))
-    .replace("{{LIVES_IMG}}", shot(LIVES, fill(dict.livesAlt)))
+    .replace("{{HERO_BACK_IMG}}", shot(HERO_BACK, said(dict.heroBackAlt)))
+    .replace("{{HERO_FRONT_IMG}}", shot(HERO_FRONT, said(dict.heroFrontAlt), true))
+    .replace("{{LIVES_IMG}}", shot(LIVES, said(dict.livesAlt)))
     .replace("{{RAIL}}", rail)
     .replace("{{BENTO}}", bento)
     .replace(/\{\{ICON ([a-z-]+)\}\}/g, (_, n) => icon(n));
