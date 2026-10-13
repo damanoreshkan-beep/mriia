@@ -13,7 +13,7 @@ import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
 import { authWall } from "/_rt/authwall.js";
 import { shapeOf, scalePath, shaper } from "/_rt/shape.js";
-import { videoId, clock, byline, errorKey, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES } from "/_rt/muzak.js";
+import { videoId, clock, byline, errorKey, songOfFound, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES, FIXTURE_QUERY, FIXTURE_SEARCH } from "/_rt/muzak.js";
 import { taskOne, taskCall } from "/_rt/task.js";
 import { session, restore } from "/_rt/auth.js";
 import { useLikes, LikesConnect, LikesHead, LikeRow, LikesSkeleton } from "/_rt/ytlikes.js";
@@ -291,6 +291,17 @@ function Orb({ song }) {
   </div>`;
 }
 
+// a row's own tools beside its play button — «У Фонотеку», «Мікс», «Скачати» — the same in «Вподобане» and «Пошук»
+function rowTools(s, { t, toast, kept, mixed, dl }) {
+  const k = kept[s.id], mx = mixed[s.id];
+  return html`<button data-keep=${s.id} aria-label=${T(t, k === "done" ? "keptA" : "aKeep")} disabled=${k === "busy"} onClick=${() => keep(s, toast, t)}
+      class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${k === "done" ? "text-primary" : "text-base-content/70"} ${k === "busy" ? "animate-pulse" : ""}`}>${Icon(k === "done" ? "lucide:library-big" : "lucide:library", "text-[length:var(--ms-icon)]")}</button>
+    <button data-mix=${s.id} aria-label=${`${T(t, mx === "done" ? "mixedA" : "aMix")}: ${s.title}`} disabled=${mx === "busy"} onClick=${() => mix(s, toast, t)}
+      class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${mx === "done" ? "text-primary" : "text-base-content/70"} ${mx === "busy" ? "animate-pulse" : ""}`}>${Icon("lucide:sparkles", "text-[length:var(--ms-icon)]")}</button>
+    <button data-save=${s.id} aria-label=${`${T(t, "download")}: ${s.title}`} disabled=${!!dl && dl !== s.id} onClick=${() => save(s, toast, t)}
+      class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${dl === s.id ? "text-primary animate-pulse" : "text-base-content/70"}`}>${Icon(dl === s.id ? "lucide:hourglass" : "lucide:download", "text-[length:var(--ms-icon)]")}</button>`;
+}
+
 export function likes({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const playErr = useStore($err);
@@ -320,14 +331,9 @@ export function likes({ S, toast, confirm }) {
         <${LikesHead} t=${t} l=${l} id="mz-likes" toast=${toast} confirm=${confirm} />
         <div class="flex flex-col gap-1">
           ${songs.map((s) => {
-            const here = cur === s.id, k = kept[s.id], mx = mixed[s.id];
+            const here = cur === s.id;
             return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, songs)} attr=${{ "data-play": s.id }}>
-              <button data-keep=${s.id} aria-label=${T(t, k === "done" ? "keptA" : "aKeep")} disabled=${k === "busy"} onClick=${() => keep(s, toast, t)}
-                class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${k === "done" ? "text-primary" : "text-base-content/70"} ${k === "busy" ? "animate-pulse" : ""}`}>${Icon(k === "done" ? "lucide:library-big" : "lucide:library", "text-[length:var(--ms-icon)]")}</button>
-              <button data-mix=${s.id} aria-label=${`${T(t, mx === "done" ? "mixedA" : "aMix")}: ${s.title}`} disabled=${mx === "busy"} onClick=${() => mix(s, toast, t)}
-                class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${mx === "done" ? "text-primary" : "text-base-content/70"} ${mx === "busy" ? "animate-pulse" : ""}`}>${Icon("lucide:sparkles", "text-[length:var(--ms-icon)]")}</button>
-              <button data-save=${s.id} aria-label=${`${T(t, "download")}: ${s.title}`} disabled=${!!dl && dl !== s.id} onClick=${() => save(s, toast, t)}
-                class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${dl === s.id ? "text-primary animate-pulse" : "text-base-content/70"}`}>${Icon(dl === s.id ? "lucide:hourglass" : "lucide:download", "text-[length:var(--ms-icon)]")}</button>
+              ${rowTools(s, { t, toast, kept, mixed, dl })}
             <//>`;
           })}
           ${busy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
@@ -336,6 +342,80 @@ export function likes({ S, toast, confirm }) {
         ${!songs.length ? html`<div data-none class="py-6 flex flex-col items-center gap-1 text-center">
           <div class="font-semibold text-sm">${T(t, "likesEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "likesEmptyHint")}</div>
         </div>` : null}
+      </section>`}
+  </div>`;
+}
+
+// ── tab «Пошук»: any song on YouTube Music by its name, played here (owner 2026-10-13: «додамо пошук пісень на
+// ютубі у апці музак, новий розділ окремий») ────────────────────────────────────────────────────────────────
+// The edge searches YouTube Music itself (/feed/music/search, no daily limit — the owner's pick over the Data API's
+// ~100 searches a day), signed-in only like every /feed/music route. A search runs on Enter / the button, never per
+// keystroke. The rows are the likes' rows; a tap plays the song and the queue walks on through what was found.
+const $sq = atom(gate ? FIXTURE_QUERY : "");
+const $found = atom(gate ? FIXTURE_SEARCH.songs.map(songOfFound) : null);   // null: nothing searched yet
+const $sbusy = atom(false), $serr = atom("");
+let sseq = 0;
+async function lookup(q, locale) {
+  q = String(q || "").trim();
+  if (!q) return;
+  const my = ++sseq;
+  $serr.set(""); $sbusy.set(true);
+  if (gate) { $found.set(FIXTURE_SEARCH.songs.map(songOfFound)); $sbusy.set(false); return; }
+  try {
+    const r = await fetch(`${VPS_PROXY}/music/search?q=${encodeURIComponent(q)}&hl=${locale === "en" ? "en" : "uk"}`, { signal: AbortSignal.timeout(30000) });
+    if (my !== sseq) return;
+    if (!r.ok) { if (r.status !== 401) $serr.set(r.status === 429 ? "errBusy" : "errSearch"); return; }   // 401: the runtime's sign-in wall
+    $found.set(((await r.json()).songs || []).map(songOfFound));
+  } catch { if (my === sseq) $serr.set("errSearch"); }
+  finally { if (my === sseq) $sbusy.set(false); }
+}
+
+export function search({ S, toast }) {
+  const t = useStore(S.t), locale = useStore(S.locale);
+  const q = useStore($sq), found = useStore($found), busy = useStore($sbusy), err = useStore($serr), playErr = useStore($err);
+  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
+  const input = useRef();
+  useEffect(() => { if (!gate && found === null) input.current?.focus(); }, []);
+  useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   // listening needs the session
+  const songs = found || [];
+  const now = songs.find((s) => s.id === cur) || null;   // the player shows here only for a song played from this list
+
+  return html`<div data-search data-busy=${busy ? "true" : null} data-found=${found ? songs.length : null} data-playing=${now && playing ? "true" : null}
+    class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
+    <form role="search" class="flex items-center gap-2" onSubmit=${(e) => { e.preventDefault(); input.current?.blur(); lookup(q, locale); }}>
+      <textarea rows="1" data-line data-q ref=${input} inputmode="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
+        class="input input-bordered sf-inset min-w-0 flex-1" aria-label=${T(t, "searchPlaceholder")}
+        placeholder=${T(t, "searchPlaceholder")} value=${q}
+        onInput=${(e) => { $sq.set(e.target.value); if ($serr.get()) $serr.set(""); }}></textarea>
+      <button type="submit" data-search-go aria-label=${T(t, "aSearch")} disabled=${!q.trim() || busy}
+        class="btn btn-primary btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 sf-e3">${Icon("lucide:search", "text-[length:var(--ms-icon)]")}</button>
+    </form>
+    ${err || playErr ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err || playErr)}</div>` : null}
+
+    ${now ? html`<section data-player aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)]">
+      <${Orb} song=${now} />
+      <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle()} className="w-full pt-1"
+        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
+        title=${now.title} subtitle=${loading ? T(t, "preparing") : [now.artist, clock(now.dur)].filter(Boolean).join(" · ")}
+        actions=${actionsFor(now, kept[now.id], dl, t, toast, mixed[now.id]).filter((a) => a.id !== "download")} />
+    </section>` : null}
+
+    ${busy ? html`<${LikesSkeleton} />`
+    : found === null ? html`<div data-hint class="py-8 flex flex-col items-center gap-2 text-center text-base-content/70">
+        ${Icon("lucide:audio-lines", "text-3xl text-primary")}
+        <div class="font-semibold text-sm text-base-content">${T(t, "searchHintTitle")}</div>
+        <div class="text-sm max-w-[32ch]">${T(t, "searchHint")}</div>
+      </div>`
+    : !songs.length ? html`<div data-none class="py-6 flex flex-col items-center gap-1 text-center">
+        <div class="font-semibold text-sm">${T(t, "searchEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "searchEmptyHint")}</div>
+      </div>`
+    : html`<section aria-label=${T(t, "searchFound")} class="flex flex-col gap-1">
+        ${songs.map((s) => {
+          const here = cur === s.id;
+          return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, songs)} attr=${{ "data-play": s.id }}>
+            ${rowTools(s, { t, toast, kept, mixed, dl })}
+          <//>`;
+        })}
       </section>`}
   </div>`;
 }

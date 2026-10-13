@@ -156,9 +156,13 @@ export function LikeRow({ s, here, busy, label, onPick, attr, children }) {
         ${Icon(busy ? "lucide:audio-lines" : "lucide:music-2", "text-lg")}
         ${s.cover ? html`<img src=${s.cover} alt="" loading="lazy" class=${`absolute inset-0 w-full h-full object-cover ${busy ? "opacity-60" : ""}`} onError=${(e) => { e.target.remove(); }} />` : null}
       </span>
-      <span class="min-w-0 flex-1 flex flex-col leading-tight gap-0.5">
+      <span class="min-w-0 flex-1 flex flex-col leading-tight gap-px">
         <span class=${`font-semibold text-sm truncate ${here ? "text-primary" : ""}`}>${s.title}</span>
-        <span class="text-xs text-base-content/70 truncate">${s.artist}<span class="font-mono tabular-nums"> · ${clock(s.dur)}</span></span>
+        ${/* artist and length on lines of their own (owner 2026-10-13, option 1): beside three tools a phone row
+             leaves the text 108 px, so "artist · 3:51" on one line cut one or the other — «Jerry Heil і Sviato…»
+             hid the length whole, and holding the length cut «Океан Ел…». Three lines fit the cover's height. */""}
+        <span class="text-xs leading-tight text-base-content/70 truncate">${s.artist}</span>
+        <span class="text-[11px] leading-none text-base-content/70 font-mono tabular-nums">${clock(s.dur)}</span>
       </span>
     </button>
     ${children}
