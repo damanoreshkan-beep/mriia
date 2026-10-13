@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { videoId, clock, byline, errorKey } from "../muzak.js";
+import { videoId, clock, byline, errorKey, songOfFound, FIXTURE_SEARCH } from "../muzak.js";
 
 Deno.test("videoId: YouTube link shapes give the id, anything else null", () => {
   for (const u of ["https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=RD", "https://youtu.be/dQw4w9WgXcQ?si=1", "https://youtube.com/shorts/dQw4w9WgXcQ", " https://m.youtube.com/watch?v=dQw4w9WgXcQ "]) assertEquals(videoId(u), "dQw4w9WgXcQ", u);
@@ -15,4 +15,9 @@ Deno.test("clock and byline: 3:33, and only what the song knows", () => {
 
 Deno.test("errorKey: the edge's status becomes a sentence key", () => {
   assertEquals([400, 401, 413, 429, 502, 0].map(errorKey), ["errLink", "", "errLong", "errBusy", "errMeta", "errMeta"]);
+});
+
+Deno.test("songOfFound: a search result in the liked-song shape the player, keep, mix and mp3 take", () => {
+  assertEquals(songOfFound(FIXTURE_SEARCH.songs[0]), { id: "sx5oqwa-Dps", title: "Без бою", artist: "Океан Ельзи", album: "Gloria", dur: 260, cover: "https://i.ytimg.com/vi/sx5oqwa-Dps/mqdefault.jpg", url: "https://music.youtube.com/watch?v=sx5oqwa-Dps" });
+  assertEquals(songOfFound({ id: "x" }), { id: "x", title: "", artist: "", album: "", dur: 0, cover: null, url: "https://music.youtube.com/watch?v=x" });
 });

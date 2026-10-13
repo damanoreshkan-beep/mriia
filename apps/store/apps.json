@@ -1233,15 +1233,18 @@
     "screens": {
       "en": [
         "Song",
+        "Search",
         "Liked"
       ],
       "uk": [
         "Пісня",
+        "Пошук",
         "Вподобане"
       ]
     },
     "shots": [
       "song",
+      "search",
       "likes"
     ],
     "bg": "#120E08",
@@ -3067,7 +3070,7 @@
     "bg": "#221C29",
     "fg": "#C9A7E0",
     "href": "./mirage/",
-    "version": "1.37",
+    "version": "1.38",
     "category": "creative",
     "needs": [
       "camera"

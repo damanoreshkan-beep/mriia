@@ -76,6 +76,27 @@ export default [
     },
   },
   {
+    name: "пошук: поле і кнопка; знайдені пісні з «У Фонотеку», «Мікс», «Скачати»; тап грає з плеєром над списком; порожнє поле — кнопка вимкнена", run: async (h) => {
+      await h.click('[data-tab="search"]'); await h.wait(250);
+      h.expect((await h.count("[data-search] [data-q]")) === 1, "немає поля пошуку");
+      h.expect((await h.attr("[data-search]", "data-found")) === "4", "не 4 знайдені пісні під гейтом");
+      for (const a of ["keep", "mix", "save"]) h.expect((await h.count(`[data-search] [data-like] [data-${a}]`)) === 4, `не в кожної знайденої пісні ${a}`);
+      h.expect(/Без бою/.test(await h.bodyText()) && /Океан Ельзи/.test(await h.bodyText()), "немає назви чи виконавця");
+      h.expect((await h.count("[data-search] [data-player]")) === 0, "плеєр до першого тапу");
+      await h.tap('[data-search] [data-play="8wWrzr3_46Y"]'); await h.wait(300);
+      h.expect((await h.attr("[data-search]", "data-playing")) === "true", "не грає");
+      h.expect(/Обійми/.test(await h.text("[data-search] [data-player]")), "плеєр не назвав пісню");
+      await h.type("[data-search] [data-q]", ""); await h.wait(100);
+      h.expect((await h.prop("[data-search-go]", "disabled")) === true, "кнопка не вимкнена на порожньому полі");
+      await h.type("[data-search] [data-q]", "queen"); await h.click("[data-search-go]"); await h.wait(300);
+      h.expect((await h.count("[data-search] [data-err]")) === 0, "помилка після пошуку");
+      h.expect((await h.attr("[data-search]", "data-found")) === "4", "пошук не показав пісні");
+      h.expect((await h.count(".loading")) === 0, "крутилка на екрані");
+      await h.tap("[data-search] [data-player] #play"); await h.wait(150);
+      await h.click('[data-tab="song"]'); await h.wait(120);
+    },
+  },
+  {
     name: "по колу чи далі: перемикач у плеєрі ходить між «далі» і «одна по колу»", run: async (h) => {
       await h.click('[data-tab="likes"]'); await h.wait(250);
       h.expect((await h.count("[data-player] #repeat")) === 1, "немає перемикача");

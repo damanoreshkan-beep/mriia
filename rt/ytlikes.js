@@ -140,9 +140,10 @@ export function LikeRow({ s, here, busy, label, onPick, attr, children }) {
         ${Icon(busy ? "lucide:audio-lines" : "lucide:music-2", "text-lg")}
         ${s.cover ? html`<img src=${s.cover} alt="" loading="lazy" class=${`absolute inset-0 w-full h-full object-cover ${busy ? "opacity-60" : ""}`} onError=${(e) => { e.target.remove(); }} />` : null}
       </span>
-      <span class="min-w-0 flex-1 flex flex-col leading-tight gap-0.5">
+      <span class="min-w-0 flex-1 flex flex-col leading-tight gap-px">
         <span class=${`font-semibold text-sm truncate ${here ? "text-primary" : ""}`}>${s.title}</span>
-        <span class="text-xs text-base-content/70 truncate">${s.artist}<span class="font-mono tabular-nums"> · ${clock(s.dur)}</span></span>
+        <span class="text-xs leading-tight text-base-content/70 truncate">${s.artist}</span>
+        <span class="text-[11px] leading-none text-base-content/70 font-mono tabular-nums">${clock(s.dur)}</span>
       </span>
     </button>
     ${children}
