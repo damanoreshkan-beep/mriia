@@ -16,8 +16,9 @@
 // (navigator.webdriver) — the gate and our own eyes are not users. To test it from a patchright pod, read the
 // page's dataLayer from the MAIN world (a DOM attribute written by an injected script): patchright's evaluate runs
 // in an isolated world and sees neither window.gtag nor dataLayer (2026-10-12: that read as "the tag never ran"). Consent: the EEA, the UK and
-// Switzerland start with analytics storage denied (GA's Consent Mode then sends cookieless pings), everywhere else
-// granted; ad storage, ad user data and ad personalisation are denied everywhere — the farm runs no ads.
+// Switzerland start with every storage denied (GA's Consent Mode then sends cookieless pings); everywhere else
+// analytics, ad storage and ad user data are granted, so a Google Ads click is tied to what the person then did
+// (owner 2026-10-13: «давай запускати рекламу»). Ad personalisation is denied everywhere: no remarketing lists.
 const [dist] = Deno.args;
 if (!dist) { console.error("usage: deno run --allow-read --allow-write tools/ga.mjs <dist dir>"); Deno.exit(2); }
 const root = new URL("..", import.meta.url).pathname;
@@ -30,9 +31,8 @@ const tag = `<!-- Google Analytics 4: tools/ga.mjs at deploy --><script>(functio
 if(location.hostname!=="mriia.si"||/[?&](mock|live)(=|&|$)/.test(location.search)||navigator.webdriver)return;
 var seg=location.pathname.split("/")[1]||"",app=!seg||seg==="en"?"landing":seg;
 window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;
-var no={ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied"};
-gtag("consent","default",Object.assign({analytics_storage:"denied",region:${JSON.stringify(EEA)}},no));
-gtag("consent","default",Object.assign({analytics_storage:"granted"},no));
+gtag("consent","default",{analytics_storage:"denied",ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",region:${JSON.stringify(EEA)}});
+gtag("consent","default",{analytics_storage:"granted",ad_storage:"granted",ad_user_data:"granted",ad_personalization:"denied"});
 gtag("js",new Date());gtag("config",${JSON.stringify(id)},{app_id:app});
 var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=${id}";document.head.appendChild(s);
 addEventListener("appinstalled",function(){gtag("event","app_installed",{app_id:app})});
