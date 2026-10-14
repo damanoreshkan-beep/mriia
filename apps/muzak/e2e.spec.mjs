@@ -53,6 +53,18 @@ export default [
     },
   },
   {
+    name: "для тебе: під карткою пісні — схожі на вподобані, з «У Фонотеку», «Мікс», «Скачати»; тап грає з плеєром над списком", run: async (h) => {
+      await ready(h); await h.wait(200);
+      h.expect((await h.attr("[data-foryou]", "data-songs")) === "4", "не 4 пісні «Для тебе» під гейтом");
+      for (const a of ["keep", "mix", "save"]) h.expect((await h.count(`[data-foryou] [data-like] [data-${a}]`)) === 4, `не в кожної пісні «Для тебе» ${a}`);
+      h.expect((await h.count("[data-muzak] [data-like]")) === 0, "«Для тебе» влізло в картку пісні");
+      h.expect((await h.count("[data-foryou] [data-player]")) === 0, "плеєр до першого тапу");
+      await h.tap('[data-foryou] [data-play="xrI5jBPT4Cw"]'); await h.wait(300);
+      h.expect(/Оберіг/.test(await h.text("[data-foryou] [data-player]")), "плеєр не назвав пісню");
+      await h.tap("[data-foryou] [data-player] #play"); await h.wait(150);
+    },
+  },
+  {
     name: "вподобане: плеєр над списком, тап на пісню грає її, у кожної «У Фонотеку» і «Скачати», список довантажується сам", run: async (h) => {
       await h.click('[data-tab="likes"]'); await h.wait(250);
       h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом");

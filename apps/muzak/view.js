@@ -13,10 +13,10 @@ import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
 import { authWall } from "/_rt/authwall.js";
 import { shapeOf, scalePath, shaper } from "/_rt/shape.js";
-import { videoId, clock, byline, errorKey, songOfFound, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES, FIXTURE_QUERY, FIXTURE_SEARCH } from "/_rt/muzak.js";
+import { videoId, clock, byline, errorKey, songOfFound, mixRadios, FIXTURE_LINK, FIXTURE_META, FIXTURE_LIKES, FIXTURE_QUERY, FIXTURE_SEARCH, FIXTURE_RADIO } from "/_rt/muzak.js";
 import { taskOne, taskCall } from "/_rt/task.js";
 import { session, restore } from "/_rt/auth.js";
-import { useLikes, LikesConnect, LikesHead, LikeRow, LikesSkeleton } from "/_rt/ytlikes.js";
+import { useLikes, connect, $lBusy, LikesConnect, LikesHead, LikeRow, LikesSkeleton } from "/_rt/ytlikes.js";
 
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
@@ -186,7 +186,8 @@ export function muzak({ S, toast }) {
   const song = meta ? songOfMeta(meta, link) : null;
   const on = !!song && cur === song.id;
 
-  return html`<div data-muzak data-busy=${busy || null} data-song=${meta ? meta.id : null} data-playing=${on && playing ? "true" : null} class="flex flex-col gap-[var(--ms-gap)] p-[var(--ms-pad)]">
+  return html`<div class="flex flex-col">
+  <div data-muzak data-busy=${busy || null} data-song=${meta ? meta.id : null} data-playing=${on && playing ? "true" : null} class="flex flex-col gap-[var(--ms-gap)] p-[var(--ms-pad)]">
     <${Panel} title=${T(t, "link")}>
       <form class="flex items-center gap-2" onSubmit=${(e) => { e.preventDefault(); find(link); }}>
         <textarea rows="1" data-line ref=${input} data-link inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
@@ -231,6 +232,9 @@ export function muzak({ S, toast }) {
           class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${a.active ? "text-primary" : "text-base-content/70"} ${a.pulse ? "animate-pulse" : ""}`}>${Icon(a.icon, "text-[length:var(--ms-icon)]")}</button>`)}
       </div>`}
     <//>` : null}
+  </div>
+  
+  <div class="px-[var(--ms-pad)] pb-[var(--ms-pad)] pt-2"><${ForYou} t=${t} locale=${locale} toast=${toast} player /></div>
   </div>`;
 }
 
@@ -313,6 +317,84 @@ export function likes({ S, toast, confirm }) {
 }
 
 
+const SEEDS_FIRST = 3, SEEDS_MORE = 2;
+const $recs = atom(gate ? FIXTURE_RADIO.songs.map(songOfFound) : null);   
+const $rbusy = atom(""), $rerr = atom("");   
+let rseed = 0;
+async function readRecs(liked, locale, more = false) {
+  if (gate || $rbusy.get() || (!more && $recs.get()) || rseed >= liked.length) return;
+  const seeds = liked.slice(rseed, rseed + (more ? SEEDS_MORE : SEEDS_FIRST)), was = $recs.get() || [];
+  rseed += seeds.length;
+  $rerr.set(""); $rbusy.set(more ? "more" : "list");
+  try {
+    const got = await Promise.allSettled(seeds.map((s) => fetch(`${VPS_PROXY}/music/radio?v=${s.id}&hl=${locale === "en" ? "en" : "uk"}`, { signal: AbortSignal.timeout(30000) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))));
+    const lists = got.filter((g) => g.status === "fulfilled").map((g) => (g.value.songs || []).map(songOfFound));
+    if (!lists.length) { if (!was.length) $rerr.set("errRecs"); return; }
+    const songs = [...was, ...mixRadios(lists, [...liked.map((s) => s.id), ...was.map((s) => s.id)])];
+    $recs.set(songs);
+    if (more && $q.get() === was) $q.set(songs);   
+  } catch { if (!was.length) $rerr.set("errRecs"); }
+  finally { $rbusy.set(""); }
+}
+
+
+function Player({ now, t, locale, toast }) {
+  const playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
+  return html`<section data-player aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)]">
+    <${Orb} song=${now} />
+    <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle()} className="w-full pt-1"
+      onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
+      title=${now.title} subtitle=${loading ? T(t, "preparing") : [now.artist, clock(now.dur)].filter(Boolean).join(" · ")}
+      actions=${actionsFor(now, kept[now.id], dl, t, toast, mixed[now.id]).filter((a) => a.id !== "download")} />
+  </section>`;
+}
+
+
+function ForYou({ t, locale, toast, player = false }) {
+  const { l, songs: liked, on, reading } = useLikes();
+  const recs = useStore($recs), busy = useStore($rbusy), err = useStore($rerr), lbusy = useStore($lBusy);
+  const cur = useStore($cur), playing = useStore($playing), kept = useStore($kept), dl = useStore($dl), mixed = useStore($mixed);
+  useEffect(() => { if (on && liked.length) readRecs(liked, locale); }, [on, liked.length]);
+  const tail = useRef();
+  const more = on && rseed < liked.length;
+  useEffect(() => {
+    if (!tail.current || !more) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) readRecs(liked, locale, true); }, { rootMargin: "0px 0px 600px 0px" });
+    io.observe(tail.current);
+    return () => io.disconnect();
+  }, [recs?.length, busy, more]);
+  if (reading || (l === null && !gate)) return null;   
+  const list = recs || [];
+  const now = player ? list.find((s) => s.id === cur) || null : null;
+
+  return html`<section data-foryou data-songs=${on ? list.length : null} aria-labelledby="mz-foryou" class="flex flex-col gap-[var(--ms-gap)]">
+    ${now ? html`<${Player} now=${now} t=${t} locale=${locale} toast=${toast} />` : null}
+    <h2 id="mz-foryou" class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70">${T(t, "forYou")}</h2>
+    ${!on ? html`<div data-connect class="flex flex-col gap-3">
+        <p class="text-sm leading-relaxed text-base-content/80">${T(t, "forYouConnect")}</p>
+        <button data-yt-connect disabled=${lbusy === "connect"} onClick=${() => connect("muzak")}
+          class=${`btn btn-primary w-full h-[var(--ms-ctl)] min-h-0 gap-2 sf-e3 ${lbusy === "connect" ? "animate-pulse" : ""}`}>
+          ${Icon("lucide:heart", "text-[length:var(--ms-icon)]")}<span>${T(t, lbusy === "connect" ? "connecting" : "connect")}</span>
+        </button>
+      </div>`
+    : !liked.length ? html`<p data-none class="text-sm text-base-content/70">${T(t, "forYouEmpty")}</p>`
+    : err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>`
+    : busy === "list" || !recs ? html`<div class="flex flex-col gap-1"><${LikesSkeleton} /></div>`
+    : html`<div class="flex flex-col gap-1">
+        ${list.map((s) => {
+          const here = cur === s.id;
+          return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, list)} attr=${{ "data-play": s.id }}>
+            ${rowTools(s, { t, toast, kept, mixed, dl })}
+          <//>`;
+        })}
+        ${busy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
+        ${more ? html`<div ref=${tail} data-tail aria-hidden="true" class="h-px"></div>` : null}
+      </div>`}
+  </section>`;
+}
+
+
 const $sq = atom(gate ? FIXTURE_QUERY : "");
 const $found = atom(gate ? FIXTURE_SEARCH.songs.map(songOfFound) : null);   
 const $sbusy = atom(""), $serr = atom("");   
@@ -341,12 +423,14 @@ async function lookup(q, locale, more = false) {
 export function search({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const q = useStore($sq), found = useStore($found), busy = useStore($sbusy), err = useStore($serr), playErr = useStore($err);
-  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
+  const cur = useStore($cur), playing = useStore($playing), kept = useStore($kept), dl = useStore($dl), mixed = useStore($mixed), recs = useStore($recs);
   const input = useRef();
   useEffect(() => { if (!gate && found === null) input.current?.focus(); }, []);
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   
   const songs = found || [];
-  const now = songs.find((s) => s.id === cur) || null;   
+  
+  const now = songs.find((s) => s.id === cur) || (found === null && recs?.find((s) => s.id === cur)) || null;
+  
   const tail = useRef();
   useEffect(() => {
     if (!tail.current || !snext) return;
@@ -367,20 +451,15 @@ export function search({ S, toast }) {
     </form>
     ${err || playErr ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err || playErr)}</div>` : null}
 
-    ${now ? html`<section data-player aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)]">
-      <${Orb} song=${now} />
-      <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle()} className="w-full pt-1"
-        onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
-        title=${now.title} subtitle=${loading ? T(t, "preparing") : [now.artist, clock(now.dur)].filter(Boolean).join(" · ")}
-        actions=${actionsFor(now, kept[now.id], dl, t, toast, mixed[now.id]).filter((a) => a.id !== "download")} />
-    </section>` : null}
+    ${now ? html`<${Player} now=${now} t=${t} locale=${locale} toast=${toast} />` : null}
 
     ${busy === "list" ? html`<${LikesSkeleton} />`
-    : found === null ? html`<div data-hint class="py-8 flex flex-col items-center gap-2 text-center text-base-content/70">
+    : found === null ? html`<div data-hint class="py-4 flex flex-col items-center gap-2 text-center text-base-content/70">
         ${Icon("lucide:audio-lines", "text-3xl text-primary")}
         <div class="font-semibold text-sm text-base-content">${T(t, "searchHintTitle")}</div>
         <div class="text-sm max-w-[32ch]">${T(t, "searchHint")}</div>
-      </div>`
+      </div>
+      <${ForYou} t=${t} locale=${locale} toast=${toast} />`
     : !songs.length ? html`<div data-none class="py-6 flex flex-col items-center gap-1 text-center">
         <div class="font-semibold text-sm">${T(t, "searchEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "searchEmptyHint")}</div>
       </div>`

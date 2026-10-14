@@ -1,5 +1,12 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { videoId, clock, byline, errorKey, songOfFound, FIXTURE_SEARCH } from "../muzak.js";
+import { videoId, clock, byline, errorKey, songOfFound, mixRadios, FIXTURE_SEARCH } from "../muzak.js";
+
+Deno.test("mixRadios: the radios in turns, no song twice, none of the skipped ones", () => {
+  const s = (id) => ({ id });
+  assertEquals(mixRadios([[s("a1"), s("a2"), s("a3")], [s("b1"), s("a2")], [s("c1")]]).map((x) => x.id), ["a1", "b1", "c1", "a2", "a3"]);
+  assertEquals(mixRadios([[s("a1"), s("liked")], [s("liked"), s("b2")]], ["liked", "shown"]).map((x) => x.id), ["a1", "b2"]);
+  assertEquals(mixRadios([]), []);
+});
 
 Deno.test("videoId: YouTube link shapes give the id, anything else null", () => {
   for (const u of ["https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=RD", "https://youtu.be/dQw4w9WgXcQ?si=1", "https://youtube.com/shorts/dQw4w9WgXcQ", " https://m.youtube.com/watch?v=dQw4w9WgXcQ "]) assertEquals(videoId(u), "dQw4w9WgXcQ", u);

@@ -36,3 +36,23 @@ export const FIXTURE_SEARCH = { songs: [
   { id: "kKbuv7NAMTc", title: "Я так хочу...", artist: "Океан Ельзи", album: "Dolce vita", duration: 282, cover: "https://i.ytimg.com/vi/kKbuv7NAMTc/mqdefault.jpg" },
   { id: "hTU6Kz6muXQ", title: "Дві весни", artist: "Jerry Heil і Sviatoslav Vakarchuk", album: "Дві весни", duration: 231, cover: "https://i.ytimg.com/vi/hTU6Kz6muXQ/mqdefault.jpg" },
 ] };
+
+export function mixRadios(lists, skip = []) {
+  const out = [], seen = new Set(skip);
+  for (let i = 0, any = true; any; i++) {
+    any = false;
+    for (const l of lists) {
+      if (i >= l.length) continue;
+      any = true;
+      if (!seen.has(l[i].id)) { seen.add(l[i].id); out.push(l[i]); }
+    }
+  }
+  return out;
+}
+
+export const FIXTURE_RADIO = { songs: [
+  { id: "EdSz0PeLVgY", title: "З якого ти поверху неба?", artist: "Jerry Heil і YARMAK", album: "АРХЕТИПИ", duration: 197, cover: "https://i.ytimg.com/vi/EdSz0PeLVgY/mqdefault.jpg" },
+  { id: "iJF2vlu0308", title: "Твій на 100%", artist: "БумБокс", album: "Таємний код Рубікон Частина 1", duration: 286, cover: "https://i.ytimg.com/vi/iJF2vlu0308/mqdefault.jpg" },
+  { id: "xrI5jBPT4Cw", title: "Оберіг", artist: "Святослав Вакарчук", album: "Оранжерея", duration: 214, cover: "https://i.ytimg.com/vi/xrI5jBPT4Cw/mqdefault.jpg" },
+  { id: "lf7NA8FwMxo", title: "Пробач", artist: "SHUMEI", album: "Пробач", duration: 160, cover: "https://i.ytimg.com/vi/lf7NA8FwMxo/mqdefault.jpg" },
+] };
