@@ -13,7 +13,7 @@ window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
 gtag("consent","default",{analytics_storage:"denied",ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",region:${JSON.stringify(EEA)}});
 gtag("consent","default",{analytics_storage:"granted",ad_storage:"granted",ad_user_data:"granted",ad_personalization:"denied"});
 gtag("js",new Date());gtag("config",${JSON.stringify(id)},{app_id:app});
-var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=${id}";document.head.appendChild(s);
+var s=document.createElement("script");s.async=true;s.fetchPriority="high";s.src="https://www.googletagmanager.com/gtag/js?id=${id}";document.head.appendChild(s);
 addEventListener("appinstalled",function(){gtag("event","app_installed",{app_id:app})});
 if(matchMedia("(display-mode: standalone)").matches)gtag("event","app_launched",{app_id:app});
 if(app!=="landing"&&app!=="store"){var ek="ga:eng:"+app,on=0,seen=0,t0=document.hidden?0:Date.now(),sent=false,tm;try{sent=sessionStorage.getItem(ek)==="1"}catch(e){}

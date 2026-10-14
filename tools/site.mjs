@@ -38,7 +38,7 @@ function page(lang) {
     const a = byId[id], line = said(dict["m_" + id] ?? (() => { throw new Error(`site/i18n/${lang}.json has no "m_${id}"`); })());
     return `<a class="app rise" style="--d:${Math.min(i, 3) * 70}ms" href="/${id}/${L.q}"><div class="phone">${shot(`${id}--${tab}`, `${title(a)}: ${line}`)}</div>` +
       `<div class="moment"><time class="when mono">${when}</time><p>${esc(line)}</p>` +
-      `<span class="who"><img src="/${id}/icon.webp" alt="" width="24" height="24" loading="lazy">${esc(title(a))}</span></div></a>`;
+      `<span class="who"><img src="/${id}/icon.svg" alt="" width="24" height="24" loading="lazy">${esc(title(a))}</span></div></a>`;
   }).join("");
 
   const cats = Object.entries(apps.reduce((m, a) => ((m[a.category] ||= []).push(a), m), {})).sort((x, y) => y[1].length - x[1].length);
@@ -47,7 +47,7 @@ function page(lang) {
   const bento = cats.map(([c, list], i) =>
     `<a class="shelf rise${i < wide ? " big" : ""}${i === 0 ? " lit" : i === 1 ? " cool" : ""}" style="--d:${(i % 4) * 60}ms" href="/store/${L.q}">` +
     `<div><div class="n">${list.length}</div><div class="t">${esc(catName(c))}</div></div>` +
-    `<div class="icons">${list.slice(0, 5).map((a) => `<img src="/${a.id}/icon.webp" alt="" width="38" height="38" loading="lazy">`).join("")}</div></a>`).join("");
+    `<div class="icons">${list.slice(0, 5).map((a) => `<img src="/${a.id}/icon.svg" alt="" width="38" height="38" loading="lazy">`).join("")}</div></a>`).join("");
 
   const jsonld = JSON.stringify({
     "@context": "https://schema.org",
