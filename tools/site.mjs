@@ -13,9 +13,19 @@
 // the hreflang pair tells search which one to show whom. Beside them: robots.txt (everything may be crawled, so the
 // noindex the web server sends on every other path is seen) and a sitemap with the two URLs as alternates. The
 // noindex itself is the web server's (microspec-edge edge/web/nginx.conf), which also lets "/en/" through.
+//
+// The captures reach a phone as AVIF at 480 and 768 px wide, WebP 480 beside them, the store's 768 WebP last (owner
+// 2026-10-14: «роби avif 480 і 768»): a frame is 206–240 CSS px on a phone, and Squoosh's own codecs (@jsquash)
+// measured on three captures gave 480 AVIF −58…−60% and 768 AVIF −4…−25% at PSNR 38–45, while WebP lossless was 4–5×
+// LARGER. One 768 AVIF takes ~21 s to encode, so they are made once and committed, not at every deploy:
+//
+//   deno run -A tools/site.mjs --shots      encodes what is missing or stale into site/shots/ (+ index.json)
+//
+// index.json keeps the sha-256 of the capture each variant was made from; a build whose capture changed since stops
+// and says to run --shots, so a retaken screen can never ship beside its old picture.
 const SITE = "https://mriia.si";
 const [dist] = Deno.args;
-if (!dist) { console.error("usage: deno run -A tools/site.mjs <dist dir>"); Deno.exit(2); }
+if (!dist) { console.error("usage: deno run -A tools/site.mjs <dist dir> | --shots"); Deno.exit(2); }
 const root = new URL("..", import.meta.url).pathname;
 const read = (p) => Deno.readTextFileSync(root + p);
 const apps = JSON.parse(read("apps/store/apps.json"));
@@ -43,6 +53,40 @@ const LOCALES = {
   uk: { dir: "", url: `${SITE}/`, og: "uk_UA", ogAlt: "en_US", ogImage: "og.jpg", shot: "", q: "" },
   en: { dir: "en", url: `${SITE}/en/`, og: "en_US", ogAlt: "uk_UA", ogImage: "og-en.jpg", shot: "--en", q: "?locale=en" },
 };
+// every capture the two pages show, as its file name in apps/store/assets without ".webp"
+const CAPTURES = [...new Set([HERO_BACK, HERO_FRONT, LIVES, ...SHOWCASE.map(([id, tab]) => `${id}--${tab}`)])]
+  .flatMap((name) => Object.values(LOCALES).flatMap((L) => [false, true].map((light) => `shot-${name}${L.shot}${light ? "--light" : ""}`)));
+const SIZES = "(max-width: 480px) 240px, (max-width: 899px) 270px, 290px";
+const SHOTS = "site/shots", AVIF = { cqLevel: 20, speed: 6 }, WEBP = { quality: 82 };
+const sha = async (p) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", Deno.readFileSync(root + p))), (b) => b.toString(16).padStart(2, "0")).join("");
+const made = (() => { try { return JSON.parse(read(`${SHOTS}/index.json`)); } catch { return {}; } })();
+const outs = (base) => [`${base}-480.avif`, `${base}-768.avif`, `${base}-480.webp`];
+
+if (dist === "--shots") {
+  const { decode, encode: webp } = await import("npm:@jsquash/webp@1.4.0");
+  const { encode: avif } = await import("npm:@jsquash/avif@1.3.0");
+  const { default: resize } = await import("npm:@jsquash/resize@2.1.0");
+  Deno.mkdirSync(root + SHOTS, { recursive: true });
+  for (const [i, base] of CAPTURES.entries()) {
+    const src = `apps/store/assets/${base}.webp`, h = await sha(src);
+    if (made[base] === h && outs(base).every((f) => { try { return Deno.statSync(`${root}${SHOTS}/${f}`).isFile; } catch { return false; } })) continue;
+    const img = await decode(Deno.readFileSync(root + src));
+    const small = await resize(img, { width: 480, height: Math.round(img.height * 480 / img.width) });
+    const [a480, a768, w480] = await Promise.all([avif(small, AVIF), avif(img, AVIF), webp(small, WEBP)]);
+    outs(base).forEach((f, k) => Deno.writeFileSync(`${root}${SHOTS}/${f}`, new Uint8Array([a480, a768, w480][k])));
+    made[base] = h;
+    Deno.writeTextFileSync(`${root}${SHOTS}/index.json`, JSON.stringify(made, null, 1) + "\n");   // after each: an interrupted run keeps what it made
+    console.log(`${i + 1}/${CAPTURES.length} ${base}: ${[a480, a768, w480].map((b) => Math.round(b.byteLength / 1024) + "KB").join(" ")}`);
+  }
+  console.log(`shots: ${CAPTURES.length} captures current in ${SHOTS}/`);
+  Deno.exit(0);
+}
+for (const base of CAPTURES) {
+  if (made[base] !== await sha(`apps/store/assets/${base}.webp`)) throw new Error(`${SHOTS}: ${base} is missing or older than its capture — run: deno run -A tools/site.mjs --shots`);
+}
+Deno.mkdirSync(`${dist}/_landing`, { recursive: true });
+for (const base of CAPTURES) for (const f of outs(base)) Deno.copyFileSync(`${root}${SHOTS}/${f}`, `${dist}/_landing/${f}`);
+
 const icon = (name) => read(`site/icons/${name}.svg`).replace("<svg ", '<svg aria-hidden="true" focusable="false" ');
 const need = (p) => { try { Deno.statSync(root + p); } catch { throw new Error(`no ${p} — retake the captures (see the header of this file)`); } };
 
@@ -54,9 +98,15 @@ function page(lang) {
   const title = (a) => a.titles?.[lang] || a.title;
   const src = (name, light) => `/store/assets/shot-${name}${L.shot}${light ? "--light" : ""}.webp`;
   for (const name of [HERO_BACK, HERO_FRONT, LIVES, ...SHOWCASE.map(([id, tab]) => `${id}--${tab}`)]) for (const l of [false, true]) need(`apps/store/assets${src(name, l).slice("/store/assets".length)}`);
-  // a capture as the theme asks for it: the dark one, and the paper one where the reader's system is light
-  const shot = (name, alt, eager = false) =>
-    `<picture><source media="(prefers-color-scheme: light)" srcset="${src(name, true)}"><img src="${src(name, false)}" alt="${esc(alt)}" width="768" height="1664"${eager ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"'}></picture>`;
+  // a capture as the theme asks for it: the dark one, and the paper one where the reader's system is light; AVIF where
+  // the browser takes it, at the width the frame needs (SIZES: the .phone and .rail widths in site/index.html)
+  const base = (name, light) => src(name, light).slice("/store/assets/".length, -".webp".length);
+  const set = (name, light, ext) => `/_landing/${base(name, light)}-480.${ext} 480w, ${ext === "avif" ? `/_landing/${base(name, light)}-768.avif` : src(name, light)} 768w`;
+  const shot = (name, alt, eager = false) => `<picture>` +
+    `<source media="(prefers-color-scheme: light)" type="image/avif" srcset="${set(name, true, "avif")}" sizes="${SIZES}">` +
+    `<source media="(prefers-color-scheme: light)" type="image/webp" srcset="${set(name, true, "webp")}" sizes="${SIZES}">` +
+    `<source type="image/avif" srcset="${set(name, false, "avif")}" sizes="${SIZES}">` +
+    `<img src="${src(name, false)}" srcset="${set(name, false, "webp")}" sizes="${SIZES}" alt="${esc(alt)}" width="768" height="1664"${eager ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"'}></picture>`;
 
   const rail = SHOWCASE.map(([id, tab, when], i) => {
     const a = byId[id], line = said(dict["m_" + id] ?? (() => { throw new Error(`site/i18n/${lang}.json has no "m_${id}"`); })());
@@ -102,7 +152,7 @@ function page(lang) {
     .replace("{{CUR_UK}}", lang === "uk" ? ' aria-current="page"' : "").replace("{{CUR_EN}}", lang === "en" ? ' aria-current="page"' : "")
     .replaceAll("{{YEAR}}", String(new Date().getUTCFullYear()))
     .replace("{{JSONLD}}", jsonld)
-    .replace("{{HERO_FRONT_SRC}}", src(HERO_FRONT, false)).replace("{{HERO_FRONT_SRC_LIGHT}}", src(HERO_FRONT, true))
+    .replace("{{HERO_FRONT_SET}}", set(HERO_FRONT, false, "avif")).replace("{{HERO_FRONT_SET_LIGHT}}", set(HERO_FRONT, true, "avif")).replaceAll("{{SIZES}}", SIZES)
     .replace("{{HERO_BACK_IMG}}", shot(HERO_BACK, said(dict.heroBackAlt)))
     .replace("{{HERO_FRONT_IMG}}", shot(HERO_FRONT, said(dict.heroFrontAlt), true))
     .replace("{{LIVES_IMG}}", shot(LIVES, said(dict.livesAlt)))
