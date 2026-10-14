@@ -62,9 +62,11 @@ function page(lang) {
     const a = byId[id], line = said(dict["m_" + id] ?? (() => { throw new Error(`site/i18n/${lang}.json has no "m_${id}"`); })());
     return `<a class="app rise" style="--d:${Math.min(i, 3) * 70}ms" href="/${id}/${L.q}"><div class="phone">${shot(`${id}--${tab}`, `${title(a)}: ${line}`)}</div>` +
       `<div class="moment"><time class="when mono">${when}</time><p>${esc(line)}</p>` +
-      `<span class="who"><img src="/${id}/icon.webp" alt="" width="24" height="24" loading="lazy">${esc(title(a))}</span></div></a>`;
+      `<span class="who"><img src="/${id}/icon.svg" alt="" width="24" height="24" loading="lazy">${esc(title(a))}</span></div></a>`;
   }).join("");
 
+  // An icon here is 24–38 px, so it is the app's icon.svg (the 256 px tile the store's grid shows, ~11 KB), never the
+  // 1024 px icon.webp (~95 KB): on a phone's mobile data the webps held the GA tag back to 6.5 s (owner 2026-10-14).
   // THE SHELVES — every category the store has, with its real count and the first apps' icons; the largest are wide
   // tiles (two cells), as many as close the last row of the four-column grid, which also closes the phone's two
   // columns; the two largest carry the two poles of light
@@ -74,7 +76,7 @@ function page(lang) {
   const bento = cats.map(([c, list], i) =>
     `<a class="shelf rise${i < wide ? " big" : ""}${i === 0 ? " lit" : i === 1 ? " cool" : ""}" style="--d:${(i % 4) * 60}ms" href="/store/${L.q}">` +
     `<div><div class="n">${list.length}</div><div class="t">${esc(catName(c))}</div></div>` +
-    `<div class="icons">${list.slice(0, 5).map((a) => `<img src="/${a.id}/icon.webp" alt="" width="38" height="38" loading="lazy">`).join("")}</div></a>`).join("");
+    `<div class="icons">${list.slice(0, 5).map((a) => `<img src="/${a.id}/icon.svg" alt="" width="38" height="38" loading="lazy">`).join("")}</div></a>`).join("");
 
   const jsonld = JSON.stringify({
     "@context": "https://schema.org",
