@@ -315,21 +315,27 @@ export function likes({ S, toast, confirm }) {
 
 const $sq = atom(gate ? FIXTURE_QUERY : "");
 const $found = atom(gate ? FIXTURE_SEARCH.songs.map(songOfFound) : null);   
-const $sbusy = atom(false), $serr = atom("");
+const $sbusy = atom(""), $serr = atom("");   
+let snext = "", sfor = { q: "", hl: "uk" };
 let sseq = 0;
-async function lookup(q, locale) {
-  q = String(q || "").trim();
-  if (!q) return;
-  const my = ++sseq;
-  $serr.set(""); $sbusy.set(true);
-  if (gate) { $found.set(FIXTURE_SEARCH.songs.map(songOfFound)); $sbusy.set(false); return; }
+async function lookup(q, locale, more = false) {
+  q = more ? sfor.q : String(q || "").trim();
+  if (!q || (more && (!snext || $sbusy.get()))) return;
+  const my = more ? sseq : ++sseq, hl = more ? sfor.hl : locale === "en" ? "en" : "uk", was = more ? $found.get() || [] : [];
+  $serr.set(""); $sbusy.set(more ? "more" : "list");
+  if (gate) { $found.set(FIXTURE_SEARCH.songs.map(songOfFound)); $sbusy.set(""); return; }
+  if (!more) { snext = ""; sfor = { q, hl }; }
   try {
-    const r = await fetch(`${VPS_PROXY}/music/search?q=${encodeURIComponent(q)}&hl=${locale === "en" ? "en" : "uk"}`, { signal: AbortSignal.timeout(30000) });
+    const r = await fetch(`${VPS_PROXY}/music/search?q=${encodeURIComponent(q)}&hl=${hl}${more ? `&c=${encodeURIComponent(snext)}` : ""}`, { signal: AbortSignal.timeout(30000) });
     if (my !== sseq) return;
     if (!r.ok) { if (r.status !== 401) $serr.set(r.status === 429 ? "errBusy" : "errSearch"); return; }   
-    $found.set(((await r.json()).songs || []).map(songOfFound));
+    const j = await r.json(), seen = new Set(was.map((s) => s.id));
+    snext = j.next || "";
+    const songs = [...was, ...(j.songs || []).map(songOfFound).filter((s) => !seen.has(s.id))];
+    $found.set(songs);
+    if (more && $q.get() === was) $q.set(songs);   
   } catch { if (my === sseq) $serr.set("errSearch"); }
-  finally { if (my === sseq) $sbusy.set(false); }
+  finally { if (my === sseq) $sbusy.set(""); }
 }
 
 export function search({ S, toast }) {
@@ -341,6 +347,14 @@ export function search({ S, toast }) {
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   
   const songs = found || [];
   const now = songs.find((s) => s.id === cur) || null;   
+  const tail = useRef();
+  useEffect(() => {
+    if (!tail.current || !snext) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) lookup("", locale, true); }, { rootMargin: "0px 0px 600px 0px" });
+    io.observe(tail.current);
+    return () => io.disconnect();
+  }, [songs.length, busy]);
+
   return html`<div data-search data-busy=${busy ? "true" : null} data-found=${found ? songs.length : null} data-playing=${now && playing ? "true" : null}
     class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
     <form role="search" class="flex items-center gap-2" onSubmit=${(e) => { e.preventDefault(); input.current?.blur(); lookup(q, locale); }}>
@@ -348,7 +362,7 @@ export function search({ S, toast }) {
         class="input input-bordered sf-inset min-w-0 flex-1" aria-label=${T(t, "searchPlaceholder")}
         placeholder=${T(t, "searchPlaceholder")} value=${q}
         onInput=${(e) => { $sq.set(e.target.value); if ($serr.get()) $serr.set(""); }}></textarea>
-      <button type="submit" data-search-go aria-label=${T(t, "aSearch")} disabled=${!q.trim() || busy}
+      <button type="submit" data-search-go aria-label=${T(t, "aSearch")} disabled=${!q.trim() || busy === "list"}
         class="btn btn-primary btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 sf-e3">${Icon("lucide:search", "text-[length:var(--ms-icon)]")}</button>
     </form>
     ${err || playErr ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err || playErr)}</div>` : null}
@@ -361,7 +375,7 @@ export function search({ S, toast }) {
         actions=${actionsFor(now, kept[now.id], dl, t, toast, mixed[now.id]).filter((a) => a.id !== "download")} />
     </section>` : null}
 
-    ${busy ? html`<${LikesSkeleton} />`
+    ${busy === "list" ? html`<${LikesSkeleton} />`
     : found === null ? html`<div data-hint class="py-8 flex flex-col items-center gap-2 text-center text-base-content/70">
         ${Icon("lucide:audio-lines", "text-3xl text-primary")}
         <div class="font-semibold text-sm text-base-content">${T(t, "searchHintTitle")}</div>
@@ -377,6 +391,8 @@ export function search({ S, toast }) {
             ${rowTools(s, { t, toast, kept, mixed, dl })}
           <//>`;
         })}
+        ${busy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
+        ${snext ? html`<div ref=${tail} data-tail aria-hidden="true" class="h-px"></div>` : null}
       </section>`}
   </div>`;
 }
