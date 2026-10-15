@@ -1234,23 +1234,26 @@
       "en": [
         "Song",
         "Search",
-        "Liked"
+        "Liked",
+        "Radio"
       ],
       "uk": [
         "Пісня",
         "Пошук",
-        "Вподобане"
+        "Вподобане",
+        "Радіо"
       ]
     },
     "shots": [
       "song",
       "search",
-      "likes"
+      "likes",
+      "radio"
     ],
     "bg": "#120E08",
     "fg": "#F2B84B",
     "href": "./muzak/",
-    "version": "1.27",
+    "version": "1.30",
     "category": "sound",
     "needs": [
       "auth"

@@ -95,18 +95,23 @@ export default [
     },
   },
   {
-    name: "радіо: тап грає пісню, за нею в черзі й у секції «Радіо» схожі; тап по схожій грає її; ✕ закриває", run: async (h) => {
+    name: "радіо: тап з будь-якої вкладки веде на вкладку «Радіо», пісня грає, за нею схожі; інші вкладки без радіо", run: async (h) => {
+      await h.click('[data-tab="likes"]'); await h.wait(250);
+      await h.tap('[data-like] [data-radio="fJ9rUzIMcZQ"]'); await h.wait(300);
+      h.expect((await h.attr("[data-radio-tab]", "data-seed")) === "fJ9rUzIMcZQ", "радіо не з тієї пісні");
       await h.click('[data-tab="likes"]'); await h.wait(250);
       await h.tap('[data-like] [data-radio="kXYiU_JCYtU"]'); await h.wait(300);
-      h.expect((await h.attr("[data-radio-list]", "data-songs")) === "5", "радіо не зібрало пісню і 4 схожі");
-      h.expect((await h.attr("[data-likes]", "data-playing")) === "true", "радіо не заграло");
-      h.expect(/Numb/.test(await h.text("[data-player]")), "плеєр не назвав пісню, з якої радіо");
-      h.expect((await h.attr('[data-like] [data-radio="kXYiU_JCYtU"]', "aria-pressed")) === "true", "кнопка радіо не світиться");
-      await h.tap('[data-radio-list] [data-play="xrI5jBPT4Cw"]'); await h.wait(300);
-      h.expect(/Оберіг/.test(await h.text("[data-player]")), "схожа пісня з радіо не заграла");
-      await h.tap("[data-radio-off]"); await h.wait(150);
-      h.expect((await h.count("[data-radio-list]")) === 0, "✕ не закрив радіо");
-      await h.tap("[data-player] #play"); await h.wait(150);
+      h.expect((await h.attr('[data-tab="radio"]', "aria-current")) === "page", "тап по «Радіо» не перевів на вкладку «Радіо»");
+      h.expect((await h.attr("[data-radio-tab]", "data-seed")) === "kXYiU_JCYtU", "радіо не з тієї пісні");
+      h.expect((await h.attr("[data-radio-tab]", "data-songs")) === "5", "радіо не зібрало пісню і 4 схожі");
+      h.expect((await h.attr("[data-radio-tab]", "data-playing")) === "true", "радіо не заграло");
+      h.expect(/Numb/.test(await h.text("[data-radio-tab] [data-player]")), "плеєр не назвав пісню, з якої радіо");
+      for (const a of ["mix", "radio", "more"]) h.expect((await h.count(`[data-radio-tab] [data-like] [data-${a}]`)) === 5, `не в кожної пісні радіо ${a}`);
+      await h.tap('[data-radio-tab] [data-play="xrI5jBPT4Cw"]'); await h.wait(300);
+      h.expect(/Оберіг/.test(await h.text("[data-radio-tab] [data-player]")), "схожа пісня з радіо не заграла");
+      await h.tap("[data-radio-tab] [data-player] #play"); await h.wait(150);
+      await h.click('[data-tab="likes"]'); await h.wait(250);
+      h.expect((await h.count("[data-likes] [data-like]")) === 4, "радіо влізло у «Вподобане»");
       await h.click('[data-tab="song"]'); await h.wait(120);
     },
   },

@@ -29,6 +29,14 @@
       "needs": ["auth"]
     },
     {
+      "id": "radio",
+      "type": "tool",
+      "icon": "lucide:radio",
+      "label": "tabRadio",
+      "view": "radio",
+      "needs": ["auth"]
+    },
+    {
       "id": "me",
       "type": "profile",
       "icon": "lucide:user",
