@@ -9,6 +9,7 @@ import { glbUrl } from "./state.js";
 export const STREET_W = 10, CHUNK = 24, AHEAD = 4, BEHIND = 2;
 export const LANE_W = 2.2, LANES = 4;
 export const laneX = (i) => (i - (LANES - 1) / 2) * LANE_W;
+const laneOf = (x) => Math.max(0, Math.min(LANES - 1, Math.round(x / LANE_W + (LANES - 1) / 2)));
 export const DECK_H = 2.4, RAMP = 5;
 const WALK = 1.6, KERB = STREET_W / 2 + WALK / 2, WALL = STREET_W / 2 + WALK + 0.2;
 const TILE = 9;
@@ -260,9 +261,9 @@ export function createWorld(scene) {
     const run = mixer.clipAction(retarget(horde.run.clip, horde.run.rig, c.rig, true));
     run.play(); run.time = rr() * run.getClip().duration; run.setEffectiveTimeScale(0.85 + rr() * 0.3);
     const attack = horde.attack ? mixer.clipAction(retarget(horde.attack.clip, horde.attack.rig, c.rig, true)) : null;
-    const gap = rr() * 3.5, x = (rr() - 0.5) * (STREET_W - 1);
-    holder.position.set(x, 0, pz + chase.dist + gap + 1);
-    zombies.push({ holder, mixer, run, attack, bones: twist(root, c, horde.run), x, z: holder.position.z, gap, off: (rr() - 0.5) * 6, offT: 0, w1: 0.6 + rr() * 0.8, w2: 1.7 + rr() * 1.5, ph: rr() * 6.28, lean: 0.08 + rr() * 0.14, yaw: Math.PI, grabbing: false });
+    const gap = rr() * 3.5, x = (rr() - 0.5) * (STREET_W - 1), z = pz + chase.dist + gap + 1, y = floorAt(laneOf(x), z);
+    holder.position.set(x, y, z);
+    zombies.push({ holder, mixer, run, attack, bones: twist(root, c, horde.run), x, y, z, gap, off: (rr() - 0.5) * 6, offT: 0, w1: 0.6 + rr() * 0.8, w2: 1.7 + rr() * 1.5, ph: rr() * 6.28, lean: 0.08 + rr() * 0.14, yaw: Math.PI, grabbing: false });
   }
   function killZombie(i) { const z = zombies[i]; z.mixer.stopAllAction(); group.remove(z.holder); zombies.splice(i, 1); }
 
@@ -276,7 +277,9 @@ export function createWorld(scene) {
     } else if (chase.caught) chase.dist = Math.max(0.6, chase.dist - 8 * dt);
     const want = Z_MIN + Math.round(difficulty * (Z_MAX - Z_MIN));
     while (zombies.length < want && running) spawnZombie(px, pz);
-    const lim = STREET_W / 2 - 0.4;
+    // inside the outer lanes' edges: at the old STREET_W / 2 − 0.4 a zombie on an edge-lane deck ran 0.27 m past
+    // its rail, in the air (measured in the deck probe, 2026-10-15)
+    const lim = laneX(LANES - 1) + LANE_W / 2 - 0.35;
     for (let i = zombies.length - 1; i >= 0; i--) {
       const zb = zombies[i];
       if ((zb.offT -= dt) < 0) { zb.offT = 2 + Math.random() * 4; zb.off = (Math.random() - 0.5) * 6; }
@@ -287,16 +290,23 @@ export function createWorld(scene) {
       zb.x += (tx - zb.x) * Math.min(1, dt * 1.4);
       const yaw = Math.atan2(tx - zb.x, -2.5);
       zb.yaw += Math.atan2(Math.sin(yaw - zb.yaw), Math.cos(yaw - zb.yaw)) * Math.min(1, dt * 3);
-      zb.holder.position.set(zb.x, 0, zb.z); zb.holder.rotation.set(zb.lean + surge * 0.05, zb.yaw, Math.sin(t * zb.w2 * 0.7 + zb.ph) * 0.06);
+      // the horde runs on the floor of the lane it is in — up the ramp and along a deck, not under it; one that
+      // drifts onto a deck from the side climbs to it over ~0.3 s instead of popping up
+      zb.y += (floorAt(laneOf(zb.x), zb.z) - zb.y) * Math.min(1, dt * 8);
+      zb.holder.position.set(zb.x, zb.y, zb.z); zb.holder.rotation.set(zb.lean + surge * 0.05, zb.yaw, Math.sin(t * zb.w2 * 0.7 + zb.ph) * 0.06);
       if (chase.caught && zb.attack && !zb.grabbing && zb.z - pz < 2.2) { zb.grabbing = true; zb.attack.reset().play(); zb.run.crossFadeTo(zb.attack, 0.15, false); }
       zb.mixer.update(dt * (chase.caught ? 1 : Math.max(0.6, speed / 6) * (0.9 + 0.25 * surge)));
       for (const { b, q } of zb.bones) b.quaternion.multiply(q);
     }
   }
   function spawnWalker(ch, lane, z) {
-    if (!horde.chars.length || !horde.walk) { ch.obstacles.push({ kind: "dodge", lane, z, zHalf: 0.5 }); return; }
+    // the undead are not loaded yet (the first chunks are built before the skins arrive): a bin stands in — this
+    // used to push a bare "dodge" with no mesh, an invisible wall that caught the runner head-on
+    if (!horde.chars.length || !horde.walk) { place(ch, "bin", laneX(lane), floorAt(lane, z), z, Math.PI / 2, 1.25); ch.obstacles.push({ kind: "bin", lane, z, zHalf: 0.9 }); return; }
     const c = horde.chars[Math.floor(Math.random() * horde.chars.length)], root = cloneSkinned(c.root);
-    const holder = new THREE.Group(); holder.rotation.order = "YXZ"; holder.position.set(laneX(lane), 0, z); holder.add(root); ch.group.add(holder);
+    // on the lane's floor: a walker in a deck's lane used to stand on the street UNDER the deck, out of sight, while
+    // the runner on the deck still collided with it (hit() is by lane and z) — owner 2026-10-15
+    const holder = new THREE.Group(); holder.rotation.order = "YXZ"; holder.position.set(laneX(lane), floorAt(lane, z), z); holder.add(root); ch.group.add(holder);
     const mixer = new THREE.AnimationMixer(root);
     const walk = mixer.clipAction(retarget(horde.walk.clip, horde.walk.rig, c.rig, true)); walk.play(); walk.time = Math.random() * walk.getClip().duration;
     const die = horde.die ? mixer.clipAction(retarget(horde.die.clip, horde.die.rig, c.rig, true)) : null; if (die) { die.setLoop(THREE.LoopOnce, 1); die.clampWhenFinished = true; }
@@ -308,7 +318,7 @@ export function createWorld(scene) {
   function updateWalkers(pz, dt, running) {
     for (const ch of chunks.values()) for (const w of ch.walkers) {
       if (Math.abs(w.z - pz) > 70) continue;
-      if (!w.dead && running) { w.z += WALKER_SPEED * dt; w.holder.position.z = w.z; const o = ch.obstacles.find((o) => o.walker === w); if (o) o.z = w.z; }
+      if (!w.dead && running) { w.z += WALKER_SPEED * dt; w.holder.position.set(w.holder.position.x, floorAt(w.lane, w.z), w.z); const o = ch.obstacles.find((o) => o.walker === w); if (o) o.z = w.z; }
       if (w.dead) { w.deadT += dt; if (w.deadT > 6) continue; }
       w.mixer.update(dt);
       for (const { b, q } of w.bones) b.quaternion.multiply(q);
@@ -326,6 +336,7 @@ export function createWorld(scene) {
     const kind = CARS[Math.floor(r() * CARS.length)], ry = across ? (r() < 0.5 ? Math.PI / 2 : -Math.PI / 2) : (r() < 0.5 ? 0 : Math.PI);
     place(ch, kind, x, 0, z, ry + (r() - 0.5) * 0.08);
   }
+  const onDeck = (lane, z) => floorAt(lane, z) > 0.01;
   function obstacle(ch, r, kind, lane, z) {
     const x = laneX(lane), g = ch.group, y = floorAt(lane, z);
     if (kind === "jump") {
@@ -339,7 +350,9 @@ export function createWorld(scene) {
     } else if (kind === "walker") {
       spawnWalker(ch, lane, z);
     } else {
-      if (r() < 0.5) { const sc = 1.25; place(ch, "bin", x, y, z, Math.PI / 2, sc); ch.obstacles.push({ kind: "bin", lane, z, zHalf: 0.9 }); }
+      // a car stands across the lane on the street only: on a deck it was placed on the street under it (an unseen
+      // obstacle the runner hit), and a car across a one-lane deck would hang over its edge — a deck gets a bin
+      if (r() < 0.5 || onDeck(lane, z)) { const sc = 1.25; place(ch, "bin", x, y, z, Math.PI / 2, sc); ch.obstacles.push({ kind: "bin", lane, z, zHalf: 0.9 }); }
       else { car(ch, r, x, z, true); ch.obstacles.push({ kind: "car", lane, z, zHalf: 1.0 }); }
     }
   }
@@ -469,7 +482,7 @@ export function createWorld(scene) {
       while (zombies.length) killZombie(zombies.length - 1);
       flock.on = false; bats.count = 0; flock.next = performance.now() + 12000;
     },
-    zombies: () => zombies.map((z) => ({ x: +z.x.toFixed(2), z: +z.z.toFixed(2) })),
+    zombies: () => zombies.map((z) => ({ x: +z.x.toFixed(2), y: +z.y.toFixed(2), z: +z.z.toFixed(2), floor: floorAt(laneOf(z.x), z.z) })),
     pulse(k) { const v = 0.55 + 0.45 * clamp01(k); M.head.color.setScalar(v); M.pool.opacity = 0.5 + 0.5 * v; M.beam.opacity = 0.02 + 0.03 * v; M.tube.color.setScalar(0.6 + 0.4 * v); },
     update(z, dist, dt, running, px, speed, metres, camPos, now) {
       if (!roadReady) return;

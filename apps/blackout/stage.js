@@ -4,7 +4,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { report } from "/_rt/telemetry.js";
 import { createWorld, LANES, laneX } from "./world.js";
 import { hipsOf, fit, retarget } from "./rig.js";
-import { glbUrl, muted, mix, weaponById, wieldedArm, $weapon } from "./state.js";
+import { glbUrl, muted, weaponById, wieldedArm, $weapon } from "./state.js";
 import { createSound } from "./sound.js";
 
 const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
@@ -77,7 +77,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
   const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), muzzleMat); muzzle.position.set(0, 0.04, -0.16); gun.add(muzzle);
   try { await Promise.all([loadClips(), street.ready]); await loadSkin(skinId); } catch (e) { onStatus("failed", "glb: " + String(e && e.message || e).slice(0, 70)); return null; }
 
-  const sound = createSound({ muted, mix });
+  const sound = createSound({ muted });
   const sfx = (name, o) => sound?.play(name, o);
   street.onBats(() => sfx("bats"));
   let nextAmbience = 0, coinStreak = 0, lastCoinAt = 0;
@@ -236,7 +236,6 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
       return true;
     },
     setWeapon(id) { arm(id); },
-    preview(bus) { sound?.preview(bus); },
     async setSkin(id) { if (id === skin) return; try { await loadSkin(id); } catch (e) { onStatus("failed", "glb: " + String(e && e.message || e).slice(0, 70)); } },
     dispose() {
       dead = true; cancelAnimationFrame(raf); removeEventListener("resize", resize);
