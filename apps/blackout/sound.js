@@ -23,7 +23,11 @@ export const SFX = {
   can: { lufs: -10.9 }, boost: { loop: true, lufs: -14.5 }, bats: { lufs: -13.9 },
 };
 const gainOf = (spec) => dbToGain(LEVEL - spec.lufs);
-const MUSIC = dbToGain(LEVEL - -9.8);   // the stream, measured at −9.8 LUFS
+// the rave stream rides 6 dB over the effects (owner 2026-10-15: «зроби музику радіо більш виразнішою, там же рейв
+// пісні класно слухати»): at the common level the beds — wind, steps, the horde — covered it. Measured at −9.8 LUFS,
+// so at −14 its peaks stay under the brickwall (−3 dBFS) and the kick is not squashed.
+const MUSIC_LEVEL = LEVEL + 6;
+const MUSIC = dbToGain(MUSIC_LEVEL - -9.8);
 const url = (name) => new URL(`assets/sfx-${name}.mp3`, import.meta.url).href;
 const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
 const IDLE_BPM = 126;
