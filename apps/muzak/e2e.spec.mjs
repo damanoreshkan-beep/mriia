@@ -2,7 +2,7 @@ const ready = async (h) => { for (let i = 0; i < 20; i++) { if ((await h.count("
 
 export default [
   {
-    name: "пісня: картка з назвою, виконавцем і тривалістю; слухати, скачати, у Фонотеку, поділитися, мікс", run: async (h) => {
+    name: "пісня: картка з назвою, виконавцем і тривалістю; слухати, поділитися, мікс, радіо, ⋯", run: async (h) => {
       await ready(h); await h.wait(300);
       h.expect((await h.count("[data-link]")) === 1, "немає поля посилання");
       h.expect((await h.attr("[data-muzak]", "data-song")) === "dQw4w9WgXcQ", "картка пісні не показана під гейтом");
@@ -10,14 +10,21 @@ export default [
       h.expect(/Rick Astley · Whenever You Need Somebody · 1987/.test(await h.bodyText()), "немає рядка виконавець · альбом · рік");
       h.expect(/3:33/.test(await h.bodyText()), "немає тривалості");
       h.expect((await h.count("[data-listen]")) === 1, "немає «Слухати»");
-      for (const a of ["save", "keep", "share", "mix"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
+      for (const a of ["share", "mix", "radio", "more"]) h.expect((await h.count(`[data-muzak] [data-${a}]`)) === 1, `немає кнопки ${a}`);
+      h.expect((await h.count("[data-muzak] [data-save], [data-muzak] [data-keep]")) === 0, "«Скачати» чи «У Фонотеку» не сховались у ⋯");
       h.expect((await h.count(".loading")) === 0, "крутилка на екрані");
     },
   },
   {
-    name: "скачати: тап зберігає mp3 і каже «Збережено»", run: async (h) => {
+    name: "скачати: ⋯ відкриває меню, Back його закриває; «Скачати» зберігає mp3 і каже «Збережено»", run: async (h) => {
       await ready(h);
-      await h.tap("[data-muzak] [data-save]"); await h.wait(400);
+      await h.tap("[data-muzak] [data-more]"); await h.wait(250);
+      h.expect((await h.prop("#mz-more", "open")) === true, "меню ⋯ не відкрилось");
+      h.expect((await h.count("#mz-more [data-keep]")) === 1 && (await h.count("#mz-more [data-save]")) === 1, "у меню немає «У Фонотеку» чи «Скачати»");
+      await h.back(); await h.wait(200);
+      h.expect((await h.prop("#mz-more", "open")) !== true, "Back не закрив меню");
+      await h.tap("[data-muzak] [data-more]"); await h.wait(250);
+      await h.tap("#mz-more [data-save]"); await h.wait(400);
       h.expect(/Збережено|Saved/.test(await h.bodyText()), "немає підтвердження");
     },
   },
@@ -29,7 +36,8 @@ export default [
       h.expect((await h.count("[data-listen]")) === 0 && (await h.count("[data-muzak] [data-transport]")) === 1, "плеєр не заступив «Слухати» — дві паузи");
       await h.tap("[data-muzak] #play"); await h.wait(250);
       h.expect(!(await h.attr("[data-muzak]", "data-playing")), "не стало на паузу");
-      await h.tap("[data-muzak] [data-keep]"); await h.wait(400);
+      await h.tap("[data-muzak] [data-more]"); await h.wait(250);
+      await h.tap("#mz-more [data-keep]"); await h.wait(400);
       h.expect(/Є у Фонотеці|In Fonoteka/.test(await h.bodyText()), "немає підтвердження");
     },
   },
@@ -53,10 +61,10 @@ export default [
     },
   },
   {
-    name: "для тебе: під карткою пісні — схожі на вподобані, з «У Фонотеку», «Мікс», «Скачати»; тап грає з плеєром над списком", run: async (h) => {
+    name: "для тебе: під карткою пісні — схожі на вподобані, з «Мікс», «Радіо», ⋯; тап грає з плеєром над списком", run: async (h) => {
       await ready(h); await h.wait(200);
       h.expect((await h.attr("[data-foryou]", "data-songs")) === "4", "не 4 пісні «Для тебе» під гейтом");
-      for (const a of ["keep", "mix", "save"]) h.expect((await h.count(`[data-foryou] [data-like] [data-${a}]`)) === 4, `не в кожної пісні «Для тебе» ${a}`);
+      for (const a of ["mix", "radio", "more"]) h.expect((await h.count(`[data-foryou] [data-like] [data-${a}]`)) === 4, `не в кожної пісні «Для тебе» ${a}`);
       h.expect((await h.count("[data-muzak] [data-like]")) === 0, "«Для тебе» влізло в картку пісні");
       h.expect((await h.count("[data-foryou] [data-player]")) === 0, "плеєр до першого тапу");
       await h.tap('[data-foryou] [data-play="xrI5jBPT4Cw"]'); await h.wait(300);
@@ -70,13 +78,12 @@ export default [
       h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом");
       h.expect((await h.count("[data-player]")) === 1, "немає плеєра");
       h.expect((await h.count("[data-like]")) === 4, "не 4 пісні");
-      h.expect((await h.count("[data-like] [data-keep]")) === 4, "не в кожної пісні «У Фонотеку»");
-      for (const a of ["share", "mix"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
-      h.expect((await h.count("[data-like] [data-save]")) === 4, "не в кожної пісні «Скачати»");
-      h.expect((await h.count("[data-like] [data-mix]")) === 4, "не в кожної пісні «Мікс»");
+      for (const a of ["share", "mix", "radio", "more"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
+      for (const a of ["mix", "radio", "more"]) h.expect((await h.count(`[data-like] [data-${a}]`)) === 4, `не в кожної пісні ${a}`);
       await h.tap('[data-like] [data-mix="pAgnJDJN4VA"]'); await h.wait(400);
       h.expect(/Обидві версії у Фонотеці|Both versions are in Fonoteka/.test(await h.bodyText()), "мікс не сказав, що обидві версії у Фонотеці");
-      await h.tap('[data-like] [data-save="kXYiU_JCYtU"]'); await h.wait(400);
+      await h.tap('[data-like] [data-more="kXYiU_JCYtU"]'); await h.wait(250);
+      await h.tap('#mz-more [data-save="kXYiU_JCYtU"]'); await h.wait(400);
       h.expect(/Збережено|Saved/.test(await h.bodyText()), "скачування не сказало «Збережено»");
       h.expect(/YouTube · Оксана/i.test(await h.bodyText()), "немає рядка, чий це YouTube");   // the label is uppercase by CSS, and innerText carries it
       h.expect((await h.count("[data-tail]")) === 1, "немає довантаження в кінці списку");
@@ -88,11 +95,27 @@ export default [
     },
   },
   {
-    name: "пошук: поле і кнопка; знайдені пісні з «У Фонотеку», «Мікс», «Скачати»; тап грає з плеєром над списком; порожнє поле — кнопка вимкнена", run: async (h) => {
+    name: "радіо: тап грає пісню, за нею в черзі й у секції «Радіо» схожі; тап по схожій грає її; ✕ закриває", run: async (h) => {
+      await h.click('[data-tab="likes"]'); await h.wait(250);
+      await h.tap('[data-like] [data-radio="kXYiU_JCYtU"]'); await h.wait(300);
+      h.expect((await h.attr("[data-radio-list]", "data-songs")) === "5", "радіо не зібрало пісню і 4 схожі");
+      h.expect((await h.attr("[data-likes]", "data-playing")) === "true", "радіо не заграло");
+      h.expect(/Numb/.test(await h.text("[data-player]")), "плеєр не назвав пісню, з якої радіо");
+      h.expect((await h.attr('[data-like] [data-radio="kXYiU_JCYtU"]', "aria-pressed")) === "true", "кнопка радіо не світиться");
+      await h.tap('[data-radio-list] [data-play="xrI5jBPT4Cw"]'); await h.wait(300);
+      h.expect(/Оберіг/.test(await h.text("[data-player]")), "схожа пісня з радіо не заграла");
+      await h.tap("[data-radio-off]"); await h.wait(150);
+      h.expect((await h.count("[data-radio-list]")) === 0, "✕ не закрив радіо");
+      await h.tap("[data-player] #play"); await h.wait(150);
+      await h.click('[data-tab="song"]'); await h.wait(120);
+    },
+  },
+  {
+    name: "пошук: поле і кнопка; знайдені пісні з «Мікс», «Радіо», ⋯; тап грає з плеєром над списком; порожнє поле — кнопка вимкнена", run: async (h) => {
       await h.click('[data-tab="search"]'); await h.wait(250);
       h.expect((await h.count("[data-search] [data-q]")) === 1, "немає поля пошуку");
       h.expect((await h.attr("[data-search]", "data-found")) === "4", "не 4 знайдені пісні під гейтом");
-      for (const a of ["keep", "mix", "save"]) h.expect((await h.count(`[data-search] [data-like] [data-${a}]`)) === 4, `не в кожної знайденої пісні ${a}`);
+      for (const a of ["mix", "radio", "more"]) h.expect((await h.count(`[data-search] [data-like] [data-${a}]`)) === 4, `не в кожної знайденої пісні ${a}`);
       h.expect(/Без бою/.test(await h.bodyText()) && /Океан Ельзи/.test(await h.bodyText()), "немає назви чи виконавця");
       h.expect((await h.count("[data-search] [data-player]")) === 0, "плеєр до першого тапу");
       await h.tap('[data-search] [data-play="8wWrzr3_46Y"]'); await h.wait(300);
