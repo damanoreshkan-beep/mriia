@@ -78,7 +78,7 @@ export default [
       h.expect((await h.attr("[data-likes]", "data-connected")) === "true", "список не показаний під гейтом");
       h.expect((await h.count("[data-player]")) === 1, "немає плеєра");
       h.expect((await h.count("[data-like]")) === 4, "не 4 пісні");
-      for (const a of ["share", "mix", "radio", "more"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
+      for (const a of ["share", "mix", "radio"]) h.expect((await h.count(`[data-player] [data-${a}]`)) === 1, `у плеєра немає ${a}`);
       for (const a of ["mix", "radio", "more"]) h.expect((await h.count(`[data-like] [data-${a}]`)) === 4, `не в кожної пісні ${a}`);
       await h.tap('[data-like] [data-mix="pAgnJDJN4VA"]'); await h.wait(400);
       h.expect(/Обидві версії у Фонотеці|Both versions are in Fonoteka/.test(await h.bodyText()), "мікс не сказав, що обидві версії у Фонотеці");

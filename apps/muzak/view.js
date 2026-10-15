@@ -364,6 +364,9 @@ function useTools(S, t, toast) {
 }
 // a row's own tools beside its play button — «Мікс», «Радіо», «⋯» — the same in every list
 const rowTools = (s, st) => actionsFor(s, st).filter((a) => a.id !== "share").map(toolButton);
+// the big (form) player's — «Поділитися», «Мікс», «Радіо»: its prev/play/next/repeat row holds three beside them
+// (a fourth overflowed 412 px by 6 px in CI), and the playing song's row carries the «⋯»
+const bigActions = (s, st) => actionsFor(s, st).filter((a) => a.id !== "more");
 
 // «Радіо · <song>»: the seed and the songs like it, on top of the tab, until the close button. A started radio
 // takes the page back to its top — the tap may be far down a long list, and the player that just started sits
@@ -422,7 +425,7 @@ export function likes({ S, toast, confirm }) {
         <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle(now ? null : songs[0], now ? null : songs)} className="w-full pt-1"
           onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           title=${shown ? shown.title : ""} subtitle=${now && loading ? T(t, "preparing") : shown ? [shown.artist, clock(shown.dur)].filter(Boolean).join(" · ") : ""}
-          actions=${shown ? actionsFor(shown, st) : []} />
+          actions=${shown ? bigActions(shown, st) : []} />
       </section>` : null}
 
       <${Radio} st=${st} locale=${locale} />
@@ -482,7 +485,7 @@ function Player({ now, st, locale }) {
     <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle()} className="w-full pt-1"
       onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
       title=${now.title} subtitle=${loading ? T(t, "preparing") : [now.artist, clock(now.dur)].filter(Boolean).join(" · ")}
-      actions=${actionsFor(now, st)} />
+      actions=${bigActions(now, st)} />
   </section>`;
 }
 
