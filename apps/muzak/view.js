@@ -6,7 +6,7 @@ import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
-import { Panel, Transport } from "/_rt/ui.js";
+import { Panel, Transport, Sheet } from "/_rt/ui.js";
 import { takeShared, firstLink } from "/_rt/share.js";
 import { advance } from "/_rt/player.js";
 import { holdAudio } from "/_rt/mediasession.js";
@@ -165,17 +165,64 @@ async function save(s, toast, t) {
   finally { $dl.set(""); }
 }
 
-const actionsFor = (s, kept, dl, t, toast, mixed) => [
-  { id: "download", icon: dl === s.id ? "lucide:hourglass" : "lucide:download", label: T(t, dl === s.id ? "preparingFile" : "download"), onClick: () => save(s, toast, t), pulse: dl === s.id, disabled: !!dl, attr: { "data-save": s.id } },
-  { id: "keep", icon: kept === "done" ? "lucide:library-big" : "lucide:library", label: T(t, kept === "done" ? "keptA" : "aKeep"), onClick: () => keep(s, toast, t), active: kept === "done", pulse: kept === "busy", disabled: kept === "busy", attr: { "data-keep": s.id } },
-  { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => share(s, toast, t), attr: { "data-share": s.id } },
-  { id: "mix", icon: "lucide:sparkles", label: T(t, mixed === "done" ? "mixedA" : "aMix"), onClick: () => mix(s, toast, t), active: mixed === "done", pulse: mixed === "busy", disabled: mixed === "busy", attr: { "data-mix": s.id } },
-];
+const $radio = atom(null);   
+let radioSeq = 0;
+async function radio(s) {
+  const my = ++radioSeq;
+  $radio.set({ seed: s, songs: null, err: "" });
+  if ($cur.get() !== s.id) play(s, [s]);   
+  const hl = document.documentElement.lang === "en" ? "en" : "uk";
+  try {
+    const like = gate ? FIXTURE_RADIO.songs : await fetch(`${VPS_PROXY}/music/radio?v=${s.id}&hl=${hl}`, { signal: AbortSignal.timeout(30000) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((j) => j.songs || []);
+    if (my !== radioSeq) return;
+    const songs = [s, ...mixRadios([like.map(songOfFound)], [s.id])];
+    $radio.set({ seed: s, songs, err: "" });
+    if ($cur.get() === s.id) $q.set(songs);   
+  } catch (e) { if (my === radioSeq && e !== 401) $radio.set({ seed: s, songs: null, err: e === 429 ? "errBusy" : "errRadio" }); else if (my === radioSeq) $radio.set(null); }   
+}
+
+const $menu = atom(null);
+const openMore = (S, s) => { $menu.set(s); S.screen.set("more"); };
+const moreBusy = (s, st) => st.kept[s.id] === "busy" || st.dl === s.id;
+
+const actionsFor = (s, st) => {
+  const { S, t, toast } = st, mx = st.mixed[s.id];
+  return [
+    { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => share(s, toast, t), attr: { "data-share": s.id } },
+    { id: "mix", icon: "lucide:disc-3", label: `${T(t, mx === "done" ? "mixedA" : "aMix")}: ${s.title}`, onClick: () => mix(s, toast, t), active: mx === "done", pulse: mx === "busy", disabled: mx === "busy", attr: { "data-mix": s.id } },
+    { id: "radio", icon: "lucide:radio", label: `${T(t, "aRadio")}: ${s.title}`, onClick: () => radio(s), active: st.rad?.seed.id === s.id, attr: { "data-radio": s.id } },
+    { id: "more", icon: "lucide:ellipsis", label: `${T(t, "aMore")}: ${s.title}`, onClick: () => openMore(S, s), pulse: moreBusy(s, st), attr: { "data-more": s.id } },
+  ];
+};
+const ctl = (a) => `btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${a.active ? "text-primary" : "text-base-content/70"} ${a.pulse ? "animate-pulse" : ""}`;
+const toolButton = (a) => html`<button key=${a.id} ...${a.attr} aria-label=${a.label} aria-pressed=${a.id === "radio" ? String(!!a.active) : null} disabled=${a.disabled} onClick=${a.onClick}
+  class=${ctl(a)}>${Icon(a.icon, "text-[length:var(--ms-icon)]")}</button>`;
+
+function MoreSheet({ S, t, locale, toast }) {
+  const screen = useStore(S.screen), s = useStore($menu), kept = useStore($kept), dl = useStore($dl);
+  const close = () => S.screen.set(null);
+  const k = s ? kept[s.id] : "";
+  const run = (fn) => { close(); fn(); };
+  const wide = "btn w-full h-[var(--ms-ctl)] min-h-0 justify-start gap-3 normal-case font-medium";
+  return html`<${Sheet} id="mz-more" open=${screen === "more" && !!s} onClose=${close} locale=${locale}
+    title=${s?.title || ""} subtitle=${s?.artist || ""} icon="lucide:music-2">
+    ${s ? html`<div data-more-sheet=${s.id} class="flex flex-col gap-2">
+      <button data-keep=${s.id} disabled=${!!k} onClick=${() => run(() => keep(s, toast, t))} class=${`${wide} ${k === "done" ? "text-primary" : ""}`}>
+        ${Icon(k === "done" ? "lucide:library-big" : "lucide:library", "text-[length:var(--ms-icon)]")}<span>${T(t, k === "done" ? "keptA" : "aKeep")}</span>
+      </button>
+      <button data-save=${s.id} disabled=${!!dl} onClick=${() => run(() => save(s, toast, t))} class=${wide}>
+        ${Icon(dl === s.id ? "lucide:hourglass" : "lucide:download", "text-[length:var(--ms-icon)]")}<span>${T(t, dl === s.id ? "preparingFile" : "download")}</span>
+      </button>
+    </div>` : null}
+  <//>`;
+}
 
 export function muzak({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const link = useStore($link), meta = useStore($meta), busy = useStore($busy), err = useStore($err);
-  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
+  const cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
+  const st = useTools(S, t, toast);
   const input = useRef();
   useEffect(() => { if (!gate && !meta) input.current?.focus(); }, []);
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   
@@ -222,19 +269,22 @@ export function muzak({ S, toast }) {
       ${on ? html`<div class="flex flex-col gap-1">
         ${loading ? html`<div data-preparing role="status" class="text-xs text-base-content/70 animate-pulse">${T(t, "preparing")}</div>` : null}
         <${Transport} size="sm" locale=${locale} playing=${playing} onToggle=${() => toggle()} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
-          actions=${actionsFor(song, kept[song.id], dl, t, toast, mixed[song.id])} />
+          actions=${actionsFor(song, st)} />
       </div>` : html`<div class="flex items-center gap-1">
         <button data-listen onClick=${() => toggle(song, [song])}
           class="btn btn-primary flex-1 min-w-0 h-[var(--ms-ctl)] min-h-0 gap-2 sf-e3">
           ${Icon("lucide:play", "text-[length:var(--ms-icon)]")}<span>${T(t, "listen")}</span>
         </button>
-        ${actionsFor(song, kept[song.id], dl, t, toast, mixed[song.id]).map((a) => html`<button key=${a.id} ...${a.attr} aria-label=${a.label} disabled=${a.disabled} onClick=${a.onClick}
-          class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${a.active ? "text-primary" : "text-base-content/70"} ${a.pulse ? "animate-pulse" : ""}`}>${Icon(a.icon, "text-[length:var(--ms-icon)]")}</button>`)}
+        ${actionsFor(song, st).map(toolButton)}
       </div>`}
     <//>` : null}
   </div>
   
-  <div class="px-[var(--ms-pad)] pb-[var(--ms-pad)] pt-2"><${ForYou} t=${t} locale=${locale} toast=${toast} player /></div>
+  <div class="px-[var(--ms-pad)] pb-[var(--ms-pad)] pt-2 flex flex-col gap-[calc(var(--ms-gap)*2)]">
+    <${Radio} st=${st} locale=${locale} player=${!on} />
+    <${ForYou} st=${st} locale=${locale} player />
+  </div>
+  <${MoreSheet} S=${S} t=${t} locale=${locale} toast=${toast} />
   </div>`;
 }
 
@@ -263,20 +313,49 @@ function Orb({ song }) {
 }
 
 
-function rowTools(s, { t, toast, kept, mixed, dl }) {
-  const k = kept[s.id], mx = mixed[s.id];
-  return html`<button data-keep=${s.id} aria-label=${T(t, k === "done" ? "keptA" : "aKeep")} disabled=${k === "busy"} onClick=${() => keep(s, toast, t)}
-      class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${k === "done" ? "text-primary" : "text-base-content/70"} ${k === "busy" ? "animate-pulse" : ""}`}>${Icon(k === "done" ? "lucide:library-big" : "lucide:library", "text-[length:var(--ms-icon)]")}</button>
-    <button data-mix=${s.id} aria-label=${`${T(t, mx === "done" ? "mixedA" : "aMix")}: ${s.title}`} disabled=${mx === "busy"} onClick=${() => mix(s, toast, t)}
-      class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${mx === "done" ? "text-primary" : "text-base-content/70"} ${mx === "busy" ? "animate-pulse" : ""}`}>${Icon("lucide:sparkles", "text-[length:var(--ms-icon)]")}</button>
-    <button data-save=${s.id} aria-label=${`${T(t, "download")}: ${s.title}`} disabled=${!!dl && dl !== s.id} onClick=${() => save(s, toast, t)}
-      class=${`btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ${dl === s.id ? "text-primary animate-pulse" : "text-base-content/70"}`}>${Icon(dl === s.id ? "lucide:hourglass" : "lucide:download", "text-[length:var(--ms-icon)]")}</button>`;
+function useTools(S, t, toast) {
+  const kept = useStore($kept), mixed = useStore($mixed), dl = useStore($dl), rad = useStore($radio);
+  return { S, t, toast, kept, mixed, dl, rad };
+}
+
+const rowTools = (s, st) => actionsFor(s, st).filter((a) => a.id !== "share").map(toolButton);
+
+
+function Radio({ st, locale, player = false }) {
+  const { t } = st, r = st.rad;
+  const cur = useStore($cur), playing = useStore($playing);
+  useEffect(() => {
+    if (r) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [r?.seed.id]);
+  if (!r) return null;
+  const list = r.songs || [];
+  const now = player ? list.find((s) => s.id === cur) || null : null;
+  return html`<section data-radio-list=${r.seed.id} data-songs=${r.songs ? list.length : null} aria-labelledby="mz-radio" class="flex flex-col gap-[var(--ms-gap)]">
+    ${now ? html`<${Player} now=${now} st=${st} locale=${locale} />` : null}
+    <div class="flex items-center gap-2">
+      ${Icon("lucide:radio", "shrink-0 text-[length:var(--ms-icon)] text-[var(--app-accent)]")}
+      <h2 id="mz-radio" class="flex-1 min-w-0 truncate font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70">${T(t, "radio")} · ${r.seed.title}</h2>
+      <button data-radio-off aria-label=${T(t, "aRadioOff")} onClick=${() => { radioSeq++; $radio.set(null); }}
+        class="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/70">${Icon("lucide:x", "text-[length:var(--ms-icon)]")}</button>
+    </div>
+    ${r.err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, r.err)}</div>`
+    : !r.songs ? html`<div class="flex flex-col gap-1"><${LikesSkeleton} /></div>`
+    : html`<div class="flex flex-col gap-1">
+        ${list.map((s) => {
+          const here = cur === s.id;
+          return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, list)} attr=${{ "data-play": s.id }}>
+            ${rowTools(s, st)}
+          <//>`;
+        })}
+      </div>`}
+  </section>`;
 }
 
 export function likes({ S, toast, confirm }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const playErr = useStore($err);
-  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
+  const q = useStore($q), cur = useStore($cur), playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
+  const st = useTools(S, t, toast);
   
   const { l, busy, err, songs, on, reading, tail } = useLikes((g) => { if ($q.get() === g.was) $q.set(g.songs); });
   const now = q.find((s) => s.id === cur) || null;
@@ -294,8 +373,10 @@ export function likes({ S, toast, confirm }) {
         <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle(now ? null : songs[0], now ? null : songs)} className="w-full pt-1"
           onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           title=${shown ? shown.title : ""} subtitle=${now && loading ? T(t, "preparing") : shown ? [shown.artist, clock(shown.dur)].filter(Boolean).join(" · ") : ""}
-          actions=${shown ? actionsFor(shown, kept[shown.id], dl, t, toast, mixed[shown.id]).filter((a) => a.id !== "download") : []} />
+          actions=${shown ? actionsFor(shown, st) : []} />
       </section>` : null}
+
+      <${Radio} st=${st} locale=${locale} />
 
       <section aria-labelledby="mz-likes" class="flex flex-col gap-[var(--ms-gap)]">
         <${LikesHead} t=${t} l=${l} id="mz-likes" toast=${toast} confirm=${confirm} />
@@ -303,7 +384,7 @@ export function likes({ S, toast, confirm }) {
           ${songs.map((s) => {
             const here = cur === s.id;
             return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, songs)} attr=${{ "data-play": s.id }}>
-              ${rowTools(s, { t, toast, kept, mixed, dl })}
+              ${rowTools(s, st)}
             <//>`;
           })}
           ${busy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
@@ -313,6 +394,7 @@ export function likes({ S, toast, confirm }) {
           <div class="font-semibold text-sm">${T(t, "likesEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "likesEmptyHint")}</div>
         </div>` : null}
       </section>`}
+    <${MoreSheet} S=${S} t=${t} locale=${locale} toast=${toast} />
   </div>`;
 }
 
@@ -339,22 +421,24 @@ async function readRecs(liked, locale, more = false) {
 }
 
 
-function Player({ now, t, locale, toast }) {
-  const playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), kept = useStore($kept), repeat = useStore($repeat), dl = useStore($dl), mixed = useStore($mixed);
+function Player({ now, st, locale }) {
+  const { t } = st;
+  const playing = useStore($playing), loading = useStore($loading), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
   return html`<section data-player aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)]">
     <${Orb} song=${now} />
     <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle()} className="w-full pt-1"
       onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
       title=${now.title} subtitle=${loading ? T(t, "preparing") : [now.artist, clock(now.dur)].filter(Boolean).join(" · ")}
-      actions=${actionsFor(now, kept[now.id], dl, t, toast, mixed[now.id]).filter((a) => a.id !== "download")} />
+      actions=${actionsFor(now, st)} />
   </section>`;
 }
 
 
-function ForYou({ t, locale, toast, player = false }) {
+function ForYou({ st, locale, player = false }) {
+  const { t } = st;
   const { l, songs: liked, on, reading } = useLikes();
   const recs = useStore($recs), busy = useStore($rbusy), err = useStore($rerr), lbusy = useStore($lBusy);
-  const cur = useStore($cur), playing = useStore($playing), kept = useStore($kept), dl = useStore($dl), mixed = useStore($mixed);
+  const cur = useStore($cur), playing = useStore($playing);
   useEffect(() => { if (on && liked.length) readRecs(liked, locale); }, [on, liked.length]);
   const tail = useRef();
   const more = on && rseed < liked.length;
@@ -366,10 +450,10 @@ function ForYou({ t, locale, toast, player = false }) {
   }, [recs?.length, busy, more]);
   if (reading || (l === null && !gate)) return null;   
   const list = recs || [];
-  const now = player ? list.find((s) => s.id === cur) || null : null;
+  const now = player && !st.rad?.songs?.some((s) => s.id === cur) ? list.find((s) => s.id === cur) || null : null;
 
   return html`<section data-foryou data-songs=${on ? list.length : null} aria-labelledby="mz-foryou" class="flex flex-col gap-[var(--ms-gap)]">
-    ${now ? html`<${Player} now=${now} t=${t} locale=${locale} toast=${toast} />` : null}
+    ${now ? html`<${Player} now=${now} st=${st} locale=${locale} />` : null}
     <h2 id="mz-foryou" class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70">${T(t, "forYou")}</h2>
     ${!on ? html`<div data-connect class="flex flex-col gap-3">
         <p class="text-sm leading-relaxed text-base-content/80">${T(t, "forYouConnect")}</p>
@@ -385,7 +469,7 @@ function ForYou({ t, locale, toast, player = false }) {
         ${list.map((s) => {
           const here = cur === s.id;
           return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, list)} attr=${{ "data-play": s.id }}>
-            ${rowTools(s, { t, toast, kept, mixed, dl })}
+            ${rowTools(s, st)}
           <//>`;
         })}
         ${busy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
@@ -423,13 +507,14 @@ async function lookup(q, locale, more = false) {
 export function search({ S, toast }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const q = useStore($sq), found = useStore($found), busy = useStore($sbusy), err = useStore($serr), playErr = useStore($err);
-  const cur = useStore($cur), playing = useStore($playing), kept = useStore($kept), dl = useStore($dl), mixed = useStore($mixed), recs = useStore($recs);
+  const cur = useStore($cur), playing = useStore($playing), recs = useStore($recs);
+  const st = useTools(S, t, toast);
   const input = useRef();
   useEffect(() => { if (!gate && found === null) input.current?.focus(); }, []);
   useEffect(() => { if (!gate) restore().catch(() => {}); }, []);   
   const songs = found || [];
   
-  const now = songs.find((s) => s.id === cur) || (found === null && recs?.find((s) => s.id === cur)) || null;
+  const now = songs.find((s) => s.id === cur) || st.rad?.songs?.find((s) => s.id === cur) || (found === null && recs?.find((s) => s.id === cur)) || null;
   
   const tail = useRef();
   useEffect(() => {
@@ -451,7 +536,9 @@ export function search({ S, toast }) {
     </form>
     ${err || playErr ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err || playErr)}</div>` : null}
 
-    ${now ? html`<${Player} now=${now} t=${t} locale=${locale} toast=${toast} />` : null}
+    ${now ? html`<${Player} now=${now} st=${st} locale=${locale} />` : null}
+
+    <${Radio} st=${st} locale=${locale} />
 
     ${busy === "list" ? html`<${LikesSkeleton} />`
     : found === null ? html`<div data-hint class="py-4 flex flex-col items-center gap-2 text-center text-base-content/70">
@@ -459,7 +546,7 @@ export function search({ S, toast }) {
         <div class="font-semibold text-sm text-base-content">${T(t, "searchHintTitle")}</div>
         <div class="text-sm max-w-[32ch]">${T(t, "searchHint")}</div>
       </div>
-      <${ForYou} t=${t} locale=${locale} toast=${toast} />`
+      <${ForYou} st=${st} locale=${locale} />`
     : !songs.length ? html`<div data-none class="py-6 flex flex-col items-center gap-1 text-center">
         <div class="font-semibold text-sm">${T(t, "searchEmpty")}</div><div class="text-sm text-base-content/70">${T(t, "searchEmptyHint")}</div>
       </div>`
@@ -467,11 +554,12 @@ export function search({ S, toast }) {
         ${songs.map((s) => {
           const here = cur === s.id;
           return html`<${LikeRow} key=${s.id} s=${s} here=${here} busy=${here && playing} label=${`${T(t, "aPlay")}: ${s.title}`} onPick=${() => toggle(s, songs)} attr=${{ "data-play": s.id }}>
-            ${rowTools(s, { t, toast, kept, mixed, dl })}
+            ${rowTools(s, st)}
           <//>`;
         })}
         ${busy === "more" ? html`<${LikesSkeleton} n=${2} />` : null}
         ${snext ? html`<div ref=${tail} data-tail aria-hidden="true" class="h-px"></div>` : null}
       </section>`}
+    <${MoreSheet} S=${S} t=${t} locale=${locale} toast=${toast} />
   </div>`;
 }
