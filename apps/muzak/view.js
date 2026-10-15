@@ -320,6 +320,8 @@ function useTools(S, t, toast) {
 
 const rowTools = (s, st) => actionsFor(s, st).filter((a) => a.id !== "share").map(toolButton);
 
+const bigActions = (s, st) => actionsFor(s, st).filter((a) => a.id !== "more");
+
 
 function Radio({ st, locale, player = false }) {
   const { t } = st, r = st.rad;
@@ -373,7 +375,7 @@ export function likes({ S, toast, confirm }) {
         <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle(now ? null : songs[0], now ? null : songs)} className="w-full pt-1"
           onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} disabled=${!songs.length} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
           title=${shown ? shown.title : ""} subtitle=${now && loading ? T(t, "preparing") : shown ? [shown.artist, clock(shown.dur)].filter(Boolean).join(" · ") : ""}
-          actions=${shown ? actionsFor(shown, st) : []} />
+          actions=${shown ? bigActions(shown, st) : []} />
       </section>` : null}
 
       <${Radio} st=${st} locale=${locale} />
@@ -429,7 +431,7 @@ function Player({ now, st, locale }) {
     <${Transport} form locale=${locale} playing=${playing} onToggle=${() => toggle()} className="w-full pt-1"
       onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
       title=${now.title} subtitle=${loading ? T(t, "preparing") : [now.artist, clock(now.dur)].filter(Boolean).join(" · ")}
-      actions=${actionsFor(now, st)} />
+      actions=${bigActions(now, st)} />
   </section>`;
 }
 
