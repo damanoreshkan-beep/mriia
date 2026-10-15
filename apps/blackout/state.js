@@ -68,10 +68,6 @@ export async function pickWeapon(id) {
   return r;
 }
 export const muted = () => $muted.get() === "1";
-export const MIX = { master: 1, music: 1, sfx: 1, city: 1 };
-export const $mix = persistentAtom(`${NS}mix`, JSON.stringify(MIX));
-export const mix = () => { try { const m = JSON.parse($mix.get()); return Object.fromEntries(Object.keys(MIX).map((k) => [k, Number.isFinite(m?.[k]) ? Math.max(0, Math.min(1, m[k])) : MIX[k]])); } catch { return { ...MIX }; } };
-export const setMix = (k, v) => $mix.set(JSON.stringify({ ...mix(), [k]: v }));
 
 export const $state = atom(gate ? "run" : "idle");
 export const $run = atom(gate ? { frame: 240, dist: 128, coins: 7, speed: 7.1, fps: 0, lane: 1, near: 0.35, boost: 4, ammo: 6, reload: false, kills: 2 } : { frame: 0, dist: 0, coins: 0, speed: 0, fps: 0, lane: 1, near: 0, boost: 0, ammo: 8, reload: false, kills: 0 });
