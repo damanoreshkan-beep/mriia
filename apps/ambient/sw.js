@@ -1,6 +1,6 @@
 self.MS = {
   app: "ambient",
-  version: "b9a17eee2b",
+  version: "9e0ab0527b",
   precache: [
     "./",
     "./i18n/en.json",
@@ -17,6 +17,7 @@ self.MS = {
     "/_rt/audio.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
     "/_rt/dash.js",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "takt",
-  version: "23dbd0589b",
+  version: "53fa155733",
   precache: [
     "./",
     "./i18n/en.json",
@@ -19,6 +19,7 @@ self.MS = {
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
     "/_rt/dash.js",

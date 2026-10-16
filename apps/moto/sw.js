@@ -1,6 +1,6 @@
 self.MS = {
   app: "moto",
-  version: "bece6fb24f",
+  version: "a334c7803c",
   precache: [
     "./",
     "./engine.js",
@@ -19,6 +19,7 @@ self.MS = {
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/calendar.js",
     "/_rt/chrome.js",

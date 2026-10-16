@@ -1,6 +1,6 @@
 self.MS = {
   app: "mirage",
-  version: "5028258b21",
+  version: "133339b363",
   precache: [
     "./",
     "./history.js",
@@ -22,6 +22,7 @@ self.MS = {
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/bghold.js",
     "/_rt/build.js",
     "/_rt/camprime.js",

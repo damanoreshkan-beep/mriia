@@ -1,6 +1,6 @@
 self.MS = {
   app: "weather",
-  version: "defb4f35d7",
+  version: "0580fc3907",
   precache: [
     "./",
     "./data.js",
@@ -17,6 +17,7 @@ self.MS = {
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
     "/_rt/dash.js",

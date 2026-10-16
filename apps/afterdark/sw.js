@@ -1,6 +1,6 @@
 self.MS = {
   app: "afterdark",
-  version: "a7a57715b3",
+  version: "ee99c753b9",
   precache: [
     "./",
     "./afterdark.frag",
@@ -26,6 +26,7 @@ self.MS = {
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/camprime.js",
     "/_rt/chrome.js",

@@ -1,6 +1,6 @@
 self.MS = {
   app: "vidlunnia",
-  version: "4a4960ac6e",
+  version: "1c3230f6dc",
   precache: [
     "./",
     "./characters.js",
@@ -19,6 +19,7 @@ self.MS = {
     "/_rt/audio.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/camprime.js",
     "/_rt/chrome.js",

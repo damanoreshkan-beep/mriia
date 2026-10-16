@@ -1,6 +1,6 @@
 self.MS = {
   app: "homin",
-  version: "94a81f0599",
+  version: "70a4077082",
   precache: [
     "./",
     "./i18n/en.json",
@@ -19,6 +19,7 @@ self.MS = {
     "/_rt/apk.js",
     "/_rt/auth.js",
     "/_rt/authwall.js",
+    "/_rt/backend.js",
     "/_rt/build.js",
     "/_rt/chan433.js",
     "/_rt/chrome.js",
