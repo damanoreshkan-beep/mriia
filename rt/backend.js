@@ -10,6 +10,8 @@
  *   (edge/util.js ALLOW_ORIGIN).
  * - SEALED_KEY — microspec-edge's pinned long-term public key (base64url) for the sealed tunnel. Pinned in
  *   source, never fetched; check it after a rotation against GET /feed/pubkey by hand.
+ * - BOT — the farm's Telegram bot (core ≥ 1.2.140): the profile's "Open in Telegram" row and the watch card's
+ *   deep link open https://t.me/mriia_si_bot?startapp=<app>.
  * @module
  */
 
@@ -18,3 +20,6 @@ export const ORIGINS = ["https://mriia.si", "https://dreamstudio.mooo.com"];
 
 /** microspec-edge's pinned long-term public key (base64url) for the sealed tunnel. */
 export const SEALED_KEY = "BLP-06vCYzSiakKos1Sk7Yqzneb0MrbBjozH3EQ_YRgvzqc_0hcZeeFXoDzMhHlXL3awFtjOMFg08dzcKUmbNOM";
+
+/** The farm's Telegram bot username (no `@`). */
+export const BOT = "mriia_si_bot";
