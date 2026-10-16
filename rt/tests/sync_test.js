@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
+import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 import { clampVol as syClampVol, packState as syPack, openState as syOpen, parseServer as syParse, syncDelay as syDelay, SYNC_URL as syUrl } from "../sync.js";
 
 Deno.test("sync clampVol — clamps to 0..1, garbage is full volume (never silence by accident)", () => {
@@ -42,7 +43,10 @@ Deno.test("sync syncDelay — capped backoff: quick first retries, 30 s floor fo
   assertEquals(syDelay(100), 30000);
 });
 
-Deno.test("sync SYNC_URL — derived from VPS_PROXY (one host, one source of truth), wss scheme", () => {
-  assert(syUrl.startsWith("wss://"), syUrl);
+// The host comes from the page (rt/backend.js in the browser); a Deno test has no page, so VPS_PROXY is the
+// relative "/feed" here and the test checks the derivation, not a domain: http(s) becomes ws(s), path /sync.
+Deno.test("sync SYNC_URL — derived from VPS_PROXY (one host, one source of truth), ws scheme for an http one", () => {
+  assertEquals(syUrl, VPS_PROXY.replace(/^http/, "ws") + "/sync");
   assert(syUrl.endsWith("/feed/sync"), syUrl);
+  assert(!/^https?:/.test(syUrl), syUrl);
 });

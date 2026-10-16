@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
+import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 import { lookPrompt, nameFrom, charOf, looksLikeLook, genStatusCode, LOOK, LOOK_ASK } from "../genchar.js";
 
 Deno.test("genchar: the body job's refusal is the app's error key — 402 means the farm wallet cannot pay it", () => {
@@ -34,7 +35,9 @@ Deno.test("genchar: a name falls back to the first two words of the prompt, capi
 Deno.test("genchar: an edge row becomes the app's character — a my- id, an absolute glb, a stable tint, a checked kind", () => {
   const c = charOf({ char_id: "k7ab", name: "Nox", kind: "creature", glb_url: "/feed/character/k7ab.glb", avatar_url: "data:image/jpeg;base64,AA", created_at: "2026-09-13T10:00:00Z" });
   assertEquals(c.id, "my-k7ab"); assertEquals(c.kind, "creature"); assertEquals(c.name, "Nox");
-  assert(c.glb.startsWith("https://") && c.glb.endsWith("/feed/character/k7ab.glb"));
+  // The edge's glb_url is a path; the character carries it on the backend's host (the page's, via rt/backend.js;
+  // "" in a Deno test, which has no page).
+  assertEquals(c.glb, VPS_PROXY.replace(/\/feed$/, "") + "/feed/character/k7ab.glb");
   assertEquals(c.tint, charOf({ char_id: "k7ab", glb_url: "/x" }).tint, "the tint is a function of the id");
   assertEquals(charOf({ char_id: "z1", kind: "dragon", glb_url: "/x" }).kind, "human");
   assertEquals(charOf({ char_id: "z1", glb_url: "/x" }).avatar, "");
