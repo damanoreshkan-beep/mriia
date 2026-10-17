@@ -2,6 +2,7 @@
   "id": "lipka",
   "theme": "signal",
   "category": "creative",
+  "hidden": true,
   "accent": "#E3A86B",
   "tabs": [
     {

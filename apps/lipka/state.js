@@ -53,17 +53,23 @@ export async function sculpt(ctx) {
   hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") });
   let res;
   try {
-    res = await taskOne("/task", { route: "/feed/mesh", body: { image: sent.data } }, {
+    res = await taskOne("/task", { route: "/feed/site3d", body: { image: sent.data, model: "Prism 3.1" } }, {
       onLive: (live) => { if (r === run) patch({ live }); },
     });
   } catch (e) { if (r === run) fail(r, e.code || jobCode(e)); return; }
   if (r !== run) return;
   hold?.(); hold = null;
-  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : "eFailed");
+  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(res.error || "") ? "ePolicy" : "eFailed");
   patch({ phase: "done", out: { url: res.url, bytes: res.blob.size, by: res.by }, live: null });
   if (document.visibilityState === "hidden") {
     if (await notifyAsk()) notify({ id: "lipka-done", title: T(ctx.t, "done"), body: T(ctx.t, "download") }).catch(() => {});
   }
 }
 
-export const liveOf = (live) => /queue|waiting/i.test(String(live?.stage || live?.phase || "")) ? "queued" : "working";
+export const liveOf = (live) => {
+  const st = String(live?.stage || live?.phase || "");
+  if (/queue|waiting/i.test(st)) return { key: "queued", pct: null };
+  if (/enhance/i.test(st)) return { key: "enhancing", pct: null };
+  if (/generating|dashboard/i.test(st)) return { key: "working", pct: live?.pct ?? null };
+  return { key: "preparing", pct: null };
+};
