@@ -19,18 +19,19 @@ export default [
     },
   },
   {
+    name: "натиск відповідає", run: async (h) => {
+      await ready(h);
+      for (const s of ["[data-save]", "[data-new]"]) h.expect(/\bms-press\b/.test(await h.attr(s, "class")), `${s} не відповідає на натиск`);
+    },
+  },
+  {
+    // last: «нове фото» consumes the result the tests above need (the page is shared across tests)
     name: "нове фото повертає вибір, кнопка ліпки неактивна без фото", run: async (h) => {
       await ready(h);
       await h.click("[data-new]"); await h.wait(200);
       h.expect((await h.count("[data-photo]")) === 0, "фото не прибралось");
       h.expect((await h.count("[data-go]")) === 1, "немає кнопки ліпки");
       h.expect(await h.attr("[data-go]", "disabled") !== null, "ліпка активна без фото");
-    },
-  },
-  {
-    name: "натиск відповідає", run: async (h) => {
-      await ready(h);
-      for (const s of ["[data-save]", "[data-new]"]) h.expect(/\bms-press\b/.test(await h.attr(s, "class")), `${s} не відповідає на натиск`);
     },
   },
 ];
