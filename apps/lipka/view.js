@@ -27,6 +27,7 @@ export function lipka({ S, toast }) {
   const [, tick] = useState(0);
   useEffect(() => { if (!working) return; const id = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(id); }, [working]);
   const elapsed = st.t0 ? Math.round((Date.now() - st.t0) / 1000) : 0;
+  const live = M.liveOf(st.live);
 
   const save = async () => { if (!st.out) return; try { await downloadUrl(st.out.url, `lipka-${Date.now()}.glb`); toast?.(T(t, "saved")); } catch { toast?.(T(t, "eNetwork")); } };
 
@@ -39,7 +40,7 @@ export function lipka({ S, toast }) {
         ${working ? html`<${Fragment}>
           <div aria-hidden="true" class="absolute inset-0 rounded-[var(--ms-r)] overflow-hidden pointer-events-none"><div class=${gate ? "" : "lp-scan"}></div></div>
           <div data-working class="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none text-white">
-            <div class="rounded-full bg-black/55 px-4 py-2"><span class="font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums">${T(t, M.liveOf(st.live))} · ${fmt(elapsed)}</span></div>
+            <div class="rounded-full bg-black/55 px-4 py-2"><span class="font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums">${T(t, live.key)}${live.pct != null ? ` ${live.pct}%` : ""} · ${fmt(elapsed)}</span></div>
           </div>
         </${Fragment}>` : null}
         ${done ? html`<div data-ready class="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none ms-reveal">

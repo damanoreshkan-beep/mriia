@@ -4,7 +4,7 @@
 
 # Ліпка
 
-**Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш хвилину і завантажуєш файл .glb.**
+**Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш кілька хвилин і завантажуєш файл .glb.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 

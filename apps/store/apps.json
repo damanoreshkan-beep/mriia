@@ -1075,42 +1075,6 @@
     "needs": []
   },
   {
-    "id": "lipka",
-    "title": "Ліпка",
-    "titles": {
-      "uk": "Ліпка",
-      "en": "Lipka"
-    },
-    "tagline": "Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш хвилину і завантажуєш файл .glb.",
-    "taglines": {
-      "uk": "Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш хвилину і завантажуєш файл .glb.",
-      "en": "A photo of a thing becomes a 3D model for your printer. Shoot it, wait a minute, download the .glb file."
-    },
-    "glyph": "lucide:box",
-    "art": "<path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/><path d=\"m3.3 7 8.7 5 8.7-5\"/><path d=\"M12 22V12\"/>",
-    "icon": true,
-    "screens": {
-      "uk": [
-        "Ліпка"
-      ],
-      "en": [
-        "Sculpt"
-      ]
-    },
-    "shots": [
-      "sculpt"
-    ],
-    "bg": "#2A1F17",
-    "fg": "#E3A86B",
-    "href": "./lipka/",
-    "version": "1.0",
-    "category": "creative",
-    "needs": [
-      "camera"
-    ],
-    "added": "2026-10-17"
-  },
-  {
     "id": "hunt",
     "title": "Лови",
     "titles": {

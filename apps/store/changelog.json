@@ -1,12 +1,5 @@
 [
   {
-    "id": "2026-10-17-lipka",
-    "date": "2026-10-17",
-    "app": "lipka",
-    "uk": "Новий застосунок — Ліпка: сфотографуй річ, і за хвилину з неї вийде 3D-модель для принтера. Модель завантажується файлом .glb.",
-    "en": "New app — Lipka: photograph a thing and within a minute it becomes a 3D model for your printer. The model downloads as a .glb file."
-  },
-  {
     "id": "2026-10-11-prism",
     "date": "2026-10-11",
     "app": "prism",

@@ -5,7 +5,16 @@ the owner the same day: the input is a **photo** (not text); the output is the *
 також підходить. не конвертуй» (no STL conversion); «не треба three js, просто скачати файл» and «максимально
 просто» — no 3D preview, no options.
 
-## The capability (`microspec-edge` `edge/mesh.js`, 9bad0d6)
+## Now: `/feed/site3d` (owner, 2026-10-17 evening)
+
+«підключи це апі в апці ліпка, а те апі що там було відключи»; «прибери апку зі стору … вона не публічна і доступна
+тільки по лінці». So lipka is `hidden: true` (out of `apps.json` — the store, the Today rubric and the bot's
+catalogue — reachable only at its URL), and it rides `edge/site3d.js`: our own `/feed/image/upscale` (hd, 4×) first,
+then Prism 3.1 on 3daistudio.com driven by a pod's browser, ~4 min end to end (measured: 1200² → 4800² → 4096² on
+the site → a 45 MB watertight .glb in 245 s). The screen shows the edge's stages: enhancing → preparing → sculpting
+N %. Prism's NSFW filter refuses some photos outright — the edge passes its words on and the screen says ePolicy.
+
+## Before: `/feed/mesh` (`microspec-edge` `edge/mesh.js`, 9bad0d6) — no longer called by lipka
 
 `POST /feed/mesh {image}` → `202 {job}`, ridden as a `/feed/task` route, so the `.glb` is the task's `ready`
 file (Range, resumable). Signed-in, one mesh per user. The rows, measured on a pod with the Space's own example
