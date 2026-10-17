@@ -1,0 +1,37 @@
+{
+  "id": "lipka",
+  "theme": "signal",
+  "category": "creative",
+  "accent": "#E3A86B",
+  "tabs": [
+    {
+      "id": "sculpt",
+      "type": "tool",
+      "icon": "lucide:box",
+      "label": "tabSculpt",
+      "view": "lipka",
+      "fit": true,
+      "needs": [
+        "camera"
+      ]
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:box",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "permissions": [
+      "camera"
+    ],
+    "account": "any"
+  },
+  "added": "2026-10-17"
+}
