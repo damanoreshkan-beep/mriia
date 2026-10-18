@@ -16,6 +16,10 @@ export default [
       for (let i = 0; i < 10 && (await h.count("[data-ch]")) === base; i++) { await h.scrollTo(999999); await h.wait(300); }
       h.expect((await h.count("[data-ch]")) > base, "скрол не підвантажив канали");
       await h.scrollTo(0); await h.wait(150);
+      // a new search starts the grid over at one page — and leaves the next test the state it was written against
+      await h.type("#ch-search", "zzzzнемаєтакого"); await h.wait(300);
+      await h.type("#ch-search", ""); await h.wait(300);
+      h.expect((await h.count("[data-ch]")) === base, "пошук не повернув сітку до першої сторінки");
     },
   },
   {
