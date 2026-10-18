@@ -1,6 +1,6 @@
 import { html } from "htm/preact";
 import { Fragment } from "preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { atom } from "nanostores";
 import { T } from "/_rt/i18n.js";
@@ -26,10 +26,10 @@ const countries = (loc) => {
   const dn = new Intl.DisplayNames([loc], { type: "region" });
   return CODES.map((c) => [c, dn.of(c === "uk" ? "GB" : c.toUpperCase())]).sort((a, b) => a[1].localeCompare(b[1], loc));
 };
-const CAP = 120;
+const CAP = 120;   // tiles per page: the grid grows by this much each time its end comes within 600px
 
 const $country = atom("us"), $channels = atom([]), $loading = atom(true), $err = atom(false);
-const $cat = atom(""), $query = atom(""), $sel = atom(null);
+const $cat = atom(""), $query = atom(""), $sel = atom(null), $n = atom(CAP);
 const cache = new Map();
 
 function parseM3U(text) {
@@ -84,12 +84,22 @@ export function iptv({ S }) {
   const t = useStore(S.t), loc = useStore(S.locale), screen = useStore(S.screen);
   const channels = useStore($channels), loading = useStore($loading), err = useStore($err);
   const cat = useStore($cat), query = useStore($query), sel = useStore($sel), country = useStore($country);
+  const n = useStore($n), end = useRef(null);
   useEffect(() => { loadCountry(country); }, [country]);
 
   const cats = [...new Set(channels.map((c) => c.group))].sort();
   const q = query.trim().toLowerCase();
   const filtered = channels.filter((c) => (!cat || c.group === cat) && (!q || c.name.toLowerCase().includes(q)));
-  const shown = filtered.slice(0, CAP);
+  const shown = filtered.slice(0, n);
+  // infinite scroll, the core list's way (runtime list.js LoadMore): a sentinel under the grid, observed 600px early
+  useEffect(() => { $n.set(CAP); }, [country, cat, q]);
+  useEffect(() => {
+    const el = end.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) $n.set($n.get() + CAP); }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [n, filtered.length]);
   // through the TV exit: the sealed /feed/frame URL carries the stream, its referer and the `tv` group; it has no
   // extension, so the Player is told it is HLS
   const play = async (ch) => {
@@ -119,7 +129,7 @@ export function iptv({ S }) {
         : html`<${Fragment}>
           <div class="text-xs text-base-content/70 px-0.5">${T(t, "count", { n: filtered.length })}</div>
           <div class="grid grid-cols-3 gap-2.5 @max-[260px]:grid-cols-2">${shown.map((ch) => html`<${Tile} ch=${ch} onPlay=${play} key=${ch.id} />`)}</div>
-          ${filtered.length > CAP ? html`<div class="text-center text-xs text-base-content/70 py-2">${T(t, "more", { n: filtered.length - CAP })}</div>` : null}
+          ${filtered.length > n ? html`<div ref=${end} data-more class="min-h-8"></div>` : null}
         </${Fragment}>`}
     </div>
 
