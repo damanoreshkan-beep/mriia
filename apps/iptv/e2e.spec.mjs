@@ -9,6 +9,16 @@ export default [
     },
   },
   {
+    name: "скрол до кінця підвантажує ще канали", run: async (h) => {
+      await load(h);
+      const base = await h.count("[data-ch]");
+      h.expect(base === 120 && (await h.count("[data-more]")) === 1, "немає першої сторінки з міткою підвантаження");
+      for (let i = 0; i < 10 && (await h.count("[data-ch]")) === base; i++) { await h.scrollTo(999999); await h.wait(300); }
+      h.expect((await h.count("[data-ch]")) > base, "скрол не підвантажив канали");
+      await h.scrollTo(0); await h.wait(150);
+    },
+  },
+  {
     name: "пошук звужує список", run: async (h) => {
       await load(h);
       const base = await h.count("[data-ch]");
