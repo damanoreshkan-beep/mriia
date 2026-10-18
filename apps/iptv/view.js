@@ -13,13 +13,19 @@ import { sealedFrameUrl } from "/_rt/sealedfetch.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
-const COUNTRIES = [
-  ["us", "United States"], ["uk", "United Kingdom"], ["ca", "Canada"], ["ua", "Ukraine"],
-  ["pl", "Poland"], ["de", "Germany"], ["fr", "France"], ["es", "Spain"], ["it", "Italy"],
-  ["nl", "Netherlands"], ["br", "Brazil"], ["mx", "Mexico"], ["ar", "Argentina"],
-  ["in", "India"], ["tr", "Türkiye"], ["jp", "Japan"], ["kr", "South Korea"],
-  ["au", "Australia"], ["ae", "UAE"], ["sa", "Saudi Arabia"],
-];
+// every country iptv-org keeps a list for (iptv-org/iptv PLAYLISTS.md 2026-10-18: 188; `int` and `undefined` left
+// out), named in the viewer's language by the browser itself — iptv-org says `uk` where ISO says GB.
+// The edge accepts the same set (microspec-edge edge/tvlist.js TV_COUNTRIES).
+const CODES = `ad ae af ag al am ao ar at au aw az ba bb bd be bf bg bh bi bj bn bo bq br bs bt by bz ca cd cg ch ci cl cm
+cn co cr cu cv cw cy cz de dk do dz ec ee eg eh er es et fi fr ge gf gg gh gm gn gp gq gr gt gu gy hk hn hr
+ht hu id ie il in iq ir is it jm jo jp ke kg kh km kn kp kr kw kz la lb lc li lk lt lu lv ly ma mc md me mg
+mk ml mm mn mo mq mr mt mu mv mx my mz na nc ne ng ni nl no np nz om pa pe pf pg ph pk pl pr ps pt py qa re
+ro rs ru rw sa sd se sg si sk sl sm sn so sr sv sx sy td tg th tj tm tn tr tt tw tz ua ug uk us uy uz va vc
+ve vg vn ws xk ye za zw`.split(/\s+/);
+const countries = (loc) => {
+  const dn = new Intl.DisplayNames([loc], { type: "region" });
+  return CODES.map((c) => [c, dn.of(c === "uk" ? "GB" : c.toUpperCase())]).sort((a, b) => a[1].localeCompare(b[1], loc));
+};
 const CAP = 120;
 
 const $country = atom("us"), $channels = atom([]), $loading = atom(true), $err = atom(false);
@@ -95,7 +101,7 @@ export function iptv({ S }) {
     <div class="flex flex-col gap-2.5">
       <div class="@container"><div class="flex items-center gap-2 @max-[300px]:flex-col @max-[300px]:items-stretch">
         <select id="country" aria-label=${T(t, "country")} class="select select-bordered select-sm rounded-2xl w-full @min-[300px]:w-auto @min-[300px]:shrink-0" value=${country} onChange=${(e) => $country.set(e.target.value)}>
-          ${COUNTRIES.map(([c, n]) => html`<option value=${c} key=${c}>${n}</option>`)}
+          ${countries(loc).map(([c, n]) => html`<option value=${c} key=${c}>${n}</option>`)}
         </select>
         <label class="input input-bordered input-sm flex items-center gap-2 rounded-2xl flex-1 min-w-0 w-full h-auto min-h-8">
           ${Icon("lucide:search", "opacity-50")}<textarea rows="1" data-line enterkeyhint="search" id="ch-search" aria-label=${T(t, "search")} class="grow min-w-0 leading-6 py-1 bg-transparent outline-none border-0" placeholder=${T(t, "search")} value=${query} onInput=${(e) => $query.set(e.target.value)}></textarea>

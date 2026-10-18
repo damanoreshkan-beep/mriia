@@ -32,7 +32,8 @@ export default [
     name: "перемикач країни зі списком локалізованих країн", run: async (h) => {
       await load(h);
       const opts = await h.prop("#country", "textContent");
-      h.expect(/Ukraine/.test(opts) && /Germany/.test(opts) && /United States/.test(opts), "немає списку країн");
+      h.expect(/Ukraine|Україна/.test(opts) && /Germany|Німеччина/.test(opts), "немає списку країн");
+      h.expect((await h.count("#country option")) === 188, "не всі країни iptv-org");
     },
   },
   {
