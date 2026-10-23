@@ -6,7 +6,7 @@ import { sourceTitle, humanText } from "/_rt/sitelabel.js";
 import { reject } from "lodash-es";
 import { DEFAULT_SRC, MOCK, MOCK_DEEP, GATE_TITLES, GATE_SEARCH } from "./presets.js";
 import { framed } from "./util.js";
-import { $src, subscribe, sessionsReady, sessionFor, unseen, $items, $next, $loading, $err, $active, $ephemeral, $srcTitle, $srcHint, setSrcTitle, $frames, $restoreTo, $owner, $feedChannel, $full, rememberSearch } from "./store.js";
+import { $src, subscribe, sessionsReady, sessionFor, keepJar, unseen, $items, $next, $loading, $err, $active, $ephemeral, $srcTitle, $srcHint, setSrcTitle, $frames, $restoreTo, $owner, $feedChannel, $full, rememberSearch } from "./store.js";
 
 const snapshot = (label) => ({ label, src: $src.get(), title: $srcTitle.get(), hint: $srcHint.get(), items: $items.get(), next: $next.get(), active: $active.get(), eph: $ephemeral.get(), owner: $owner.get(), err: $err.get() });
 function restoreTop() {
@@ -110,11 +110,12 @@ export async function loadSource(url, append = false, hint = "") {
   }
   try {
     await sessionsReady;
+    // Always as THIS phone's own visitor (2026-10-23): the site's cookies come back as `jar` and are kept as the
+    // per-site session, so recommendations follow this phone and never a jar shared by every client.
     const cookie = sessionFor(url);
-    const r = await (cookie
-      ? fetch(`${VPS_PROXY}/videos`, { method: "POST", headers: { "content-type": "application/json", "x-ms-egress": "reel" }, body: JSON.stringify({ url, cookie }) })
-      : fetch(`${VPS_PROXY}/videos?url=${encodeURIComponent(url)}`, { headers: { "x-ms-egress": "reel" } }));
+    const r = await fetch(`${VPS_PROXY}/videos`, { method: "POST", headers: { "content-type": "application/json", "x-ms-egress": "reel" }, body: JSON.stringify({ url, cookie }) });
     const d = await r.json();
+    keepJar(url, cookie, d.jar);
     if (g !== gen) return;
     const eph = append ? $ephemeral.get() : !!d.ephemeral;
     const got = clean(Array.isArray(d.items) ? d.items : [], { requirePoster: eph });
@@ -137,7 +138,11 @@ export async function openFull(S, item) {
   const settle = (patch) => { const cur = $full.get(); if (cur && cur.page === page) $full.set({ ...cur, ...patch }); };
   if (gate) return settle({ url: item.video });
   try {
-    const d = await (await fetch(`${VPS_PROXY}/stream?url=${encodeURIComponent(page)}`)).json();
+    // opening a clip is a view on this phone's own session too — that is what the site's recommendations learn from
+    await sessionsReady;
+    const cookie = sessionFor(page);
+    const d = await (await fetch(`${VPS_PROXY}/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: page, cookie }) })).json();
+    keepJar(page, cookie, d.jar);
     const list = (Array.isArray(d.sources) ? d.sources : []).filter((s) => !s.remote);
     const vars = (Array.isArray(d.variants) ? d.variants : []).filter((v) => v?.url && v?.bandwidth);
     const canLadder = typeof MediaSource !== "undefined" || typeof window.ManagedMediaSource !== "undefined";

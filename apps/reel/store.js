@@ -47,6 +47,11 @@ export async function setSession(url, cookie) {
   $sessions.set(next);
   try { if (c) await sessDB.put(k, { cookie: c }); else await sessDB.remove(k); } catch { }
 }
+/** The site's answer to THIS phone's visit (edge `jar`: the cookie sent + its Set-Cookie) becomes the per-site
+ *  session — filled by itself, the same slot a pasted session lives in (2026-10-23). Unchanged → no write. */
+export function keepJar(url, sent, jar) {
+  if (typeof jar === "string" && jar && jar !== sent) setSession(url, jar);
+}
 export const $sessSite = atom("");
 
 const watchedDB = collection("reelWatched");
