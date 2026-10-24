@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "kalimba",
-  version: "9e1707d35a",
+  version: "808e5f3d38",
   precache: [
     "./",
     "./i18n/en.json",
@@ -37,6 +37,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/melody.js",
     "/_rt/overlay.js",

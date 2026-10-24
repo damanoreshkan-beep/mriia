@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "prism",
-  version: "f26e9f1f8b",
+  version: "e827170df3",
   precache: [
     "./",
     "./i18n/en.json",
@@ -39,6 +39,7 @@ self.MS = {
     "/_rt/intake.js",
     "/_rt/lastgen.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",

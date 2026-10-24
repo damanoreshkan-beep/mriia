@@ -77,7 +77,7 @@ export default [
       h.expect(/1000/.test(await h.text("[data-gen-go]")), "на кнопці немає ціни 1000");
       h.expect((await h.attr("[data-wallet]", "data-wallet")) === "1250", `гаманець під гейтом не 1250: ${await h.attr("[data-wallet]", "data-wallet")}`);
       await h.tap("[data-topup]"); await h.wait(300);
-      h.expect((await h.count("dialog[open] [data-coin-form]")) === 1 && (await h.count("[data-coin-packs] [data-pack]")) === 3, "«Поповнити» не відкрило аркуш із трьома пакетами");
+      h.expect((await h.count("dialog[open] [data-paysheet]")) === 1 && (await h.count("[data-pay-packs] [data-pay-pack]")) === 3, "«Поповнити» не відкрило модалку оплати з трьома пакетами");
       await h.click('[data-tab="stage"]'); await h.wait(120);
     },
   },

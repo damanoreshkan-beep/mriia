@@ -2923,7 +2923,7 @@
     "bg": "#141414",
     "fg": "#ef4444",
     "href": "./iptv/",
-    "version": "1.26",
+    "version": "1.29",
     "category": "feeds",
     "needs": []
   },
@@ -3262,7 +3262,7 @@
     "bg": "#0B0B0D",
     "fg": "#ECECEE",
     "href": "./reel/",
-    "version": "1.43",
+    "version": "1.44",
     "category": "feeds",
     "needs": []
   },

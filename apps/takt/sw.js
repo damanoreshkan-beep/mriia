@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "takt",
-  version: "53fa155733",
+  version: "9846761ac9",
   precache: [
     "./",
     "./i18n/en.json",
@@ -39,6 +39,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/mediasession.js",
     "/_rt/overlay.js",

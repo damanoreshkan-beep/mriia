@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "lipka",
-  version: "c2e1e5478b",
+  version: "dd981cee53",
   precache: [
     "./",
     "./i18n/en.json",
@@ -40,6 +40,7 @@ self.MS = {
     "/_rt/intake.js",
     "/_rt/lastgen.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/notify.js",
     "/_rt/overlay.js",

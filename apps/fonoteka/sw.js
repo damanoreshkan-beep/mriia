@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "fonoteka",
-  version: "0e358eedd0",
+  version: "b74dc64809",
   precache: [
     "./",
     "./i18n/en.json",
@@ -38,6 +38,7 @@ self.MS = {
     "/_rt/id3.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/mediasession.js",
     "/_rt/muzak.js",
