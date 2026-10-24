@@ -1,6 +1,6 @@
 self.MS = {
   app: "ruler",
-  version: "d9754a8d55",
+  version: "3d3b3d5092",
   precache: [
     "./",
     "./i18n/en.json",
@@ -33,6 +33,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",

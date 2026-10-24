@@ -16,6 +16,7 @@ import "./tests/chat_test.js";
 import "./tests/chroma_test.js";
 import "./tests/codebreak_test.js";
 import "./tests/coins_test.js";
+import "./tests/pay_test.js";
 import "./tests/ctcss_test.js";
 import "./tests/demod_test.js";
 import "./tests/df_test.js";

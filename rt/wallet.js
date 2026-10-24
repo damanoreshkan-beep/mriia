@@ -31,7 +31,7 @@ export function makeWallet(app, { gateBalance = 0 } = {}) {
       const j = await r.json();
       const was = $wallet.get(), balance = Math.max(0, Number(j.balance) || 0);
       if (was.ready && was.signedIn && balance > was.balance && Date.now() < awaitingPurchase) { $bought.set(balance - was.balance); awaitingPurchase = 0; }
-      set({ ready: true, signedIn: true, balance, owned: Array.isArray(j.owned) ? j.owned.map(String) : [] });
+      set({ ready: true, signedIn: true, balance, owned: Array.isArray(j.owned) ? j.owned.map(String) : [], ton: j.ton && j.ton.prices ? j.ton : null });
     } catch { }
   }
 
@@ -90,5 +90,5 @@ export function makeWallet(app, { gateBalance = 0 } = {}) {
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
     addEventListener("focus", refresh);
   }
-  return { $wallet, $bought, refresh, buy, startRun, finishRun, purchasing, owns };
+  return { app, $wallet, $bought, refresh, buy, startRun, finishRun, purchasing, owns };
 }

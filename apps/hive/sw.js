@@ -1,6 +1,6 @@
 self.MS = {
   app: "hive",
-  version: "5af051d281",
+  version: "3bc158be0f",
   precache: [
     "./",
     "./comb.js",
@@ -41,6 +41,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/oui.js",
     "/_rt/overlay.js",

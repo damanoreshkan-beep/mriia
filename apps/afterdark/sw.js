@@ -1,6 +1,6 @@
 self.MS = {
   app: "afterdark",
-  version: "ee99c753b9",
+  version: "245467a524",
   precache: [
     "./",
     "./afterdark.frag",
@@ -49,9 +49,12 @@ self.MS = {
     "/_rt/intake.js",
     "/_rt/lastgen.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/mediasession.js",
     "/_rt/overlay.js",
+    "/_rt/pay.js",
+    "/_rt/paysheet.js",
     "/_rt/permissions.js",
     "/_rt/playback.js",
     "/_rt/player.js",

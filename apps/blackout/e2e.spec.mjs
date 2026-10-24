@@ -110,15 +110,17 @@ export default [
     },
   },
   {
-    name: "монети за зірки: «Поповнити» відкриває аркуш із трьома пакетами (один — вигідний), Back закриває", run: async (h) => {
+    name: "монети: «Поповнити» відкриває системну модалку оплати з трьома пакетами (один — вигідний) і лисичкою, Back закриває", run: async (h) => {
       await h.click('[data-tab="skins"]'); await h.wait(300);
       h.expect((await h.count("[data-topup]")) === 1, "немає кнопки «Поповнити»");
       await h.tap("[data-topup]"); await h.wait(300);
-      h.expect((await h.count("dialog[open] [data-coin-form]")) === 1, "аркуш поповнення не відкрився");
-      h.expect((await h.count("[data-coin-packs] [data-pack]")) === 3, `пакетів має бути 3, є ${await h.count("[data-coin-packs] [data-pack]")}`);
-      h.expect((await h.count('[data-pack="c5000"] .badge')) === 1, "найбільший пакет не позначено як вигідний");
+      h.expect((await h.count("dialog[open] [data-paysheet]")) === 1, "модалка оплати не відкрилась");
+      h.expect((await h.count("[data-pay-packs] [data-pay-pack]")) === 3, `пакетів має бути 3, є ${await h.count("[data-pay-packs] [data-pay-pack]")}`);
+      h.expect((await h.count('[data-pay-pack="c5000"] .badge')) === 1, "найбільший пакет не позначено як вигідний");
+      h.expect((await h.count("[data-pay-hero] [data-mascot]")) === 1, "у модалці немає маскота");
+      h.expect((await h.count("[data-pay-go]")) === 1, "немає кнопки оплати");
       await h.back(); await h.wait(300);
-      h.expect((await h.count("dialog[open] [data-coin-form]")) === 0, "Back не закрив аркуш");
+      h.expect((await h.count("dialog[open] [data-paysheet]")) === 0, "Back не закрив модалку");
     },
   },
   {

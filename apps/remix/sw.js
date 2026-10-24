@@ -1,6 +1,6 @@
 self.MS = {
   app: "remix",
-  version: "2afc82fe01",
+  version: "29e245e40a",
   precache: [
     "./",
     "./i18n/en.json",
@@ -32,6 +32,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/muzak.js",
     "/_rt/overlay.js",

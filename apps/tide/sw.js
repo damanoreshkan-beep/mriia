@@ -1,6 +1,6 @@
 self.MS = {
   app: "tide",
-  version: "eda03cb495",
+  version: "685d5b4bd1",
   precache: [
     "./",
     "./i18n/en.json",
@@ -34,6 +34,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/mediasession.js",
     "/_rt/overlay.js",

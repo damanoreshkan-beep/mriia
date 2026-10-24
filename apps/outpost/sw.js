@@ -1,6 +1,6 @@
 self.MS = {
   app: "outpost",
-  version: "dd9eb6f5f0",
+  version: "5b2c4007e7",
   precache: [
     "./",
     "./i18n/en.json",
@@ -33,6 +33,7 @@ self.MS = {
     "/_rt/i18n.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",

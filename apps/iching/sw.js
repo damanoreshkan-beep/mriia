@@ -1,6 +1,6 @@
 self.MS = {
   app: "iching",
-  version: "f6db28825c",
+  version: "c7dbc7ae0b",
   precache: [
     "./",
     "./book.js",
@@ -36,6 +36,7 @@ self.MS = {
     "/_rt/iching.js",
     "/_rt/index.js",
     "/_rt/list.js",
+    "/_rt/locales.js",
     "/_rt/material.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",
