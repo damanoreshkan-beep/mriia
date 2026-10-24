@@ -9,6 +9,15 @@ import { PACKS, buyCoins, packOf } from "./coins.js";
 
 const H = { "content-type": "application/json" };
 
+// Where to get TON when a person holds none: Walt (Telegram's wallet) through the owner's invite (owner, 2026-10-24).
+// Walt's own terms, shown honestly and no more: the invited friend exchanges $50+ and holds it 7 days → up to $50 in
+// Walt's Gold for both. Never promise more than Walt keeps (feedback: no misleading claims).
+const WALT = "https://telegram.me/walt/start?startapp=ref-3-jB2y07Soqjw";
+const WALT_COPY = {
+  uk: { label: "Немає TON? Купи у Walt", note: "Обміняй від $50 і тримай 7 днів — Walt додасть до $50 бонусу в Золоті." },
+  en: { label: "No TON? Get it in Walt", note: "Exchange $50+ and hold it 7 days — Walt adds up to a $50 bonus in Gold." },
+};
+
 /** The packs for the sheet: `{ id, amount }` in the edge's order. Pure. */
 export const sheetPacks = () => PACKS.map((p) => ({ id: p.sku, amount: p.coins }));
 
@@ -48,6 +57,7 @@ export function tonMethod(wallet, loc) {
   return {
     id: "ton", label: "TON", icon: "token-branded:ton",
     available: !!offer(),
+    aside: { ...(WALT_COPY[loc] || WALT_COPY.en), href: WALT },
     price: (pack) => `${offer()?.prices?.[pack.id] ?? "…"} TON`,
     pay: async (pack) => {
       let inv;

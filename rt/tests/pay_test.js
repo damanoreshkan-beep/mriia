@@ -73,3 +73,11 @@ Deno.test("pay: closing the sheet aborts the TON wait — it answers null, never
     assertEquals(await o.wait(c.signal), null);
   });
 });
+
+Deno.test("pay: TON carries one aside — where to get TON (Walt), in the sheet's language, with Walt's own terms only", () => {
+  const uk = tonMethod(fakeWallet({ prices: {} }), "uk").aside, en = tonMethod(fakeWallet({ prices: {} }), "en").aside;
+  assert(uk.href.startsWith("https://telegram.me/walt/") && uk.href === en.href);
+  assert(uk.label.includes("Walt") && en.label.includes("Walt"));
+  assert(uk.note.includes("$50") && uk.note.includes("7") && en.note.includes("$50") && en.note.includes("7"), "the bonus is stated with its conditions");
+  assertEquals(tonMethod(fakeWallet({ prices: {} }), "de").aside.label, en.label, "an unknown locale falls back to English");
+});
