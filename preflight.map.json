@@ -100,6 +100,7 @@
     "/_rt/underrated.js": "./rt/underrated.js",
     "/_rt/urlsafe.js": "./rt/urlsafe.js",
     "/_rt/v2m.js": "./rt/v2m.js",
+    "/_rt/vassago.js": "./rt/vassago.js",
     "/_rt/wallet.js": "./rt/wallet.js",
     "/_rt/wav.js": "./rt/wav.js",
     "/_rt/wind.js": "./rt/wind.js",
