@@ -138,8 +138,9 @@ export async function openFull(S, item) {
   try {
     await sessionsReady;
     const cookie = sessionFor(page);
-    const d = await (await fetch(`${VPS_PROXY}/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: page, cookie }) })).json();
+    const d = await (await fetch(`${VPS_PROXY}/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: page, cookie, ...(item.confirmAge ? { confirmAge: true } : {}) }) })).json();
     keepJar(page, cookie, d.jar);
+    if (d.ageGate) return settle({ err: true, age: true });
     const list = (Array.isArray(d.sources) ? d.sources : []).filter((s) => !s.remote);
     const vars = (Array.isArray(d.variants) ? d.variants : []).filter((v) => v?.url && v?.bandwidth);
     const canLadder = typeof MediaSource !== "undefined" || typeof window.ManagedMediaSource !== "undefined";
