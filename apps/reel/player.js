@@ -39,6 +39,13 @@ function useNoSystemFullscreen() {
 export function FullClip({ S, t }) {
   const full = useStore($full), locale = useStore(S.locale);
   useNoSystemFullscreen();
+  useEffect(() => {
+    if (!full?.age) return;
+    S.confirm.set({
+      tone: "primary", icon: "lucide:shield-check", title: T(t, "ageTitle"), body: T(t, "ageBody"), verb: T(t, "ageYes"), cancel: T(t, "ageNo"),
+      onConfirm: () => openFull(S, { page: full.page, title: full.title, confirmAge: true }),
+    });
+  }, [full?.age, full?.page]);
   if (!full) return null;
   const close = () => { const b = $full.get()?.blob; S.screen.set(null); $full.set(null); if (b) { try { URL.revokeObjectURL(b); } catch { } } };
   if (full.url) return html`<${Player} url=${full.url} type=${full.type} title=${full.title} locale=${locale} onClose=${close} />`;
