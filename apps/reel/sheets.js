@@ -10,7 +10,7 @@ import { shareFile, downloadBlob } from "/_rt/apk.js";
 import { resolveSearch, buildSearchUrl } from "/_rt/urlquery.js";
 import { siteName } from "/_rt/sitelabel.js";
 import { Icon, openExternal } from "./util.js";
-import { subscribe, $sessions, sessionKey, setSession, $sessSite } from "./store.js";
+import { subscribe, $sessions, sessionKey, setSession, $sessSite, $drawer, $searchBases, searchBaseFor, pullCast } from "./store.js";
 import { openAsSource } from "./feed.js";
 
 export function SourceSheet({ S, t }) {
@@ -93,8 +93,10 @@ async function exportClip({ item, format, mode, t, toast }) {
 
 export function MoreSheet({ S, t, item, src, title, subbed, toast }) {
   const page = item?.page || item?.orig || item?.video || "";
-  const busy = useStore($busy), loc = useStore(S.locale);
+  const busy = useStore($busy), loc = useStore(S.locale), bases = useStore($searchBases);
+  const base = searchBaseFor(src, bases);
   const close = () => S.screen.set(null);
+  const drawer = (which) => { close(); $drawer.set(which); if (which === "cast") pullCast(item?.page || ""); };
   const row = "btn btn-ghost justify-start gap-3 rounded-2xl w-full font-normal";
   const pair = (format, icon, label) => html`<div class="flex items-center gap-3 px-4 py-1 rounded-2xl">
     ${Icon(icon, "text-lg opacity-70 shrink-0")}
@@ -116,6 +118,8 @@ export function MoreSheet({ S, t, item, src, title, subbed, toast }) {
         <div class="h-px bg-base-content/10 my-1"></div>
       </${Fragment}>` : null}
       ${""}
+      ${base ? html`<button data-island-search class=${row} onClick=${() => drawer("search")}>${Icon("lucide:search", "text-lg opacity-70")}${T(t, "search")}</button>` : null}
+      ${item?.page ? html`<button data-island-cast class=${row} onClick=${() => drawer("cast")}>${Icon("lucide:users", "text-lg opacity-70")}${T(t, "cast")}</button>` : null}
       <button data-clean class=${row} onClick=${() => { close(); S.clean.set(true); }}>${Icon("lucide:maximize-2", "text-lg opacity-70")}${sys("clean", loc)}</button>
       ${!subbed ? html`<button data-subscribe class=${row} onClick=${() => { subscribe({ name: title, url: src }); close(); }}>${Icon("lucide:plus", "text-lg opacity-70")}${T(t, "sub")}</button>` : null}
       ${""}

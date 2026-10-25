@@ -7,7 +7,7 @@ import { resolveSearch, buildSearchUrl } from "/_rt/urlquery.js";
 import { hostOf, siteName } from "/_rt/sitelabel.js";
 import { letterTile } from "/_rt/tile.js";
 import { Icon, framed } from "./util.js";
-import { avatarSeen, accountAvatar, $drawer, $searchBases, searchBaseFor, $cast, pullCast } from "./store.js";
+import { avatarSeen, accountAvatar, $drawer, $searchBases, searchBaseFor, $cast } from "./store.js";
 import { popFrame, diveTo, openAsSource } from "./feed.js";
 
 export function Favicon({ url, size = "w-6 h-6" }) {
@@ -95,7 +95,6 @@ export function SourceIsland({ S, t, src, title, clip, depth, channel, page }) {
   const base = searchBaseFor(src, bases);
   useEffect(() => { if ($drawer.get() === "cast") $drawer.set(""); }, [page]);
   useEffect(() => { $drawer.set(""); }, [src]);
-  const toggle = (which) => { const next = drawer === which ? "" : which; $drawer.set(next); if (next === "cast") pullCast(page); };
   const row = html`<div class="flex items-center gap-1 min-w-0 max-w-full">
       ${depth ? html`<button data-feed-back class="btn btn-ghost btn-sm btn-circle text-white shrink-0" aria-label=${T(t, "back")} onClick=${() => popFrame(S)}>${Icon("lucide:chevron-left", "text-xl")}</button>` : null}
       <${Favicon} url=${src} size="w-6 h-6" />
@@ -104,11 +103,6 @@ export function SourceIsland({ S, t, src, title, clip, depth, channel, page }) {
         onClick=${() => diveTo(S, channel.url, channel.name)} />
       ${""}
       <span data-island-label data-island-src=${title} class="text-sm text-white truncate min-w-0 pl-0.5 pr-1">${clip || title}</span>
-      ${""}
-      ${base ? html`<button data-island-search class=${`${act} ${drawer === "search" ? "bg-white/25" : ""}`} aria-pressed=${drawer === "search"}
-        aria-label=${T(t, "search")} onClick=${() => toggle("search")}>${Icon("lucide:search", "text-base")}</button>` : null}
-      ${page ? html`<button data-island-cast class=${`${act} ${drawer === "cast" ? "bg-white/25" : ""}`} aria-pressed=${drawer === "cast"}
-        aria-label=${T(t, "cast")} onClick=${() => toggle("cast")}>${Icon("lucide:users", "text-base")}</button>` : null}
       ${""}
       <button data-more class=${act} aria-label=${T(t, "more")} onClick=${() => S.screen.set("more")}>${Icon("lucide:ellipsis", "text-base")}</button>
     </div>`;
