@@ -1,0 +1,19 @@
+  <style>
+    /* VASSAGO — one timeline of what is already known. The colour is the VECTOR's: a dot per kind of fact (sky, economy,
+       exchanges, elections, holidays, crypto), from the theme's own tokens so both themes keep the contrast; text never
+       takes a vector colour. The app's amber marks only today and the hero. At rest nothing moves. */
+    .vg-dot { display: inline-block; flex: none; width: .5rem; height: .5rem; border-radius: 9999px; background: currentColor; }
+    .vg-sky { color: var(--app-accent); }
+    .vg-macro { color: var(--color-info); }
+    .vg-markets { color: var(--color-success); }
+    .vg-politics { color: var(--color-error); }
+    .vg-holidays { color: var(--color-secondary); }
+    .vg-crypto { color: var(--color-warning); }
+    /* a country as a hairline code chip — the label stays the source's words */
+    .vg-cc { flex: none; padding: 0 .3rem; border-radius: .35rem; border: 1px solid color-mix(in oklch, var(--color-base-content) 18%, transparent); color: color-mix(in oklch, var(--color-base-content) 75%, transparent); }
+    /* today's date block wears the app's light */
+    .vg-today .vg-date { box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--app-accent) 80%, transparent); }
+    .vg-hero { position: relative; overflow: hidden; }
+    [data-theme="signal"] .vg-hero::after { content: ""; position: absolute; inset: auto -20% -60% auto; width: 60%; aspect-ratio: 1; border-radius: 9999px;
+      background: radial-gradient(closest-side, color-mix(in oklch, var(--app-accent) 22%, transparent), transparent); pointer-events: none; }
+  </style>

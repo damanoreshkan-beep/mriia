@@ -1,0 +1,42 @@
+{
+  "id": "vassago",
+  "theme": "signal",
+  "category": "esoterica",
+  "accent": "#F2B84B",
+  "tabs": [
+    {
+      "id": "days",
+      "type": "tool",
+      "icon": "lucide:calendar-range",
+      "label": "tabDays",
+      "view": "days"
+    },
+    {
+      "id": "month",
+      "type": "tool",
+      "icon": "lucide:calendar-days",
+      "label": "tabMonth",
+      "titleKey": "tabMonth",
+      "view": "month"
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:sparkles",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "source": {
+      "label": "profSource",
+      "url": "https://mriia.si/feed/vassago",
+      "icon": "lucide:database"
+    }
+  },
+  "added": "2026-10-25"
+}

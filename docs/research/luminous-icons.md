@@ -48,8 +48,10 @@ The product is **DreamStudio** (`dreamstudio.mooo.com`). **microspec** is the na
       cyan accents on the outer nodes, cinematic, no text, no letters
 
   **The block is CODE, not a paste: `docs/research/mascot-tools/iconjobs.mjs` (`ICON_STYLE`, `iconPrompt`)**
-  builds the JOBS json for `genraw.mjs` from `<name>=<subject>` arguments (2026-09-02, after a hand-pasted
-  block drifted per app). A subject phrase never carries style words; the block never changes per app.
+  builds the prompt from a subject (2026-09-02, after a hand-pasted block drifted per app). A subject phrase never
+  carries style words; the block never changes per app. **Since 2026-10-25 the takes come from the farm's own API**:
+  `POST /feed/image {prompt: iconPrompt(subject), k: 2, aspect: "square", model: "mrfakename/Z-Image-Turbo"}` (the
+  owner: «онови також що іконки генеримо через апі») — `genraw.mjs` piped into a pod is retired (no code on the server).
 
 - **The subject phrase decides legibility, not the style.** Round 1 ("a radio antenna emitting waves", "a
   camera lens") produced blobs; round 2 ("the silhouette of a tall radio mast with three concentric arcs of
