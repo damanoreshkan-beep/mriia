@@ -72,9 +72,11 @@ export default [
       await settles(h, 3);
       h.expect((await h.count("[data-reel] a")) === 0, "на слайді лишилось посилання (відкрити оригінал)");
       h.expect((await h.count("[data-reel] button")) === 0, "на слайді лишилась кнопка");
-      for (const [sel, what] of [["[data-island-label]", "назва"], ["[data-channel]", "акаунт"], ["[data-more]", "двері «Ще»"],
-        ["[data-island-search]", "пошук по джерелу"], ["[data-island-cast]", "актори"]]) {
+      for (const [sel, what] of [["[data-island-label]", "назва"], ["[data-channel]", "акаунт"], ["[data-more]", "двері «Ще»"]]) {
         h.expect((await h.count(sel)) === 1, `в острівці немає контролу: ${what} (${sel})`);
+      }
+      for (const [sel, what] of [["[data-island-search]", "пошук по джерелу"], ["[data-island-cast]", "актори"]]) {
+        h.expect((await h.count(sel)) === 0, `в острівці лишилась кнопка «${what}» — вона живе в «Ще» (${sel})`);
       }
       h.expect((await h.text("[data-island-label]")) === "Big Buck Bunny",
         `острівець підписаний «${await h.text("[data-island-label]")}» — має називати активний кліп`);
@@ -188,8 +190,9 @@ export default [
     name: "острівець: пошук по джерелу підставляє термін у патерн сайту", run: async (h) => {
       await h.tap('[data-tab="reel"]'); await h.wait(400);
       await ready(h);
-      h.expect((await h.count("[data-island-search]")) === 1, "в острівці нема кнопки пошуку");
       h.expect((await h.count("#island-q")) === 0, "інпут пошуку стоїть розгорнутим — він має бути за кнопкою");
+      await h.tap("[data-more]"); await h.wait(400);
+      h.expect((await h.count("[data-island-search]")) === 1, "у «Ще» нема рядка пошуку");
       await h.tap("[data-island-search]"); await h.wait(400);
       h.expect((await h.count("#island-q")) === 1, "кнопка не розгорнула інпут");
       h.expect((await h.count("[data-island-label]")) === 0, "шухляда пошуку мусить ЗАЙНЯТИ рядок острівця — на 384px інакше нема місця");
@@ -206,7 +209,8 @@ export default [
       await h.tap('[data-tab="reel"]'); await h.wait(400);
       await ready(h);
       h.expect((await h.count("[data-cast-row]")) === 0, "список акторів показано до того, як його попросили");
-      h.expect((await h.count("[data-island-cast]")) === 1, "в острівці нема кнопки акторів");
+      await h.tap("[data-more]"); await h.wait(400);
+      h.expect((await h.count("[data-island-cast]")) === 1, "у «Ще» нема рядка акторів");
       await h.tap("[data-island-cast]"); await h.wait(600);
       h.expect((await h.count("[data-cast-row]")) === 1, "кнопка не розгорнула рядок акторів");
       h.expect((await h.count("[data-cast-person]")) >= 1, "рядок акторів порожній");
