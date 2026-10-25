@@ -159,7 +159,7 @@ export async function openFull(S, item) {
         return settle({ url: master, type: "hls", blob: master, title: humanText(d.title) || title });
       }
     }
-    const pick = list.find((s) => s.format === "hls") || list[0];
+    const pick = list.find((s) => s.format === "hls") || list.find((s) => s.height && s.height <= 720) || list[0];
     if (!pick) return settle({ err: true });
     settle({ url: await sealedFrameUrl(pick.url, page), type: pick.format === "hls" ? "hls" : "progressive", title: humanText(d.title) || title });
   } catch { settle({ err: true }); }
