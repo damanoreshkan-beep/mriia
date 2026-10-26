@@ -1362,7 +1362,7 @@
     "bg": "#06121A",
     "fg": "#38D9F5",
     "href": "./obrys/",
-    "version": "1.3",
+    "version": "1.4",
     "category": "tools",
     "needs": [
       "auth"

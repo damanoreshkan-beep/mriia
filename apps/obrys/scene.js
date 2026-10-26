@@ -164,23 +164,37 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
     if (xr) await xr.end().catch(() => {});
     const t0 = performance.now();
     arStage = (name, info) => onStage?.(name, Math.round(performance.now() - t0), info);
-    const session = await navigator.xr.requestSession("immersive-ar", {
-      requiredFeatures: ["hit-test"], optionalFeatures: ["dom-overlay"], domOverlay: { root: overlay },
-    });
+    // Every feature OPTIONAL, and a second config without dom-overlay: the S25 (build 5029839) refused the
+    // hit-test-required + dom-overlay request 4/4 with NotSupportedError after the permission was granted, and
+    // Chromium answers that same message when the overlay's fullscreen fails. Which config ran goes to the log.
+    const CONFIGS = [
+      { optionalFeatures: ["hit-test", "dom-overlay"], domOverlay: { root: overlay } },
+      { optionalFeatures: ["hit-test"] },
+    ];
+    let session = null, config = 0;
+    for (; config < CONFIGS.length; config++) {
+      try { session = await navigator.xr.requestSession("immersive-ar", CONFIGS[config]); break; }
+      catch (e) { arStage("refused", { config, name: e?.name || "", why: String(e?.message || e).slice(0, 80) }); if (e?.name !== "NotSupportedError" || config === CONFIGS.length - 1) throw e; }
+    }
     xr = session; seenFrame = false; seenSurface = false;
     session.addEventListener("end", () => {
       xr = null; hit = null; arStage = null; reticle.visible = false; stand.visible = true; stand.position.set(0, 0, 0); controls.enabled = true;
       ro.disconnect(); ro.observe(canvas.parentElement); reset(); onEnd?.();
     }, { once: true });
-    arStage("granted", { overlay: session.domOverlayState?.type || "none" });
+    arStage("granted", { config, overlay: session.domOverlayState?.type || "none", features: [...(session.enabledFeatures || [])].join(",") });
     try {
       renderer.xr.setReferenceSpaceType("local");
       await renderer.xr.setSession(session);
       arStage("layer");
-      hit = await session.requestHitTestSource({ space: await session.requestReferenceSpace("viewer") });
-      arStage("hit-test");
+      // no hit-test (an optional feature the device may not grant): the model stands 1.5 m ahead and 1.2 m below
+      // the phone's starting point — a chosen default for a phone held at chest height, not a measured floor
+      hit = session.requestHitTestSource
+        ? await session.requestHitTestSource({ space: await session.requestReferenceSpace("viewer") }).catch(() => null)
+        : null;
+      arStage(hit ? "hit-test" : "no-hit-test");
     } catch (e) { session.end().catch(() => {}); throw e; }
-    placed = false; stand.visible = false; controls.enabled = false;
+    placed = !hit; stand.visible = !hit; controls.enabled = false;
+    if (!hit) stand.position.set(0, -1.2, -1.5);
     session.addEventListener("select", () => {
       if (!reticle.visible) return;
       placed = true; stand.position.setFromMatrixPosition(reticle.matrix); arStage?.("placed");
