@@ -25,6 +25,7 @@ import "./tests/earshot_test.js";
 import "./tests/edgetap_test.js";
 import "./tests/fmradio_test.js";
 import "./tests/genchar_test.js";
+import "./tests/glb_test.js";
 import "./tests/grain_test.js";
 import "./tests/gsmband_test.js";
 import "./tests/hackrf_test.js";

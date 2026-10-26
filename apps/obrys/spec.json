@@ -1,0 +1,34 @@
+{
+  "id": "obrys",
+  "theme": "signal",
+  "category": "tools",
+  "accent": "#38D9F5",
+  "tabs": [
+    {
+      "id": "view",
+      "type": "tool",
+      "icon": "lucide:box",
+      "label": "tabView",
+      "view": "obrys",
+      "fit": true,
+      "needs": [
+        "auth"
+      ]
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:box",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "account": "any"
+  },
+  "added": "2026-10-26"
+}

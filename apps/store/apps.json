@@ -64,7 +64,7 @@
     "bg": "#0A0A0F",
     "fg": "#F2B84B",
     "href": "./vassago/",
-    "version": "1.0",
+    "version": "1.1",
     "category": "esoterica",
     "needs": [],
     "added": "2026-10-25"
@@ -1332,6 +1332,42 @@
     "version": "1.27",
     "category": "feeds",
     "needs": []
+  },
+  {
+    "id": "obrys",
+    "title": "Обрис",
+    "titles": {
+      "uk": "Обрис",
+      "en": "Obrys"
+    },
+    "tagline": "Відкриває 3D-моделі .glb і .gltf з телефона, за посиланням або з твоїх моделей на Мрії. Модель можна крутити, вмикати її анімації, зберігати знімок і ставити в кімнату через камеру.",
+    "taglines": {
+      "uk": "Відкриває 3D-моделі .glb і .gltf з телефона, за посиланням або з твоїх моделей на Мрії. Модель можна крутити, вмикати її анімації, зберігати знімок і ставити в кімнату через камеру.",
+      "en": "Opens .glb and .gltf 3D models from your phone, from a link or from your models on Mriia. Turn the model, play its animations, save a snapshot and place it in your room through the camera."
+    },
+    "glyph": "lucide:box",
+    "art": "<path d=\"M12 2.5l8.5 4.75v9.5L12 21.5l-8.5-4.75v-9.5z\"/>\n<path d=\"M3.5 7.25L12 12l8.5-4.75\"/>\n<path d=\"M12 12v9.5\"/>",
+    "icon": true,
+    "screens": {
+      "uk": [
+        "Модель"
+      ],
+      "en": [
+        "Model"
+      ]
+    },
+    "shots": [
+      "view"
+    ],
+    "bg": "#06121A",
+    "fg": "#38D9F5",
+    "href": "./obrys/",
+    "version": "1.0",
+    "category": "tools",
+    "needs": [
+      "auth"
+    ],
+    "added": "2026-10-26"
   },
   {
     "id": "persona",
@@ -3299,7 +3335,7 @@
     "bg": "#0B0B0D",
     "fg": "#ECECEE",
     "href": "./reel/",
-    "version": "1.45",
+    "version": "1.48",
     "category": "feeds",
     "needs": []
   },
