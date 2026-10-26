@@ -16,8 +16,9 @@ const CSS = `.ob-glow{filter:drop-shadow(0 0 22px color-mix(in oklch,var(--app-a
 .ob-breathe{animation:obBreathe 2.4s ease-in-out infinite}
 @keyframes obBreathe{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
 .ob-bar{height:2px;border-radius:2px;background:var(--app-accent);box-shadow:0 0 12px 1px color-mix(in oklch,var(--app-accent) 60%,transparent);transition:width var(--t-state) var(--ease-out)}
-.ob-ar{display:none}
-.ob-ar:xr-overlay,.ob-ar.on{display:flex}
+.ob-ar>*{display:none}
+.ob-ar.on>*{display:revert}
+.ob-ar:xr-overlay>*{display:revert}
 @media (prefers-reduced-motion:reduce){.ob-breathe{animation:none}}`;
 const ghost = "btn btn-ghost rounded-full gap-2 px-4 shrink-0 ms-press";
 const primary = "btn btn-primary rounded-full gap-2 px-5 shrink-0 ms-press";
@@ -66,6 +67,8 @@ export function obrys({ S, screen, openScreen, closeScreen, toast }) {
   const startAR = async () => {
     const v = M.stage();
     if (!v) return;
+    const mode = ["fullscreen", "standalone", "minimal-ui", "browser"].find((m) => matchMedia(`(display-mode: ${m})`).matches) || "";
+    report("obrys.ar.env", { mode, fs: !!document.fullscreenElement, ua: (navigator.userAgentData?.brands || []).map((b) => `${b.brand} ${b.version}`).join("; ").slice(0, 120) });
     try {
       await v.startAR(arRef.current, {
         onStage: (stage, ms, info) => { if (stage === "granted") M.$ar.set({ ...M.$ar.get(), on: true }); report("obrys.ar.stage", { stage, ms, ...info }); },
@@ -201,7 +204,8 @@ export function obrys({ S, screen, openScreen, closeScreen, toast }) {
       <//>`)}</dl>
     <//>
 
-    <div ref=${arRef} data-ar-overlay class=${`ob-ar fixed inset-0 z-[80] flex-col justify-end items-center gap-3 p-6 pb-10 pointer-events-none ${ar.on ? "on" : ""}`}>
+    
+    <div ref=${arRef} data-ar-overlay aria-hidden=${ar.on ? null : "true"} class=${`ob-ar fixed inset-0 z-[80] flex flex-col justify-end items-center gap-3 p-6 pb-10 pointer-events-none ${ar.on ? "on" : ""}`}>
       <p class=${`${mono} rounded-full bg-black/60 text-white px-4 py-2`}>${T(t, "arHint")}</p>
       <button data-ar-exit class="btn rounded-full gap-2 px-5 pointer-events-auto ms-press" onbeforexrselect=${(e) => e.preventDefault()} onClick=${() => M.stage()?.stopAR()}>
         ${Icon("lucide:x", "text-lg")}<span>${T(t, "arExit")}</span>
