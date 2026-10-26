@@ -8,8 +8,10 @@ the first version carries **viewing, AR in the room and a snapshot**; the name i
 
 - three@0.171 from the page import map, loaded lazily (`import("./scene.js")`) only where `hasWebGL2()` answers —
   blackout's pattern; preflight's canvas stub answers null, so the gate measures the DOM, never a dead GL.
-- `GLTFLoader` with every decoder a real-world file asks for: Draco (gstatic 1.5.7, as blackout), Meshopt
-  (`three/addons/libs/meshopt_decoder.module.js`), KTX2/Basis (transcoder from jsdelivr, same three version).
+- `GLTFLoader` with Draco (gstatic 1.5.7, as blackout) and Meshopt (`three/addons/libs/meshopt_decoder.module.js`).
+  NOT KTX2: the farm's build bundles three from npm, and KTX2Loader's chain put `import "node:buffer"` into
+  `dist/obrys/app.js` — the source page ran, the BUILT page never booted (dist-eye red, deploy 40416567565). A
+  KTX2-textured file fails as eParse. Lesson: a new three addon is judged on `dist/`, grep the bundle for `node:`.
 - Light: `RoomEnvironment` through `PMREMGenerator` (PBR materials are black without an environment) + one key light;
   `NeutralToneMapping` keeps the file's own colours (ACES shifts them — fine for a game, wrong for a viewer).
 - Transparent renderer over the theme's stage; a radial contact shadow and a thin accent ring under the model.
