@@ -23,7 +23,7 @@ export default [
       await h.tap("[data-stats]"); await h.wait(300);
       h.expect(/Orbit/.test(await h.text("[data-info]")), "немає анімацій у подробицях");
       await h.back(); await h.wait(300);
-      h.expect(!(await h.attr("#infosheet", "open") !== null), "аркуш не закрився");
+      h.expect((await h.count("dialog[open] [data-info]")) === 0, "Back не закрив аркуш");
     },
   },
   {
@@ -32,9 +32,9 @@ export default [
       await h.tap("[data-open]"); await h.wait(300);
       await h.tap("#srcsheet [data-link]"); await h.wait(300);
       h.expect((await h.count("[data-url]")) === 1, "немає поля посилання");
-      h.expect(await h.attr("[data-go]", "disabled") !== null, "завантаження активне без посилання");
+      h.expect((await h.prop("[data-go]", "disabled")) === true, "завантаження активне без посилання");
       await h.back(); await h.wait(300);
-      h.expect(!(await h.attr("#linksheet", "open") !== null), "аркуш посилання не закрився");
+      h.expect((await h.count("dialog[open] [data-url]")) === 0, "Back не закрив аркуш посилання");
     },
   },
 ];
