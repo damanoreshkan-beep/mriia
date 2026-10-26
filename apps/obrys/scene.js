@@ -1,14 +1,12 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { frameBox } from "/_rt/glb.js";
 
 const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
-const BASIS_PATH = "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/libs/basis/";
 const FOV = 40, VIEW_DIR = new THREE.Vector3(0.5, 0.25, 1).normalize();
 
 function shadowTexture() {
@@ -59,8 +57,7 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
   reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
 
   const draco = new DRACOLoader().setDecoderPath(DRACO_PATH);
-  const ktx2 = new KTX2Loader().setTranscoderPath(BASIS_PATH).detectSupport(renderer);
-  const loader = new GLTFLoader().setDRACOLoader(draco).setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
+  const loader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
 
   let model = null, mixer = null, clips = [], action = null, home = null, hit = null, placed = false;
   const clock = new THREE.Clock();
@@ -167,7 +164,7 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
   function dispose() {
     renderer.setAnimationLoop(null); ro.disconnect(); controls.dispose();
     if (model) disposeTree(model);
-    draco.dispose(); ktx2.dispose(); pmrem.dispose(); scene.environment?.dispose(); renderer.dispose();
+    draco.dispose(); pmrem.dispose(); scene.environment?.dispose(); renderer.dispose();
   }
 
   return { load, play, setPaused, reset, snapshot, arSupported, startAR, stopAR, dispose };
