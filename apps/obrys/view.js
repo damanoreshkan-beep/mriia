@@ -69,9 +69,12 @@ export function obrys({ S, screen, openScreen, closeScreen, toast }) {
     const v = M.stage();
     if (!v) return;
     try {
-      await v.startAR(arRef.current, () => M.$ar.set({ ...M.$ar.get(), on: false }));
-      M.$ar.set({ ...M.$ar.get(), on: true });
-    } catch (e) { toast?.(T(t, "eAR")); report("obrys.ar", { why: String(e?.message || e).slice(0, 120) }); }
+      await v.startAR(arRef.current, {
+        // the overlay (Exit) shows the moment the session exists, so a step that stalls later can still be left
+        onStage: (stage, ms, info) => { if (stage === "granted") M.$ar.set({ ...M.$ar.get(), on: true }); report("obrys.ar.stage", { stage, ms, ...info }); },
+        onEnd: () => { M.$ar.set({ ...M.$ar.get(), on: false }); report("obrys.ar.stage", { stage: "end" }); },
+      });
+    } catch (e) { M.$ar.set({ ...M.$ar.get(), on: false }); toast?.(T(t, "eAR")); report("obrys.ar", { why: String(e?.message || e).slice(0, 120), name: e?.name || "" }); }
   };
 
   const center = () => {
@@ -104,7 +107,6 @@ export function obrys({ S, screen, openScreen, closeScreen, toast }) {
   const actions = [
     { id: "open", icon: "lucide:folder-open", label: T(t, "openOther"), onClick: () => openScreen("src"), attr: { "data-open": true } },
     { id: "shot", icon: "lucide:camera", label: T(t, "snapshot"), onClick: snap, disabled: !gl || !st.size, attr: { "data-shot": true } },
-    ...(ar.ok ? [{ id: "ar", icon: "lucide:scan", label: T(t, "ar"), onClick: startAR, tone: "accent", attr: { "data-ar": true } }] : []),
     { id: "reset", icon: "lucide:rotate-ccw", label: T(t, "resetView"), onClick: () => M.stage()?.reset(), disabled: !gl || !st.size, attr: { "data-reset": true } },
   ];
 
@@ -129,6 +131,12 @@ export function obrys({ S, screen, openScreen, closeScreen, toast }) {
               ${Icon("lucide:triangle", "text-sm text-[var(--app-accent)] shrink-0")}<span>${fmtCount(s.triangles, loc)}</span>
               ${st.bytes ? html`<span class="text-base-content/40 @max-[13rem]:hidden">·</span><span class="@max-[13rem]:hidden">${fmtBytes(st.bytes, loc)}</span>` : null}
               ${Icon("lucide:info", "text-sm text-base-content/50 shrink-0 @max-[13rem]:hidden")}
+            </button>` : null}
+          ${/* ON the stage, never in the Transport's «⋯» sheet: that sheet runs history.back() and then the action in
+               one tick, so requestSession met an open modal <dialog> and a Back navigation mid-session */""}
+          ${ready && ar.ok && st.size ? html`<button data-ar onClick=${startAR}
+              class="absolute bottom-2 right-2 ms-press rounded-full bg-base-100 sf-raised px-4 py-2 flex items-center gap-2 font-medium text-sm">
+              ${Icon("lucide:scan", "text-lg text-[var(--app-accent)]")}<span>${T(t, "ar")}</span>
             </button>` : null}
         </div>
       <//>

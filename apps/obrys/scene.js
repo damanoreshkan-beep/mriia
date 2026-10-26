@@ -64,6 +64,7 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
   const loader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
 
   let model = null, mixer = null, clips = [], action = null, home = null, hit = null, placed = false;
+  let xr = null, arStage = null, seenFrame = false, seenSurface = false;
   const clock = new THREE.Clock();
 
   const ro = new ResizeObserver(() => {
@@ -77,9 +78,11 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
   renderer.setAnimationLoop((_, frame) => {
     const dt = clock.getDelta();
     if (renderer.xr.isPresenting) {
+      if (!seenFrame) { seenFrame = true; arStage?.("frame"); }
       if (frame && hit) {
         const hits = frame.getHitTestResults(hit);
         reticle.visible = hits.length > 0;
+        if (reticle.visible && !seenSurface) { seenSurface = true; arStage?.("surface"); }
         if (reticle.visible) {
           reticle.matrix.fromArray(hits[0].getPose(renderer.xr.getReferenceSpace()).transform.matrix);
           if (!placed) { stand.visible = true; stand.position.setFromMatrixPosition(reticle.matrix); }
@@ -150,24 +153,43 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
     try { return !!(await navigator.xr?.isSessionSupported?.("immersive-ar")); } catch { return false; }
   }
 
-  /** WebXR AR on `overlay` (its controls stay tappable through dom-overlay); `onEnd` when the session closes */
-  async function startAR(overlay, onEnd) {
+  /**
+   * WebXR AR on `overlay` (its controls stay tappable through dom-overlay). `onStage(name, ms, info)` reports each
+   * step — granted · layer · hit-test · frame · surface · placed — `onEnd` fires whenever the session closes.
+   * A session we started NEVER outlives a failed step: the owner's S25 (2026-10-27, build 12119cc) kept one alive
+   * after a failure, then got "already an active, immersive XRSession" and, from another tab, 13× "The specified
+   * session configuration is not supported" — the device runs one immersive session at a time.
+   */
+  async function startAR(overlay, { onStage, onEnd } = {}) {
+    if (xr) await xr.end().catch(() => {});
+    const t0 = performance.now();
+    arStage = (name, info) => onStage?.(name, Math.round(performance.now() - t0), info);
     const session = await navigator.xr.requestSession("immersive-ar", {
       requiredFeatures: ["hit-test"], optionalFeatures: ["dom-overlay"], domOverlay: { root: overlay },
     });
-    renderer.xr.setReferenceSpaceType("local");
-    await renderer.xr.setSession(session);
-    hit = await session.requestHitTestSource({ space: await session.requestReferenceSpace("viewer") });
-    placed = false; stand.visible = false; controls.enabled = false;
-    session.addEventListener("select", () => { if (reticle.visible) { placed = true; stand.position.setFromMatrixPosition(reticle.matrix); } });
+    xr = session; seenFrame = false; seenSurface = false;
     session.addEventListener("end", () => {
-      hit = null; reticle.visible = false; stand.visible = true; stand.position.set(0, 0, 0); controls.enabled = true;
+      xr = null; hit = null; arStage = null; reticle.visible = false; stand.visible = true; stand.position.set(0, 0, 0); controls.enabled = true;
       ro.disconnect(); ro.observe(canvas.parentElement); reset(); onEnd?.();
+    }, { once: true });
+    arStage("granted", { overlay: session.domOverlayState?.type || "none" });
+    try {
+      renderer.xr.setReferenceSpaceType("local");
+      await renderer.xr.setSession(session);
+      arStage("layer");
+      hit = await session.requestHitTestSource({ space: await session.requestReferenceSpace("viewer") });
+      arStage("hit-test");
+    } catch (e) { session.end().catch(() => {}); throw e; }
+    placed = false; stand.visible = false; controls.enabled = false;
+    session.addEventListener("select", () => {
+      if (!reticle.visible) return;
+      placed = true; stand.position.setFromMatrixPosition(reticle.matrix); arStage?.("placed");
     });
   }
-  const stopAR = () => renderer.xr.getSession()?.end();
+  const stopAR = () => xr?.end().catch(() => {});
 
   function dispose() {
+    xr?.end().catch(() => {});
     renderer.setAnimationLoop(null); ro.disconnect(); controls.dispose();
     if (model) disposeTree(model);
     draco.dispose(); pmrem.dispose(); scene.environment?.dispose(); renderer.dispose();
