@@ -64,7 +64,15 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
   const loader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
 
   let model = null, mixer = null, clips = [], action = null, home = null, hit = null, placed = false;
-  let xr = null, arStage = null, seenFrame = false, seenSurface = false;
+  let xr = null, arStage = null, seenFrame = false, seenSurface = false, probeAt = 0, modelSize = 0;
+  const r2 = (v) => Math.round(v * 100) / 100;
+  // what the AR frame really drew and where things stand — the owner's S25 (build 31dfcd3) placed the model 6× and
+  // saw nothing; this says whether anything was drawn, how big it is and how far the camera is from it
+  function probe() {
+    const cam = renderer.xr.getCamera().getWorldPosition(new THREE.Vector3()), at = stand.getWorldPosition(new THREE.Vector3());
+    const { triangles, calls } = renderer.info.render;
+    return { tris: triangles, calls, size: r2(modelSize), scale: r2(stand.scale.x), dist: r2(cam.distanceTo(at)), dy: r2(at.y - cam.y), stand: stand.visible, reticle: reticle.visible };
+  }
   const clock = new THREE.Clock();
 
   const ro = new ResizeObserver(() => {
@@ -82,7 +90,7 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
       if (frame && hit) {
         const hits = frame.getHitTestResults(hit);
         reticle.visible = hits.length > 0;
-        if (reticle.visible && !seenSurface) { seenSurface = true; arStage?.("surface"); }
+        if (reticle.visible && !seenSurface) { seenSurface = true; arStage?.("surface"); probeAt = performance.now() + 1000; }
         if (reticle.visible) {
           reticle.matrix.fromArray(hits[0].getPose(renderer.xr.getReferenceSpace()).transform.matrix);
           if (!placed) { stand.visible = true; stand.position.setFromMatrixPosition(reticle.matrix); }
@@ -90,6 +98,7 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
       }
       mixer?.update(dt);
       renderer.render(scene, camera);
+      if (probeAt && performance.now() > probeAt) { probeAt = 0; arStage?.("probe", probe()); }
       return;
     }
     if (mixer && action && !action.paused) { mixer.update(dt); dirty = true; }
@@ -129,6 +138,7 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
     holder.position.set(-c.x, -box.min.y, -c.z);
     // the ring stays inside the model's own width: framing fits the model, and the floor is nearer the camera than
     // the model's centre, so a ring as wide as the model was cut by the split-screen stage (412×430)
+    modelSize = Math.max(size.x, size.y, size.z);
     const foot = Math.max(size.x, size.z);
     floor.scale.setScalar(foot * 1.1); ring.scale.setScalar(foot * 0.8);
     mixer = new THREE.AnimationMixer(model); clips = gltf.animations || [];
@@ -178,7 +188,8 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
     }
     xr = session; seenFrame = false; seenSurface = false;
     session.addEventListener("end", () => {
-      xr = null; hit = null; arStage = null; reticle.visible = false; stand.visible = true; stand.position.set(0, 0, 0); controls.enabled = true;
+      xr = null; hit = null; arStage = null; probeAt = 0; reticle.visible = false;
+      stand.visible = true; stand.position.set(0, 0, 0); stand.scale.setScalar(1); controls.enabled = true;
       ro.disconnect(); ro.observe(canvas.parentElement); reset(); onEnd?.();
     }, { once: true });
     arStage("granted", { config, overlay: session.domOverlayState?.type || "none", features: [...(session.enabledFeatures || [])].join(",") });
@@ -195,9 +206,14 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
     } catch (e) { session.end().catch(() => {}); throw e; }
     placed = !hit; stand.visible = !hit; controls.enabled = false;
     if (!hit) stand.position.set(0, -1.2, -1.5);
+    // glTF says metres, files often mean centimetres (100× — the camera ends up inside) or millimetres (a speck):
+    // outside 5 cm … 2.5 m the AR copy is brought to 30 cm / 1 m; the viewer keeps the file's own size
+    stand.scale.setScalar(modelSize > 2.5 ? 1 / modelSize : modelSize > 0 && modelSize < 0.05 ? 0.3 / modelSize : 1);
+    let firstPlace = true;
     session.addEventListener("select", () => {
       if (!reticle.visible) return;
       placed = true; stand.position.setFromMatrixPosition(reticle.matrix); arStage?.("placed");
+      if (firstPlace) { firstPlace = false; probeAt = performance.now() + 1000; }
     });
   }
   const stopAR = () => xr?.end().catch(() => {});
