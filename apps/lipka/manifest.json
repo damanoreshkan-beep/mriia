@@ -1,7 +1,7 @@
 {
   "name": "Ліпка",
   "short_name": "Ліпка",
-  "description": "Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш хвилину і завантажуєш файл .glb.",
+  "description": "Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш кілька хвилин і завантажуєш файл .glb.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -38,5 +38,23 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "sh_title",
+      "text": "sh_text",
+      "url": "sh_url",
+      "files": [
+        {
+          "name": "sh_files",
+          "accept": [
+            "image/*"
+          ]
+        }
+      ]
+    }
+  }
 }

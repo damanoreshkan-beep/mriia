@@ -7,7 +7,11 @@ import { gate } from "/_rt/gate.js";
 import { Island, Stage } from "/_rt/ui.js";
 import { downloadUrl } from "/_rt/apk.js";
 import { Chooser, Camera } from "/_rt/intake.js";
+import { takeShared } from "/_rt/share.js";
 import * as M from "./state.js";
+
+// A picture shared INTO Lipka from the gallery (spec share.files) lands as the source; the sculpt still waits for the tap.
+takeShared((s) => { const f = (s.files || []).find((x) => /^image\//.test(x.type)); if (f) M.setSource(URL.createObjectURL(f)); });
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
