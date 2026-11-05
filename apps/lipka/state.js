@@ -59,7 +59,8 @@ export async function sculpt(ctx) {
   } catch (e) { if (r === run) fail(r, e.code || jobCode(e)); return; }
   if (r !== run) return;
   hold?.(); hold = null;
-  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(res.error || "") ? "ePolicy" : "eFailed");
+  const why = res.error || "";
+  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(why) ? "ePolicy" : /^site: /.test(why) ? "eFailed" : "eSite");
   patch({ phase: "done", out: { url: res.url, bytes: res.blob.size, by: res.by }, live: null });
   if (document.visibilityState === "hidden") {
     if (await notifyAsk()) notify({ id: "lipka-done", title: T(ctx.t, "done"), body: T(ctx.t, "download") }).catch(() => {});

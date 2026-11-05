@@ -18,6 +18,7 @@
   "eNetwork": "No connection",
   "eFailed": "No model came out of this photo. Try another where the whole thing is in view",
   "eBusy": "All GPUs are busy. Try again in a minute",
+  "eSite": "The 3D site is not answering right now. Try again in a minute",
   "ePolicy": "The service refused this photo under its content rules. Try another",
   "eRate": "Too many requests. Wait a little",
   "eBig": "The photo is too large",
