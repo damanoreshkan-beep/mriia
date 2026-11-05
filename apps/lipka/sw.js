@@ -1,6 +1,6 @@
 self.MS = {
   app: "lipka",
-  version: "dd981cee53",
+  version: "be1a36017e",
   precache: [
     "./",
     "./i18n/en.json",
@@ -56,6 +56,7 @@ self.MS = {
     "/_rt/sensors.js",
     "/_rt/shape.js",
     "/_rt/shapes.vendor.js",
+    "/_rt/share.js",
     "/_rt/shell-actions.js",
     "/_rt/shell.js",
     "/_rt/signin.js",
