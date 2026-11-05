@@ -62,8 +62,11 @@ export async function sculpt(ctx) {
   } catch (e) { if (r === run) fail(r, e.code || jobCode(e)); return; }
   if (r !== run) return;
   hold?.(); hold = null;
-  // Prism's NSFW filter refuses some photos outright; the edge hands its words on ("… content policy …")
-  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(res.error || "") ? "ePolicy" : "eFailed");
+  // Prism's NSFW filter refuses some photos outright; the edge hands its words on ("… content policy …"). Only the
+  // site's own words during a generation ("site: …") are about the photo; anything else is the way there — mail.tm,
+  // the sign-in, a lane's network (2026-11-05: three ECONNRESET/click failures read to the owner as "bad photo").
+  const why = res.error || "";
+  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(why) ? "ePolicy" : /^site: /.test(why) ? "eFailed" : "eSite");
   patch({ phase: "done", out: { url: res.url, bytes: res.blob.size, by: res.by }, live: null });
   if (document.visibilityState === "hidden") {
     if (await notifyAsk()) notify({ id: "lipka-done", title: T(ctx.t, "done"), body: T(ctx.t, "download") }).catch(() => {});
