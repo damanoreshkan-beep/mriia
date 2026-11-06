@@ -204,6 +204,40 @@ export const HIT_WINDOW = {
   jupiter: 800 * DAY_MS, saturn: 1100 * DAY_MS, uranus: 2600 * DAY_MS, neptune: 3600 * DAY_MS, pluto: 4400 * DAY_MS,
 };
 
+/**
+ * The Moon's path across one window — the house and sign it starts in, and every event inside the window
+ * in time order: a cusp crossed (`house`, with `angle` when that cusp is the Ascendant or the Midheaven),
+ * a sign entered (`sign`) and an exact aspect to a natal point (`contact`). The window is the reader's local
+ * day; the Moon covers 12–15° in it, so only boundaries and exact points up to 16° ahead of the start are
+ * scanned, which keeps the ephemeris calls to a handful. One-hour steps: the Moon never moves 90° in an hour.
+ * A conjunction with an angle that is also a cusp is not listed twice — the cusp event already says it.
+ */
+export function moonPath(lonAt, targets, cusps, fromMs, toMs, { asc = null, mc = null } = {}) {
+  const start = norm360(lonAt(fromMs));
+  const reach = 16;
+  const ahead = (lon) => norm360(lon - start);
+  const scan = (lon, angle) => ahead(lon + angle) < reach ? exactHits(lonAt, lon, angle, fromMs, toMs, { step: 36e5 }) : [];
+  const near = (a, b) => a != null && b != null && Math.abs(wrap180(a - b)) < 0.01;
+  const events = [];
+  (cusps || []).forEach((c, i) => {
+    const angle = near(c, asc) ? "asc" : near(c, mc) ? "mc" : null;
+    for (const ms of scan(c, 0)) events.push({ ms, kind: "house", house: i + 1, angle });
+  });
+  for (let s = 0; s < 12; s++) for (const ms of scan(s * 30, 0)) events.push({ ms, kind: "sign", sign: s });
+  for (const p of targets) {
+    if (p.lon == null) continue;
+    const onCusp = (p.key === "asc" || p.key === "mc") && (cusps || []).some((c) => near(c, p.lon));
+    for (const a of TRANSIT_ASPECTS) {
+      if (a.angle === 0 && onCusp) continue;
+      for (const angle of a.angle === 0 || a.angle === 180 ? [a.angle] : [a.angle, -a.angle]) {
+        for (const ms of scan(p.lon, angle)) events.push({ ms, kind: "contact", n: p.key, type: a.type, nature: a.nature, natalLon: p.lon });
+      }
+    }
+  }
+  events.sort((a, b) => a.ms - b.ms);
+  return { startLon: start, startHouse: houseOf(start, cusps), startSign: Math.floor(start / 30), events };
+}
+
 export function exactHits(lonAt, natalLon, angle, fromMs, toMs, { step = 864e5, tolMs = 1000, max = 8 } = {}) {
   const f = (ms) => wrap180(lonAt(ms) - natalLon - angle);
   const hits = [];

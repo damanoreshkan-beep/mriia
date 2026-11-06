@@ -81,55 +81,57 @@ Deno.test("signif/balance: a plain unweighted count over the bodies actually sho
   assertEquals(sgBalance([]).elements, [0, 0, 0, 0]);
 });
 
-Deno.test("signif/groundSky: the day's contacts, tightest first, each with its corpus entry", () => {
-  const saturn = { t: "saturn", n: "sun", type: "square", nature: "hard", angle: 90, natalLon: 102.4, orb: 1.3, applying: true };
-  const mercury = { t: "mercury", n: "moon", type: "trine", nature: "soft", angle: 120, natalLon: 333.1, orb: 0.6, applying: false };
-  const jupiter = { t: "jupiter", n: "venus", type: "sextile", nature: "soft", angle: 60, natalLon: 125.2, orb: 2.4, applying: true };
-  const contacts = [
-    { c: jupiter, transitLon: 248.3, retro: false, natalHouse: 11 },
-    { c: saturn, transitLon: 22.7, retro: false, natalHouse: 10 },
-    { c: mercury, transitLon: 133.9, retro: true, natalHouse: 6 },
+Deno.test("signif/groundSky: the day is the Moon's path in clock order plus the fast hands with their moments; no slow body", () => {
+  const moon = { startSign: 6, startHouse: 12, events: [
+    { kind: "contact", at: "11:28", n: "neptune", type: "square", nature: "hard", natalHouse: 3 },
+    { kind: "house", at: "16:20", house: 1, angle: "asc" },
+    { kind: "sign", at: "8 Nov 2026, 00:39", sign: 7 },
+  ] };
+  const venus = { t: "venus", n: "neptune", type: "square", nature: "hard", angle: 90, natalLon: 293.0, orb: 0.76, applying: true };
+  const mercury = { t: "mercury", n: "sun", type: "conjunction", nature: "neutral", angle: 0, natalLon: 221.2, orb: 2.4, applying: false };
+  const fast = [
+    { c: mercury, retro: true, natalHouse: 1, last: "5 Nov 2026, 09:52", next: "22 Nov 2026, 23:17" },
+    { c: venus, retro: false, natalHouse: 3, last: null, next: "11 Nov 2026, 05:59" },
   ];
-  const moon = { lon: 155.2, house: 12, retro: false };
-  const g = sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "placidus", contacts, moon });
+  const g = sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "placidus", moon, fast });
 
   assert(g.text.includes("Use ONLY the facts and meanings below"), "the closed-world instruction is missing");
-  for (const s of ["transiting Saturn", "transiting Mercury", "transiting Jupiter"]) {
-    assert(g.text.includes(s), `${s} is missing from the block`);
-  }
+  assert(g.text.includes("starts this day in Libra, house 12"), "where the Moon begins the day");
   const at = (s) => g.text.indexOf(s);
-  assert(at("transiting Mercury") < at("transiting Saturn"), "contacts must be sorted by orb, tightest first");
-  assert(at("transiting Saturn") < at("transiting Jupiter"), "contacts must be sorted by orb, tightest first");
+  assert(at("11:28 — square natal Neptune, house 3") > 0, "a Moon contact carries its clock time and the natal house");
+  assert(at("16:20 — crosses the Ascendant") > 0 && at("enters house 1") > 0, "a cusp crossing names the angle and the house");
+  assert(at("8 Nov 2026, 00:39 — enters Scorpio") > 0, "a sign change after midnight carries its date");
+  assert(at("11:28") < at("16:20") && at("16:20") < at("00:39"), "the Moon's events stay in clock order");
+  assert(g.text.includes("the day's clock"), "the Moon is named as the day's clock");
 
-  assert(/29 and a half years/.test(g.text), "the tempo must reach the model, or a Saturn transit reads like a mood");
-  assert(g.text.includes("applying (building toward exact)"), "the phase carries which contact is arriving");
-  assert(g.text.includes("separating"), "and which one is leaving");
-  assert(g.text.includes("house 10"), "the natal house is the field of life the contact happens in");
+  assert(at("Venus square natal Neptune") < at("Mercury (retrograde) conjunction natal Sun"), "fast hands sort by orb, tightest first");
+  assert(g.text.includes("exact on 11 Nov 2026, 05:59, still ahead"), "an applying hand says when it is exact");
+  assert(g.text.includes("was exact on 5 Nov 2026, 09:52 and returns on 22 Nov 2026, 23:17"), "a retrograde hand says when it was and when it returns");
   assert(g.text.includes("(placidus houses)"), "the house system must be named — Placidus and whole-sign disagree");
-  assert(g.text.includes("retrograde"), "a retrograde transit must say so");
-  assert(g.text.includes("crossing natal house 12"), "the Moon's own house is the day's field");
+  assert(!/Saturn|Uranus|Neptune \(|Pluto|Jupiter/.test(g.text.replace(/natal Neptune/g, "")), "no slow body in the day block");
+  assert(g.text.includes("Slow bodies are deliberately not in this block"), "the model is told the absence is deliberate");
 
-  assert(g.sig.startsWith(`s${sgCORPUS}|`), `the corpus version must ride in the key, got: ${g.sig}`);
-  assertEquals(sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "placidus", contacts, moon }).sig, g.sig, "the key must be stable");
-  assert(sgGroundSky({ dateEN: "8 Aug 2026", houseSystem: "placidus", contacts, moon }).sig !== g.sig, "the date must vary the key");
-  assert(sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "whole", contacts, moon }).sig !== g.sig, "the house system must vary the key");
-  assert(sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "placidus", contacts, moon: { ...moon, house: 1 } }).sig !== g.sig, "the Moon's house must vary the key");
+  const quiet = sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "placidus", moon: { startSign: 6, startHouse: 12, events: [] }, fast: [] });
+  assert(quiet.text.includes("makes no exact contact and crosses no boundary"), "a quiet Moon is said, not skipped");
+  assert(quiet.text.includes("none of the Sun, Mercury, Venus and Mars"), "no fast hand is said, not skipped");
 
-  const ang = sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "placidus", moon,
-    contacts: [{ c: { ...saturn, n: "asc", natalLon: 187.2 }, transitLon: 22.7, retro: false, natalHouse: null }] });
-  assert(ang.text.includes("natal Ascendant"), "the angle is missing");
+  assert(g.sig.startsWith(`d${sgCORPUS}|`), `the corpus version must ride in the key, got: ${g.sig}`);
+  assertEquals(sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "placidus", moon, fast }).sig, g.sig, "the key must be stable");
+  assert(sgGroundSky({ dateEN: "8 Nov 2026", houseSystem: "placidus", moon, fast }).sig !== g.sig, "the date must vary the key");
+  assert(quiet.sig !== g.sig, "the day's events vary the key");
+  assert(sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "whole", moon, fast }).sig !== g.sig, "the house system must vary the key");
+  assert(sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "placidus", moon: { ...moon, startHouse: 1 }, fast }).sig !== g.sig, "the Moon's house must vary the key");
+
+  const ang = sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "placidus", moon: { startSign: 6, startHouse: 12, events: [] },
+    fast: [{ c: { ...venus, n: "asc", natalLon: 205.6 }, retro: false, natalHouse: null, last: "2 Nov 2026, 09:59", next: null }] });
+  assert(ang.text.includes("Ascendant —"), "the angle is missing");
   assert(!/house null|house 0\b/.test(ang.text), "an angle must not print a null house");
+  assert(ang.text.includes("was exact on 2 Nov 2026, 09:59 and is passing"), "a separating hand says when it was");
 
-  const many = sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "placidus", moon,
-    contacts: Array.from({ length: 9 }, (_, i) => ({ c: { ...saturn, orb: i * 0.3 }, transitLon: 22.7, retro: false, natalHouse: 10 })) });
-  assert(many.text.includes("the 4 tightest of 9 in range"), `the cap must be stated, got: ${many.text.slice(0, 200)}`);
+  const many = sgGroundSky({ dateEN: "7 Nov 2026", houseSystem: "placidus", moon,
+    fast: Array.from({ length: 6 }, (_, i) => ({ c: { ...venus, orb: i * 0.3 }, retro: false, natalHouse: 3, last: null, next: "11 Nov 2026, 05:59" })) });
+  assertEquals((many.text.match(/^- Venus/gm) || []).length, 4, "the fast hands are capped at four");
   assert(many.text.length < 6000, `the block must stay well inside the mode cap, got ${many.text.length}`);
-
-  const quiet = sgGroundSky({ dateEN: "7 Aug 2026", houseSystem: "placidus", contacts: [], moon });
-  assert(quiet.text.includes("no transiting body is within orb"), "a quiet sky must be stated plainly");
-  assert(quiet.text.includes("Do not substitute a contact that is not listed"), "and the substitution must be forbidden");
-  assert(quiet.text.includes("THE DAY'S FASTEST HAND"), "the Moon is what a quiet day is read from");
-  assert(quiet.sig !== g.sig, "a quiet sky is a different reading and a different key");
 });
 
 Deno.test("signif/groundTransit: the block is closed-world, and the signature moves with the facts", () => {
