@@ -1,7 +1,7 @@
 import { html } from "htm/preact";
 import _SunCalc from "https://esm.sh/suncalc@1.9.0";
 import * as Astro from "https://esm.sh/astronomy-engine@2";
-import { houses as Houses, exactHits, SCAN_STEP, HIT_WINDOW } from "./natal.js";
+import { houses as Houses, exactHits, moonPath, SCAN_STEP, HIT_WINDOW } from "./natal.js";
 const SunCalc = _SunCalc.default || _SunCalc;
 
 export const BODIES = {
@@ -93,5 +93,8 @@ export function hitTimes(key, natalLon, angle, aroundMs, opts = {}) {
   return exactHits(bodyLonAt(key), natalLon, angle, aroundMs - w, aroundMs + w,
     { step: SCAN_STEP[key] || 864e5, ...opts });
 }
+
+/** The Moon's path across one local day against a chart — see `moonPath` in natal.js. */
+export const moonDay = (targets, H, fromMs, toMs) => moonPath(bodyLonAt("moon"), targets, H.cusps, fromMs, toMs, { asc: H.asc, mc: H.mc });
 
 export * from "./natal.js";

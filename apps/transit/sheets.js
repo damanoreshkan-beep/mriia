@@ -3,7 +3,7 @@ import { useState, useEffect } from "preact/hooks";
 import { useStore } from "@nanostores/preact";
 import { persistentAtom } from "@nanostores/persistent";
 import { T } from "/_rt/i18n.js";
-import { hitTimes } from "/_rt/astro.js";
+import { hitTimes, moonDay } from "/_rt/astro.js";
 import { houseOf, HIT_PRECISION } from "/_rt/natal.js";
 import { placeLabel } from "/_rt/places.js";
 import { interpret, warmInterpret, isInterpreted, transitRead, warmTransitRead, isTransitRead, placementRead, warmPlacementRead, isPlacementRead, portraitRead, warmPortraitRead, isPortraitRead, houseRead, warmHouseRead, isHouseRead, askedRead, warmAskedRead, isAskedRead } from "/_rt/ai-astro.js";
@@ -299,22 +299,39 @@ export function PortraitSheet({ open, onClose, C, t, loc }) {
   </${Sheet}>`;
 }
 
-export function InterpSheet({ open, onClose, C, t, loc, dateLabel }) {
-  if (!open) return null;
+const FAST = ["sun", "mercury", "venus", "mars"];
+const clock = (ms) => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+function dayBlock(C) {
   const dateEN = C.when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const d0 = new Date(C.when); d0.setHours(0, 0, 0, 0);
+  const from = d0.getTime(), to = from + 864e5, whenMs = C.when.getTime();
+  const at = (ms) => ms < to ? clock(ms) : fmtHitAt(ms, "minute", "en");
+  const path = moonDay(C.targets, C.H, from, to);
+  const moon = { startSign: path.startSign, startHouse: path.startHouse,
+    events: path.events.map((e) => ({ ...e, at: at(e.ms), natalHouse: e.kind === "contact" && !ANGLE[e.n] ? houseOf(e.natalLon, C.H.cusps) : null })) };
   const skyLon = Object.fromEntries(C.sky.map((p) => [p.key, p.lon]));
-  const contacts = C.hits.map((c) => ({
-    c,
-    transitLon: skyLon[c.t],
-    retro: C.retro(c.t, skyLon[c.t]),
-    natalHouse: ANGLE[c.n] ? null : houseOf(c.natalLon, C.H.cusps),
-  })).filter((x) => x.transitLon != null);
-  const moonLon = skyLon.moon;
-  const moon = moonLon == null ? null : { lon: moonLon, house: houseOf(moonLon, C.H.cusps), retro: false };
-  const { text: input, sig } = groundSky({ dateEN, houseSystem: C.system, contacts, moon });
+  const fast = C.hits.filter((c) => FAST.includes(c.t) && skyLon[c.t] != null).map((c) => {
+    const times = hitTimes(c.t, c.natalLon, c.signedAngle, whenMs);
+    const past = times.filter((ms) => ms <= whenMs), next = times.find((ms) => ms > whenMs);
+    return { c, retro: C.retro(c.t, skyLon[c.t]), natalHouse: ANGLE[c.n] ? null : houseOf(c.natalLon, C.H.cusps),
+      last: past.length ? fmtHitAt(past[past.length - 1], "minute", "en") : null, next: next ? fmtHitAt(next, "minute", "en") : null };
+  });
+  return groundSky({ dateEN, houseSystem: C.system, moon, fast });
+}
+
+export function InterpSheet({ open, onClose, C, t, loc, dateLabel }) {
+  const whenMs = C.ready ? C.when.getTime() : 0;
+  const [day, setDay] = useState(null);
+  useEffect(() => {
+    if (!open || !C.ready) { setDay(null); return; }
+    let dead = false;
+    const id = setTimeout(() => { if (!dead) setDay(dayBlock(C)); }, 0);
+    return () => { dead = true; clearTimeout(id); };
+  }, [open, whenMs, C.system]);
+  if (!open) return null;
 
   return html`<${Sheet} id="interpsheet" open=${true} onClose=${onClose} title=${T(t, "interpTitle")} subtitle=${dateLabel} icon="lucide:sparkles">
-      <${Reading} sig=${sig} input=${input} loc=${loc} api=${AI_SKY} t=${t}
+      <${Reading} sig=${day ? day.sig : ""} input=${day ? day.text : ""} wait=${!day} loc=${loc} api=${AI_SKY} t=${t}
         gateText=${GATE_INTERP[loc] || GATE_INTERP.en} lines=${[30, 34, 28, 20]} />
   </${Sheet}>`;
 }

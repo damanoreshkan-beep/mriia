@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { aspects, ASPECTS } from "../aspects.js";
-import { zoneOffset, knownZone, zonedToUTC, parseOffset, formatOffset, lmtOffset, houses, houseOf, HOUSE_SYSTEMS, placidusDefined, transits, transitAspect, separation, exactHits, TRANSIT_ORB, TRANSIT_ASPECTS, HIT_PRECISION, norm360, wrap180 } from "../natal.js";
+import { zoneOffset, knownZone, zonedToUTC, parseOffset, formatOffset, lmtOffset, houses, houseOf, HOUSE_SYSTEMS, placidusDefined, transits, transitAspect, separation, exactHits, moonPath, TRANSIT_ORB, TRANSIT_ASPECTS, HIT_PRECISION, norm360, wrap180 } from "../natal.js";
 
 const EINSTEIN = { ramc: 344.18405, eps: 23.456473, phi: 48.4 };
 const dms = (deg, min) => deg + min / 60;
@@ -165,4 +165,26 @@ Deno.test("natal/exactHits: bisection finds every crossing, including a retrogra
   assertEquals(none.length, 0, "the wrap guard keeps a 360 to 0 jump from faking a hit");
   assertEquals(HIT_PRECISION.pluto, "day", "Pluto moves too slowly to quote a second");
   assertEquals(HIT_PRECISION.moon, "second");
+});
+
+Deno.test("natal/moonPath: one local day in clock order — the cusp, the sign, the exact contacts; an angle on a cusp is not said twice", () => {
+  const DAY = 864e5, H = 36e5;
+  const moon = (ms) => norm360(200 + (ms / H) * 0.5);
+  const cusps = [205, 235, 265, 295, 325, 355, 25, 55, 85, 115, 145, 175];
+  const targets = [
+    { key: "neptune", lon: 115.75 },   
+    { key: "asc", lon: 205 },          
+    { key: "mc", lon: 115.25 },        
+    { key: "venus", lon: 40 },         
+    { key: "sun", lon: 211 },          
+  ];
+  const p = moonPath(moon, targets, cusps, 0, DAY, { asc: 205, mc: 115.25 });
+  assertEquals(p.startSign, 6, "200° is Libra");
+  assertEquals(p.startHouse, 12, "just short of cusp 1 is house 12");
+  const kinds = p.events.map((e) => e.kind + ":" + (e.house || e.sign || e.n) + "@" + Math.round(e.ms / H * 2) / 2);
+  assertEquals(kinds, ["house:1@10", "contact:mc@10.5", "contact:neptune@11.5", "sign:7@20", "contact:sun@22"]);
+  assertEquals(p.events[0].angle, "asc", "cusp 1 is the Ascendant here");
+  assert(!p.events.some((e) => e.kind === "contact" && e.n === "asc"), "the Ascendant's conjunction is already the cusp event");
+  assertEquals(p.events[2].type, "square");
+  assertEquals(p.events[3].sign, 7, "210° is Scorpio");
 });

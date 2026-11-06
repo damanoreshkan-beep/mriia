@@ -362,32 +362,46 @@ export function spanLabel(fromMs, toMs) {
   return `about ${years} years`;
 }
 
-const SKY_MAX = 4;
-export function groundSky({ dateEN, houseSystem, contacts = [], moon = null, max = SKY_MAX }) {
-  const sorted = [...contacts].sort((a, b) => a.c.orb - b.c.orb);
-  const shown = sorted.slice(0, max);
-  const lines = shown.map(({ c, transitLon, retro, natalHouse }) => {
-    const tb = BODY[c.t], nb = BODY[c.n], na = ANGLE[c.n];
-    const phase = c.applying == null ? "" : c.applying ? ", applying (building toward exact)" : ", separating (the exact contact has passed)";
-    const H = natalHouse ? HOUSE[natalHouse - 1] : null;
-    return `- transiting ${nameEN(c.t)}${retro ? " (retrograde)" : ""} in ${deg(transitLon)} ${c.type} natal ${nameEN(c.n)} in ${deg(c.natalLon)}${natalHouse ? `, house ${natalHouse}` : ""} — orb ${c.orb.toFixed(2)}°${phase}.
-    ${nameEN(c.t)} is what arrives: as a transit it ${tb.act[en]}. How long this one lasts: ${tb.tempo[en]}. Under strain: ${tb.strain[en]}.
-    The ${c.type}: ${ASPECT[c.type][en]}.
-    ${na ? `${nameEN(c.n)} is the point touched: ${na.topic[en]} (${na.axis[en]}).` : `Natal ${nameEN(c.n)} is the function touched: ${nb.role[en]}.`}${H ? ` House ${natalHouse} is the field of life it happens in (${houseSystem} houses): ${H.topic[en]}; traditionally "${H.trad[en]}".` : ""}${retro ? ` ${nameEN(c.t)} is retrograde: ${RETRO_NOTE[en]}.` : ""}`;
+/**
+ * The DAY, not the period: the old block listed every contact in orb, tightest first,
+ * so a seven-year Uranus transit at 0.01° led the reading of a Friday, and the reader got its tempo instead
+ * of his day. Now the block is the Moon's path across the reader's local day — the house it starts in, the
+ * cusps and the sign it crosses, every exact contact, each with its clock time — and the four fast bodies
+ * (Sun, Mercury, Venus, Mars) in orb, each with the moment it is exact. The slow bodies are deliberately
+ * absent: the reader asked for the context of the day, and the single-transit sheet still reads them.
+ *
+ * `moon.events[].at` and `fast[].last/next` arrive already formatted by the caller (the reader's clock);
+ * this function only lays them out, so a test can pin the text without an ephemeris.
+ */
+const FAST_MAX = 4;
+export function groundSky({ dateEN, houseSystem, moon, fast = [], max = FAST_MAX }) {
+  const houseLine = (n) => `house ${n} (${HOUSE[n - 1].topic[en]})`;
+  const pointLine = (n, natalHouse) => ANGLE[n]
+    ? `${nameEN(n)} — ${ANGLE[n].topic[en]}`
+    : `natal ${nameEN(n)}${natalHouse ? `, ${houseLine(natalHouse)}` : ""} — ${BODY[n].role[en]}`;
+  const events = (moon?.events || []).map((e) => {
+    if (e.kind === "house") return `- ${e.at} — ${e.angle ? `crosses the ${nameEN(e.angle)} (${ANGLE[e.angle].topic[en]}) and ` : ""}enters ${houseLine(e.house)}: the day's field of life moves here.`;
+    if (e.kind === "sign") return `- ${e.at} — enters ${SIGN_EN[e.sign]}: from here the mood ${SIGN[e.sign].mode[en]}.`;
+    return `- ${e.at} — ${e.type} ${pointLine(e.n, e.natalHouse)}. The ${e.type}: ${ASPECT[e.type][en]}.`;
   });
-  const moonLine = moon
-    ? `THE DAY'S FASTEST HAND: the transiting Moon is at ${deg(moon.lon)}${moon.house ? `, crossing natal house ${moon.house} (${HOUSE[moon.house - 1].topic[en]})` : ""}. The Moon ${BODY.moon.act[en]}. Its tempo: ${BODY.moon.tempo[en]}. This colours the day itself, not the period.`
+  const moonHead = moon
+    ? `THE MOON — the day's clock. It ${BODY.moon.act[en]}; ${BODY.moon.tempo[en]}. It starts this day in ${SIGN_EN[moon.startSign]}${moon.startHouse ? `, ${houseLine(moon.startHouse)}` : ""}.
+${events.length ? `What the Moon does on ${dateEN}, in clock order:\n${events.join("\n")}` : `It makes no exact contact and crosses no boundary on ${dateEN}: read the day from the house it stands in.`}`
     : "";
-  const head = shown.length
-    ? `CONTACTS — the transiting bodies touching this chart on ${dateEN}, tightest orb first${sorted.length > shown.length ? ` (the ${shown.length} tightest of ${sorted.length} in range)` : ""}:\n${lines.join("\n")}`
-    : `CONTACTS: no transiting body is within orb of a natal point on ${dateEN}. Say that plainly — a quiet sky is a real reading, not a missing one — and read the day from the Moon below. Do not substitute a contact that is not listed here.`;
+  const shown = [...fast].sort((a, b) => a.c.orb - b.c.orb).slice(0, max);
+  const fastLines = shown.map(({ c, retro, natalHouse, last, next }) => {
+    const when = next && last ? `was exact on ${last} and returns on ${next}` : next ? `exact on ${next}, still ahead` : last ? `was exact on ${last} and is passing` : "within orb";
+    return `- ${nameEN(c.t)}${retro ? " (retrograde)" : ""} ${c.type} ${pointLine(c.n, natalHouse)} — ${when}. ${nameEN(c.t)} ${BODY[c.t].act[en]}; ${BODY[c.t].tempo[en]}. The ${c.type}: ${ASPECT[c.type][en]}.${retro ? ` ${nameEN(c.t)} is retrograde: ${RETRO_NOTE[en]}.` : ""}`;
+  });
+  const fastHead = shown.length
+    ? `THE WEEK'S HANDS — the Sun, Mercury, Venus and Mars within orb of this chart, each with the moment it is exact:\n${fastLines.join("\n")}`
+    : `THE WEEK'S HANDS: none of the Sun, Mercury, Venus and Mars is within orb of this chart. Say nothing about them.`;
   const text = `${HEAD}
-THE SKY ON ${dateEN}, read against this natal chart (${houseSystem} houses).
-${head}${moonLine ? `\n${moonLine}` : ""}
-MEANINGS above come from the app's sourced corpus. Lead with the tightest applying contact, because that is
-the one arriving rather than leaving. Every sentence must be ABOUT one of the contacts named above — if a
-sentence would read the same for a different chart, it does not belong in this reading.`;
-  const sig = `s${CORPUS}|${dateEN}|${houseSystem}|${shown.map(({ c, retro }) => `${c.t}${retro ? "r" : ""}-${c.type}-${c.n}-${c.orb.toFixed(1)}-${c.applying == null ? "x" : c.applying ? "a" : "s"}`).join(",")}|${moon ? `m${signOf(moon.lon)}h${moon.house || 0}` : "-"}`;
+THE DAY: ${dateEN}, read against this natal chart (${houseSystem} houses). Every clock time below is the reader's own, on ${dateEN} unless another date is written next to it.
+${moonHead}
+${fastHead}
+MEANINGS above come from the app's sourced corpus. The Moon's line IS the day — read it in clock order and quote its times as written. The week's hands are the weather around it. Slow bodies are deliberately not in this block: name none.`;
+  const sig = `d${CORPUS}|${dateEN}|${houseSystem}|${moon ? `s${moon.startSign}h${moon.startHouse || 0}:${(moon.events || []).map((e) => e.kind === "house" ? `h${e.house}` : e.kind === "sign" ? `z${e.sign}` : `${e.type[0]}${e.n}`).join(".")}` : "-"}|${shown.map(({ c, retro, last, next }) => `${c.t}${retro ? "r" : ""}-${c.type}-${c.n}-${last ? "p" : ""}${next ? "n" : ""}`).join(",")}`;
   return { text, sig };
 }
 
