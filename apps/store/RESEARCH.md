@@ -1,9 +1,44 @@
 # store — the farm's front door
 
-The launcher in the App Store's own structure: Today (a hero + a two-column stack), Fresh arrivals (a pager
-of three-card slides), then every category with all its apps; a search filters the one page in place and the
-app page is the kit's Sheet. The Today rubric is automatic — an app born in the last 48 h (`added`) leads
-the stack, `spec.featured` follows minus the newborns — and is NOT touched by the refresh below.
+A launcher: Today (the hero, then the large comb), Fresh arrivals (a pager of three-card slides), then every
+category as a small comb with all its apps; a search filters the one page in place into rows; a tap opens the
+app itself.
+
+## Honeycomb 2026-11-06
+
+and small in the groups; the top is personal, with his own measured set as the default.
+
+**The top is personal.** The core keeps a record of opens on the device (`/_rt/usage.js` `frequent()`, core
+1.2.157: every app notes its own open under one origin-wide key, a score that halves every 14 days; nothing
+leaves the phone). `PICKS` = the device's most used apps, then `spec.featured` for the slots the record does
+not fill, six in all. The first pick is the hero; apps born in the last 48 h stand next; the other picks
+follow. The large comb shows whole rows only: 5 cells, or 8 when many are born at once. The record is read
+once per load, so the order never moves under the thumb. `spec.featured` is the measured default: the farm's
+dou 4 on 2, persona 9 on 1, prism 3 on 1).
+
+**The comb.** The lattice is the core's `.ms-comb` (1.2.158): rows of n and n-1 cells, the short row half a
+cell in, n by the comb's own width. Small comb: 3 across under 19rem, 4 to 26.5rem, 5 to 32rem, then 6.
+Large comb (`.ms-comb-lg`): 3 across, 5 from 30rem. A cell is the app's form (80% of the cell, 84% in the
+large comb) with its name under it, two lines at most — every app keeps a visible name, an icon and one tap
+(the 2026-09-24 lesson: a launcher never trades findability for atmosphere). The description line and the
+Open pill live in the search rows only.
+
+State map (one page, one scroll):
+
+| State | Hook | What shows | Demotes at 412×430 / 360×340 |
+|---|---|---|---|
+| today | `data-store-mode="today"`, `data-store-used` | head row · hero (`.st-hero`, `[data-hero-orb]`) · large comb (`[data-comb="big"]`, cells `[data-cell="big"][data-featured]`) · Fresh · a small comb per category (`[data-comb="small"]`) | nothing: the page scrolls, the combs keep 3 and 4 across |
+| personal lead | hero eyebrow "Often · category" | the device's most used app in the hero; no slogan unless `slogan_<id>` exists | same |
+| newborn | `data-newborn="1"`, `data-mark="new"` | the amber dot on the cell's form; the hero eyebrow says when | same |
+| new / updated | `data-mark="new"` / `"upd"` | amber / cyan dot on the form, the word in the accessible name | same |
+| opened | `data-seen="1"` | no visible change in a cell; the search row's pill becomes a glyph | same |
+| pressed | `:active` | the cell's rim lights in the accent | same |
+| search | `data-store-mode="search"` | rows with the description line and the Open pill, or the no-results state | same |
+
+Measured on the eye (dev tree, 2026-11-06): 384×832 small comb 8 tracks, cell 88px, form 70px; large comb 6
+tracks, cell 117px; 360×340 cell 82 / 109; 412×430 cell 95 / 127; 320×568 both combs 3 across at 96; 768 and
+844 wide: small 6 across at 91, large one row of 5 at 109. No element wider than the viewport at any shape.
+Page height at 384: 4400px (the rows were 8419px).
 
 ## Design refresh 2026-09-04
 

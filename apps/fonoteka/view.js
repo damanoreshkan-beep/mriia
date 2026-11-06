@@ -272,7 +272,7 @@ export function fonoteka({ S, toast, confirm }) {
   toastFn = toast; tNow = t;
   useEffect(() => { load(); }, []);
   const now = cur ? songOf(cur) : null;
-  const askDelete = (s) => confirm({ title: T(t, "delTitle"), body: T(t, "delBody"), verb: T(t, "delYes"), onConfirm: () => remove(s) });
+  const askDelete = (s) => confirm({ title: T(t, "delTitle"), body: T(t, "delBody", { name: titleOf(s) }), verb: T(t, "delYes"), onConfirm: () => remove(s) });
   const picker = useRef();
 
   const orb = useRef(), fill = useRef(), rim = useRef(), core = useRef(), form = useRef();
@@ -312,8 +312,11 @@ export function fonoteka({ S, toast, confirm }) {
       </div>
       <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full pt-1"
         onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
-        title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? (now.artist || clock(now.dur)) : ""}
-        actions=${[{ id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => shareSong(now), disabled: !now, attr: { "data-share": true } }]} />
+        title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? songLine(now, clock) : ""}
+        actions=${[
+          { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => shareSong(now), disabled: !now, attr: { "data-share": true } },
+          { id: "del", icon: "lucide:trash-2", label: T(t, "aDelete"), haptic: "bump", onClick: () => now && askDelete(now), disabled: !now, attr: { "data-del": true } },
+        ]} />
     </section>
 
     <section aria-labelledby="fk-shelf" class="flex flex-col gap-[var(--ms-gap)]">
@@ -343,27 +346,22 @@ export function fonoteka({ S, toast, confirm }) {
           <div class="font-semibold text-sm">${T(t, "empty")}</div><div class="text-sm text-muted">${T(t, "emptyHint")}</div>
         </div>` : null}
       </div>
-      <div data-albums class="fk-grid ms-stagger grid gap-x-[var(--ms-gap)] gap-y-5">
-        ${songs === null ? [0, 1, 2, 3].map((i) => html`<div key=${i} class="flex flex-col gap-2"><div class="skeleton aspect-square rounded-full"></div><div class="skeleton h-3.5 w-2/3"></div></div>`)
+      <div class="ms-comb"><div data-albums class="ms-comb-cells ms-comb-lg fk-comb ms-stagger">
+        ${songs === null ? [0, 1, 2, 3, 4].map((i) => html`<div key=${i} class="fk-cell"><div class="skeleton fk-album rounded-full"></div><div class="skeleton h-3 w-2/3"></div></div>`)
           : songs.map((s, i) => {
             const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
-            return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`} class="flex flex-col gap-2 min-w-0">
-              <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${() => (on ? toggle() : play(s.id))} class="fk-album ms-press">
-                <span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${cov ? html`<img src=${cov} alt="" decoding="async" />` : null}</span>
-                <svg aria-hidden="true" class="fk-arim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg>
-                ${on ? html`<span class="fk-now" aria-hidden="true">${Icon(playing ? "lucide:audio-lines" : "lucide:play", "text-xl")}</span>` : null}
+            return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`}>
+              <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${() => (on ? toggle() : play(s.id))} class="fk-cell ms-press">
+                <span class="fk-album">
+                  <span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${cov ? html`<img src=${cov} alt="" decoding="async" />` : null}</span>
+                  <svg aria-hidden="true" class="fk-arim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg>
+                  ${on ? html`<span class="fk-now" aria-hidden="true">${Icon(playing ? "lucide:audio-lines" : "lucide:play", "text-lg")}</span>` : null}
+                </span>
+                <span class="fk-name">${titleOf(s)}</span>
               </button>
-              <div class="flex items-start gap-1 min-w-0">
-                <div class="min-w-0 flex-1 px-0.5">
-                  <div class=${`font-semibold text-sm leading-snug line-clamp-2 ${on ? "text-[var(--app-accent)]" : ""}`}>${titleOf(s)}</div>
-                  <div class="font-mono text-xs tabular-nums text-muted truncate mt-0.5">${songLine(s, clock)}</div>
-                </div>
-                <button data-del=${s.id} data-haptic="bump" aria-label=${`${T(t, "aDelete")}: ${titleOf(s)}`} onClick=${() => askDelete(s)}
-                  class="btn btn-ghost btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 -mt-2 -mr-2 text-muted">${Icon("lucide:trash-2", "text-base")}</button>
-              </div>
             </div>`;
           })}
-      </div>
+      </div></div>
       <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
     </section>
 

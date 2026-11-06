@@ -21,7 +21,7 @@
   "shareFail": "Couldn't share the song",
   "shareWait": "Getting the link ready…",
   "delTitle": "Delete this song?",
-  "delBody": "It leaves the shelf and the player. The only way back is to upload it again.",
+  "delBody": "“{name}” leaves the shelf and the player. The only way back is to upload it again.",
   "delYes": "Delete",
   "delNo": "Keep",
   "deleted": "Deleted",

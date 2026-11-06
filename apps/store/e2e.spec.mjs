@@ -37,9 +37,9 @@ export default [
   {
     name: "тап по застосунку відкриває його одразу — без шитика опису; стор пам'ятає, що його відкривали", run: async (h) => {
       await ready(h);
-      await h.click('[data-app="rave"] > button'); await h.wait(250);
+      await h.click('[data-cell][data-app="rave"]'); await h.wait(250);
       h.expect((await h.count("#appsheet")) === 0, "шитик опису повернувся");
-      h.expect((await h.count('[data-app="rave"] .btn iconify-icon')) === 1, "стор не запам'ятав відкритий застосунок");
+      h.expect((await h.count('[data-cell][data-app="rave"][data-seen="1"]')) === 1, "стор не запам'ятав відкритий застосунок");
     },
   },
   {
@@ -53,16 +53,28 @@ export default [
     },
   },
   {
-    name: "стор: добірка карток відкриває апку одразу, категорія → рядки", run: async (h) => {
+    name: "стор: верх без запису відкриттів — добірка за замовчуванням: герой і великі соти 3 + 2, тап відкриває апку одразу", run: async (h) => {
       await ready(h);
-      h.expect((await h.count("[data-featured]")) >= 2, "немає карток добірки");
-      h.expect((await h.attr("[data-featured]", "data-app")) === "takt", "Такт не веде стек «Сьогодні»");
-      h.expect((await h.count('[data-featured][data-app="spirit"]')) === 1, "Дух карти не в добірці");
+      h.expect((await h.attr("[data-featured]", "data-app")) === "fonoteka", "Фонотека не веде «Сьогодні» на першому візиті");
+      h.expect([5, 8].includes(await h.count('[data-comb="big"] > [data-cell="big"][data-featured]')), "великі соти не цілими рядами (3 + 2 або 3 + 2 + 3)");
+      h.expect((await h.count('[data-comb="big"] > [data-app="reel"]')) === 1, "Reel не у великих сотах");
       if (await h.attr("[data-featured]", "data-newborn")) h.expect(/сьогодні|учора|today|yesterday/i.test(await h.text(".st-hero")), "брова героя-новинки не каже «коли»");
       else h.expect((await h.text("[data-slogan]")).trim().length > 5, "герой без гасла");
-      await h.click('[data-featured][data-app="tide"]'); await h.wait(300);
-      h.expect((await h.count("#appsheet")) === 0, "картка добірки відкрила шитик замість апки");
-      h.expect((await h.count("[data-app] .btn")) >= 10, "рядки без кнопки Відкрити");
+      await h.click('[data-featured][data-app="remix"]'); await h.wait(300);
+      h.expect((await h.count("#appsheet")) === 0, "комірка добірки відкрила шитик замість апки");
+    },
+  },
+  {
+    name: "соти: кожна категорія — решітка ядра, короткий ряд зсунутий на пів комірки, у кожної комірки є назва", run: async (h) => {
+      await ready(h);
+      const cells = await h.count('[data-comb="small"] > [data-cell="small"]');
+      h.expect(cells >= 70, "категорії не показують усю ферму сотами");
+      h.expect((await h.count('[data-comb="small"] > [data-cell] > .st-cell-name')) === cells, "комірка без назви — іконка без підпису");
+      h.expect((await h.count(".ms-comb > .ms-comb-cells[data-comb]")) >= 5, "соти не на решітці ядра (.ms-comb)");
+      const tracks = (await h.css('[data-comb="small"]', "grid-template-columns")).split(" ").length;
+      h.expect(tracks >= 6 && tracks % 2 === 0, `решітка не з пів-комірок (${tracks} колонок)`);
+      h.expect((await h.css(`[data-comb="small"] > :nth-child(${tracks / 2 + 1})`, "grid-column-start")) === "2", "короткий ряд не зсунутий на пів комірки");
+      h.expect((await h.css('[data-comb="small"] > :nth-child(1)', "grid-column-start")) !== "2", "довгий ряд зсунутий");
     },
   },
   {
@@ -79,11 +91,11 @@ export default [
   {
     name: "вільні форми: кожна апка у своїй формі з обідком, хмара — лише Mriia, герой — орб", run: async (h) => {
       await ready(h);
-      const rows = await h.count("div[data-app]");
-      h.expect((await h.count("div[data-app] .st-tile[data-form]")) === rows, "рядок застосунку без власної форми");
-      h.expect((await h.count("div[data-app] .st-rim use")) === rows, "форма без обідка — чорна іконка зникає на чорному");
+      const cells = await h.count("[data-cell]");
+      h.expect((await h.count("[data-cell] .st-tile[data-form]")) === cells, "комірка застосунку без власної форми");
+      h.expect((await h.count("[data-cell] .st-rim use")) === cells, "форма без обідка — чорна іконка зникає на чорному");
       h.expect((await h.count('[data-app] [data-form="Puffy"]')) === 0, "хмара Mriia дісталась застосунку");
-      h.expect(/url\(/.test(await h.css("div[data-app] .st-tile-art", "clip-path")), "іконка не обрізана формою");
+      h.expect(/url\(/.test(await h.css("[data-cell] .st-tile-art", "clip-path")), "іконка не обрізана формою");
       h.expect((await h.count(".st-hero [data-hero-orb]")) === 1, "герой без орба");
       h.expect(!/^(|Puffy)$/.test(await h.attr("[data-hero-orb]", "data-form")), "орб героя не у формі застосунку");
       h.expect(/^path\(/.test(await h.css("[data-hero-orb] .st-orb-art", "clip-path")), "орб не обрізаний формою");

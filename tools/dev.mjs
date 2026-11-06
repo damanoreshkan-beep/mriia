@@ -38,7 +38,9 @@ async function handler(req) {
     if (!o || o.status === 404) o = await serveDir(fresh, { fsRoot: RT_CORE, urlRoot: "_rt", quiet: true });
     return noStore(o);
   }
-  const res = noStore(await serveDir(fresh, { fsRoot: appdir, urlRoot: app, quiet: true }));
+  const seg = u.pathname.split("/")[1] || "";
+  const sibling = seg !== app && /^[a-z0-9-]+$/.test(seg) && (() => { try { return Deno.statSync(`${ROOT}/apps/${seg}`).isDirectory; } catch { return false; } })();
+  const res = noStore(await serveDir(fresh, sibling ? { fsRoot: `${ROOT}/apps/${seg}`, urlRoot: seg, quiet: true } : { fsRoot: appdir, urlRoot: app, quiet: true }));
   if ((res.headers.get("content-type") || "").includes("text/html")) {
     let html = await res.text();
     html = html.includes("</head>") ? html.replace("</head>", HEAD_KILL + "</head>") : HEAD_KILL + html;
