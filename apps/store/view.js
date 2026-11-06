@@ -4,6 +4,7 @@ import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { collection } from "/_rt/db.js";
 import { ORGANIC, shapeOf, pathOf, scalePath, morphTo } from "/_rt/shape.js";
+import { frequent } from "/_rt/usage.js";
 import apps from "./apps.json" with { type: "json" };
 import spec from "./spec.json" with { type: "json" };
 
@@ -66,17 +67,25 @@ function HeroOrb({ a }) {
 const SEEN = collection("seen");
 const CATALOG = collection("catalog");
 const appUrl = (id) => `../${id}/`;
-const shotUrl = (a, tab, light) => `./assets/shot-${a.id}--${tab}${light ? "--light" : ""}.webp`;
 const CATS = ["science", "feeds", "tools", "sound", "hackrf", "creative", "money", "wellness", "play", "esoterica"];
 const catKey = (c) => "cat" + c[0].toUpperCase() + c.slice(1);
 const TODAY_DAYS = 2;
 const ageDays = (a) => Math.max(0, Math.floor((Date.now() - Date.parse(a.added + "T00:00:00")) / 86400000));
 const isNewborn = (a) => !!a.added && ageDays(a) < TODAY_DAYS;
 const NEWBORN = apps.filter(isNewborn).sort((x, y) => y.added.localeCompare(x.added) || x.title.localeCompare(y.title, "uk"));
-// The first curated id is the LEAD: it keeps the big card whatever is born after it (owner, 2026-10-05).
-const LEAD = apps.find((a) => a.id === (spec.featured || [])[0]) || null;
-const CURATED = (spec.featured || []).slice(1).map((id) => apps.find((a) => a.id === id)).filter((a) => a && !isNewborn(a));
-const FEATURED = [...(LEAD ? [LEAD] : []), ...NEWBORN.filter((a) => a !== LEAD), ...CURATED];
+// THE TOP IS PERSONAL (owner 2026-11-06): the apps this phone opens most lead the page. The core keeps that
+// record on the device (usage.js frequent — every app notes its own open, nothing leaves the phone); the slots
+// it does not fill yet are taken by spec.featured, so a first visit sees the curated set and it gives way one
+// app at a time. Read once per load: the order never changes under the thumb. The first pick is the LEAD and
+// keeps the hero card whatever is born after it (owner, 2026-10-05); newborns stand next, then the other picks.
+const TOP = 6;
+const byId = new Map(apps.map((a) => [a.id, a]));
+const USED = frequent().map((x) => byId.get(x.id)).filter(Boolean);
+const PICKS = [...new Set([...USED, ...(spec.featured || []).map((id) => byId.get(id)).filter(Boolean)])].slice(0, TOP);
+const LEAD = PICKS[0] || null;
+const AROUND = [...NEWBORN.filter((a) => a !== LEAD), ...PICKS.slice(1).filter((a) => !isNewborn(a))];
+// the big comb is 3 + 2 (or 3 + 2 + 3 when many are born at once): whole rows, never a lone cell
+const FEATURED = [...(LEAD ? [LEAD] : []), ...AROUND.slice(0, AROUND.length >= 8 ? 8 : 5)];
 const isFeatured = (a) => FEATURED.some((f) => f.id === a.id);
 const ROWS_PER_SECTION = 3;
 const FRESH_DAYS = 21, FRESH_MAX = 9, PER_SLIDE = 3;
@@ -86,8 +95,6 @@ const SLIDES = Array.from({ length: Math.ceil(FRESH.length / PER_SLIDE) }, (_, i
 
 export function store({ S }) {
   const t = useStore(S.t), locale = useStore(S.locale);
-  const light = useStore(S.theme) === "signal-light";
-  const firstShot = (a) => (a.shots?.length ? shotUrl(a, a.shots[0], light) : null);
   const nameOf = (a) => a.titles?.[locale] || a.title;
   const taglineOf = (a) => a.taglines?.[locale] || a.tagline || "";
   const subtitleOf = (a) => { const s = taglineOf(a); const m = /^(.{12,90}?[.!?—])\s/.exec(s + " "); return m ? m[1].replace(/[—.]$/, "") : s; };
@@ -122,7 +129,7 @@ export function store({ S }) {
   const sloganOf = (a) => t?.["slogan_" + a.id] || "";
   const rtf = new Intl.RelativeTimeFormat(locale === "uk" ? "uk" : "en", { numeric: "auto" });
   const whenOf = (a) => { const d = ageDays(a); return d < 7 ? rtf.format(-d, "day") : rtf.format(-Math.round(d / 7), "week"); };
-  const eyebrowOf = (a) => `${isNewborn(a) ? whenOf(a) : T(t, "premium")} · ${T(t, catKey(a.category))}`;
+  const eyebrowOf = (a) => `${isNewborn(a) ? whenOf(a) : USED.includes(a) ? T(t, "often") : T(t, "premium")} · ${T(t, catKey(a.category))}`;
   // The lead card: words on the left, the app's orb on the right — the orb IS its icon, so the name stands alone.
   const Featured = (a) => { const slogan = sloganOf(a); return html`<article key=${a.id} class="st-hero relative rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden ms-press">
     <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
@@ -137,18 +144,15 @@ export function store({ S }) {
       <${HeroOrb} a=${a} />
     </div>
   </article>`; };
-  const FeaturedTall = (a) => { const shot = firstShot(a); return html`<article key=${a.id} class="relative h-full rounded-[var(--ms-r)] sf-raised sf-e2 overflow-hidden ms-press">
-    <button data-featured data-newborn=${isNewborn(a) ? "1" : null} data-app=${a.id} aria-label=${nameOf(a)} onClick=${() => tap(a)} class="absolute inset-0 w-full h-full rounded-[inherit] text-left"></button>
-    <div class="relative h-full flex items-stretch gap-2.5 p-3 pointer-events-none">
-      ${shot ? html`<div class="shrink-0 self-center w-14 aspect-[384/832] rounded-[var(--ms-r-in)] overflow-hidden bg-black sf-raised sf-e2"><img src=${shot} alt="" loading="lazy" decoding="async" class="w-full h-full block" /></div>` : null}
-      <div class="min-w-0 flex-1 flex flex-col gap-1 py-0.5">
-        <div class=${`${LABEL} flex items-center gap-1.5 min-w-0`}>${isNewborn(a) ? DOT() : null}<span class="truncate">${isNewborn(a) ? whenOf(a) : T(t, catKey(a.category))}</span></div>
-        ${""}
-        <span class="font-bold text-[0.88rem] leading-tight line-clamp-2 break-words">${nameOf(a)}</span>
-        <div class="mt-auto pt-1">${pill(a, "pointer-events-auto")}</div>
-      </div>
-    </div>
-  </article>`; };
+  // A CELL of the comb: the app's form, its name, one tap. A new or updated app carries its dot on the form
+  // (amber · cyan — the same marks the rows use) and the word in its accessible name; a newborn in the big
+  // comb is lit the same way. `big` = the comb under the hero.
+  const Cell = (a, big, i) => { const b = badgeOf(a), mark = b || (big && isNewborn(a) ? "new" : null); return html`<button key=${a.id} data-app=${a.id} data-cell=${big ? "big" : "small"} data-featured=${big ? "" : null} data-newborn=${big && isNewborn(a) ? "1" : null} data-seen=${installed(a) ? "1" : null} data-mark=${mark}
+      aria-label=${mark ? `${nameOf(a)} · ${T(t, mark === "new" ? "newBadge" : "updBadge")}` : nameOf(a)} onClick=${() => tap(a)} style=${`--i:${i}`} class="st-cell ms-press">
+    <span class="st-cell-form">${Tile(a, "")}${mark ? html`<span aria-hidden="true" class="st-cell-dot" style=${`background:var(${mark === "upd" ? "--app-accent-2" : "--app-accent"})`}></span>` : null}</span>
+    <span class="st-cell-name">${nameOf(a)}</span>
+  </button>`; };
+  const comb = (items, big) => html`<div class="ms-comb"><div data-comb=${big ? "big" : "small"} class=${`ms-comb-cells st-comb ${big ? "ms-comb-lg ms-stagger" : ""}`}>${items.map((a, i) => Cell(a, big, i))}</div></div>`;
   const Row = (a) => { const b = badgeOf(a); return html`<div data-app=${a.id} key=${a.id} class="flex items-center gap-3 py-2">
     <button aria-label=${nameOf(a)} onClick=${() => tap(a)} class="flex items-center gap-3 flex-1 min-w-0 text-left ms-press">
       ${Tile(a, "w-[3.25rem] h-[3.25rem]")}
@@ -222,9 +226,9 @@ export function store({ S }) {
     </div>`;
   }
 
-  return html`<div class="flex flex-col gap-7" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-featured=${FEATURED.length} data-store-newborn=${NEWBORN.length}>
+  return html`<div class="flex flex-col gap-7" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-featured=${FEATURED.length} data-store-newborn=${NEWBORN.length} data-store-used=${USED.length}>
     ${headRow}
-    ${FEATURED.length ? html`<div class="ms-stagger grid grid-cols-2 md:grid-cols-3 gap-3">${FEATURED.map((a, i) => html`<div style=${`--i:${i}`} key=${a.id} class=${i === 0 ? "col-span-2 md:col-span-3" : "min-h-0"}>${i === 0 ? Featured(a) : FeaturedTall(a)}</div>`)}</div>` : null}
+    ${FEATURED.length ? html`<div class="flex flex-col gap-4"><div class="ms-stagger">${Featured(FEATURED[0])}</div>${FEATURED.length > 1 ? comb(FEATURED.slice(1), true) : null}</div>` : null}
     ${freshSection}
     ${CATS.map((c) => {
       const items = apps.filter((a) => a.category === c).sort(byName);
@@ -232,7 +236,7 @@ export function store({ S }) {
       return html`<div class="flex flex-col gap-2" key=${c}>
         ${sectionHead(T(t, catKey(c)), items.length, c)}
         ${items.every(needsUsb) ? html`<div class="flex items-center gap-1.5 text-sm text-muted px-0.5">${Icon("lucide:usb", "shrink-0", "color:var(--app-accent)")}<span>${T(t, "needsDevice")}</span></div>` : null}
-        ${rows(items)}
+        ${comb(items)}
       </div>`;
     })}
     <${Forms} />

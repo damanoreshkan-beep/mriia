@@ -7,7 +7,6 @@ export default [
       h.expect((await h.attr("[data-fonoteka]", "data-songs")) === "3", "не три пісні під гейтом");
       h.expect(/Never Gonna Give You Up \(slowed \+ reverb\)/.test(await h.bodyText()), "немає назви з тегу");
       h.expect(/Польова пісня/.test(await h.bodyText()), "немає назви з імені файлу");
-      h.expect(/Rick Astley · 4:11 · 6\.0 MB/.test(await h.bodyText()), "немає рядка виконавець · довжина · розмір");
       h.expect(/3 пісень · 17\.9 MB з 3 GB|3 songs · 17\.9 MB of 3 GB/.test(await h.text("[data-usage]")), "немає зчитування місця");
       h.expect(/На телефоні 2 з 3|2 of 3 on this phone/.test(await h.text("[data-onphone]")), "немає зчитування «на телефоні 2 з 3»");
       h.expect((await h.count("[data-transport]")) === 1 && (await h.count("#play")) === 1, "немає одного транспорту");
@@ -16,9 +15,10 @@ export default [
     },
   },
   {
-    name: "альбоми: сітка плиток, кожна у формі своєї пісні; обкладинка з файлу там, де вона є", run: async (h) => {
+    name: "альбоми: соти, кожна комірка у формі своєї пісні з назвою; обкладинка з файлу там, де вона є", run: async (h) => {
       await ready(h);
-      h.expect((await h.count("[data-albums] [data-song]")) === 3, "не три альбоми в сітці");
+      h.expect((await h.count(".ms-comb > [data-albums].ms-comb-cells > [data-song]")) === 3, "не три альбоми в сотах");
+      h.expect((await h.count("[data-albums] [data-song] .fk-name")) === 3, "комірка без назви пісні");
       h.expect((await h.count("[data-albums] [data-song] .fk-art")) === 3 && (await h.count("[data-albums] .fk-arim path")) === 3, "у альбомів немає форми з обідком");
       h.expect(/url\("?#fk-c-/.test(await h.css("[data-albums] .fk-art", "clip-path")), "обкладинка не вирізана формою пісні");
       h.expect((await h.count('[data-song][data-cover="true"] .fk-art img')) === 1, "обкладинка з файлу не показана");
@@ -32,6 +32,7 @@ export default [
       h.expect((await h.attr('[data-play="b2c3d4e5f6071829"]', "aria-pressed")) === "true", "пісня не вибрана");
       h.expect((await h.attr("[data-fonoteka]", "data-playing")) === "true", "гра не почалась");
       h.expect(/Never Gonna Give You Up/.test(await h.text("[data-transport]")), "транспорт не показує пісню");
+      h.expect(/Rick Astley · 3:33 · 5\.3 MB/.test(await h.text("[data-transport]")), "транспорт без рядка виконавець · довжина · розмір");
       await h.tap("#play"); await h.wait(150);
       h.expect((await h.attr("[data-fonoteka]", "data-playing")) !== "true", "пауза не спрацювала");
       await h.tap("#next"); await h.wait(200);
@@ -41,14 +42,17 @@ export default [
     },
   },
   {
-    name: "видалення: конфірм-шторка, Back скасовує, підтвердження прибирає рядок і каже «Видалено»", run: async (h) => {
+    name: "видалення: дія плеєра для поточної пісні; конфірм-шторка називає пісню, Back скасовує, підтвердження прибирає комірку і каже «Видалено»", run: async (h) => {
       await ready(h);
-      await h.tap('[data-del="c3d4e5f607182930"]'); await h.wait(250);
+      h.expect((await h.count("[data-albums] [data-del]")) === 0, "кошик повернувся в комірку — дії живуть у плеєрі");
+      await h.tap('[data-play="c3d4e5f607182930"]'); await h.wait(200);
+      await h.tap("[data-transport] [data-del]"); await h.wait(250);
       h.expect((await h.prop("#confirm", "open")) === true, "конфірм не відкрився");
+      h.expect(/Польова пісня/.test(await h.text("#confirm")), "конфірм не називає пісню, яку видаляє");
       await h.back(); await h.wait(250);
       h.expect((await h.prop("#confirm", "open")) !== true, "Back не закрив конфірм");
       h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 1, "пісня зникла без підтвердження");
-      await h.tap('[data-del="c3d4e5f607182930"]'); await h.wait(250);
+      await h.tap("[data-transport] [data-del]"); await h.wait(250);
       await h.click("#confirm-go"); await h.wait(400);
       h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 0, "пісня лишилась після підтвердження");
       h.expect(/Видалено|Deleted/.test(await h.bodyText()), "немає підтвердження");

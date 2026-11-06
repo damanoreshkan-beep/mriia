@@ -44,6 +44,28 @@
     [data-theme="signal"] [data-app]:has(> button:active) .st-rim, [data-theme="signal"] .st-fresh:active .st-rim{filter:drop-shadow(0 0 4px var(--lm-bloom-hi))}
     [data-theme="signal-light"] [data-app]:has(> button:active) .st-rim use, [data-theme="signal-light"] .st-fresh:active .st-rim use{stroke:var(--color-secondary)}
 
+    /* THE COMB (owner 2026-11-06: the store moves from the grid to the honeycomb). A cell is an app: its form,
+       its name under it, one tap. The lattice is the core's .ms-comb (rows of n and n-1 cells, the short row
+       half a cell in, n by the comb's own width); this is what a cell looks like. Two sizes: the large comb
+       under the hero (the apps this phone opens most), the small comb in every category. Nothing here moves
+       at rest; a touch lights the cell's rim. */
+    .st-comb{row-gap:.6rem}
+    .st-cell{display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center}
+    .st-cell-form{position:relative;width:80%;aspect-ratio:1}
+    .st-cell-form .st-tile{position:absolute;inset:0}
+    .st-cell-name{max-width:100%;padding-inline:.125rem;font-size:.7rem;line-height:1.18;font-weight:500;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+    .st-cell-dot{position:absolute;top:4%;right:4%;width:.5rem;height:.5rem;border-radius:50%;box-shadow:0 0 0 2px var(--color-base-100)}
+    .st-cell:active .st-rim use{stroke:var(--app-accent)}
+    [data-theme="signal"] .st-cell:active .st-rim{filter:drop-shadow(0 0 4px var(--lm-bloom-hi))}
+    [data-theme="signal-light"] .st-cell:active .st-rim use{stroke:var(--color-secondary)}
+    /* the large comb: 3 + 2 on a phone, one row of 5 on a wide screen; the form's rim is the hero orb's lit edge */
+    .st-comb.ms-comb-lg{row-gap:.75rem}
+    .ms-comb-lg .st-cell-form{width:84%}
+    .ms-comb-lg .st-cell-name{font-size:.84rem;font-weight:600;line-height:1.15}
+    .ms-comb-lg .st-rim use{stroke:color-mix(in oklch, var(--app-accent) 70%, transparent)}
+    [data-theme="signal"] .ms-comb-lg .st-rim{filter:drop-shadow(0 0 5px color-mix(in oklch, var(--app-accent) 35%, transparent))}
+    [data-theme="signal-light"] .ms-comb-lg .st-rim use{stroke:var(--color-secondary)}
+
     /* THE ORB — the lead app's art through its form, square, sized by the card (cqi of .st-hero). The rim is
        three strokes of the same path: a wide faint bloom, a narrow brighter one, a crisp edge — fonoteka's lit
        orb. Paper: a glow on white is a smear, so the edge is the deep pole and the bloom is dropped. */

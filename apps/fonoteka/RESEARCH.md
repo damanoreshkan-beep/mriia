@@ -49,9 +49,14 @@ genre?, vocal?}`. Errors are one word the app maps to a sentence: `too large` 41
 ## The screen
 Two panels. **Now playing**: the kit `Transport` (sm) — title/artist, seek bar, prev/next walk the shelf through
 `advance()` with repeat "all"; one `Audio` element, `holdAudio` for the lock screen. **Songs**: the shelf readout
-("3 пісень · 17.9 MB з 3 GB"), uploads in flight as pulsing rows, then the songs — title, `artist · length · size`,
-the playing one marked with the accent dot and `sf-pressed`; delete through the runtime's history-backed confirm
-sheet (a server-side delete has no undo). Under the gate the shelf is three fixture songs.
+("3 пісень · 17.9 MB з 3 GB"), uploads in flight as rows, then the songs as a HONEYCOMB (owner 2026-11-06, the
+core's `.ms-comb`, large: 3 across on a phone, 5 from 30rem): a cell is the song's cover (or the theme's
+material) in the song's own form with its name under it, the playing one with a lit rim. A cell is one tap —
+play. Everything else is done to the CURRENT song in the player: its `artist · length · size` line is the
+Transport's subtitle, and Share and Delete are the Transport's actions; delete goes through the runtime's
+history-backed confirm sheet, which names the song (a server-side delete has no undo). Under the gate the
+shelf is three fixture songs. Measured on the eye at 384×832: 6 tracks, cell 107px, form 94px, the transport
+row 320 of 320px with both actions.
 
 ## UNVERIFIED / open
 - Samsung Internet delivering a file share (Chromium ≥ 76 base; no first-party statement).
