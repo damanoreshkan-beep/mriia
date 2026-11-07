@@ -1362,7 +1362,7 @@
     "bg": "#06121A",
     "fg": "#38D9F5",
     "href": "./obrys/",
-    "version": "1.5",
+    "version": "1.6",
     "category": "tools",
     "needs": [
       "auth"
@@ -1849,6 +1849,40 @@
       "wakeLock"
     ],
     "added": "2026-08-10"
+  },
+  {
+    "id": "rozriad",
+    "title": "Розряд",
+    "titles": {
+      "uk": "Розряд",
+      "en": "Rozriad"
+    },
+    "tagline": "Поле з мільйона бітів, яке твій телефон перераховує щокадру. Торкнись — біти закиплять і піде розряд; термінал зверху читає адресу й колір пікселя під пальцем.",
+    "taglines": {
+      "uk": "Поле з мільйона бітів, яке твій телефон перераховує щокадру. Торкнись — біти закиплять і піде розряд; термінал зверху читає адресу й колір пікселя під пальцем.",
+      "en": "A field of a million bits your phone recomputes every frame. Touch it and the bits boil and discharge; the terminal on top reads the address and colour of the pixel under your finger."
+    },
+    "glyph": "lucide:zap",
+    "art": "<path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"/>",
+    "icon": true,
+    "screens": {
+      "uk": [
+        "Поле"
+      ],
+      "en": [
+        "Field"
+      ]
+    },
+    "shots": [
+      "field"
+    ],
+    "bg": "#000000",
+    "fg": "#5CE4DC",
+    "href": "./rozriad/",
+    "version": "1.0",
+    "category": "creative",
+    "needs": [],
+    "added": "2026-11-07"
   },
   {
     "id": "rukh",
@@ -2374,7 +2408,7 @@
     "bg": "#0E0B1A",
     "fg": "#C0A9F5",
     "href": "./transit/",
-    "version": "1.28",
+    "version": "1.29",
     "category": "science",
     "needs": []
   },
@@ -2489,7 +2523,7 @@
     "bg": "#07131A",
     "fg": "#5BC8FF",
     "href": "./fonoteka/",
-    "version": "1.25",
+    "version": "1.26",
     "category": "sound",
     "needs": [],
     "added": "2026-10-07"

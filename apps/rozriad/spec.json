@@ -1,0 +1,30 @@
+{
+  "id": "rozriad",
+  "theme": "signal",
+  "category": "creative",
+  "accent": "#5CE4DC",
+  "tabs": [
+    {
+      "id": "field",
+      "type": "tool",
+      "icon": "lucide:zap",
+      "label": "tabField",
+      "view": "rozriad",
+      "fit": true
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:zap",
+    "theme": true,
+    "lang": true,
+    "install": true
+  },
+  "added": "2026-11-07"
+}
