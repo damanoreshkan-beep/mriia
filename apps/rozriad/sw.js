@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "rozriad",
-  version: "8d381bc030",
+  version: "2f5cf48faa",
   precache: [
     "./",
     "./i18n/en.json",
@@ -13,6 +13,7 @@ self.MS = {
     "./index.html",
     "./manifest.json",
     "./rozriad.frag",
+    "./rozriad.wasm",
     "./spec.json",
     "./view.js",
     "/_rt/account.js",
@@ -38,6 +39,7 @@ self.MS = {
     "/_rt/index.js",
     "/_rt/list.js",
     "/_rt/locales.js",
+    "/_rt/machine.js",
     "/_rt/material.js",
     "/_rt/overlay.js",
     "/_rt/permissions.js",
