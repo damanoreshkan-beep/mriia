@@ -1,54 +1,25 @@
   <style>
-    .st-hero{container-type:inline-size}
-    .st-hero-slogan{font-size:1.15rem;line-height:1.15;text-wrap:balance}
-    @container (min-width:34rem){
-      .st-hero-body{padding:1.1rem 1.35rem;gap:1.25rem}
-      .st-hero-text{gap:.45rem}
-      .st-hero-name{font-size:1.25rem}
-      .st-hero-slogan{font-size:1.6rem;line-height:1.08;text-wrap:pretty}
-    }
-    
-    .st-slide{width:calc(100% - 2rem)}
-    .st-slide:only-child{width:100%}
-    
-    .st-fresh-life{position:absolute;left:0;top:50%;width:2px;height:calc(var(--life,1) * 72%);transform:translateY(-50%);border-radius:1px;background:var(--app-accent);box-shadow:0 0 6px var(--app-accent)}
-    .st-cat-glyph{color:var(--app-accent);font-size:1.05em;line-height:1;filter:drop-shadow(0 0 5px color-mix(in oklab, var(--app-accent) 60%, transparent))}
     .st-forms{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
     .st-tile{position:relative;flex:none}
     .st-tile-art{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000}
-    
     .st-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
     .st-rim use{fill:none;stroke:var(--lm-rim-hi);stroke-width:1;transition:stroke var(--t-press) var(--ease-out)}
     [data-theme="signal-light"] .st-rim use{stroke:color-mix(in oklch, var(--color-base-content) 22%, transparent)}
-    [data-app]:has(> button:active) .st-rim use, .st-fresh:active .st-rim use{stroke:var(--app-accent)}
-    [data-theme="signal"] [data-app]:has(> button:active) .st-rim, [data-theme="signal"] .st-fresh:active .st-rim{filter:drop-shadow(0 0 4px var(--lm-bloom-hi))}
-    [data-theme="signal-light"] [data-app]:has(> button:active) .st-rim use, [data-theme="signal-light"] .st-fresh:active .st-rim use{stroke:var(--color-secondary)}
     
-    .st-comb{row-gap:.6rem}
+    [data-app]:has(> button:active) .st-rim use{stroke:var(--app-accent)}
+    [data-theme="signal"] [data-app]:has(> button:active) .st-rim{filter:drop-shadow(0 0 4px var(--lm-bloom-hi))}
+    [data-theme="signal-light"] [data-app]:has(> button:active) .st-rim use{stroke:var(--color-secondary)}
+
+    
     .st-cell{display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center}
-    .st-cell-form{position:relative;width:80%;aspect-ratio:1}
+    .st-cell-form{position:relative;width:84%;aspect-ratio:1}
     .st-cell-form .st-tile{position:absolute;inset:0}
-    .st-cell-name{max-width:100%;padding-inline:.125rem;font-size:.7rem;line-height:1.18;font-weight:500;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+    .st-cell-name{max-width:100%;padding-inline:.125rem;font-size:.84rem;line-height:1.15;font-weight:600;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
     .st-cell-dot{position:absolute;top:4%;right:4%;width:.5rem;height:.5rem;border-radius:50%;box-shadow:0 0 0 2px var(--color-base-100)}
     .st-cell:active .st-rim use{stroke:var(--app-accent)}
     [data-theme="signal"] .st-cell:active .st-rim{filter:drop-shadow(0 0 4px var(--lm-bloom-hi))}
     [data-theme="signal-light"] .st-cell:active .st-rim use{stroke:var(--color-secondary)}
-    
-    .st-comb.ms-comb-lg{row-gap:.75rem}
-    .ms-comb-lg .st-cell-form{width:84%}
-    .ms-comb-lg .st-cell-name{font-size:.84rem;font-weight:600;line-height:1.15}
     .ms-comb-lg .st-rim use{stroke:color-mix(in oklch, var(--app-accent) 70%, transparent)}
     [data-theme="signal"] .ms-comb-lg .st-rim{filter:drop-shadow(0 0 5px color-mix(in oklch, var(--app-accent) 35%, transparent))}
     [data-theme="signal-light"] .ms-comb-lg .st-rim use{stroke:var(--color-secondary)}
-    .st-orb{position:relative;flex:none;align-self:center;width:clamp(5.5rem,30cqi,7.25rem);aspect-ratio:1}
-    @container (min-width:34rem){ .st-orb{width:clamp(8rem,28cqi,11rem)} }
-    .st-orb-art{position:absolute;inset:0;background:#000}
-    .st-orb-art img{display:block;width:100%;height:100%;object-fit:cover}
-    .st-orb-rim{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-    .st-orb-rim path{fill:none;vector-effect:non-scaling-stroke}
-    .st-orb-rim .e{stroke:color-mix(in oklch, var(--app-accent) 85%, white);stroke-width:1.25}
-    .st-orb-rim .b1{stroke:var(--app-accent);stroke-width:12;opacity:.07}
-    .st-orb-rim .b2{stroke:var(--app-accent);stroke-width:4;opacity:.22}
-    [data-theme="signal-light"] .st-orb-rim .e{stroke:var(--color-secondary);stroke-width:1.75}
-    [data-theme="signal-light"] .st-orb-rim .b1, [data-theme="signal-light"] .st-orb-rim .b2{display:none}
   </style>

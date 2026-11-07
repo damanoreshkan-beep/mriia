@@ -1,10 +1,50 @@
 # store — the farm's front door
 
-A launcher: Today (the hero, then the large comb), Fresh arrivals (a pager of three-card slides), then every
-category as a small comb with all its apps; a search filters the one page in place into rows; a tap opens the
-app itself.
+A launcher: one GPU field of honeycomb cells — the whole farm from the centre outward, the apps this phone uses
+the app itself.
 
-## Honeycomb 2026-11-06
+## The comb display 2026-11-07
+
+
+**What it is.** The core's `/_rt/comb.js` (1.2.161): a display, not a layout. The lattice, the camera, the inertia,
+the snap and every touch live in `comb.wasm` (2.6 KB, hand-written bytes on the machine ABI 1 — no text source);
+the pixels in `comb.frag` (one pass: a pixel finds its lattice point, reads the machine's site map for the cell,
+projects that cell's tile from the atlas); `comb.js` rasterises every app's form + name into ONE 2048² atlas
+(icon.svg clipped by `shapeOf(id)`, Geist 600, two lines) and feeds it as the stage's `cam`. No element per cell.
+Measured headless: a machine step 0.3 µs; 95 cells.
+
+**The order.** Index 0 (the centre, under the lens) is the lead: the device's most used app (`usage.js
+frequent()`), else `spec.featured[0]`; the other picks on the first ring; newborns next; then the whole farm
+category by category, each by its Ukrainian title — like things stand together on the rings, the same field in
+both locales. Pitch `clamp(min(W,H)/4.2, 84, 120)` px; the lens grows the centre 15%; a drag pans, a release
+flings and settles exactly on a cell; past the edge a rubber band. A tap inside a form opens the app (same
+`launch` as before); a moved finger never opens anything.
+
+**What the gate reaches.** The comb renders its `cell(item, i, mode)` twice: visible as the core's `.ms-comb`
+lattice where WebGL2 is not (`data-comb="dom"`), and as a visually-hidden twin behind the canvas
+(`data-comb="gl"`, `[data-comb-twin] > [data-cell][data-app]`, 95 buttons with names and `data-seen`) — the
+keyboard, a screen reader and the e2e reach every app. `data-comb-focus` = the app under the lens;
+`data-store-lead` = the centre on this load.
+
+dot on the form (amber · cyan). Search rows are unchanged and show the category after the line.
+
+State map (the field):
+
+| State | Hook | What shows | 412×430 / 360×340 |
+|---|---|---|---|
+| field | `[data-comb="gl"]`, `[data-machine="ready"]`, `canvas[data-stage][data-buf][data-cam]` | the comb from the centre; arrival ring by ring (55 ms a ring, instant under reduced motion / the gate) | one ring / the centre row; the rest by panning |
+| focus | `data-comb-focus=<id>` | the cell under the lens: 1.15×, its rim and halo in the app's `fg` colour, its name at full ink | same |
+| press | machine `pressIdx` | the form gives 6% | same |
+| tap | machine `tapSeq`, `onOpen` | a ring of the app's colour leaves the form (700 ms); the app opens in a new tab | same |
+| drag / fling | machine `cam`, `vel` | the field moves against the finger; settles on the nearest cell; a rubber band at the edge | same |
+| marks | buf `.a`: 1 new · 2 updated | the dot on the form's shoulder, ringed by the ground | same |
+| no WebGL2 / machine failed | `[data-comb="dom"]` | the same cells on the core's CSS lattice, scrolling | reflows |
+| search | `data-store-mode="search"` | rows with the line, the category and the Open pill; the comb is unmounted | same |
+
+Eye (dev tree over the local core, VPS Chromium, 2026-11-07): 384×832 dark and paper, 412×430, 360×340, 844×390;
+drag → focus moved to `sun`; tap → the bloom; no page errors; the atlas bound within 3 s.
+
+## Honeycomb 2026-11-06 (the CSS lattice — superseded on this screen by the display above; still the fallback)
 
 and small in the groups; the top is personal, with his own measured set as the default.
 

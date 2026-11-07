@@ -1,15 +1,16 @@
 import { html } from "htm/preact";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { atom } from "nanostores";
 import { persistentAtom } from "@nanostores/persistent";
 import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
-import { Transport, MiniPlayer } from "/_rt/ui.js";
+import { Transport } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
-import { shapeOf, pathOf, scalePath, shaper } from "/_rt/shape.js";
-import { envelopeOfBlob, breathe } from "/_rt/breath.js";
+import { shapeOf, pathOf } from "/_rt/shape.js";
+import { envelopeOfBlob, BREATH_HZ } from "/_rt/breath.js";
+import { Comb, MARK, PARAM } from "/_rt/comb.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
 import { uploadResumable } from "/_rt/task.js";
@@ -153,13 +154,13 @@ async function play(id) {
   readyShare(s);   
 }
 
-let orbEl = null, breathing = "", unbreathe = () => {};
-const IDLE = "Cookie9Sided";   
+let combApi = null, breathing = "", unbreathe = () => {};
 const envs = new Map();
-function stopBreath() { unbreathe(); unbreathe = () => {}; breathing = ""; }
+const pulse = (v) => { try { combApi?.exports.set(PARAM.pulse, v); } catch { } };
+function stopBreath() { unbreathe(); unbreathe = () => {}; breathing = ""; pulse(0); }
 async function breatheSong(id) {
   stopBreath();
-  if (gate || !audio || !orbEl) return;
+  if (gate || !audio) return;
   let env = envs.get(id);
   if (!env) {
     const blob = await store.blob(id).catch(() => null);
@@ -167,8 +168,15 @@ async function breatheSong(id) {
     if (!env) return;
     envs.set(id, env);
   }
-  if ($cur.get() !== id || !orbEl || breathing) return;
-  unbreathe = breathe(orbEl, env, audio);
+  if ($cur.get() !== id || breathing) return;
+  let raf = 0;
+  const tick = () => {
+    raf = requestAnimationFrame(tick);
+    if (audio.paused) { pulse(0); return; }
+    pulse((env[Math.min(env.length - 1, Math.floor(audio.currentTime * BREATH_HZ))] || 0) / 255);
+  };
+  tick();
+  unbreathe = () => cancelAnimationFrame(raf);
   breathing = id;
 }
 function toggle() {
@@ -275,41 +283,39 @@ export function fonoteka({ S, toast, confirm }) {
   const askDelete = (s) => confirm({ title: T(t, "delTitle"), body: T(t, "delBody", { name: titleOf(s) }), verb: T(t, "delYes"), onConfirm: () => remove(s) });
   const picker = useRef();
 
-  const orb = useRef(), fill = useRef(), rim = useRef(), core = useRef(), form = useRef();
-  useLayoutEffect(() => {
-    let w = orb.current.offsetWidth, last = "";
-    const lay = (d) => {
-      last = d;
-      if (w) fill.current.style.clipPath = `path("${scalePath(d, w)}")`;
-      for (const p of rim.current.children) p.setAttribute("d", d);
-    };
-    form.current = shaper(shapeOf($cur.get() || IDLE), lay);
-    const ro = new ResizeObserver(() => { const nw = orb.current?.offsetWidth || 0; if (nw !== w) { w = nw; if (last) lay(last); } });
-    ro.observe(orb.current);
-    orbEl = orb.current;
+  useEffect(() => {
     if ($cur.get() && $playing.get()) breatheSong($cur.get());   
     if ($cur.get()) readyShare(songOf($cur.get()));
-    return () => { ro.disconnect(); form.current.stop(); if (orbEl === orb.current) { stopBreath(); orbEl = null; } };
+    return () => { stopBreath(); combApi = null; };
   }, []);
-  useLayoutEffect(() => { form.current?.to(shapeOf(cur || IDLE)); }, [cur]);
-
-  const glyph = (id, on = false) => html`<svg aria-hidden="true" viewBox="0 0 1 1" class=${`fk-glyph ${on ? "on" : ""}`}><path d=${pathOf(shapeOf(id))} /></svg>`;
-
-  const [away, setAway] = useState(false);
+  const items = (songs || []).map((s) => ({ id: s.id, name: titleOf(s), icon: covers[s.id] || null, color: "#5BC8FF", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
+  const cellOf = (it, i, mode) => {
+    const s = songOf(it.id); if (!s) return null;
+    const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
+    const press = () => (on ? toggle() : play(s.id));
+    if (mode === "gl") return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null}><button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press}><span class="fk-name">${titleOf(s)}</span></button></div>`;
+    return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`}>
+      <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press} class="fk-cell ms-press">
+        <span class="fk-album">
+          <span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${cov ? html`<img src=${cov} alt="" decoding="async" />` : null}</span>
+          <svg aria-hidden="true" class="fk-arim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg>
+          ${on ? html`<span class="fk-now" aria-hidden="true">${Icon(playing ? "lucide:audio-lines" : "lucide:play", "text-lg")}</span>` : null}
+        </span>
+        <span class="fk-name">${titleOf(s)}</span>
+      </button>
+    </div>`;
+  };
+  const head = useRef();
+  const [headH, setHeadH] = useState(260);
   useEffect(() => {
-    const io = new IntersectionObserver(([e]) => setAway(e.intersectionRatio < 0.2), { threshold: [0, 0.2] });
-    io.observe(core.current);
-    return () => io.disconnect();
+    const el = head.current; if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setHeadH(el.offsetHeight || 0)); ro.observe(el); setHeadH(el.offsetHeight || 0);
+    return () => ro.disconnect();
   }, []);
-  const mini = away && !!now;
-  const toOrb = () => core.current?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 
   return html`<div data-fonoteka data-playing=${playing ? "true" : null} data-songs=${songs ? songs.length : null} class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
-    <section ref=${core} aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)] pt-2 scroll-mt-[var(--hdr-h)]">
-      <div ref=${orb} class="fk-orb" aria-hidden="true">
-        <div ref=${fill} class="fk-fill"></div>
-        <svg ref=${rim} class="fk-rim" viewBox="0 0 1 1"><path class="b1" /><path class="b2" /><path class="e" /></svg>
-      </div>
+    <div ref=${head} class="relative z-10 flex flex-col gap-[calc(var(--ms-gap)*2)] pointer-events-none [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_[data-transport]]:pointer-events-auto">
+    <section aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)] pt-2">
       <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full pt-1"
         onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
         title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? songLine(now, clock) : ""}
@@ -346,28 +352,11 @@ export function fonoteka({ S, toast, confirm }) {
           <div class="font-semibold text-sm">${T(t, "empty")}</div><div class="text-sm text-muted">${T(t, "emptyHint")}</div>
         </div>` : null}
       </div>
-      <div class="ms-comb"><div data-albums class="ms-comb-cells ms-comb-lg fk-comb ms-stagger">
-        ${songs === null ? [0, 1, 2, 3, 4].map((i) => html`<div key=${i} class="fk-cell"><div class="skeleton fk-album rounded-full"></div><div class="skeleton h-3 w-2/3"></div></div>`)
-          : songs.map((s, i) => {
-            const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
-            return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`}>
-              <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${() => (on ? toggle() : play(s.id))} class="fk-cell ms-press">
-                <span class="fk-album">
-                  <span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${cov ? html`<img src=${cov} alt="" decoding="async" />` : null}</span>
-                  <svg aria-hidden="true" class="fk-arim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg>
-                  ${on ? html`<span class="fk-now" aria-hidden="true">${Icon(playing ? "lucide:audio-lines" : "lucide:play", "text-lg")}</span>` : null}
-                </span>
-                <span class="fk-name">${titleOf(s)}</span>
-              </button>
-            </div>`;
-          })}
-      </div></div>
-      <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
     </section>
+    </div>
+    <${Comb} items=${items} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id)); }} onReady=${(api) => { combApi = api; }} />
+    <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
-    
-    <${MiniPlayer} show=${mini} title=${now ? titleOf(now) : ""} glyph=${now ? glyph(now.id, true) : null} playing=${playing} onToggle=${toggle}
-      pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} onOpen=${toOrb} openLabel=${now ? `${T(t, "now")}: ${titleOf(now)}` : T(t, "now")} locale=${locale} />
   </div>`;
 }

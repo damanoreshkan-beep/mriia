@@ -44,6 +44,20 @@ songs, and this app plays them. Every number below was measured or read on the b
 genre?, vocal?}`. Errors are one word the app maps to a sentence: `too large` 413 · `too many songs` / `library full`
 409 · `not audio` 415.
 
+
+The shelf is the core's comb DISPLAY (`/_rt/comb.js`, 1.2.161): every song a cell on one GPU field from the centre
+outward — the first song in the middle — its cover (from the file, `rt/id3.js`) or the app's light inside its own
+form, the name under it. The machine (`comb.wasm`) owns the lattice, the pan, the snap and the touch; the shader
+draws; `view.js` hands it the songs and gets the tap back (`play` / `toggle`, as before). The playing song is LIT
+(`MARK.lit`: rim and halo in the app's `#5BC8FF`) and BREATHES: `breatheSong` reads the copy on the phone once into
+the bass envelope (core breath.js, 10 Hz) and every frame sends the value at the audio clock to the machine as
+`PARAM.pulse` — the lit cell's scale in comb.frag. So the ORB is gone from the tab: the lit cell is the orb. The
+player (`Transport`) stays in the body ABOVE the field, always in view, so the MiniPlayer island is gone too; its
+measured height is the comb's top inset. Uploads, the usage line, the empty state and the error line stay in flow
+above the field. Fallback: without WebGL2 the same cells lay out on the core's CSS lattice (`fk-cell`). The twin
+behind the canvas keeps `[data-song][data-cover]` and `[data-play][aria-pressed]`, so the e2e and a screen reader
+reach every song.
+
 ## The screen
 Two panels. **Now playing**: the kit `Transport` (sm) — title/artist, seek bar, prev/next walk the shelf through
 `advance()` with repeat "all"; one `Audio` element, `holdAudio` for the lock screen. **Songs**: the shelf readout

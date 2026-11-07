@@ -1,10 +1,11 @@
 const ready = async (h) => { for (let i = 0; i < 12; i++) { if ((await h.count("[data-app]")) > 0) break; await h.wait(200); } };
+const machine = async (h) => { for (let i = 0; i < 40; i++) { if ((await h.attr("[data-machine]", "data-machine")) === "ready") break; await h.wait(250); } };
 
 export default [
   {
-    name: "стор: сітка + пошук; перший візит не позначає нічого як нове", run: async (h) => {
+    name: "стор: соти + пошук; перший візит не позначає нічого як нове", run: async (h) => {
       await ready(h); await h.wait(200);
-      h.expect((await h.count("[data-app]")) >= 10, "замало плиток застосунків");
+      h.expect((await h.count("[data-app]")) >= 10, "замало комірок застосунків");
       h.expect((await h.count(".input")) === 1, "немає поля пошуку");
       const badges = await h.count(".badge-primary");
       h.expect(badges === 0, `перший візит позначив ${badges} застосунків як нові — базова лінія не записалась`);
@@ -12,15 +13,17 @@ export default [
     },
   },
   {
-    name: "пошук фільтрує сітку", run: async (h) => {
+    name: "пошук фільтрує соти в ряди з формами", run: async (h) => {
       await ready(h);
       const base = await h.count("[data-app]");
       h.expect((await h.count("#search-btn")) === 1, "немає іконки пошуку в рядку «Сьогодні»");
       h.expect((await h.count("[data-search-open]")) === 0, "поле пошуку розгорнуте до дотику");
       await h.type("#store-filter", "рейв"); await h.wait(250);
       const now = await h.count("[data-app]");
-      h.expect(now >= 1 && now < base, "пошук не звузив сітку");
+      h.expect(now >= 1 && now < base, "пошук не звузив соти");
       h.expect((await h.count("[data-search-open]")) === 1, "запит є, а поле згорнуте — нема як його стерти");
+      h.expect((await h.count('[data-store-mode="search"] .st-tile[data-form]')) === now, "ряд пошуку без форми застосунку");
+      h.expect((await h.count("[data-comb]")) === 0, "соти лишились під пошуком");
       await h.type("#store-filter", ""); await h.wait(250);
       h.expect((await h.count("[data-app]")) === base, "не відновилось після очищення");
       await h.click("#search-close"); await h.wait(250);
@@ -28,10 +31,11 @@ export default [
     },
   },
   {
-    name: "одна сторінка: кожна категорія показує всі свої застосунки", run: async (h) => {
+    name: "одне поле: уся ферма в сотах, без категорій і без скролу", run: async (h) => {
       await ready(h);
-      h.expect((await h.count("[data-app]")) >= 70, "головна не показує всю ферму");
+      h.expect((await h.count("[data-app]")) >= 70, "соти не показують всю ферму");
       h.expect((await h.count("[data-cat]")) === 0, "перемикач категорій повернувся — Back із нього не працює");
+      h.expect((await h.count("[data-comb]")) === 1, "немає сот");
     },
   },
   {
@@ -53,53 +57,33 @@ export default [
     },
   },
   {
-    name: "стор: верх без запису відкриттів — добірка за замовчуванням: герой і великі соти 3 + 2, тап відкриває апку одразу", run: async (h) => {
+    name: "соти: машина ядра готова, полотно малює, атлас і пам'ять дійшли до шейдера; центр = Фонотека на першому візиті", run: async (h) => {
       await ready(h);
-      h.expect((await h.attr("[data-featured]", "data-app")) === "fonoteka", "Фонотека не веде «Сьогодні» на першому візиті");
-      h.expect([5, 8].includes(await h.count('[data-comb="big"] > [data-cell="big"][data-featured]')), "великі соти не цілими рядами (3 + 2 або 3 + 2 + 3)");
-      h.expect((await h.count('[data-comb="big"] > [data-app="reel"]')) === 1, "Reel не у великих сотах");
-      if (await h.attr("[data-featured]", "data-newborn")) h.expect(/сьогодні|учора|today|yesterday/i.test(await h.text(".st-hero")), "брова героя-новинки не каже «коли»");
-      else h.expect((await h.text("[data-slogan]")).trim().length > 5, "герой без гасла");
-      await h.click('[data-featured][data-app="remix"]'); await h.wait(300);
-      h.expect((await h.count("#appsheet")) === 0, "комірка добірки відкрила шитик замість апки");
+      h.expect((await h.attr("[data-comb]", "data-comb")) === "gl", `соти не на GPU: ${await h.attr("[data-comb]", "data-comb")}`);
+      await machine(h);
+      h.expect((await h.attr("[data-machine]", "data-machine")) === "ready", `машина не готова: ${await h.attr("[data-machine]", "data-err")}`);
+      h.expect((await h.count("[data-stage]")) === 1, "немає полотна");
+      h.expect((await h.attr("[data-store-lead]", "data-store-lead")) === "fonoteka", "Фонотека не в центрі на першому візиті");
+      for (let i = 0; i < 20; i++) { if (await h.attr("[data-comb]", "data-comb-focus")) break; await h.wait(200); }
+      h.expect((await h.attr("[data-comb]", "data-comb-focus")) === "fonoteka", `під лінзою не Фонотека: ${await h.attr("[data-comb]", "data-comb-focus")}`);
+      const has = await h.attr("[data-stage]", "data-haswebgl");
+      if (has === "yes") {
+        h.expect((await h.attr("[data-stage]", "data-render")) === "webgl", `WebGL є, а поле не малюється: err=${await h.attr("[data-stage]", "data-err")}`);
+        h.expect((await h.attr("[data-stage]", "data-buf")) === "yes", "памʼять машини не дійшла до шейдера");
+        for (let i = 0; i < 30; i++) { if ((await h.attr("[data-stage]", "data-cam")) === "yes") break; await h.wait(300); }
+        h.expect((await h.attr("[data-stage]", "data-cam")) === "yes", "атлас форм і назв не дійшов до шейдера");
+      }
     },
   },
   {
-    name: "соти: кожна категорія — решітка ядра, короткий ряд зсунутий на пів комірки, у кожної комірки є назва", run: async (h) => {
+    name: "двійник сот: кожна комірка має ім'я й один тап; порядок — центр перший, далі добірка", run: async (h) => {
       await ready(h);
-      const cells = await h.count('[data-comb="small"] > [data-cell="small"]');
-      h.expect(cells >= 70, "категорії не показують усю ферму сотами");
-      h.expect((await h.count('[data-comb="small"] > [data-cell] > .st-cell-name')) === cells, "комірка без назви — іконка без підпису");
-      h.expect((await h.count(".ms-comb > .ms-comb-cells[data-comb]")) >= 5, "соти не на решітці ядра (.ms-comb)");
-      const tracks = (await h.css('[data-comb="small"]', "grid-template-columns")).split(" ").length;
-      h.expect(tracks >= 6 && tracks % 2 === 0, `решітка не з пів-комірок (${tracks} колонок)`);
-      h.expect((await h.css(`[data-comb="small"] > :nth-child(${tracks / 2 + 1})`, "grid-column-start")) === "2", "короткий ряд не зсунутий на пів комірки");
-      h.expect((await h.css('[data-comb="small"] > :nth-child(1)', "grid-column-start")) !== "2", "довгий ряд зсунутий");
-    },
-  },
-  {
-    name: "свіжі новинки: слайди по 3 дрібні картки з описом, лічильник сторінок", run: async (h) => {
-      await ready(h);
-      const slides = await h.count("[data-fresh-slide]");
-      if (!slides) return;
-      const cards = await h.count("[data-fresh-card]");
-      h.expect(cards <= slides * 3 && cards > (slides - 1) * 3, `${cards} карток на ${slides} слайдах — не по 3`);
-      h.expect((await h.text("[data-fresh-card]")).trim().length >= 30, "картка новинки без опису");
-      if (slides > 1) h.expect(new RegExp(`1\\s*/\\s*${slides}`).test(await h.text("[data-fresh-page]")), "немає лічильника сторінок");
-    },
-  },
-  {
-    name: "вільні форми: кожна апка у своїй формі з обідком, хмара — лише Mriia, герой — орб", run: async (h) => {
-      await ready(h);
-      const cells = await h.count("[data-cell]");
-      h.expect((await h.count("[data-cell] .st-tile[data-form]")) === cells, "комірка застосунку без власної форми");
-      h.expect((await h.count("[data-cell] .st-rim use")) === cells, "форма без обідка — чорна іконка зникає на чорному");
-      h.expect((await h.count('[data-app] [data-form="Puffy"]')) === 0, "хмара Mriia дісталась застосунку");
-      h.expect(/url\(/.test(await h.css("[data-cell] .st-tile-art", "clip-path")), "іконка не обрізана формою");
-      h.expect((await h.count(".st-hero [data-hero-orb]")) === 1, "герой без орба");
-      h.expect(!/^(|Puffy)$/.test(await h.attr("[data-hero-orb]", "data-form")), "орб героя не у формі застосунку");
-      h.expect(/^path\(/.test(await h.css("[data-hero-orb] .st-orb-art", "clip-path")), "орб не обрізаний формою");
-      h.expect((await h.count(`[data-hero-orb] img[src$="/${await h.attr("[data-featured]", "data-app")}/icon.webp"]`)) === 1, "в орбі не мистецтво застосунку-лідера");
+      const cells = await h.count("[data-comb-twin] > [data-cell][data-app]");
+      h.expect(cells >= 70, `у двійнику ${cells} комірок`);
+      h.expect((await h.attr("[data-comb-twin] > [data-cell]:nth-child(1)", "data-app")) === "fonoteka", "перша комірка не Фонотека");
+      h.expect((await h.attr("[data-comb-twin] > [data-cell]:nth-child(2)", "data-app")) === "reel", "друга комірка не Reel");
+      h.expect((await h.text('[data-comb-twin] > [data-app="rave"]')).trim().length > 1, "комірка без назви — іконка без підпису");
+      h.expect((await h.count("[data-comb-twin] > [data-cell] button")) === 0, "у комірці друга кнопка");
     },
   },
   {

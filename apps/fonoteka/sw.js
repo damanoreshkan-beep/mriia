@@ -1,6 +1,6 @@
 self.MS = {
   app: "fonoteka",
-  version: "b74dc64809",
+  version: "963155869b",
   precache: [
     "./",
     "./i18n/en.json",
@@ -20,6 +20,9 @@ self.MS = {
     "/_rt/breath.js",
     "/_rt/build.js",
     "/_rt/chrome.js",
+    "/_rt/comb.frag",
+    "/_rt/comb.js",
+    "/_rt/comb.wasm",
     "/_rt/dash.js",
     "/_rt/db.js",
     "/_rt/decor.css",
@@ -29,6 +32,7 @@ self.MS = {
     "/_rt/gate.js",
     "/_rt/geomag.js",
     "/_rt/gesture.js",
+    "/_rt/glstage.js",
     "/_rt/grow.js",
     "/_rt/hero.js",
     "/_rt/i18n.js",
@@ -36,6 +40,7 @@ self.MS = {
     "/_rt/index.js",
     "/_rt/list.js",
     "/_rt/locales.js",
+    "/_rt/machine.js",
     "/_rt/material.js",
     "/_rt/mediasession.js",
     "/_rt/muzak.js",

@@ -15,14 +15,20 @@ export default [
     },
   },
   {
-    name: "альбоми: соти, кожна комірка у формі своєї пісні з назвою; обкладинка з файлу там, де вона є", run: async (h) => {
+    name: "соти: пісні на GPU-полі ядра (машина готова, атлас і памʼять у шейдері); двійник — три комірки з назвами, обкладинка позначена там, де вона є", run: async (h) => {
       await ready(h);
-      h.expect((await h.count(".ms-comb > [data-albums].ms-comb-cells > [data-song]")) === 3, "не три альбоми в сотах");
-      h.expect((await h.count("[data-albums] [data-song] .fk-name")) === 3, "комірка без назви пісні");
-      h.expect((await h.count("[data-albums] [data-song] .fk-art")) === 3 && (await h.count("[data-albums] .fk-arim path")) === 3, "у альбомів немає форми з обідком");
-      h.expect(/url\("?#fk-c-/.test(await h.css("[data-albums] .fk-art", "clip-path")), "обкладинка не вирізана формою пісні");
-      h.expect((await h.count('[data-song][data-cover="true"] .fk-art img')) === 1, "обкладинка з файлу не показана");
-      h.expect((await h.count('[data-albums] [data-song]:not([data-cover]) .fk-art img')) === 0, "пісня без обкладинки показує картинку");
+      h.expect((await h.attr("[data-comb]", "data-comb")) === "gl", `соти не на GPU: ${await h.attr("[data-comb]", "data-comb")}`);
+      for (let i = 0; i < 40; i++) { if ((await h.attr("[data-machine]", "data-machine")) === "ready") break; await h.wait(250); }
+      h.expect((await h.attr("[data-machine]", "data-machine")) === "ready", `машина не готова: ${await h.attr("[data-machine]", "data-err")}`);
+      h.expect((await h.count("[data-comb-twin] > [data-song]")) === 3, "не три пісні у двійнику сот");
+      h.expect((await h.count("[data-comb-twin] [data-song] .fk-name")) === 3, "комірка без назви пісні");
+      h.expect((await h.count('[data-comb-twin] [data-song][data-cover="true"]')) === 1, "обкладинка з файлу не позначена");
+      h.expect((await h.count("[data-mini]")) === 0, "міні-острів повернувся — плеєр завжди над полем");
+      if ((await h.attr("[data-stage]", "data-haswebgl")) === "yes") {
+        h.expect((await h.attr("[data-stage]", "data-buf")) === "yes", "памʼять машини не дійшла до шейдера");
+        for (let i = 0; i < 30; i++) { if ((await h.attr("[data-stage]", "data-cam")) === "yes") break; await h.wait(300); }
+        h.expect((await h.attr("[data-stage]", "data-cam")) === "yes", "атлас форм і назв не дійшов до шейдера");
+      }
     },
   },
   {
