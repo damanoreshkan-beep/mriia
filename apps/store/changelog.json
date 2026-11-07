@@ -1,5 +1,12 @@
 [
   {
+    "id": "2026-11-07-rozriad",
+    "date": "2026-11-07",
+    "app": "rozriad",
+    "uk": "Новий застосунок — Розряд: поле з мільйона бітів, яке телефон перераховує щокадру. Торкнись — біти закиплять і піде розряд; термінал читає адресу й колір пікселя під пальцем.",
+    "en": "New app — Rozriad: a field of a million bits your phone recomputes every frame. Touch it and the bits boil and discharge; the terminal reads the address and colour of the pixel under your finger."
+  },
+  {
     "id": "2026-10-26-obrys",
     "date": "2026-10-26",
     "app": "obrys",
