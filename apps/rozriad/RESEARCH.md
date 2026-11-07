@@ -12,8 +12,14 @@ system, because more such apps follow (core 1.2.159: `machine.js`, GlStage `buf`
 
 ## The recipe (what the build stands on)
 
-- **The machine (`rozriad.wat`, ~2.3 KB of wasm).** Memory map in the file's head: OUT f32[48] at 0, HUD
-  i32[16] at 0x100, state, 8 rings at 0x300, the grid at 0x1000 (row 0 = top). Kernels: XOR — the word folds
+  and LEB128 by hand; validated, and proven against an assembled twin to leave the same memory byte for byte
+  over 390 steps with touches and kernel changes. The gate `wasm` (core ≥1.2.160) proves it validates, speaks
+  ABI 1 and survives a run. There is no text source in the tree. Memory map: OUT f32[48] at 0 · HUD i32[16]
+  at 0x100 (addr of the cursor's cell · its word · kernel · energy×1000 · impulses · steps · ticks · W · H ·
+  memory bytes · rings · down) · 16 globals (W H SEED KERNEL FRAME CX CY DOWN HOLD ENERGY PULSES ACC PID STEPS
+  TICK NRINGS) · 8 rings {x y age k} at 0x300 · one scratch row at 0x400 (W ≤ 1024) · the grid at 0x1000, row 0 =
+  top, W×H ≤ 258 048. Functions: pcg · hash3 · addr · clampi · evolve · flutter · burn · age_rings · add_ring ·
+  publish · the ABI eleven. Kernels: XOR — the word folds
   its left and upper neighbours in (raster order, already advanced, so the fold flows) and +1 keeps it alive;
   HASH — pcg of the word, its place and the tick, re-rolled every fourth tick (static that holds); AND —
   `((x + tick) & y) ^ (w >> 1)`, the Sierpinski carpet with the old word draining out. The first picture is

@@ -12,6 +12,7 @@
     "install": "deno outdated --update --lockfile-only && deno install --minimum-dependency-age 0",
     "sw": "deno run -A .microspec/core.mjs sw",
     "wat": "deno run -A .microspec/core.mjs wat",
+    "wasm": "deno run -A .microspec/core.mjs wasm",
     "test": "deno test -A .microspec/tests/unit_test.js rt/rt_test.js",
     "affected": "deno run -A .microspec/core.mjs affected",
     "verify": "deno run -A .microspec/verify.mjs",
