@@ -1,50 +1,49 @@
 # rozriad — research & state map
 
-**What it is.** A field of bits computed on the GPU: one fullscreen quad, every pixel an integer cell whose
-word comes from its coordinates, the frame clock and the touch state through bitwise math (`rozriad.frag`,
-GLSL ES 3.00 on `/_rt/glstage.js`). Touching the field flips bits at high frequency around the finger
-(the radius grows while held) and every press and release sends an energy ring out of the point. Over it a
-terminal HUD reads the real numbers of the pixel under the finger. One fit screen, one island (the kernel
-bit fluctuations and impulses at the touch · a mono black HUD with the hex address, the shader context and
-the memory status · no heavy library.
+**What it is.** A field of bits that lives in a WebAssembly machine. `rozriad.wat` (hand-written WAT, assembled
+by the core's `wat` node) owns a W×H grid of bytes — one word per screen cell — the cursor, the hold, the
+energy buffer and the last eight impulses; `step` evolves the grid on an 8 Hz word clock by the active
+kernel, flutters the bits under a held finger at the display rate and burns every impulse's ring into the
+grid. `rozriad.frag` reads that memory on the GPU (`texelFetch` on `usampler2D buf`, exact bytes) and turns
+a word into light. The host is the core's `/_rt/machine.js` (ABI 1); `view.js` picks the kernel and formats
+the machine's HUD block. One fit screen, one island (the kernel strip), the profile tab. Born 2026-11-07
+black HUD with the hex address, the shader context, the memory status · no heavy library); the same day
+system, because more such apps follow (core 1.2.159: `machine.js`, GlStage `buf`, the `wat` node).
 
 ## The recipe (what the build stands on)
 
-- **The stage is the core's** (`/_rt/glstage.js`, 4 apps before this one). Its uniform contract carries the
-  brief without a new channel: `ink = [cx, cy, down, hold]` is the cursor and the hold (u_cursor /
-  u_mousedown), `vary = [kernel, energy, pitch, 0]` the global buffer state, `points[8] = [x, y, age,
-  strength]` the last eight impulses. `age` is computed in JS at read time (the stage's `time` starts at
-  its own mount, so a birth stamp would be on the wrong clock). `preserve` keeps the drawing buffer so the
-  HUD can `readPixels` the touched pixel; the view takes the SAME context back with
-  `canvas.getContext("webgl2")` (the spec returns the existing context for a repeated type).
-- **Bitwise math on the GPU.** GLSL ES 3.00 has `uint`, `^ & | << >>` but NOT `bitCount` (3.10) — the
-  population count is a SWAR fold. Three kernels, chosen on the island and named in the HUD as the context:
-  XOR (`(x ^ y) + frame`, munching squares) · HASH (pcg of the cell and a slower clock, static) · AND
-  (`(x + frame) & y`, the Sierpinski carpet). The word's population count is the cell's brightness
-  (squared, so most cells stay dim), its low bit picks the pole: amber or cyan — the farm's pair of light.
-- **The touch.** Within the radius (6 cells, growing to 24 over ~3 s of hold) the word is XOR-ed with a
-  60 Hz hash masked by proximity: bits flutter hardest under the finger. An impulse is a ring at
-  `age × 260 px/s`, fading over 2.5 s; a release after a hold is a stronger one.
-- **What the HUD shows is measured, never invented**: `ADDR` = the byte offset of the touched pixel in the
-  drawing buffer (`(y·W + x)·4`, device pixels); `PIX` = that pixel's RGBA read back from the GPU; `CTX` =
-  the kernel and the GLSL version the context reports; `GPU` = the unmasked renderer
-  (`WEBGL_debug_renderer_info`), or the masked one; `FB` = the drawing buffer's size and bytes — the GPU
-  memory this page holds; `T` = the stage clock and the measured frame rate. No VRAM percentage exists in
-- **Themes.** `env.x` turns the void into paper: the same bits as ink and deep amber/cyan on `#F6F4EE`.
-  The HUD is a black terminal in both — that is the brief, and black-on-paper reads as a window into the
-  machine.
+- **The machine (`rozriad.wat`, ~2.3 KB of wasm).** Memory map in the file's head: OUT f32[48] at 0, HUD
+  i32[16] at 0x100, state, 8 rings at 0x300, the grid at 0x1000 (row 0 = top). Kernels: XOR — the word folds
+  its left and upper neighbours in (raster order, already advanced, so the fold flows) and +1 keeps it alive;
+  HASH — pcg of the word, its place and the tick, re-rolled every fourth tick (static that holds); AND —
+  `((x + tick) & y) ^ (w >> 1)`, the Sierpinski carpet with the old word draining out. The first picture is
+  munching squares `(x ^ y) + seed`. Touch: the primary finger is the cursor (viewport fractions); every
+  down/up strikes an impulse (0.6; a release after a hold up to 1.0); the flutter XORs a 60 Hz hash masked by
+  proximity inside a radius of 6 cells growing to 24 over ~3 s; each ring (36 cells/s, 2.5 s) writes 0xFF on
+  its circle every step — a trail the kernel then eats. Measured headless (Deno, 64×139): a held step 70 µs,
+  a released step 26 µs, HASH 20 µs, AND 5 µs — a frame has 16 700.
+- **What the HUD shows is read from the machine, never invented**: `ADDR` = the linear-memory address of the
+  cell under the cursor (`0x1000 + y·W + x`); `WORD` = the byte there, hex and as eight bits; `CTX` = the
+  kernel and the GLSL version the context reports; `GPU` = the unmasked renderer; `MEM` = the machine's memory
+  (4 pages = 256 KiB) and the drawing buffer's bytes; `T` = the machine's step counter and the fps derived
+- **GLSL ES 3.00 has `uint` and bitwise ops but no `bitCount` (3.10)** — the population count is a SWAR fold.
+  The brightness curve is CUBIC in the population count: a square curve read as a flat grey-teal slab on the
+  first eye (2026-11-07).
+- **htm folds a template's line breaks** — a `<pre>` cannot carry HUD lines as text; each line is a block.
+- **Themes.** `env.x` turns the void into paper: the same bits as ink and deep amber/cyan on `#F6F4EE`. The
+  HUD is a black terminal in both — that is the brief, and black-on-paper reads as a window into the machine.
 
 ## State map (fit screen 384×832; demotion at 412×430 and 360×340)
 
-| State | Stage | HUD | Island | Demotes |
+| State | Stage (memory → shader) | HUD | Island | Demotes |
 |---|---|---|---|---|
-| idle (no touch yet) | the kernel's pattern at rest, cursor at centre, hold 0 | ADDR of the centre pixel, PIX of it, CTX, GPU, FB, T | kernel strip, active = stored (xor) | HUD shrinks with `--ms-label`; island fits by the tokens |
-| touch down / drag | bits flutter under the finger, radius grows with hold; a ring left at the press | ADDR/PIX follow the finger (readPixels ≤ 15 Hz) | unchanged | same |
-| release | a stronger ring from the release point, flutter stops, radius 0 | ADDR/PIX stay at the last point | unchanged | same |
-| multi-touch | one ring per finger (8 slots, oldest dropped); the cursor is the primary pointer | primary only | unchanged | same |
-| kernel tap | the pattern changes on the next frame | CTX names the new kernel | `aria-pressed` moves | same |
-| no WebGL2 | black/paper, nothing drawn | GPU line says none | strip present (it does nothing visible) | the empty state `noGl` + hint centred in the void |
-| preflight (linkedom, no GL) | empty canvas | ADDR of the centre, PIX dashes | strip | — |
+| loading | black/paper, nothing drawn (`data-machine="loading"`) | zeros, dashes | kernel strip | — |
+| idle | the kernel's evolving grid, cursor at centre, hold 0 | ADDR/WORD of the centre cell, CTX, GPU, MEM, T | strip, active = stored (xor) | HUD shrinks with `--ms-label`; island fits by the tokens |
+| touch down / drag | bits flutter in memory under the finger, radius grows; a ring burnt at the press | ADDR/WORD follow the finger (4 Hz) | unchanged | same |
+| release | a stronger ring burnt from the release point; flutter stops | ADDR/WORD stay at the last point | unchanged | same |
+| multi-touch | every finger strikes a ring (8 slots, oldest dropped); the cursor is the first finger down | primary only | unchanged | same |
+| kernel tap | `set(0, k)` — the next word-clock tick evolves by the new rule, the old grid drains through it | CTX names the new kernel | `aria-pressed` moves | same |
+| machine failed | nothing drawn; `data-machine="failed"` + `data-err` | zeros | strip | — |
 
-Precedents: the stage mount and the `data-haswebgl ⇒ data-render` e2e guard from `apps/tide`; the island at
-the foot of a fit column and the live `env` object read per frame from `apps/afterdark`.
+Precedents: the `data-haswebgl ⇒ data-render` e2e guard from `apps/tide`; the island at the foot of a fit
+column from `apps/afterdark`; the ABI and the minimal machine in the core's `packages/runtime/tests/machine_test.js`.
