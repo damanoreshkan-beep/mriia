@@ -1,0 +1,38 @@
+name: dev
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+concurrency:
+  group: dev-tree
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  tree:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: dreamstudio
+      - uses: actions/checkout@v5
+        with:
+          repository: damanoreshkan-beep/microspec
+          ref: dev
+          path: core
+      - name: The dev tree on the VPS (secrets only — no infrastructure in the tree)
+        env:
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH_DEV: ${{ secrets.VPS_PATH_DEV }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_PATH_DEV"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t ed25519 "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          rsync -az --delete --exclude .git --rsync-path="sudo rsync" -e "ssh -i ~/.ssh/deploy_key" core/ "$VPS_USER@$VPS_HOST:$VPS_PATH_DEV/"
+          rsync -az --delete --exclude .git --rsync-path="sudo rsync" -e "ssh -i ~/.ssh/deploy_key" dreamstudio/ "$VPS_USER@$VPS_HOST:$VPS_PATH_DEV/dreamstudio/"

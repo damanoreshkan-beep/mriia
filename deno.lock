@@ -6,7 +6,7 @@
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@deno/cache-dir@0.22.2": "0.22.2",
     "jsr:@deno/graph@0.86": "0.86.9",
-    "jsr:@microspec/core@1": "1.2.172",
+    "jsr:@microspec/core@1": "1.2.173",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/async@1": "1.4.0",
@@ -830,7 +830,7 @@
         "npm:wabt"
       ]
     },
-    "@microspec/core@1.2.172": {
+    "@microspec/core@1.2.173": {
       "integrity": "c29bc48bafc8ac29e0773dc20cb74fe92cff1fd1deec31110de734cb84160e82",
       "dependencies": [
         "jsr:@astral/astral",

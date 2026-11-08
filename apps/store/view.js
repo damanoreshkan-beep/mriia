@@ -5,7 +5,6 @@ import { T } from "/_rt/i18n.js";
 import { collection } from "/_rt/db.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { frequent } from "/_rt/usage.js";
-import { Sheet } from "/_rt/ui.js";
 import { Comb, MARK } from "/_rt/comb.js";
 import apps from "./apps.json" with { type: "json" };
 import spec from "./spec.json" with { type: "json" };
@@ -51,7 +50,7 @@ const GROUPS = [
 const ORDER = GROUPS.flatMap((g) => g.items);
 const GROUP_OF = new Map(GROUPS.flatMap((g, gi) => g.items.map((a) => [a.id, gi])));
 
-export function store({ S, screen, openScreen, closeScreen }) {
+export function store({ S }) {
   const t = useStore(S.t), locale = useStore(S.locale);
   const nameOf = (a) => a.titles?.[locale] || a.title;
   const taglineOf = (a) => a.taglines?.[locale] || a.tagline || "";
@@ -84,7 +83,10 @@ export function store({ S, screen, openScreen, closeScreen }) {
   const markOf = (a) => { const b = badgeOf(a); return b === "upd" ? MARK.updated : b === "new" || isNewborn(a) ? MARK.new : MARK.none; };
   const sloganOf = (a) => t?.["slogan_" + a.id] || "";
   const lineOf = (a) => sloganOf(a) || subtitleOf(a);
-  const shot = (a, light) => (a.shots?.length ? `./assets/shot-${a.id}--${a.shots[0]}${light ? "--light" : ""}.webp` : "");
+  const [bloom, setBloom] = useState(null);
+  const [shotIx, setShotIx] = useState(0);
+  const shotAt = (a, i, light) => (a.shots?.length ? `./assets/shot-${a.id}--${a.shots[Math.min(i, a.shots.length - 1)]}${light ? "--light" : ""}.webp` : "");
+  const shot = (a, light) => shotAt(a, bloom && bloom.app.id === a.id ? shotIx : 0, light);
   const items = ORDER.map((a) => ({ id: a.id, name: nameOf(a), icon: a.icon ? `../${a.id}/icon.svg` : null, window: a.shots?.length ? { dark: shot(a), light: shot(a, true) } : null, color: a.fg || "accent", mark: markOf(a), form: formOf(a), group: GROUP_OF.get(a.id) || 0 }));
   const groups = GROUPS.map((g) => ({ id: g.id, name: T(t, g.key), color: g.color }));
   const Cell = (a, i, mode) => { const mark = markOf(a), word = mark === MARK.updated ? T(t, "updBadge") : mark === MARK.new ? T(t, "newBadge") : "";
@@ -144,40 +146,26 @@ export function store({ S, screen, openScreen, closeScreen }) {
     </div>`;
   }
 
-  const focusGroup = focus ? GROUPS[GROUP_OF.get(focus.id) || 0] : null;
-  const light = typeof document !== "undefined" && !!document.documentElement.dataset.theme?.endsWith("-light");
-  const shotsOf = (a) => (a.shots || []).map((st, i) => ({ src: shot({ ...a, shots: [st] }, light), label: a.screens?.[locale]?.[i] || a.screens?.uk?.[i] || "" }));
-  const card = focus ? html`<${Sheet} id="appcard" open=${screen === "app"} onClose=${closeScreen} size="lg" tone="frost" locale=${locale}>
-    <div data-app-card data-app=${focus.id} class="flex flex-col gap-4">
-      <div data-gallery class="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-[var(--ms-pad)] px-[var(--ms-pad)] pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        ${shotsOf(focus).map((s) => html`<figure key=${s.src} class="snap-center shrink-0 flex flex-col items-center gap-2">
-          <img src=${s.src} alt=${s.label} decoding="async" class="h-[42dvh] w-auto max-w-[80vw] object-contain rounded-[1.5rem] border border-base-content/10 shadow-[0_24px_48px_-24px_rgba(0,0,0,.9)]" />
-          ${s.label ? html`<figcaption class=${`${LABEL} text-center`}>${s.label}</figcaption>` : null}
-        </figure>`)}
-      </div>
-      <div class="flex items-center gap-3">
-        ${Tile(focus, "w-14 h-14 shrink-0")}
-        <div class="min-w-0 flex-1 flex flex-col gap-0.5">
-          <div class=${`${LABEL} flex items-center gap-1.5 min-w-0`}>${isNewborn(focus) ? DOT() : null}<span class="truncate">${focusGroup ? T(t, focusGroup.key) : ""}${focusGroup && focusGroup.id !== focus.category ? ` · ${T(t, catKey(focus.category))}` : ""}</span></div>
-          <h3 class="font-bold text-[1.4rem] leading-tight tracking-tight">${nameOf(focus)}</h3>
-        </div>
-      </div>
-      ${sloganOf(focus) ? html`<p data-slogan class="font-bold tracking-tight text-[1.1rem] leading-snug">${sloganOf(focus)}</p>` : null}
-      <p class="text-[0.95rem] leading-relaxed text-base-content/80">${taglineOf(focus)}</p>
-      <div class=${`${LABEL} flex flex-wrap gap-x-4 gap-y-1`}>
-        ${focus.needs?.length ? html`<span>${T(t, "needsDevice")}</span>` : null}
-        ${installed(focus) ? html`<span>${T(t, "installed")}</span>` : null}
-        <span>v${focus.version}</span>
-      </div>
-      <button data-card-open class="btn btn-primary rounded-full w-full min-h-12 text-base font-bold ms-press" onClick=${() => launch(focus)}>${T(t, "openApp")}</button>
+  const open = bloom ? bloom.app : null;
+  const openGroup = open ? GROUPS[GROUP_OF.get(open.id) || 0] : null;
+  const captionTop = bloom ? bloom.at.y + 1.25 * bloom.at.pitch + 14 : 0;
+  const caption = open ? html`<div data-open-caption data-app=${open.id} class="fixed left-0 right-0 z-10 pointer-events-none flex justify-center px-6" style=${`top:${captionTop}px`}>
+    <div class="w-full max-w-[22rem] flex flex-col items-center text-center gap-2">
+      ${open.shots?.length > 1 ? html`<div data-shots class="flex gap-2 pointer-events-auto">${open.shots.map((_, i) => html`<button key=${i} aria-label=${open.screens?.[locale]?.[i] || String(i + 1)} onClick=${() => setShotIx(i)}
+        class=${`w-2 h-2 rounded-full ms-press ${i === shotIx ? "" : "opacity-35"}`} style="background:var(--app-accent)"></button>`)}</div>` : null}
+      <div class=${`${LABEL} flex items-center gap-1.5`}>${isNewborn(open) ? DOT() : null}<span>${openGroup ? T(t, openGroup.key) : ""}${openGroup && openGroup.id !== open.category ? ` · ${T(t, catKey(open.category))}` : ""}</span></div>
+      <h3 class="font-bold text-[1.5rem] leading-tight tracking-tight">${nameOf(open)}</h3>
+      ${sloganOf(open) ? html`<p data-slogan class="font-bold tracking-tight text-[1.05rem] leading-snug">${sloganOf(open)}</p>` : null}
+      <p class="text-[0.9rem] leading-snug text-muted line-clamp-3">${taglineOf(open)}</p>
+      <button data-card-open class="btn btn-primary rounded-full px-8 min-h-11 text-base font-bold ms-press pointer-events-auto mt-1" onClick=${() => launch(open)}>${T(t, "openApp")}</button>
     </div>
-  </${Sheet}>` : null;
+  </div>` : null;
 
   return html`<div class="flex flex-col gap-4" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-used=${USED.length} data-store-lead=${LEAD ? LEAD.id : null} data-store-focus=${focus ? focus.id : null}>
     <div ref=${headRef} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto [&_textarea]:pointer-events-auto">${headRow}</div>
     <${Comb} items=${items} groups=${groups} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)}
-      onSettle=${(it) => { const a = byId.get(it.id); if (a) { setFocus(a); openScreen("app"); } }} />
-    ${card}
+      onBloom=${(it, at) => { const a = it ? byId.get(it.id) : null; if (a) { setShotIx(0); setBloom({ app: a, at }); } else setBloom(null); }} />
+    ${caption}
     <${Forms} />
   </div>`;
 }
