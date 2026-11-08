@@ -67,7 +67,7 @@ export default [
       for (let i = 0; i < 20; i++) { if (await h.attr("[data-comb]", "data-comb-focus")) break; await h.wait(200); }
       h.expect((await h.attr("[data-comb]", "data-comb-focus")) === "fonoteka", `під лінзою не Фонотека: ${await h.attr("[data-comb]", "data-comb-focus")}`);
       h.expect((await h.attr("[data-comb]", "data-comb-group")) === "picks", `під лінзою не кластер добірки: ${await h.attr("[data-comb]", "data-comb-group")}`);
-      h.expect((await h.attr("[data-comb]", "data-comb-zoom")) === "1", "зум не на стандартному рівні");
+      h.expect((await h.attr("[data-comb]", "data-comb-zoom")) === "0", "поле не на єдиному рівні (картки)");
       h.expect((await h.count('[data-island][data-store-island][data-app="fonoteka"]')) === 1, "немає острівця сфокусованої апки");
       h.expect((await h.text("[data-store-island] [data-slogan]")).trim().length > 5, "острівець без слогана");
       h.expect((await h.count("[data-store-island] button")) >= 1, "острівець без «Відкрити»");

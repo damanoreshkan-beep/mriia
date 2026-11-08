@@ -148,7 +148,7 @@ export function store({ S }) {
     <div class="min-w-0 flex-1 flex flex-col gap-0.5">
       <div class=${`${LABEL} flex items-center gap-1.5 min-w-0`}>${isNewborn(focus) ? DOT() : null}<span class="truncate">${focusGroup ? T(t, focusGroup.key) : ""}${focusGroup && focusGroup.id !== focus.category ? ` · ${T(t, catKey(focus.category))}` : ""}</span></div>
       <span class="font-bold text-[1.02rem] leading-tight truncate">${nameOf(focus)}</span>
-      <span data-slogan class=${`${sloganOf(focus) ? "font-bold tracking-tight text-[0.95rem]" : "text-[0.82rem] text-muted"} leading-snug line-clamp-2`}>${lineOf(focus)}</span>
+      <span data-slogan class=${`${sloganOf(focus) ? "font-bold tracking-tight text-[0.95rem]" : "text-[0.82rem] text-muted"} leading-snug line-clamp-2 min-h-[2.6em]`}>${lineOf(focus)}</span>
     </div>
     ${pill(focus)}
   </${Island}>` : null;

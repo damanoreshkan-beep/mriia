@@ -6,7 +6,7 @@
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@deno/cache-dir@0.22.2": "0.22.2",
     "jsr:@deno/graph@0.86": "0.86.9",
-    "jsr:@microspec/core@1": "1.2.163",
+    "jsr:@microspec/core@1": "1.2.164",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/async@1": "1.4.0",
@@ -38,7 +38,7 @@
     "npm:@jsquash/png@3.0.1": "3.0.1",
     "npm:@jsquash/resize@2.1.0": "2.1.0",
     "npm:@jsquash/webp@1.4.0": "1.4.0",
-    "npm:@jsr/microspec__core@1": "1.2.163",
+    "npm:@jsr/microspec__core@1": "1.2.164",
     "npm:@nanostores/persistent@0.10.2": "0.10.2_nanostores@0.11.4",
     "npm:@nanostores/preact@0.5.2": "0.5.2_nanostores@0.11.4_preact@10.27.1",
     "npm:@resvg/resvg-wasm@2.6.2": "2.6.2",
@@ -705,6 +705,31 @@
         "npm:wabt"
       ]
     },
+    "@microspec/core@1.2.161": {
+      "integrity": "be1a6a6020a4120703e90610d87189d3aad4770e484796288bec476135ee9f47",
+      "dependencies": [
+        "jsr:@astral/astral",
+        "jsr:@b-fuze/deno-dom",
+        "jsr:@std/assert@1",
+        "jsr:@std/http",
+        "npm:@jsquash/png",
+        "npm:@jsquash/webp",
+        "npm:@nanostores/persistent",
+        "npm:@nanostores/preact",
+        "npm:@resvg/resvg-wasm",
+        "npm:ajv",
+        "npm:ajv-formats",
+        "npm:d3-geo",
+        "npm:daisyui",
+        "npm:htm",
+        "npm:linkedom",
+        "npm:nanostores",
+        "npm:preact",
+        "npm:tailwindcss",
+        "npm:topojson-client",
+        "npm:wabt"
+      ]
+    },
     "@microspec/core@1.2.163": {
       "integrity": "69c96c2fb34faeab53bbd8cb7269d84c85fca0d60eafded997d27f58fc7161f8",
       "dependencies": [
@@ -730,8 +755,8 @@
         "npm:wabt"
       ]
     },
-    "@microspec/core@1.2.161": {
-      "integrity": "be1a6a6020a4120703e90610d87189d3aad4770e484796288bec476135ee9f47",
+    "@microspec/core@1.2.164": {
+      "integrity": "21781586fd76ca8a210389f98997210f66a43d85899e0e83ca92bb654d1c8a52",
       "dependencies": [
         "jsr:@astral/astral",
         "jsr:@b-fuze/deno-dom",
@@ -905,8 +930,8 @@
       ],
       "tarball": "https://npm.jsr.io/~/11/@jsr/denosaurs__plug/1.0.3.tgz"
     },
-    "@jsr/microspec__core@1.2.163": {
-      "integrity": "sha512-CUg2ZDkkEfTkd419mi7qodx/Gx/SZc1HTj3wTgVtYBQ69oYGVnTgKXCJAYDc+NR7NXkYlwzOFMC0OkcxB01bvw==",
+    "@jsr/microspec__core@1.2.164": {
+      "integrity": "sha512-wblKVnppcSijvz29pfmmVhohVhlqIM0gYwyGCePozZqcYA6QyT+WPNswXncI9ZtJyxBVtoEB4XCZXGTXh4yOkw==",
       "dependencies": [
         "@jsquash/png",
         "@jsquash/webp",
@@ -929,7 +954,7 @@
         "topojson-client",
         "wabt"
       ],
-      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.163.tgz"
+      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.164.tgz"
     },
     "@jsr/std__assert@0.213.1": {
       "integrity": "sha512-mbq7QHPHeAJiJJlwmjNI0uoZlvIU2rG89df8ceeJB1pgE5b54DkiNhjQmmfBft0/fYO8/d933rBYwcNzuLxhXA==",
