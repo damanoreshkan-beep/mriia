@@ -148,9 +148,9 @@ export function store({ S }) {
 
   const open = bloom ? bloom.app : null;
   const openGroup = open ? GROUPS[GROUP_OF.get(open.id) || 0] : null;
-  const captionTop = bloom ? bloom.at.y + 1.25 * bloom.at.pitch + 14 : 0;
-  const caption = open ? html`<div data-open-caption data-app=${open.id} class="fixed left-0 right-0 z-10 pointer-events-none flex justify-center px-6" style=${`top:${captionTop}px`}>
-    <div class="w-full max-w-[22rem] flex flex-col items-center text-center gap-2">
+  const CAPTION_H = 216;
+  const caption = open ? html`<div data-open-caption data-app=${open.id} class="fixed left-0 right-0 z-10 pointer-events-none flex justify-center px-6" style=${`bottom:calc(var(--dock-h) + env(safe-area-inset-bottom) + 12px);height:${CAPTION_H}px`}>
+    <div class="w-full max-w-[22rem] flex flex-col items-center justify-end text-center gap-2">
       ${open.shots?.length > 1 ? html`<div data-shots class="flex gap-2 pointer-events-auto">${open.shots.map((_, i) => html`<button key=${i} aria-label=${open.screens?.[locale]?.[i] || String(i + 1)} onClick=${() => setShotIx(i)}
         class=${`w-2 h-2 rounded-full ms-press ${i === shotIx ? "" : "opacity-35"}`} style="background:var(--app-accent)"></button>`)}</div>` : null}
       <div class=${`${LABEL} flex items-center gap-1.5`}>${isNewborn(open) ? DOT() : null}<span>${openGroup ? T(t, openGroup.key) : ""}${openGroup && openGroup.id !== open.category ? ` · ${T(t, catKey(open.category))}` : ""}</span></div>
@@ -163,7 +163,7 @@ export function store({ S }) {
 
   return html`<div class="flex flex-col gap-4" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-used=${USED.length} data-store-lead=${LEAD ? LEAD.id : null} data-store-focus=${focus ? focus.id : null}>
     <div ref=${headRef} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto [&_textarea]:pointer-events-auto">${headRow}</div>
-    <${Comb} items=${items} groups=${groups} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)}
+    <${Comb} items=${items} groups=${groups} cell=${cellOf} top=${headH + 32} bottom=${bloom ? CAPTION_H + 12 : 0} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)}
       onBloom=${(it, at) => { const a = it ? byId.get(it.id) : null; if (a) { setShotIx(0); setBloom({ app: a, at }); } else setBloom(null); }} />
     ${caption}
     <${Forms} />
