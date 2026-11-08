@@ -135,11 +135,12 @@ export default [
   },
   {
     name: "PWA: профіль → модалка встановлення, Back закриває", run: async (h) => {
-      await h.click('[data-tab="me"]'); await h.wait(150);
-      await h.click("#p-install"); await h.wait(150);
-      h.expect((await h.prop("#install", "open")) === true, "модалка не відкрилась");
-      await h.back(); await h.wait(200);
-      h.expect((await h.prop("#install", "open")) !== true, "Back не закрив модалку");
+      await h.click('[data-tab="me"]');
+      h.expect(await h.until('!!document.querySelector("#p-install")'), "немає кнопки встановлення");
+      await h.click("#p-install");
+      h.expect(await h.until('document.querySelector("#install")?.open === true'), "модалка не відкрилась");
+      await h.back();
+      h.expect(await h.until('document.querySelector("#install")?.open !== true'), "Back не закрив модалку");
     },
   },
 ];

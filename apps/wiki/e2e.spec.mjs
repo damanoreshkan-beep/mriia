@@ -22,12 +22,12 @@ export default [
   {
     name: "тап по картці → сторінка статті, Back закриває", run: async (h) => {
       await search(h, "Київ");
-      await h.click(".aw-tap"); await h.wait(250);
-      h.expect((await h.count('[role="dialog"]')) === 1, "деталі не відкрились");
+      await h.click(".aw-tap");
+      h.expect(await h.until('document.querySelectorAll("[role=dialog]").length === 1'), "деталі не відкрились");
       h.expect(/Про що стаття|Читати у Вікіпедії/.test(await h.bodyText()), "немає вмісту статті");
       h.expect(/wikipedia\.org/.test(await h.attr('[role="dialog"] a', "href")), "немає посилання");
-      await h.back(); await h.wait(250);
-      h.expect((await h.count('[role="dialog"]')) === 0, "Back не закрив деталі");
+      await h.back();
+      h.expect(await h.until('document.querySelectorAll("[role=dialog]").length === 0'), "Back не закрив деталі");
       h.expect((await h.count(".card")) > 0, "Back вийшов замість закрити деталі");
     },
   },
