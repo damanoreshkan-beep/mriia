@@ -84,7 +84,8 @@ export function store({ S }) {
   const markOf = (a) => { const b = badgeOf(a); return b === "upd" ? MARK.updated : b === "new" || isNewborn(a) ? MARK.new : MARK.none; };
   const sloganOf = (a) => t?.["slogan_" + a.id] || "";
   const lineOf = (a) => sloganOf(a) || subtitleOf(a);
-  const items = ORDER.map((a) => ({ id: a.id, name: nameOf(a), subtitle: lineOf(a), icon: a.icon ? `../${a.id}/icon.svg` : null, color: a.fg || "accent", mark: markOf(a), form: formOf(a), group: GROUP_OF.get(a.id) || 0 }));
+  const shot = (a, light) => (a.shots?.length ? `./assets/shot-${a.id}--${a.shots[0]}${light ? "--light" : ""}.webp` : "");
+  const items = ORDER.map((a) => ({ id: a.id, name: nameOf(a), icon: a.icon ? `../${a.id}/icon.svg` : null, window: a.shots?.length ? { dark: shot(a), light: shot(a, true) } : null, color: a.fg || "accent", mark: markOf(a), form: formOf(a), group: GROUP_OF.get(a.id) || 0 }));
   const groups = GROUPS.map((g) => ({ id: g.id, name: T(t, g.key), color: g.color }));
   const Cell = (a, i, mode) => { const mark = markOf(a), word = mark === MARK.updated ? T(t, "updBadge") : mark === MARK.new ? T(t, "newBadge") : "";
     const label = word ? `${nameOf(a)} · ${word}` : nameOf(a);

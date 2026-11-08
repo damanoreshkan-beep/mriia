@@ -318,8 +318,8 @@ export function fonoteka({ S, toast, confirm }) {
   }, []);
 
   return html`<div data-fonoteka data-playing=${playing ? "true" : null} data-songs=${songs ? songs.length : null} class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
-    <${Island} pinned data-player className="w-full max-w-[36rem] flex flex-col items-stretch">
-      <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full"
+    <${Island} pinned data-player className="w-full max-w-[36rem] flex flex-col items-stretch !py-2">
+      <${Transport} form dense locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full"
         onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
         title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? songLine(now, clock) : ""}
         actions=${[

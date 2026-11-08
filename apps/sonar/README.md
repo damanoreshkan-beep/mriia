@@ -4,6 +4,7 @@
 
 # Сонар
 
+**Перетвори телефон на датчик руху. Він нечутно «прослуховує» кімнату й показує, коли поруч щось рухається. Нічого не записується й нікуди не надсилається.**
 
 ![](https://img.shields.io/badge/-science-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 

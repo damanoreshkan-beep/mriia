@@ -16,7 +16,7 @@
     "wabt": "npm:wabt@1.0.36",
     "motion": "https://esm.sh/motion@11.18.2",
     "lodash-es": "https://esm.sh/lodash-es@4.17.21",
-    "canvas": "https://jsr.io/@microspec/core/1.2.167/packages/gates/canvas-stub.js",
+    "canvas": "https://jsr.io/@microspec/core/1.2.170/packages/gates/canvas-stub.js",
     "/_rt/acts.js": "./rt/acts.js",
     "/_rt/afterbeat.js": "./rt/afterbeat.js",
     "/_rt/afterdark.js": "./rt/afterdark.js",
@@ -109,8 +109,8 @@
     "/_rt/wish.js": "./rt/wish.js",
     "/_rt/ytlikes.js": "./rt/ytlikes.js",
     "/_rt/zodiac.js": "./rt/zodiac.js",
-    "https://jsr.io/@microspec/core/1.2.167/packages/runtime/backend.js": "./rt/backend.js",
-    "/_rt/": "https://jsr.io/@microspec/core/1.2.167/packages/runtime/",
-    "@microspec/core/runtime/": "https://jsr.io/@microspec/core/1.2.167/packages/runtime/"
+    "https://jsr.io/@microspec/core/1.2.170/packages/runtime/backend.js": "./rt/backend.js",
+    "/_rt/": "https://jsr.io/@microspec/core/1.2.170/packages/runtime/",
+    "@microspec/core/runtime/": "https://jsr.io/@microspec/core/1.2.170/packages/runtime/"
   }
 }
