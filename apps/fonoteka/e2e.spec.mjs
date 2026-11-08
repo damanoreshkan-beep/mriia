@@ -51,12 +51,13 @@ export default [
     name: "видалення: дія плеєра для поточної пісні; конфірм-шторка називає пісню, Back скасовує, підтвердження прибирає комірку і каже «Видалено»", run: async (h) => {
       await ready(h);
       h.expect((await h.count("[data-albums] [data-del]")) === 0, "кошик повернувся в комірку — дії живуть у плеєрі");
-      await h.tap('[data-play="c3d4e5f607182930"]'); await h.wait(200);
-      await h.tap("[data-transport] [data-del]"); await h.wait(250);
-      h.expect((await h.prop("#confirm", "open")) === true, "конфірм не відкрився");
+      await h.tap('[data-play="c3d4e5f607182930"]');
+      h.expect(await h.until('document.querySelector("[data-transport] [data-del]") && !document.querySelector("[data-transport] [data-del]").disabled'), "дія видалення не з'явилась у плеєрі");
+      await h.tap("[data-transport] [data-del]");
+      h.expect(await h.until('document.querySelector("#confirm")?.open === true'), "конфірм не відкрився");
       h.expect(/Польова пісня/.test(await h.text("#confirm")), "конфірм не називає пісню, яку видаляє");
-      await h.back(); await h.wait(250);
-      h.expect((await h.prop("#confirm", "open")) !== true, "Back не закрив конфірм");
+      await h.back();
+      h.expect(await h.until('document.querySelector("#confirm")?.open !== true'), "Back не закрив конфірм");
       h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 1, "пісня зникла без підтвердження");
       await h.tap("[data-transport] [data-del]"); await h.wait(250);
       await h.click("#confirm-go"); await h.wait(400);
