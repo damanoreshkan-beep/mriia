@@ -64,6 +64,12 @@ stay in flow at the top. Fallback: without WebGL2 the same cells lay out on the 
 twin behind the canvas keeps `[data-song][data-cover]` and `[data-play][aria-pressed]`, so the e2e and a screen
 reader reach every song.
 
+450 ms the cell opens — grows 1.45×, the other songs are pushed away along their lines from it — and a touch closes
+it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
+breath.js `spectrumOf`, Goertzel per 50 ms frame, 55 Hz … 7 kHz, each band normalised to its own range, computed
+once from the copy on the phone — never Web Audio in the playback path) sent every frame at the audio clock as
+`PARAM.band + b`; comb.frag draws them as a corona of filaments in the theme's accent, not bars.
+
 ## The screen
 Two panels. **Now playing**: the kit `Transport` (sm) — title/artist, seek bar, prev/next walk the shelf through
 `advance()` with repeat "all"; one `Audio` element, `holdAudio` for the lock screen. **Songs**: the shelf readout

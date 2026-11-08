@@ -63,6 +63,11 @@ keyboard, a screen reader and the e2e reach every app. `data-comb-focus` = the a
 - The icon atlas uploads every 700 ms while pictures land, then once at the end (the eye's software Chromium
   needs ~6 s for 95 forms at 2×; a phone's GPU canvas is far quicker).
 
+finger is down and glides after; the host hears a focus ≤ 8× a second in motion; the island keeps one height; an
+atlas waits for the finger to lift; halos from two centres); the comb at the phone's full density (DPR ≤ 3). THE
+BLOOM — a cell's second state: at rest (450 ms) the focused cell grows 1.45× and pushes the others away along their
+lines (a translation, never a squeeze); a touch closes it; the island already carries the slogan, the open card
+
 State map (the field):
 
 | State | Hook | What shows | 412×430 / 360×340 |

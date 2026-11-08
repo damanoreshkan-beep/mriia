@@ -9,7 +9,7 @@ import { VPS_PROXY } from "/_rt/feed.js";
 import { Transport, Island } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
 import { shapeOf, pathOf } from "/_rt/shape.js";
-import { envelopeOfBlob, BREATH_HZ } from "/_rt/breath.js";
+import { envelopeOfBlob, BREATH_HZ, spectrumOfBlob, SPECTRUM_HZ, SPECTRUM_BANDS } from "/_rt/breath.js";
 import { Comb, MARK, PARAM } from "/_rt/comb.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
@@ -155,25 +155,28 @@ async function play(id) {
 }
 
 let combApi = null, breathing = "", unbreathe = () => {};
-const envs = new Map();
+const envs = new Map(), specs = new Map();
 const pulse = (v) => { try { combApi?.exports.set(PARAM.pulse, v); } catch { } };
-function stopBreath() { unbreathe(); unbreathe = () => {}; breathing = ""; pulse(0); }
+const bands = (arr, f) => { try { for (let b = 0; b < SPECTRUM_BANDS; b++) combApi?.exports.set(PARAM.band + b, arr ? arr[f * SPECTRUM_BANDS + b] : 0); } catch { } };
+function stopBreath() { unbreathe(); unbreathe = () => {}; breathing = ""; pulse(0); bands(null, 0); }
 async function breatheSong(id) {
   stopBreath();
   if (gate || !audio) return;
-  let env = envs.get(id);
-  if (!env) {
+  let env = envs.get(id), spec = specs.get(id);
+  if (!env || !spec) {
     const blob = await store.blob(id).catch(() => null);
-    env = blob && await envelopeOfBlob(blob).catch(() => null);
-    if (!env) return;
-    envs.set(id, env);
+    if (!blob) return;
+    if (!env) { env = await envelopeOfBlob(blob).catch(() => null); if (env) envs.set(id, env); }
+    if (!spec) { spec = await spectrumOfBlob(blob).catch(() => null); if (spec) specs.set(id, spec); }
+    if (!env && !spec) return;
   }
   if ($cur.get() !== id || breathing) return;
   let raf = 0;
   const tick = () => {
     raf = requestAnimationFrame(tick);
-    if (audio.paused) { pulse(0); return; }
-    pulse((env[Math.min(env.length - 1, Math.floor(audio.currentTime * BREATH_HZ))] || 0) / 255);
+    if (audio.paused) { pulse(0); bands(null, 0); return; }
+    if (env) pulse((env[Math.min(env.length - 1, Math.floor(audio.currentTime * BREATH_HZ))] || 0) / 255);
+    if (spec) bands(spec, Math.min(spec.length / SPECTRUM_BANDS - 1, Math.floor(audio.currentTime * SPECTRUM_HZ)));
   };
   tick();
   unbreathe = () => cancelAnimationFrame(raf);
