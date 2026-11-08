@@ -6,7 +6,7 @@ import { useStore } from "@nanostores/preact";
 import { T } from "/_rt/i18n.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
-import { Transport } from "/_rt/ui.js";
+import { Transport, Island } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
 import { shapeOf, pathOf } from "/_rt/shape.js";
 import { envelopeOfBlob, BREATH_HZ } from "/_rt/breath.js";
@@ -148,7 +148,7 @@ async function play(id) {
   }
   $cur.set(id);
   if (!hold) hold = holdAudio({ title: titleOf(s), artist: s.artist || "", onPlay: () => a.play(), onPause: () => a.pause(), onPrev: () => step(-1), onNext: () => step(1) });
-  else hold.meta(titleOf(s));
+  else hold.meta(titleOf(s), s.artist || "", $covers.get()[s.id] || null);   
   a.play().catch(() => $playing.set(false));
   if (breathing !== id) breatheSong(id);
   readyShare(s);   
@@ -288,7 +288,8 @@ export function fonoteka({ S, toast, confirm }) {
     if ($cur.get()) readyShare(songOf($cur.get()));
     return () => { stopBreath(); combApi = null; };
   }, []);
-  const items = (songs || []).map((s) => ({ id: s.id, name: titleOf(s), icon: covers[s.id] || null, color: "#5BC8FF", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
+  const items = (songs || []).map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, color: "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
+  const onSettle = (it) => { const s = songOf(it.id); if (s && $cur.get() !== s.id) play(s.id); };
   const cellOf = (it, i, mode) => {
     const s = songOf(it.id); if (!s) return null;
     const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
@@ -314,20 +315,20 @@ export function fonoteka({ S, toast, confirm }) {
   }, []);
 
   return html`<div data-fonoteka data-playing=${playing ? "true" : null} data-songs=${songs ? songs.length : null} class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
-    <div ref=${head} class="relative z-10 flex flex-col gap-[calc(var(--ms-gap)*2)] pointer-events-none [&_button]:pointer-events-auto [&_input]:pointer-events-auto [&_[data-transport]]:pointer-events-auto">
-    <section aria-label=${T(t, "now")} class="flex flex-col items-center gap-[var(--ms-gap)] pt-2">
-      <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full pt-1"
+    <${Island} pinned data-player className="w-full max-w-[36rem] flex flex-col items-stretch">
+      <${Transport} form locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full"
         onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
         title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? songLine(now, clock) : ""}
         actions=${[
           { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => shareSong(now), disabled: !now, attr: { "data-share": true } },
           { id: "del", icon: "lucide:trash-2", label: T(t, "aDelete"), haptic: "bump", onClick: () => now && askDelete(now), disabled: !now, attr: { "data-del": true } },
         ]} />
-    </section>
-
+    </${Island}>
+    <div ref=${head} class="relative z-10 flex flex-col gap-[calc(var(--ms-gap)*2)] pointer-events-none [&_button]:pointer-events-auto [&_input]:pointer-events-auto">
     <section aria-labelledby="fk-shelf" class="flex flex-col gap-[var(--ms-gap)]">
       <div class="flex items-center justify-between gap-3">
         <h2 id="fk-shelf" class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">${T(t, "songs")}</h2>
+        
         <button data-add onClick=${() => picker.current?.click()} class="btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-4 gap-2 font-medium ms-press">
           ${Icon("lucide:plus", "text-[length:var(--ms-icon)]")}<span>${T(t, "add")}</span>
         </button>
@@ -342,6 +343,7 @@ export function fonoteka({ S, toast, confirm }) {
       ${err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
       <div class="flex flex-col gap-1">
         ${uploads.map((u) => html`<div key=${u.k} data-upload data-state=${u.state} class="fk-row flex items-center gap-3 px-2 h-[var(--ms-ctl)]">
+          
           <span class="fk-up" aria-hidden="true">
             <svg viewBox="0 0 1 1" class="fk-glyph"><path d=${pathOf(shapeOf(u.name))} /></svg>
             ${u.state === "up" ? html`<svg data-progress viewBox="0 0 1 1" class="fk-glyph lit" style=${`clip-path:inset(${100 - (u.pct || 0)}% 0 0 0)`}><path d=${pathOf(shapeOf(u.name))} /></svg>` : null}
@@ -354,7 +356,7 @@ export function fonoteka({ S, toast, confirm }) {
       </div>
     </section>
     </div>
-    <${Comb} items=${items} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id)); }} onReady=${(api) => { combApi = api; }} />
+    <${Comb} items=${items} cell=${cellOf} focus=${cur || null} top=${headH + 32} onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; }} />
     <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />

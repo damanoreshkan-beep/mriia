@@ -26,7 +26,27 @@ lattice where WebGL2 is not (`data-comb="dom"`), and as a visually-hidden twin b
 keyboard, a screen reader and the e2e reach every app. `data-comb-focus` = the app under the lens;
 `data-store-lead` = the centre on this load.
 
-dot on the form (amber · cyan). Search rows are unchanged and show the category after the line.
+- **Clusters.** Every group is one contiguous territory on the field — the picks in the centre, the newborns, then
+  each category — laid by the machine (a group's first cell at the first free site of the spiral, its others at the
+  nearest free site to that anchor). The hexagon of every cell is drawn: a hairline edge in the group's colour and
+  a breath of its tint inside; the colours are the THEME's poles only — the picks in the accent, the new in the
+  secondary, the categories alternating accent · secondary · ink — so the borders read without a rainbow. At the
+  overview the group's name lies across its territory (mono caps, the group's colour).
+- **Zoom.** Two fingers scale the field about their midpoint; on release it eases to one of three levels — 0.8 the
+  OVERVIEW (names hidden, territories and their captions), 1 the default (forms + names, the lens on the centre),
+  1.35 the CARDS: the rows unfold (row pitch 0.866·1.3 → 0.866·1.85 pitches) and every cell shows its line — the
+  app's slogan where it has one, else the first sentence of its description. The larger cards are the zoom.
+- **The hero's slogan and the island.** The app under the lens has the farm's control island above the dock
+  (`[data-store-island]`): its group · category, its name, its slogan or first line, and Open. The island publishes
+  `--island-h`, which the comb reads as its bottom inset, so the field never runs under it.
+- **4K.** Two atlases: icons at the source's own 256 px (16 × 16 tiles in 4096²), so the form at the centre is never
+  magnified; names and lines on a separate text atlas sized by the screen (`0.9 × pitch × 1.35 × dpr` per tile,
+  4096² where the GPU allows, mipmapped), so the type is crisp at every zoom. On the S25 (480 × 3 dpr) a text tile is
+  ~455 px wide for a 112-px pitch.
+- **Theme.** The field's colours come from the live custom properties (`--app-accent`, `--color-secondary`,
+  `--color-base-content`, `--color-base-200`) resolved to sRGB on every theme change and written to the machine's
+  palette; the ground IS the theme's ground. Paper: black forms on paper with gold hex edges (eye 2026-11-08).
+  updated keep their dot on the form (accent · secondary). Search rows are unchanged, with the category after the line.
 
 State map (the field):
 

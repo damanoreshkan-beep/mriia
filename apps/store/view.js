@@ -5,6 +5,7 @@ import { T } from "/_rt/i18n.js";
 import { collection } from "/_rt/db.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { frequent } from "/_rt/usage.js";
+import { Island } from "/_rt/ui.js";
 import { Comb, MARK } from "/_rt/comb.js";
 import apps from "./apps.json" with { type: "json" };
 import spec from "./spec.json" with { type: "json" };
@@ -38,8 +39,17 @@ const byId = new Map(apps.map((a) => [a.id, a]));
 const USED = frequent().map((x) => byId.get(x.id)).filter(Boolean);
 const PICKS = [...new Set([...USED, ...(spec.featured || []).map((id) => byId.get(id)).filter(Boolean)])].slice(0, TOP);
 const LEAD = PICKS[0] || null;
-const REST = CATS.flatMap((c) => apps.filter((a) => a.category === c && !PICKS.includes(a) && !isNewborn(a)).sort((x, y) => x.title.localeCompare(y.title, "uk")));
-const ORDER = [...PICKS, ...NEWBORN.filter((a) => !PICKS.includes(a)), ...REST, ...apps.filter((a) => !CATS.includes(a.category) && !PICKS.includes(a) && !isNewborn(a))];
+const NEW = NEWBORN.filter((a) => !PICKS.includes(a));
+const CAT_GROUPS = CATS.map((c) => ({ id: c, key: catKey(c), items: apps.filter((a) => a.category === c && !PICKS.includes(a) && !isNewborn(a)).sort((x, y) => x.title.localeCompare(y.title, "uk")) })).filter((g) => g.items.length);
+const OTHER = apps.filter((a) => !CATS.includes(a.category) && !PICKS.includes(a) && !isNewborn(a));
+const GROUPS = [
+  { id: "picks", key: "featured", color: "accent", items: PICKS },
+  ...(NEW.length ? [{ id: "new", key: "fresh", color: "secondary", items: NEW }] : []),
+  ...CAT_GROUPS.map((g, i) => ({ ...g, color: ["accent", "secondary", "ink"][i % 3] })),
+  ...(OTHER.length ? [{ id: "other", key: "allApps", color: "ink", items: OTHER }] : []),
+];
+const ORDER = GROUPS.flatMap((g) => g.items);
+const GROUP_OF = new Map(GROUPS.flatMap((g, gi) => g.items.map((a) => [a.id, gi])));
 
 export function store({ S }) {
   const t = useStore(S.t), locale = useStore(S.locale);
@@ -72,7 +82,10 @@ export function store({ S }) {
   const pill = (a, extra = "") => html`<button class=${`btn btn-xs rounded-full px-3.5 min-h-7 h-7 bg-base-300 border-0 text-base-content font-bold shrink-0 ms-press ${extra}`} aria-label=${`${T(t, "openApp")} — ${nameOf(a)}`} onClick=${(e) => { e.stopPropagation(); launch(a); }}>${installed(a) ? Icon("lucide:external-link", "text-sm") : T(t, "openApp")}</button>`;
 
   const markOf = (a) => { const b = badgeOf(a); return b === "upd" ? MARK.updated : b === "new" || isNewborn(a) ? MARK.new : MARK.none; };
-  const items = ORDER.map((a) => ({ id: a.id, name: nameOf(a), icon: a.icon ? `../${a.id}/icon.svg` : null, color: a.fg || spec.accent, mark: markOf(a), form: formOf(a) }));
+  const sloganOf = (a) => t?.["slogan_" + a.id] || "";
+  const lineOf = (a) => sloganOf(a) || subtitleOf(a);
+  const items = ORDER.map((a) => ({ id: a.id, name: nameOf(a), subtitle: lineOf(a), icon: a.icon ? `../${a.id}/icon.svg` : null, color: a.fg || "accent", mark: markOf(a), form: formOf(a), group: GROUP_OF.get(a.id) || 0 }));
+  const groups = GROUPS.map((g) => ({ id: g.id, name: T(t, g.key), color: g.color }));
   const Cell = (a, i, mode) => { const mark = markOf(a), word = mark === MARK.updated ? T(t, "updBadge") : mark === MARK.new ? T(t, "newBadge") : "";
     const label = word ? `${nameOf(a)} · ${word}` : nameOf(a);
     if (mode === "gl") return html`<button key=${a.id} data-app=${a.id} data-cell="comb" data-seen=${installed(a) ? "1" : null} data-mark=${mark || null} style=${`--i:${Math.min(i, 14)}`} aria-label=${label} onClick=${() => tap(a)}>${nameOf(a)}</button>`;
@@ -130,9 +143,20 @@ export function store({ S }) {
     </div>`;
   }
 
+  const focusGroup = focus ? GROUPS[GROUP_OF.get(focus.id) || 0] : null;
+  const island = focus ? html`<${Island} pinned data-store-island data-app=${focus.id} className="w-full max-w-[36rem] flex items-center gap-3">
+    <div class="min-w-0 flex-1 flex flex-col gap-0.5">
+      <div class=${`${LABEL} flex items-center gap-1.5 min-w-0`}>${isNewborn(focus) ? DOT() : null}<span class="truncate">${focusGroup ? T(t, focusGroup.key) : ""}${focusGroup && focusGroup.id !== focus.category ? ` · ${T(t, catKey(focus.category))}` : ""}</span></div>
+      <span class="font-bold text-[1.02rem] leading-tight truncate">${nameOf(focus)}</span>
+      <span data-slogan class=${`${sloganOf(focus) ? "font-bold tracking-tight text-[0.95rem]" : "text-[0.82rem] text-muted"} leading-snug line-clamp-2`}>${lineOf(focus)}</span>
+    </div>
+    ${pill(focus)}
+  </${Island}>` : null;
+
   return html`<div class="flex flex-col gap-4" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-used=${USED.length} data-store-lead=${LEAD ? LEAD.id : null} data-store-focus=${focus ? focus.id : null}>
     <div ref=${headRef} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto [&_textarea]:pointer-events-auto">${headRow}</div>
-    <${Comb} items=${items} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)} />
+    <${Comb} items=${items} groups=${groups} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)} />
+    ${island}
     <${Forms} />
   </div>`;
 }

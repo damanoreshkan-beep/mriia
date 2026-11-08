@@ -51,12 +51,18 @@ form, the name under it. The machine (`comb.wasm`) owns the lattice, the pan, th
 draws; `view.js` hands it the songs and gets the tap back (`play` / `toggle`, as before). The playing song is LIT
 (`MARK.lit`: rim and halo in the app's `#5BC8FF`) and BREATHES: `breatheSong` reads the copy on the phone once into
 the bass envelope (core breath.js, 10 Hz) and every frame sends the value at the audio clock to the machine as
-`PARAM.pulse` — the lit cell's scale in comb.frag. So the ORB is gone from the tab: the lit cell is the orb. The
-player (`Transport`) stays in the body ABOVE the field, always in view, so the MiniPlayer island is gone too; its
-measured height is the comb's top inset. Uploads, the usage line, the empty state and the error line stay in flow
-above the field. Fallback: without WebGL2 the same cells lay out on the core's CSS lattice (`fk-cell`). The twin
-behind the canvas keeps `[data-song][data-cover]` and `[data-play][aria-pressed]`, so the e2e and a screen reader
-reach every song.
+`PARAM.pulse` — the lit cell's scale in comb.frag. So the ORB is gone from the tab: the lit cell is the orb.
+
+above the dock (`[data-island][data-player]`); the island publishes `--island-h` and the comb takes it as the
+field's bottom inset, so the field fades out above the island and never runs under it. The MiniPlayer is gone (the
+next: the lens eases to that cell), and `onSettle` — the cell the lens comes to rest on after a finger moved the
+field — plays that song at once (never on load: the machine reports a settle only after a touch). A song without a
+cover shows the THEME's material in its form (`--ds-fill`, as the orb did); every colour is the theme's accent.
+The lock screen's card follows the song fully — title, artist and cover (core mediasession `meta(title, artist,
+artwork)`; the artist used to stay the first song's). Uploads, the usage line, the empty state and the error line
+stay in flow at the top. Fallback: without WebGL2 the same cells lay out on the core's CSS lattice (`fk-cell`). The
+twin behind the canvas keeps `[data-song][data-cover]` and `[data-play][aria-pressed]`, so the e2e and a screen
+reader reach every song.
 
 ## The screen
 Two panels. **Now playing**: the kit `Transport` (sm) — title/artist, seek bar, prev/next walk the shelf through
