@@ -6,7 +6,7 @@
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@deno/cache-dir@0.22.2": "0.22.2",
     "jsr:@deno/graph@0.86": "0.86.9",
-    "jsr:@microspec/core@1": "1.2.161",
+    "jsr:@microspec/core@1": "1.2.163",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/async@1": "1.4.0",
@@ -682,6 +682,31 @@
     },
     "@microspec/core@1.2.160": {
       "integrity": "52bc179ad926a8cd8d9804ee556a03930a2b39953e96b68611650902bf78e6db",
+      "dependencies": [
+        "jsr:@astral/astral",
+        "jsr:@b-fuze/deno-dom",
+        "jsr:@std/assert@1",
+        "jsr:@std/http",
+        "npm:@jsquash/png",
+        "npm:@jsquash/webp",
+        "npm:@nanostores/persistent",
+        "npm:@nanostores/preact",
+        "npm:@resvg/resvg-wasm",
+        "npm:ajv",
+        "npm:ajv-formats",
+        "npm:d3-geo",
+        "npm:daisyui",
+        "npm:htm",
+        "npm:linkedom",
+        "npm:nanostores",
+        "npm:preact",
+        "npm:tailwindcss",
+        "npm:topojson-client",
+        "npm:wabt"
+      ]
+    },
+    "@microspec/core@1.2.163": {
+      "integrity": "69c96c2fb34faeab53bbd8cb7269d84c85fca0d60eafded997d27f58fc7161f8",
       "dependencies": [
         "jsr:@astral/astral",
         "jsr:@b-fuze/deno-dom",
