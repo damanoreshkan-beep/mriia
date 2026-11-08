@@ -149,8 +149,8 @@ export function store({ S }) {
   const open = bloom ? bloom.app : null;
   const openGroup = open ? GROUPS[GROUP_OF.get(open.id) || 0] : null;
   const CAPTION_H = 216;
-  const caption = open ? html`<div data-open-caption data-app=${open.id} class="fixed left-0 right-0 z-10 pointer-events-none flex justify-center px-6" style=${`bottom:calc(var(--dock-h) + env(safe-area-inset-bottom) + 12px);height:${CAPTION_H}px`}>
-    <div class="w-full max-w-[22rem] flex flex-col items-center justify-end text-center gap-2">
+  const caption = open ? html`<div data-open-caption data-app=${open.id} class="ms-stage z-10 pointer-events-none flex flex-col justify-end items-center px-6 pb-3">
+    <div class="w-full max-w-[22rem] flex flex-col items-center justify-end text-center gap-2" style=${`height:${CAPTION_H}px`}>
       ${open.shots?.length > 1 ? html`<div data-shots class="flex gap-2 pointer-events-auto">${open.shots.map((_, i) => html`<button key=${i} aria-label=${open.screens?.[locale]?.[i] || String(i + 1)} onClick=${() => setShotIx(i)}
         class=${`w-2 h-2 rounded-full ms-press ${i === shotIx ? "" : "opacity-35"}`} style="background:var(--app-accent)"></button>`)}</div>` : null}
       <div class=${`${LABEL} flex items-center gap-1.5`}>${isNewborn(open) ? DOT() : null}<span>${openGroup ? T(t, openGroup.key) : ""}${openGroup && openGroup.id !== open.category ? ` · ${T(t, catKey(open.category))}` : ""}</span></div>
