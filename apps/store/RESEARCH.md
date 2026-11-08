@@ -48,6 +48,21 @@ keyboard, a screen reader and the e2e reach every app. `data-comb-focus` = the a
   palette; the ground IS the theme's ground. Paper: black forms on paper with gold hex edges (eye 2026-11-08).
   updated keep their dot on the form (accent · secondary). Search rows are unchanged, with the category after the line.
 
+- No hexagon edges: a group is only a breath of its colour over its territory, fading to nothing at the cell's
+  border; the comb is a convention, not a hive.
+- The form's edge is a FILL, not a clip: Chrome does not anti-alias a clip path, so every form had a stair-stepped
+  edge. The picture is drawn on a 2× scratch, the form is filled over it with destination-in, and the scratch is
+  scaled into the tile with high-quality smoothing — a soft exact edge; the rim rides it.
+- Halos are drawn over the whole screen (the lit and focused cells of the pixel's seven lattice points), never cut
+  by a cell's region; the tap's ring already was.
+- THE ELASTIC FIELD: far from the lens the picture shows the world a moment ago — the camera's velocity × a lag
+  that grows with the distance from the lens (0 → 220 ms over 3.2 pitches, capped at 0.45 pitch) — a per-pixel
+  camera offset, continuous, so a drag or a fling stretches the field like cloth and it relaxes as it settles;
+  the hit test stays on the true positions. And the light under the finger: the theme's accent, soft, on the
+  ground and the forms near the touch while a finger is down.
+- The icon atlas uploads every 700 ms while pictures land, then once at the end (the eye's software Chromium
+  needs ~6 s for 95 forms at 2×; a phone's GPU canvas is far quicker).
+
 State map (the field):
 
 | State | Hook | What shows | 412×430 / 360×340 |
