@@ -359,7 +359,7 @@ export function fonoteka({ S, toast, confirm }) {
       </div>
     </section>
     </div>
-    <${Comb} items=${items} cell=${cellOf} focus=${cur || null} top=${headH + 32} onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; }} />
+    <${Comb} items=${items} cell=${cellOf} focus=${cur || null} loading=${songs === null} top=${headH + 32} onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; }} />
     <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />

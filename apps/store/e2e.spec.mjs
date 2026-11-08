@@ -68,10 +68,15 @@ export default [
       h.expect((await h.attr("[data-comb]", "data-comb-focus")) === "fonoteka", `під лінзою не Фонотека: ${await h.attr("[data-comb]", "data-comb-focus")}`);
       h.expect((await h.attr("[data-comb]", "data-comb-group")) === "picks", `під лінзою не кластер добірки: ${await h.attr("[data-comb]", "data-comb-group")}`);
       h.expect((await h.attr("[data-comb]", "data-comb-zoom")) === "0", "поле не на єдиному рівні (картки)");
-      h.expect((await h.count('[data-island][data-store-island][data-app="fonoteka"]')) === 1, "немає острівця сфокусованої апки");
-      h.expect((await h.text("[data-store-island] [data-slogan]")).trim().length > 5, "острівець без слогана");
-      h.expect((await h.count("[data-store-island] button")) >= 1, "острівець без «Відкрити»");
-      h.expect(parseFloat(await h.css("html", "--island-h")) > 40, "острівець не опублікував висоту");
+      h.expect((await h.count("[data-store-island]")) === 0, "острівець лишився у сторі");
+      await h.drag("[data-machine]", 24, 12);
+      h.expect(await h.until('document.querySelector("#appcard")?.open === true', 10000), "картка апки не відкрилась, коли поле спинилось");
+      h.expect((await h.count("[data-app-card] [data-gallery] img")) >= 1, "картка без галереї скрінів");
+      h.expect((await h.text("[data-app-card] h3")).trim().length > 1, "картка без назви");
+      h.expect((await h.count("[data-app-card] [data-card-open]")) === 1, "картка без «Відкрити»");
+      await h.back();
+      h.expect(await h.until('document.querySelector("#appcard")?.open !== true'), "Back не закрив картку");
+      h.expect((await h.count("[data-comb]")) === 1, "Back вийшов зі стору замість закрити картку");
       const has = await h.attr("[data-stage]", "data-haswebgl");
       if (has === "yes") {
         h.expect((await h.attr("[data-stage]", "data-render")) === "webgl", `WebGL є, а поле не малюється: err=${await h.attr("[data-stage]", "data-err")}`);
