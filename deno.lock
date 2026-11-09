@@ -6,7 +6,7 @@
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@deno/cache-dir@0.22.2": "0.22.2",
     "jsr:@deno/graph@0.86": "0.86.9",
-    "jsr:@microspec/core@1": "1.2.177",
+    "jsr:@microspec/core@1": "1.2.178",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/async@1": "1.4.0",
@@ -38,7 +38,7 @@
     "npm:@jsquash/png@3.0.1": "3.0.1",
     "npm:@jsquash/resize@2.1.0": "2.1.0",
     "npm:@jsquash/webp@1.4.0": "1.4.0",
-    "npm:@jsr/microspec__core@1": "1.2.177",
+    "npm:@jsr/microspec__core@1": "1.2.178",
     "npm:@nanostores/persistent@0.10.2": "0.10.2_nanostores@0.11.4",
     "npm:@nanostores/preact@0.5.2": "0.5.2_nanostores@0.11.4_preact@10.27.1",
     "npm:@resvg/resvg-wasm@2.6.2": "2.6.2",
@@ -830,8 +830,8 @@
         "npm:wabt"
       ]
     },
-    "@microspec/core@1.2.177": {
-      "integrity": "dbe614b313c7acb118da5e655b14e4e2d94133257cb0b6d9dce33652981d95ec",
+    "@microspec/core@1.2.178": {
+      "integrity": "1d0e069d88ab7db9acef46042f369968b4d3d6a4b8a507149bb4ed79dfb098af",
       "dependencies": [
         "jsr:@astral/astral",
         "jsr:@b-fuze/deno-dom",
@@ -1005,8 +1005,8 @@
       ],
       "tarball": "https://npm.jsr.io/~/11/@jsr/denosaurs__plug/1.0.3.tgz"
     },
-    "@jsr/microspec__core@1.2.177": {
-      "integrity": "sha512-Q2Yv3T07Jv8zOkQOUZhmMyLhO8L7aWY92TstZHtWS37HSb7lPS9i64XCWN0sr8RVbaG50QruYwa+Qhu++3XJLA==",
+    "@jsr/microspec__core@1.2.178": {
+      "integrity": "sha512-IUGCFKuorQKXgCQKgEXPMURNnTLo3QQjNfko5k+zkxr257Gqoi8pwmtTyB2yzPhQ90Xnna7oCRfCzZ+pwuuR1w==",
       "dependencies": [
         "@jsquash/png",
         "@jsquash/webp",
@@ -1029,7 +1029,7 @@
         "topojson-client",
         "wabt"
       ],
-      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.177.tgz"
+      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.178.tgz"
     },
     "@jsr/std__assert@0.213.1": {
       "integrity": "sha512-mbq7QHPHeAJiJJlwmjNI0uoZlvIU2rG89df8ceeJB1pgE5b54DkiNhjQmmfBft0/fYO8/d933rBYwcNzuLxhXA==",

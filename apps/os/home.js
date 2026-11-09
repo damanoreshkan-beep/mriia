@@ -14,6 +14,7 @@ import { ROSTER, STATE, classify as classifyDevices, demoStates } from "./device
 import { Icon, LABEL, CAPTION, Field } from "./ui.js";
 import { Console } from "./console.js";
 import { Ports } from "./ports.js";
+import { Audit } from "./audit.js";
 import { band } from "./radar.js";
 
 const TILE_DOT = { granted: "bg-success", partial: "bg-warning", denied: "bg-error", needsApp: "bg-base-content/30", staleApp: "bg-warning", prompt: "", unsupported: "", unknown: "" };
@@ -156,7 +157,7 @@ export function home({ S, t, toast }) {
     read();
     if (gate) {
       const want = new URLSearchParams(location.search).get("home");
-      if (want && ["perms", "console", "station", "ports"].includes(want)) { $home.set(want); S.stack.set([want]); }
+      if (want && ["perms", "console", "station", "ports", "audit"].includes(want)) { $home.set(want); S.stack.set([want]); }
     }
     const id = setInterval(read, HOME_MS);
     return () => { clearInterval(id); $home.set(null); if (S.stack.get().length) S.stack.set([]); };
@@ -170,7 +171,7 @@ export function home({ S, t, toast }) {
     setUpd(true);
     try {
       const url = location.href.split("#")[0].split("?")[0];
-      const blob = await buildApk({ url, name: T(t, "title") });
+      const blob = await buildApk({ url, name: T(t, "title"), power: "os" });
       const b64 = await new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(String(f.result).split(",")[1]); f.onerror = rej; f.readAsDataURL(blob); });
       await shell.call("system.update", { name: apkFilename(T(t, "title")), base64: b64 });
       toast?.(T(t, "updStarted"));
@@ -182,6 +183,7 @@ export function home({ S, t, toast }) {
   if (screen === "console") return sub(html`<${Console} S=${S} t=${t} toast=${toast} />`);
   if (screen === "station") return sub(html`<${Station} S=${S} t=${t} toast=${toast} />`);
   if (screen === "ports") return sub(html`<${Ports} S=${S} t=${t} toast=${toast} />`);
+  if (screen === "audit") return sub(html`<${Audit} t=${t} toast=${toast} />`);
 
   const battLine = !batt ? "—"
     : [`${batt.level}%`, T(t, batt.charging ? "battCharging" : "battIdle"),
@@ -200,6 +202,7 @@ export function home({ S, t, toast }) {
     ["ports", "lucide:plug", T(t, "tilePorts"), () => open("ports")],
     ["perms", "lucide:shield-check", T(t, "tilePerms"), () => open("perms")],
     ["console", "lucide:terminal", T(t, "tileConsole"), () => open("console")],
+    ["audit", "lucide:shield-alert", T(t, "tileAudit"), () => open("audit")],
   ];
 
   const dvMap = gate ? demoStates() : classifyDevices({ present: shell.present, usb: usb || [], ble });

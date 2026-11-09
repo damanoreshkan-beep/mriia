@@ -45,6 +45,7 @@
     "theme": true,
     "lang": true,
     "install": true,
+    "apk": "os",
     "permissions": [
       "geolocation",
       "backgroundLocation",

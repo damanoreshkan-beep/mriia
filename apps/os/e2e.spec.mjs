@@ -41,6 +41,18 @@ export default [
     },
   },
   {
+    name: "audit: the check reports counts and where the report is served", run: async (h) => {
+      await h.click('[data-tab="home"]');
+      await h.until(`!!document.querySelector('[data-go="audit"]')`);
+      await h.click('[data-go="audit"]');
+      await h.until(`!!document.querySelector('#audit-run')`);
+      await h.click("#audit-run");
+      await h.until(`document.querySelector('[data-audit]').textContent.includes('127.0.0.1:8765')`);
+      await h.back();
+      await h.until(`!!document.querySelector('[data-tiles]')`);
+    },
+  },
+  {
     name: "permissions: every capability is a tile, and a tile carries its state", run: async (h) => {
       await h.click('[data-tab="home"]'); await h.wait(200);
       await h.click('[data-go="perms"]'); await h.wait(300);
