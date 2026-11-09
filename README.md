@@ -9,75 +9,65 @@
 [![core](https://img.shields.io/badge/core-microspec-F2B84B)](https://github.com/damanoreshkan-beep/microspec)
 [![built on Android](https://img.shields.io/badge/built%20on-Termux%20%2F%20Android-a78bfa)](https://github.com/damanoreshkan-beep/microspec#written-on-a-phone)
 
-### **[▶ Open the store](https://mriia.si/store/)** — add any app to your home screen; they work offline.
+### **[▶ Open the store](https://mriia.si/store/)** — add any app to your home screen.
 
 <br>
 
 <table>
 <tr>
-<td width="33%"><a href="https://mriia.si/fmradio/"><img src="apps/store/assets/shot-fmradio--tune.webp" alt="FM Radio — a HackRF One demodulated live in a browser tab"></a><div align="center"><sub><b>FM Radio</b> · a HackRF One over WebUSB, demodulated on-device</sub></div></td>
-<td width="33%"><a href="https://mriia.si/mirage/"><img src="apps/store/assets/shot-mirage--stage.webp" alt="Mirage — AI imagery with material style cards"></a><div align="center"><sub><b>Mirage</b> · make, rework and blend imagery in eleven materials</sub></div></td>
-<td width="33%"><a href="https://mriia.si/handpan/"><img src="apps/store/assets/shot-handpan--play.webp" alt="Handpan — a playable tone field lit by the design system"></a><div align="center"><sub><b>Handpan</b> · struck tone fields with generated melodic lines</sub></div></td>
+<td width="33%"><a href="https://mriia.si/store/"><img src="apps/store/assets/shot-store--apps.webp" alt="The store: a honeycomb of apps on one GPU canvas, the resting cell grown into its large state"></a><div align="center"><sub><b>Store</b> · a honeycomb, from the centre out. The resting cell grows.</sub></div></td>
+<td width="33%"><a href="https://mriia.si/fonoteka/"><img src="apps/store/assets/shot-fonoteka--songs.webp" alt="Fonoteka: songs as cells, the playing one wearing its spectrum as a corona"></a><div align="center"><sub><b>Fonoteka</b> · your songs as cells. The playing one wears its spectrum.</sub></div></td>
+<td width="33%"><a href="https://mriia.si/rozriad/"><img src="apps/store/assets/shot-rozriad--field.webp" alt="Rozriad: a field of a million bits recomputed on the GPU every frame"></a><div align="center"><sub><b>Rozriad</b> · a million bits, recomputed every frame. Touch, and they boil.</sub></div></td>
+</tr>
+<tr>
+<td width="33%"><a href="https://mriia.si/obrys/"><img src="apps/store/assets/shot-obrys--view.webp" alt="Obrys: a 3D model opened from the phone"></a><div align="center"><sub><b>Obrys</b> · open a .glb from your phone, a link or your Mriia models.</sub></div></td>
+<td width="33%"><a href="https://mriia.si/vassago/"><img src="apps/store/assets/shot-vassago--days.webp" alt="Vassago: what is already known about the days ahead"></a><div align="center"><sub><b>Vassago</b> · what is already known about the days ahead.</sub></div></td>
+<td width="33%"><a href="https://mriia.si/prism/"><img src="apps/store/assets/shot-prism--split.webp" alt="Prism: one picture in every Mriia material at once"></a><div align="center"><sub><b>Prism</b> · one picture, every material at once.</sub></div></td>
 </tr>
 </table>
 
-<sub>**95 installable apps** — radio, instruments, astrology, media, games, tools. Dark is the moon's side of the portal, light is the sun's; every screen is drawn with light as the structure.</sub>
+<sub>**95 installable apps** — sound, tools, feeds, creative work, science, radio, games, money, wellness, esoterica. Dark is the moon's side, light is the sun's.</sub>
 
 </div>
 
 ---
 
-## The architecture — the core and the drivers
+## Principles
 
-Every app here is a **spec + one adapter** on top of two runtime halves: the pinned
-[**microspec core**](https://github.com/damanoreshkan-beep/microspec) (the verified `/_rt` runtime, the
-schema, the gates — it knows nothing about these apps) and this repo's own **`rt/`** — the domain half:
-radio demodulation, astrology mathematics, instrument theory, and the **WebUSB drivers** that talk to real
-hardware from a browser tab with nothing installed.
+Light is the structure. True black, one amber, one cyan. Volume is bloom, not shadow — a shadow fails the gate.
+
+A set of like things is a honeycomb. It grows from the centre. Nothing scrolls to the bottom.
+
+A cell has two states: itself, and itself grown — with its picture, its caption and the neighbours pushed aside. Nothing slides up over the field.
+
+Events, not timers. The machine says when it rests, when it opens, when it is live. Nothing waits a number of milliseconds.
+
+The store is a launcher. Delight sits on top of findability, never instead of it.
+
+English under the hood, a real translation for the reader. Copy is one image, no mechanics, no numbers.
+
+The battery is the budget. A field at rest draws zero frames. Heavy work lives in bytes and on the GPU.
+
+Code is a black box. No comments; JSDoc on exports only, because the registry renders it.
+
+Red stops the change.
+
+## How it is built
+
+Every app is one `spec.json` and one `view.js` on two runtime halves.
+
+- **[`@microspec/core`](https://jsr.io/@microspec/core)** — the appless core on JSR, pinned to one exact version. It serves `/_rt`, holds the schema, the gates and the kit. It knows nothing about these apps.
+- **`rt/`** — this farm's domain half: radio demodulation, astrology mathematics, instrument theory, the theme material, the WebUSB drivers that talk to real hardware from a browser tab.
+- **`apps/`** — 95 directories. Each declares its tabs and cards, writes one view, and inherits routing, offline, accessibility, i18n and the honeycomb from the core.
+- **`wasm/`** — the vendored engines, committed like codecs. The machines (Rozriad, the comb) are hand-written bytes plus a shader.
 
 <img src="docs/diagrams/architecture.svg" width="880" alt="Mriia layers: apps over rt/ domain modules and WebUSB drivers, over the pinned microspec core, over the web platform, down to real radio hardware.">
 
-- **`apps/`** — the farm. Each app declares its tabs and cards in `spec.json`, writes one `data.js` /
-  `view.js`, and inherits accessibility, responsiveness, offline, i18n and routing from the core.
-- **`rt/`** — our runtime modules, served as `/_rt/…` beside the core's; they import the core by bare
-  specifier (`@microspec/core/runtime/…`), which every app page's import map resolves. The drivers live
-  here: `hackrf.js` (`0x1d50:0x6089`, 256 KiB bulk transfers, RX **and** TX), `rtlsdr.js`, 433 MHz OOK
-  capture and replay — each with a research note written before the code.
-- **`wasm/`** — the vendored engines (a synthesiser, two game reactors, an offline speech model's runtime),
-  built once, committed like codecs.
-- **`@microspec/core`** — [the core on JSR](https://jsr.io/@microspec/core), a REAL package pinned to one
-  exact version: `deno task install` materializes its full file tree for `/_rt` serving and the build,
-  while every tool (the gates, the generators) runs straight off the registry. A framework bump is a
-  version move, proven by this repo's own CI before it ships.
+## How it ships
 
-## The same gates as the core
+Every push runs the browser-free gate DAG. A real Chromium then sweeps every affected app: axe in both themes, an eight-viewport matrix, the app's own e2e, offline precache, runtime errors. The built site passes a measured eye before rsync. The same contract draws the 95 icons, the store and the chrome.
 
-Nothing lands by hope: every push runs the browser-free gate DAG, then a real Chromium sweeps every
-affected app — axe in both themes, an eight-viewport matrix, the app's own e2e, offline precache, runtime
-error surveillance. The built site passes a final measured eye before rsync. **Red stops the change.**
-
-The store itself is one of the apps. Open it, install anything, pull it off your home screen like a native
-app — the service worker keeps it alive with the network unplugged.
-
-## The style
-
-filaments on true black, one warm amber + one electric cyan, volume told by bloom instead of shadow. The
-same contract draws the 95 icons, the store, the chrome and the diagrams on this page. It is enforced, not
-documented: an app-authored shadow fails the gate.
-
-### The theme module
-
-The material is this product's, not the core's: **`rt/theme.css`** (`@import "./runtime.css";` first, then
-the pair of light, the two palettes, the material's token values, the portal chrome's geometry, the
-enclosure, Geist) and its sprites `rt/ds-*.webp` are a module the overlay lays over the core's neutral
-`theme.css` by name — in the gate's server and in the build alike — so every page keeps its one
-`<link href="/_rt/theme.css">`. The brand's own tests (`rt/tests/theme_test.js`: the true-black page, a rim
-on every surface, the poles text-safe in both modes, every hook reaching a sprite that exists) run in the
-same `unit` gate as the core's. Another product on the same core brings its own `rt/theme.css`.
-
-<div align="center">
-<img src="https://cdn.jsdelivr.net/gh/damanoreshkan-beep/microspec@main/docs/art/theme-split.svg" width="880" alt="runtime.css (structure, neutral) → rt/theme.css (this product's brand) → the page's one link">
-</div>
+The `dev` branch lands on a pod on the server. The eye looks there. Nothing runs on the phone that built it.
 
 <div align="center">
 <sub>Built on <a href="https://github.com/damanoreshkan-beep/microspec">microspec</a> — the appless core this product proves.</sub>
