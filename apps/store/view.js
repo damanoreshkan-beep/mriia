@@ -148,16 +148,16 @@ export function store({ S }) {
 
   const open = bloom ? bloom.app : null;
   const openGroup = open ? GROUPS[GROUP_OF.get(open.id) || 0] : null;
-  const CAPTION_H = 216;
+  const CAPTION_H = 180;
   const caption = open ? html`<div data-open-caption data-app=${open.id} class="ms-stage z-10 pointer-events-none flex flex-col justify-end items-center px-6 pb-3">
-    <div class="w-full max-w-[22rem] flex flex-col items-center justify-end text-center gap-2" style=${`height:${CAPTION_H}px`}>
+    <div class="w-full max-w-[22rem] flex flex-col items-center justify-end text-center gap-1.5" style=${`height:${CAPTION_H}px`}>
       ${open.shots?.length > 1 ? html`<div data-shots class="flex gap-2 pointer-events-auto">${open.shots.map((_, i) => html`<button key=${i} aria-label=${open.screens?.[locale]?.[i] || String(i + 1)} onClick=${() => setShotIx(i)}
         class=${`w-2 h-2 rounded-full ms-press ${i === shotIx ? "" : "opacity-35"}`} style="background:var(--app-accent)"></button>`)}</div>` : null}
       <div class=${`${LABEL} flex items-center gap-1.5`}>${isNewborn(open) ? DOT() : null}<span>${openGroup ? T(t, openGroup.key) : ""}${openGroup && openGroup.id !== open.category ? ` · ${T(t, catKey(open.category))}` : ""}</span></div>
       <h3 class="font-bold text-[1.5rem] leading-tight tracking-tight">${nameOf(open)}</h3>
       ${sloganOf(open) ? html`<p data-slogan class="font-bold tracking-tight text-[1.05rem] leading-snug">${sloganOf(open)}</p>` : null}
-      <p class="text-[0.9rem] leading-snug text-muted line-clamp-3">${taglineOf(open)}</p>
-      <button data-card-open class="btn btn-primary rounded-full px-8 min-h-11 text-base font-bold ms-press pointer-events-auto mt-1" onClick=${() => launch(open)}>${T(t, "openApp")}</button>
+      <p class="text-[0.85rem] leading-snug text-muted line-clamp-2">${taglineOf(open)}</p>
+      <button data-card-open class="btn btn-primary rounded-full px-8 min-h-10 text-base font-bold ms-press pointer-events-auto mt-0.5" onClick=${() => launch(open)}>${T(t, "openApp")}</button>
     </div>
   </div>` : null;
 
