@@ -6,7 +6,7 @@ export default [
       for (const want of [/gate device/i, /android/i, /%/, /bridge \d+/]) {
         h.expect(want.test(state), `панель пристрою без ${want}: ${state.slice(0, 200)}`);
       }
-      h.expect((await h.count("[data-tiles] [data-go]")) === 5, "очікував п’ять плиток входу");
+      h.expect((await h.count("[data-tiles] [data-go]")) === 6, "очікував шість плиток входу");
       h.expect((await h.count("[data-go][data-store]")) === 1, "немає плитки магазину");
     },
   },
