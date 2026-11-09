@@ -1,53 +1,94 @@
 import { html } from "htm/preact";
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { T } from "/_rt/i18n.js";
 import { Panel } from "/_rt/ui.js";
 import { shell } from "/_rt/shell.js";
 import { Icon, Field } from "./ui.js";
 
 const PORT = 8765;
-const PATH = "/audit.json";
 
 export function Audit({ t, toast }) {
+  const [srv, setSrv] = useState(null);
+  const [set, setSet] = useState(null);
   const [report, setReport] = useState(null);
+  const [bright, setBright] = useState(50);
+  const [vol, setVol] = useState(50);
   const [busy, setBusy] = useState(false);
-  const ready = shell.has("system.audit");
+  const ready = shell.has("server.start") && shell.has("control.settings");
+  const live = !!srv?.running;
 
-  const run = async () => {
+  const refresh = async () => {
+    try { setSrv(await shell.call("server.status", {})); } catch { setSrv(null); }
+    if (shell.has("control.settings")) {
+      try { const s = await shell.call("control.settings", {}); setSet(s); setBright(s.brightness ?? 50); } catch { }
+    }
+  };
+  useEffect(() => { refresh(); }, []);
+
+  const start = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const value = await shell.call("system.audit", {});
-      await shell.call("server.start", { port: PORT, loopback: true, once: true });
-      await shell.call("server.put", {
-        path: PATH,
-        contentType: "application/json",
-        base64: btoa(unescape(encodeURIComponent(JSON.stringify(value)))),
-      });
-      setReport(value);
-      await shell.call("bg.start", { title: T(t, "auditNote") });
-    } catch (e) {
-      toast?.(e?.code || String(e));
-    } finally {
-      setBusy(false);
-    }
+      await shell.call("server.start", { port: PORT, loopback: true, mcp: true });
+      await shell.call("bg.start", { title: T(t, "bridgeNote") });
+      await refresh();
+      try { setReport(await shell.call("system.audit", {})); } catch { }
+    } catch (e) { toast?.(e?.code || String(e)); } finally { setBusy(false); }
   };
 
+  const stop = async () => {
+    setBusy(true);
+    try { await shell.call("server.stop", {}); await refresh(); } catch (e) { toast?.(e?.code || String(e)); } finally { setBusy(false); }
+  };
+
+  const setBrightness = async (v) => {
+    setBright(v);
+    try { await shell.call("control.brightness", { percent: v }); } catch (e) { toast?.(e?.code === "needsSettings" ? T(t, "bridgeGrant") : String(e?.code || e)); }
+  };
+  const setVolume = async (v) => { setVol(v); try { await shell.call("control.volume", { stream: "music", percent: v }); } catch (e) { toast?.(String(e?.code || e)); } };
+  const torch = async (on) => { try { await shell.call("control.torch", { on }); } catch (e) { toast?.(String(e?.code || e)); } };
+
   return html`<div class="flex flex-col gap-[var(--ms-gap)] pt-1">
-    <${Panel}>
+    <${Panel} title=${T(t, "bridgeTitle")}>
       <div data-audit class="flex flex-col">
-        <${Field} label=${T(t, "auditAccess")} value=${report ? String(report.accessibility.length) : "—"} mono
-          tone=${report?.accessibility.length ? "warn" : ""} />
-        <${Field} label=${T(t, "auditAdmins")} value=${report ? String(report.admins.length) : "—"} mono
-          tone=${report?.admins.length ? "warn" : ""} />
+        <${Field} label=${T(t, "bridgeState")} value=${live ? T(t, "bridgeOn") : T(t, "bridgeOff")} tone=${live ? "ok" : ""} />
+        ${live ? html`<${Field} label=${T(t, "bridgeUrl")} value=${`127.0.0.1:${PORT}/mcp`} mono wrap />` : null}
+        ${ready ? null : html`<${Field} label=${T(t, "bridgeState")} value=${T(t, "bridgeNeedsApp")} tone="warn" />`}
+      </div>
+      <button id="bridge-toggle" class=${`btn btn-sm rounded-full w-full gap-2 mt-3 ${live ? "" : "btn-primary"}`}
+          disabled=${busy || !ready} onClick=${live ? stop : start}>
+        ${Icon(live ? "lucide:plug-zap" : "lucide:plug")}<span>${T(t, live ? "bridgeStop" : "bridgeStart")}</span>
+      </button>
+    <//>
+
+    <${Panel} title=${T(t, "ctrlTitle")}>
+      <label class="flex flex-col gap-1.5 py-2">
+        <span class="text-xs uppercase tracking-wider text-muted">${T(t, "ctrlBrightness")} · ${bright}%</span>
+        <input type="range" min="0" max="100" value=${bright} disabled=${!shell.has("control.brightness")}
+          onChange=${(e) => setBrightness(Number(e.target.value))} class="range range-primary range-sm" />
+      </label>
+      <label class="flex flex-col gap-1.5 py-2">
+        <span class="text-xs uppercase tracking-wider text-muted">${T(t, "ctrlVolume")} · ${vol}%</span>
+        <input type="range" min="0" max="100" value=${vol} disabled=${!shell.has("control.volume")}
+          onChange=${(e) => setVolume(Number(e.target.value))} class="range range-primary range-sm" />
+      </label>
+      <div class="flex gap-2 pt-1">
+        <button class="btn btn-sm rounded-full flex-1 gap-2" disabled=${!shell.has("control.torch")} onClick=${() => torch(true)}>
+          ${Icon("lucide:flashlight")}<span>${T(t, "ctrlTorchOn")}</span>
+        </button>
+        <button class="btn btn-sm rounded-full flex-1 gap-2" disabled=${!shell.has("control.torch")} onClick=${() => torch(false)}>
+          ${Icon("lucide:flashlight-off")}<span>${T(t, "ctrlTorchOff")}</span>
+        </button>
+      </div>
+    <//>
+
+    <${Panel} title=${T(t, "auditTitle")}>
+      <div class="flex flex-col">
+        <${Field} label=${T(t, "auditAccess")} value=${report ? String(report.accessibility.length) : "—"} mono tone=${report?.accessibility.length ? "warn" : ""} />
+        <${Field} label=${T(t, "auditAdmins")} value=${report ? String(report.admins.length) : "—"} mono tone=${report?.admins.length ? "warn" : ""} />
         <${Field} label=${T(t, "auditApps")} value=${report ? String(report.apps.length) : "—"} mono />
         <${Field} label=${T(t, "auditVpn")} value=${report ? T(t, report.vpn ? "auditVpnOn" : "auditVpnOff") : "—"} />
-        ${report ? html`<${Field} label=${T(t, "auditReport")} value=${`127.0.0.1:${PORT}${PATH}`} mono wrap />` : null}
-        ${ready ? null : html`<${Field} label=${T(t, "srvState")} value=${T(t, "auditNeedsApp")} tone="warn" />`}
       </div>
-      <button id="audit-run" class="btn btn-sm btn-primary rounded-full w-full gap-2 mt-3" disabled=${busy || !ready} onClick=${run}>
-        ${Icon("lucide:shield-alert")}<span>${T(t, "auditRun")}</span>
-      </button>
     <//>
   </div>`;
 }

@@ -41,13 +41,13 @@ export default [
     },
   },
   {
-    name: "audit: the check reports counts and where the report is served", run: async (h) => {
+    name: "bridge: starting the control bridge shows its MCP address", run: async (h) => {
       await h.click('[data-tab="home"]');
       await h.until(`!!document.querySelector('[data-go="audit"]')`);
       await h.click('[data-go="audit"]');
-      await h.until(`!!document.querySelector('#audit-run')`);
-      await h.click("#audit-run");
-      await h.until(`document.querySelector('[data-audit]').textContent.includes('127.0.0.1:8765')`);
+      await h.until(`!!document.querySelector('#bridge-toggle')`);
+      await h.click("#bridge-toggle");
+      await h.until(`document.querySelector('[data-audit]').textContent.includes('127.0.0.1:8765/mcp')`);
       await h.back();
       await h.until(`!!document.querySelector('[data-tiles]')`);
     },
