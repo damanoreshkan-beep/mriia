@@ -57,7 +57,7 @@ export default [
       h.expect(await h.until('document.querySelector("#confirm")?.open === true'), "конфірм не відкрився");
       h.expect(/Польова пісня/.test(await h.text("#confirm")), "конфірм не називає пісню, яку видаляє");
       await h.back();
-      h.expect(await h.until('document.querySelector("#confirm")?.open !== true && history.state?.msRoot === 1'), "Back не закрив конфірм");
+      h.expect(await h.until('(d => !!d && !d.open)(document.querySelector("#confirm")) && history.state?.msRoot === 1'), "Back не закрив конфірм");
       h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 1, "пісня зникла без підтвердження");
       await h.tap("[data-transport] [data-del]");
       h.expect(await h.until('document.querySelector("#confirm")?.open === true'), `конфірм не відкрився вдруге (del disabled=${await h.prop("[data-transport] [data-del]", "disabled")}, open=${await h.prop("#confirm", "open")})`);
