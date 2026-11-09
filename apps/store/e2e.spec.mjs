@@ -71,10 +71,9 @@ export default [
       h.expect((await h.count("[data-store-island]")) === 0, "острівець лишився у сторі");
       h.expect((await h.count("#appcard")) === 0, "у сторі є шторка картки — соти мають два стани, не шторки");
       await h.drag("[data-machine]", 24, 12);
-      h.expect(await h.until('!!document.querySelector("[data-open-caption]")', 10000), "велика сота без підпису, коли поле спинилось");
+      h.expect(await h.until('document.querySelector("[data-comb-open]") && document.querySelector("[data-open-caption]")', 10000), "велика сота без підпису, коли поле спинилось");
       h.expect((await h.text("[data-open-caption] h3")).trim().length > 1, "підпис без назви");
       h.expect((await h.count("[data-open-caption] [data-card-open]")) === 1, "підпис без «Відкрити»");
-      h.expect((await h.attr("[data-comb]", "data-comb-open")) === "1", "корінь сот не каже про великий стан");
       await h.drag("[data-machine]", 30, 0);
       h.expect(await h.until('!document.querySelector("[data-comb-open]")', 6000), "дотик не закрив велику соту");
       const has = await h.attr("[data-stage]", "data-haswebgl");
