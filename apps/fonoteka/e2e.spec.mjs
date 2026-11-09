@@ -53,14 +53,15 @@ export default [
       h.expect((await h.count("[data-albums] [data-del]")) === 0, "кошик повернувся в комірку — дії живуть у плеєрі");
       await h.tap('[data-play="c3d4e5f607182930"]');
       h.expect(await h.until('document.querySelector("[data-transport] [data-del]") && !document.querySelector("[data-transport] [data-del]").disabled'), "дія видалення не з'явилась у плеєрі");
+      const quiet = (open) => `(d => !!d && d.open === ${open})(document.querySelector("#confirm")) && document.documentElement.dataset.msOverlays === "${open ? 1 : 0}" && document.documentElement.dataset.msOverlayPending === "0"`;
       await h.tap("[data-transport] [data-del]");
-      h.expect(await h.until('document.querySelector("#confirm")?.open === true'), "конфірм не відкрився");
+      h.expect(await h.until(quiet(true)), "конфірм не відкрився");
       h.expect(/Польова пісня/.test(await h.text("#confirm")), "конфірм не називає пісню, яку видаляє");
       await h.back();
-      h.expect(await h.until('(d => !!d && !d.open)(document.querySelector("#confirm")) && history.state?.msRoot === 1'), "Back не закрив конфірм");
+      h.expect(await h.until(quiet(false)), "Back не закрив конфірм");
       h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 1, "пісня зникла без підтвердження");
       await h.tap("[data-transport] [data-del]");
-      h.expect(await h.until('document.querySelector("#confirm")?.open === true'), `конфірм не відкрився вдруге (del disabled=${await h.prop("[data-transport] [data-del]", "disabled")}, open=${await h.prop("#confirm", "open")})`);
+      h.expect(await h.until(quiet(true)), `конфірм не відкрився вдруге (del disabled=${await h.prop("[data-transport] [data-del]", "disabled")}, open=${await h.prop("#confirm", "open")}, overlays=${await h.attr("html", "data-ms-overlays")}/${await h.attr("html", "data-ms-overlay-pending")})`);
       await h.click("#confirm-go");
       h.expect(await h.until('!document.querySelector(\'[data-song="c3d4e5f607182930"]\')'), "пісня лишилась після підтвердження");
       h.expect(/Видалено|Deleted/.test(await h.bodyText()), "немає підтвердження");
@@ -92,11 +93,12 @@ export default [
   },
   {
     name: "PWA: профіль → модалка, Back закриває", run: async (h) => {
-      await h.click('[data-tab="me"]'); await h.wait(150);
-      await h.click("#p-install"); await h.wait(150);
-      h.expect((await h.prop("#install", "open")) === true, "модалка не відкрилась");
-      await h.back(); await h.wait(200);
-      h.expect((await h.prop("#install", "open")) !== true, "Back не закрив");
+      await h.click('[data-tab="me"]');
+      h.expect(await h.until('!!document.querySelector("#p-install")'), "немає кнопки встановлення");
+      await h.click("#p-install");
+      h.expect(await h.until('document.querySelector("#install")?.open === true'), "модалка не відкрилась");
+      await h.back();
+      h.expect(await h.until('document.querySelector("#install")?.open !== true && document.documentElement.dataset.msOverlayPending === "0"'), "Back не закрив");
     },
   },
 ];
