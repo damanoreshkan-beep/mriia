@@ -163,7 +163,7 @@ export function store({ S }) {
 
   return html`<div class="flex flex-col gap-4" data-store-mode="today" data-store-search=${searchOpen ? "open" : "folded"} data-store-used=${USED.length} data-store-lead=${LEAD ? LEAD.id : null} data-store-focus=${focus ? focus.id : null}>
     <div ref=${headRef} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto [&_textarea]:pointer-events-auto">${headRow}</div>
-    <${Comb} items=${items} groups=${groups} cell=${cellOf} top=${headH + 32} bottom=${bloom ? CAPTION_H + 12 : 0} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)}
+    <${Comb} items=${items} groups=${groups} cell=${cellOf} top=${headH + 32} onOpen=${(it) => { const a = byId.get(it.id); if (a) tap(a); }} onFocus=${(it) => setFocus(byId.get(it.id) || null)}
       onBloom=${(it, at) => { const a = it ? byId.get(it.id) : null; if (a) { setShotIx(0); setBloom({ app: a, at }); } else setBloom(null); }} />
     ${caption}
     <${Forms} />
