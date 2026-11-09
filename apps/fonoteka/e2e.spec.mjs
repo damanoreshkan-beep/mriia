@@ -59,9 +59,10 @@ export default [
       await h.back();
       h.expect(await h.until('document.querySelector("#confirm")?.open !== true'), "Back не закрив конфірм");
       h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 1, "пісня зникла без підтвердження");
-      await h.tap("[data-transport] [data-del]"); await h.wait(250);
-      await h.click("#confirm-go"); await h.wait(400);
-      h.expect((await h.count('[data-song="c3d4e5f607182930"]')) === 0, "пісня лишилась після підтвердження");
+      await h.tap("[data-transport] [data-del]");
+      h.expect(await h.until('document.querySelector("#confirm")?.open === true'), "конфірм не відкрився вдруге");
+      await h.click("#confirm-go");
+      h.expect(await h.until('!document.querySelector(\'[data-song="c3d4e5f607182930"]\')'), "пісня лишилась після підтвердження");
       h.expect(/Видалено|Deleted/.test(await h.bodyText()), "немає підтвердження");
       h.expect((await h.attr("[data-fonoteka]", "data-songs")) === "2", "лічильник не зменшився");
       h.expect((await h.attr("[data-onphone]", "data-all")) === "true", "лишились дві збережені — має бути «усі на телефоні»");
