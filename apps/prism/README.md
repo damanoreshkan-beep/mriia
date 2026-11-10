@@ -4,7 +4,7 @@
 
 # Prism
 
-**Поділись картинкою — і вона постане в кожному матеріалі Мрії одразу. Свої стилі зберігаються з тобою.**
+**Share a picture and it appears in every Mriia material at once. Your own styles stay with you.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Призма  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Prism  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Ліпка">
+<img src="icon.svg" width="84" height="84" alt="Lipka">
 
-# Ліпка
+# Lipka
 
-**Фото речі стає 3D-моделлю для принтера. Знімаєш, чекаєш кілька хвилин і завантажуєш файл .glb.**
+**A photo of a thing becomes a 3D model for your printer. Shoot it, wait a few minutes, download the .glb file.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Ліпка  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Sculpt  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

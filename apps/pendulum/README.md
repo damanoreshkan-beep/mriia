@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Маятник">
+<img src="icon.svg" width="84" height="84" alt="Pendulum">
 
-# Маятник
+# Pendulum
 
-**Споглядальний маятник, що гойдається між протилежностями — один подих на кожен змах. Втягуєш думку — викидаєш; створення і руйнування, усе і ніщо. Дихай разом із ним.**
+**A contemplative pendulum that swings between opposites — one breath to each swing. Draw a thought in, cast it out; creation and ruin, everything and nothing. Breathe with it.**
 
 ![](https://img.shields.io/badge/-esoterica-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Гойдання  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Swing  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

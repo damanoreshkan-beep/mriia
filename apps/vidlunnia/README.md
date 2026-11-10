@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Відлуння">
+<img src="icon.svg" width="84" height="84" alt="Vidlunnia">
 
-# Відлуння
+# Vidlunnia
 
-**Твій голос будь-якою мовою: запиши десять секунд, напиши фразу, почуй, як ти її кажеш.**
+**Your voice, any language: record ten seconds, type a line, hear yourself say it.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Голос  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Voice  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

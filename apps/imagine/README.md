@@ -1,22 +1,22 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Уяви">
+<img src="icon.svg" width="84" height="84" alt="Imagine">
 
-# Уяви
+# Imagine
 
-**Опиши картинку словами — і отримай шпалери саме під свій екран. Найвища якість і точні пропорції твого телефона.**
+**Describe a picture in words and get a wallpaper made for your screen. Top quality, in your phone's exact proportions.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
 <br>
 
-<img src="../../docs/shots/imagine.png" width="640" alt="Уяви">
+<img src="../../docs/shots/imagine.png" width="640" alt="Imagine">
 
 </div>
 
 ---
 
-**Screens** Твори · Онови · Опиши  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Make · Edit · Read  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

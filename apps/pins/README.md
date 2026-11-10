@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="піни">
+<img src="icon.svg" width="84" height="84" alt="pins">
 
-# піни
+# pins
 
-**Прямі посилання з Pinterest**
+**Direct links out of Pinterest**
 
 ![](https://img.shields.io/badge/-tools-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Дістати · Збережені  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Grab · Saved  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

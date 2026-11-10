@@ -4,7 +4,7 @@
 
 # microspec OS
 
-**Що цей пристрій дозволяє застосунку**
+**What this device lets an app do**
 
 ![](https://img.shields.io/badge/-tools-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Пристрій · Радар · Файли · Сигнали  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Device · Radar · Files · Alarms  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 ---
 

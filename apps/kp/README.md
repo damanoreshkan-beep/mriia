@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Магнітні бурі">
+<img src="icon.svg" width="84" height="84" alt="Geomagnetic Storms">
 
-# Магнітні бурі
+# Geomagnetic Storms
 
-**Геомагнітна активність онлайн — індекс Kp, шкала штормів G, прогноз і сонячний вітер**
+**Geomagnetic activity live — the Kp index, the G storm scale, forecast and solar wind**
 
 ![](https://img.shields.io/badge/-science-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Зараз  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Now  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

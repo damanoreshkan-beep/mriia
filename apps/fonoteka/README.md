@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Фонотека">
+<img src="icon.svg" width="84" height="84" alt="Fonoteka">
 
-# Фонотека
+# Fonoteka
 
-**Твоя полиця пісень, яка завжди з тобою. Поділись файлом із будь-якого застосунку — і слухай одразу, з перемоткою, без очікування.**
+**Your shelf of songs, always with you. Share a file from any app — and listen right away, with seeking, no waiting.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Пісні  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Songs  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

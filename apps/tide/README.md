@@ -4,7 +4,7 @@
 
 # Tide
 
-**Живе радіо, яке видно: шістдесят станцій у шести течіях. Deep, Groove, Signal, Bass, Україна, Roots — плавні переходи між станціями й керування з екрана блокування.**
+**Live radio you can see: sixty stations in six currents. Deep, Groove, Signal, Bass, Ukraine, Roots — smooth cross-fades between stations and lock-screen controls.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Слухати  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Listen  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Гомін">
+<img src="icon.svg" width="84" height="84" alt="Homin">
 
-# Гомін
+# Homin
 
-**Почуй пульти, датчики й метеостанції довкола. Усе, що тихо перемовляється по радіо поруч із тобою. Потрібен приймач HackRF.**
+**Hear the remotes, sensors and weather stations around you. Everything quietly talking over the radio nearby. Needs a HackRF receiver.**
 
 ![](https://img.shields.io/badge/-hackrf-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Смуга · Ефір · Збережені  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Band · Live · Saved  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

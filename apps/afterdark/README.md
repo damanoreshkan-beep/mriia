@@ -4,7 +4,7 @@
 
 # afterdark
 
-**Живий техно-потік за повноекранним рейвом: лазери, дим і 3D-сцена, що танцює в такт біту. Ніч, що ніколи не світлішає; нахил телефона рухає сцену.**
+**A live techno stream behind a full-screen rave. Lasers, smoke and a 3D scene dancing to the beat; tilt the phone and the scene moves.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Рейв · Каст  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Rave · Cast  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

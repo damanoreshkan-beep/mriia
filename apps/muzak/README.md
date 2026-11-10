@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Музак">
+<img src="icon.svg" width="84" height="84" alt="Muzak">
 
-# Музак
+# Muzak
 
-**Посилання з YouTube Music або твої вподобання звідти — і пісня грає тут. Сподобалась — у Фонотеку чи собі mp3, друзям — посиланням, а з будь-якої можна зробити мікс.**
+**A YouTube Music link, or your likes from there, and the song plays here. Love it: into Fonoteka, or an mp3 for you. For friends: a link. And any song can become a mix.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Пісня · Пошук · Вподобане · Радіо  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Song · Search · Liked · Radio  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

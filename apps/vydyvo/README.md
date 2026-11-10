@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Видиво">
+<img src="icon.svg" width="84" height="84" alt="Vydyvo">
 
-# Видиво
+# Vydyvo
 
-**Жива заставка: щоразу нова картина з твоїх слів, під світло твоєї теми.**
+**A living screensaver: a new picture from your words every few minutes, lit for your theme.**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Заставка  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Screensaver  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

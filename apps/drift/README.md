@@ -4,7 +4,7 @@
 
 # Drift
 
-**Нескінченна спокійна музика, що ніколи не повторюється. Десять настроїв — від глибокого космосу до теплого лоу-фаю — для роботи, сну й тиші. Грає без інтернету.**
+**Endless calm music that never repeats. Ten moods — from deep space to warm lo-fi — for work, sleep and quiet. Plays with no internet.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Гра · Форма  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Play · Shape  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

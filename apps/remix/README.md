@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Ремікс">
+<img src="icon.svg" width="84" height="84" alt="Remix">
 
-# Ремікс
+# Remix
 
-**Твої вподобані пісні з YouTube на повзунку швидкості, від super slowed до super sped up. Темп і простір підбираються під саму пісню, файли mp3 з обкладинкою.**
+**Your liked YouTube songs on a speed slider, from super slowed to super sped up. Tempo and space are chosen for the song itself; mp3 files with the cover.**
 
 ![](https://img.shields.io/badge/-sound-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Вподобане · Ремікс  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Liked · Remix  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Потік">
+<img src="icon.svg" width="84" height="84" alt="Flux">
 
-# Потік
+# Flux
 
-**Малюй рухом — твій жест лишає світло і звук**
+**Paint with motion — your movement leaves light and sound**
 
 ![](https://img.shields.io/badge/-creative-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Малюй  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Paint  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

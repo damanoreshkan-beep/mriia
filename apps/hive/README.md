@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Соти">
+<img src="icon.svg" width="84" height="84" alt="Hive">
 
-# Соти
+# Hive
 
-**Кожне радіо навколо тебе — окремою коміркою**
+**Every radio around you, as one cell each**
 
 ![](https://img.shields.io/badge/-tools-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Соти · Список · Пошук · Вартовий  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Hive · List · Hunt · Guard  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

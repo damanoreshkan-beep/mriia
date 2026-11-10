@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Рій">
+<img src="icon.svg" width="84" height="84" alt="Swarm">
 
-# Рій
+# Swarm
 
-**Озирнись — вони вже позаду**
+**Turn around — they are already behind you**
 
 ![](https://img.shields.io/badge/-play-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Рій  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Swarm  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

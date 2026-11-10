@@ -4,7 +4,7 @@
 
 # Reel
 
-**Встав посилання на сторінку — і кожне відео на ній стане повноекранною стрічкою. Гортається сама, а наступні сторінки підвантажуються, поки ти свайпаєш.**
+**Paste a link to any page and every video on it becomes a full-screen feed. It scrolls by itself, and the next pages load as you swipe.**
 
 ![](https://img.shields.io/badge/-feeds-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Стрічка · Лайки · Джерела  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Reel · Liked · Sources  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

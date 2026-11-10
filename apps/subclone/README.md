@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Клонер пультів">
+<img src="icon.svg" width="84" height="84" alt="Remote Cloner">
 
-# Клонер пультів
+# Remote Cloner
 
-**Збережи сигнал свого пульта від воріт чи шлагбаума й відтвори його з телефона. Потрібен приймач HackRF.**
+**Save the signal of your own gate or barrier remote and replay it from your phone. Needs a HackRF receiver.**
 
 ![](https://img.shields.io/badge/-hackrf-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Клон  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Clone  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

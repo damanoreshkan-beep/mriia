@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Обрис">
+<img src="icon.svg" width="84" height="84" alt="Obrys">
 
-# Обрис
+# Obrys
 
-**Відкриває 3D-моделі .glb і .gltf з телефона, за посиланням або з твоїх моделей на Мрії. Модель можна крутити, вмикати її анімації, зберігати знімок і ставити в кімнату через камеру.**
+**Opens .glb and .gltf 3D models from your phone, from a link or from your models on Mriia. Turn the model, play its animations, save a snapshot and place it in your room through the camera.**
 
 ![](https://img.shields.io/badge/-tools-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Модель  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Model  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

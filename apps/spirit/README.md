@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Дух карти">
+<img src="icon.svg" width="84" height="84" alt="Card Spirit">
 
-# Дух карти
+# Card Spirit
 
-**Вивчай колоду: усі 78 карт Райдера-Вейта за структурою, кожна на весь екран — переверни її, і дух карти дасть розсудливу пораду для обох положень.**
+**Study the deck: all 78 Rider-Waite cards by structure, each full screen — flip it and the card's spirit gives sober advice for either orientation.**
 
 ![](https://img.shields.io/badge/-esoterica-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Колода  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Deck  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

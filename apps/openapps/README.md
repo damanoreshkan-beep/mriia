@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Відкриті застосунки">
+<img src="icon.svg" width="84" height="84" alt="Open apps">
 
-# Відкриті застосунки
+# Open apps
 
-**Відкриті застосунки з GitHub за платформами — Windows, macOS, Linux, Android: зірки, мова, ліцензія**
+**Free apps from GitHub, by platform — Windows, macOS, Linux, Android: stars, language, license**
 
 ![](https://img.shields.io/badge/-feeds-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Застосунки · Збережені  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Apps · Saved  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

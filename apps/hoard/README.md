@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="icon.svg" width="84" height="84" alt="Скарб">
+<img src="icon.svg" width="84" height="84" alt="Hoard">
 
-# Скарб
+# Hoard
 
-**Ставка перетворюється на живе золото — воно тече, доки ти працюєш, і лягає у скарбницю**
+**Your pay rate as living gold — it flows while you work and settles into the vault**
 
 ![](https://img.shields.io/badge/-money-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Потік · Здобуте  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Flow · Banked  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.

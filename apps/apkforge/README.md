@@ -4,7 +4,7 @@
 
 # APK Forge
 
-**Зроби з будь-якого сайту застосунок для Android. Встав адресу — і отримай готовий файл із назвою та іконкою сайту, який ставиться на телефон.**
+**Turn any website into an Android app. Paste its address and get a ready file with the site's name and icon to install on your phone.**
 
 ![](https://img.shields.io/badge/-tools-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 
@@ -12,7 +12,7 @@
 
 ---
 
-**Screens** Кузня  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
+**Screens** Forge  ·  **Capabilities** —  ·  **Offline** yes  ·  **Installable** yes
 
 Part of the **[microspec farm](../../)** — an AI-authored, gated micro-PWA. Every screen is accessible,
 responsive, installable and offline by construction. Browse the whole set from the **[store](../store/)**.
