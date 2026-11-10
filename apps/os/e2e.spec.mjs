@@ -48,6 +48,8 @@ export default [
       await h.until(`!!document.querySelector('#bridge-toggle')`);
       await h.click("#bridge-toggle");
       await h.until(`document.querySelector('[data-audit]').textContent.includes('127.0.0.1:8765/mcp')`);
+      await h.until(`document.querySelector('[data-audit]').textContent.includes('0123456789abcdef')`);
+      h.expect((await h.count("#bridge-copy")) === 1, "немає кнопки копіювання токена");
       await h.back();
       await h.until(`!!document.querySelector('[data-tiles]')`);
     },

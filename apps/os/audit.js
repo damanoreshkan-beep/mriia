@@ -14,6 +14,7 @@ export function Audit({ t, toast }) {
   const [bright, setBright] = useState(50);
   const [vol, setVol] = useState(50);
   const [busy, setBusy] = useState(false);
+  const [overlay, setOverlay] = useState(null);
   const ready = shell.has("server.start") && shell.has("control.settings");
   const live = !!srv?.running;
 
@@ -22,8 +23,16 @@ export function Audit({ t, toast }) {
     if (shell.has("control.settings")) {
       try { const s = await shell.call("control.settings", {}); setSet(s); setBright(s.brightness ?? 50); } catch { }
     }
+    if (shell.has("control.overlay")) {
+      try { setOverlay((await shell.call("control.overlay", {})).granted); } catch { }
+    }
   };
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+    const back = () => { if (!document.hidden) refresh(); };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, []);
 
   const start = async () => {
     if (busy) return;
@@ -41,6 +50,11 @@ export function Audit({ t, toast }) {
     try { await shell.call("server.stop", {}); await refresh(); } catch (e) { toast?.(e?.code || String(e)); } finally { setBusy(false); }
   };
 
+  const copyToken = async () => {
+    try { await shell.call("control.clip", { text: srv.token }); toast?.(T(t, "bridgeCopied")); } catch (e) { toast?.(String(e?.code || e)); }
+  };
+  const askOverlay = async () => { try { await shell.call("control.overlay", { ask: true }); } catch (e) { toast?.(String(e?.code || e)); } };
+
   const setBrightness = async (v) => {
     setBright(v);
     try { await shell.call("control.brightness", { percent: v }); } catch (e) { toast?.(e?.code === "needsSettings" ? T(t, "bridgeGrant") : String(e?.code || e)); }
@@ -53,12 +67,20 @@ export function Audit({ t, toast }) {
       <div data-audit class="flex flex-col">
         <${Field} label=${T(t, "bridgeState")} value=${live ? T(t, "bridgeOn") : T(t, "bridgeOff")} tone=${live ? "ok" : ""} />
         ${live ? html`<${Field} label=${T(t, "bridgeUrl")} value=${`127.0.0.1:${PORT}/mcp`} mono wrap />` : null}
+        ${live && srv?.token ? html`<${Field} label=${T(t, "bridgeToken")} value=${srv.token} mono wrap />` : null}
+        ${overlay === null ? null : html`<${Field} label=${T(t, "bridgeOverlay")} value=${T(t, overlay ? "bridgeOverlayOn" : "bridgeOverlayOff")} tone=${overlay ? "ok" : "warn"} />`}
         ${ready ? null : html`<${Field} label=${T(t, "bridgeState")} value=${T(t, "bridgeNeedsApp")} tone="warn" />`}
       </div>
       <button id="bridge-toggle" class=${`btn btn-sm rounded-full w-full gap-2 mt-3 ${live ? "" : "btn-primary"}`}
           disabled=${busy || !ready} onClick=${live ? stop : start}>
         ${Icon(live ? "lucide:plug-zap" : "lucide:plug")}<span>${T(t, live ? "bridgeStop" : "bridgeStart")}</span>
       </button>
+      ${live && srv?.token ? html`<button id="bridge-copy" class="btn btn-sm rounded-full w-full gap-2 mt-2" onClick=${copyToken}>
+        ${Icon("lucide:copy")}<span>${T(t, "bridgeCopy")}</span>
+      </button>` : null}
+      ${overlay === false ? html`<button id="bridge-overlay" class="btn btn-sm rounded-full w-full gap-2 mt-2" onClick=${askOverlay}>
+        ${Icon("lucide:app-window")}<span>${T(t, "bridgeOverlayAsk")}</span>
+      </button>` : null}
     <//>
 
     <${Panel} title=${T(t, "ctrlTitle")}>
