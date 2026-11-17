@@ -198,7 +198,6 @@ async function ytTap() {
 
 const ytAsked = new Set();
 async function ytCovers(list) {
-  if (gate) return;
   const want = list.filter((s) => s.yt && s.cover && !ytAsked.has(s.id));
   if (!want.length) return;
   for (const s of want) ytAsked.add(s.id);
@@ -412,7 +411,7 @@ export function fonoteka({ S, toast, confirm }) {
   const layerKey = layer.map((s) => s.id).join("|");
   useEffect(() => { ytCovers(layer); }, [layerKey]);
   const [bloom, setBloom] = useState(null);
-  useEffect(() => setBloom(null), [top?.id]);
+  useEffect(() => setBloom((b) => (b && top ? { ...b, id: top.id } : null)), [top?.id]);
   const now = cur ? songOf(cur) : null;
   const askDelete = (s) => confirm({ title: T(t, "delTitle"), body: T(t, "delBody", { name: titleOf(s) }), verb: T(t, "delYes"), onConfirm: () => remove(s) });
   const picker = useRef();
@@ -422,7 +421,7 @@ export function fonoteka({ S, toast, confirm }) {
     if ($cur.get()) readyShare(songOf($cur.get()));
     return () => { stopBreath(); combApi = null; };
   }, []);
-  const items = layer.map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, color: s.yt ? "secondary" : "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
+  const items = layer.map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, window: s.yt ? covers[s.id] || null : null, color: s.yt ? "secondary" : "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
   const onSettle = (it) => { const s = songOf(it.id); if (s && $cur.get() !== s.id) play(s.id, layerNow); };
   const actsOf = (s) => {
     const k = acts[actKey("keep", s)], m = acts[actKey("mix", s)];
@@ -454,9 +453,9 @@ export function fonoteka({ S, toast, confirm }) {
       ${s.yt && on ? html`<div class="flex flex-wrap justify-center gap-1">${actsOf(s).map((a) => actBtn(s, a, true))}</div>` : null}
     </div>`;
   };
-  const open = bloom ? songOf(bloom.id) : null;
+  const open = bloom && layer.some((s) => s.id === bloom.id) ? songOf(bloom.id) : null;
   const caption = open?.yt ? html`<div data-open-caption data-yt=${open.yt} class="fixed z-10 pointer-events-none flex justify-center -translate-x-1/2 w-[22rem] max-w-[100vw]"
-    style=${`left:${bloom.at.x}px;top:${Math.round(bloom.at.y + bloom.at.pitch * 0.93 + 14)}px`}>
+    style=${`left:${bloom.at.x}px;top:${Math.round(bloom.at.y + bloom.at.pitch * (covers[open.id] ? 0.93 : 1.6) + 14)}px`}>
     <div class="flex items-center gap-2 pointer-events-auto">${actsOf(open).map((a) => actBtn(open, a, false))}</div>
   </div>` : null;
   const head = useRef();
