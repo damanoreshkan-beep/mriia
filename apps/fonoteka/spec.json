@@ -10,7 +10,8 @@
       "type": "tool",
       "icon": "lucide:library",
       "label": "tabSongs",
-      "view": "fonoteka"
+      "view": "fonoteka",
+      "needs": ["auth"]
     },
     {
       "id": "me",

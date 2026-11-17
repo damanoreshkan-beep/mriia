@@ -70,6 +70,34 @@ export default [
     },
   },
   {
+    name: "YT Music: кнопка додає вподобані соти без скачування; сота має Скачати · Ремікс · Радіо; радіо провалюється вглиб, Back — на крок, дім — на головний шар", run: async (h) => {
+      await ready(h);
+      const yt = (sel = "") => `document.querySelectorAll('[data-comb-twin] [data-yt]${sel}').length`;
+      h.expect((await h.count("[data-comb-twin] [data-yt]")) === 0, "соти YT до підключення");
+      await h.tap("[data-yt-music]");
+      h.expect(await h.until(`${yt()} === 4`), `не чотири вподобані соти: ${await h.count("[data-comb-twin] [data-yt]")}`);
+      h.expect((await h.attr("[data-yt-music]", "aria-pressed")) === "true", "кнопка YT Music не увімкнена");
+      h.expect((await h.attr("[data-fonoteka]", "data-songs")) === "3", "вподобані потрапили на полицю без скачування");
+      for (const a of ["keep", "mix", "radio"]) h.expect((await h.count(`[data-comb-twin] [data-${a}="dQw4w9WgXcQ"]`)) === 1, `немає дії ${a} на соті`);
+      await h.click('[data-comb-twin] [data-keep="dQw4w9WgXcQ"]');
+      h.expect(await h.until(`document.querySelector('[data-comb-twin] [data-keep="dQw4w9WgXcQ"]').disabled`), "Скачати не спрацювало");
+      h.expect(/Пісня у Фонотеці|The song is in Fonoteka/.test(await h.bodyText()), "немає «Пісня у Фонотеці»");
+      await h.click('[data-comb-twin] [data-radio="dQw4w9WgXcQ"]');
+      h.expect(await h.until(`document.querySelector("[data-radio-nav]")?.dataset.depth === "1" && ${yt()} === 5 && document.documentElement.dataset.msOverlays === "1"`), "радіо не провалилось на перший рівень");
+      h.expect((await h.count("[data-home]")) === 0, "дім на першому рівні дублює Назад");
+      await h.click('[data-comb-twin] [data-radio="EdSz0PeLVgY"]');
+      h.expect(await h.until(`document.querySelector("[data-radio-nav]")?.dataset.depth === "2" && ${yt()} === 4 && document.documentElement.dataset.msOverlays === "2"`), "радіо не провалилось на другий рівень");
+      await h.back();
+      h.expect(await h.until(`document.querySelector("[data-radio-nav]")?.dataset.depth === "1" && ${yt()} === 5 && document.documentElement.dataset.msOverlayPending === "0"`), "Back не підняв на один рівень");
+      await h.click('[data-comb-twin] [data-radio="iJF2vlu0308"]');
+      h.expect(await h.until('!!document.querySelector("[data-home]")'), "немає кнопки на головний шар");
+      await h.click("[data-home]");
+      h.expect(await h.until(`!document.querySelector("[data-radio-nav]") && ${yt()} === 4 && document.documentElement.dataset.msOverlays === "0" && document.documentElement.dataset.msOverlayPending === "0"`), "дім не повернув на головний шар");
+      await h.tap("[data-yt-music]");
+      h.expect(await h.until(`${yt()} === 0`), "кнопка не сховала соти YT");
+    },
+  },
+  {
     name: "по колу чи далі: перемикач у плеєрі ходить між «далі» і «одна по колу»", run: async (h) => {
       await ready(h);
       h.expect((await h.count("[data-fonoteka] #repeat")) === 1, "немає перемикача");

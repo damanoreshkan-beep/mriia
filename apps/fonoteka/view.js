@@ -10,10 +10,13 @@ import { Transport, Island } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
 import { shapeOf, pathOf } from "/_rt/shape.js";
 import { envelopeOfBlob, BREATH_HZ, spectrumOfBlob, SPECTRUM_HZ, SPECTRUM_BANDS } from "/_rt/breath.js";
-import { Comb, MARK, PARAM } from "/_rt/comb.js";
+import { Comb, MARK, PARAM, COMB_MAX } from "/_rt/comb.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
-import { uploadResumable } from "/_rt/task.js";
+import { uploadResumable, taskCall } from "/_rt/task.js";
+import { session, restore } from "/_rt/auth.js";
+import { $likes, $lErr, $lBusy, readLikes, connect } from "/_rt/ytlikes.js";
+import { songOfFound, FIXTURE_RADIO } from "/_rt/muzak.js";
 import { authWall } from "/_rt/authwall.js";
 import { takeShared } from "/_rt/share.js";
 import { report } from "/_rt/telemetry.js";
@@ -134,24 +137,134 @@ function ensure() {
   audio.addEventListener("ended", () => step(1, false));
   return audio;
 }
-const songOf = (id) => ($songs.get() || []).find((s) => s.id === id);
-async function play(id) {
+const $yt = gate ? atom("") : persistentAtom("fonoteka:yt", "");
+const known = new Map();
+function ytOf(f) {
+  const id = `y:${f.id}`;
+  let e = known.get(id);
+  if (!e) { e = { id, yt: f.id, title: f.title || "", artist: f.artist || "", dur: f.dur || 0, cover: f.cover || null, url: f.url || `https://music.youtube.com/watch?v=${f.id}` }; known.set(id, e); }
+  return e;
+}
+const $radios = atom({});
+const $acts = atom({});
+let stackOf = null, layerNow = [], queue = [];
+const songOf = (id) => ($songs.get() || []).find((s) => s.id === id) || known.get(id) || null;
+
+async function play(id, list) {
   const s = songOf(id);
   if (!s) return;
+  if (list) queue = list;
   if (gate) { $cur.set(id); $playing.set(true); $dur.set(Math.round(s.dur * 1000)); return; }
+  if (s.yt && !session.get()) { authWall.set(authWall.get() + 1); return; }
   const a = ensure();
   if ($cur.get() !== id || !a.src) {
-    const blob = await store.blob(id).catch(() => null);
     if (kept) URL.revokeObjectURL(kept);
-    kept = blob ? URL.createObjectURL(blob) : "";
-    a.src = kept || await sealedUrl("/library/get", { id }); $pos.set(0);
+    kept = "";
+    if (s.yt) { $dur.set(Math.round(s.dur * 1000)); a.src = await sealedUrl("/library/play", { v: s.yt }); }
+    else {
+      const blob = await store.blob(id).catch(() => null);
+      kept = blob ? URL.createObjectURL(blob) : "";
+      a.src = kept || await sealedUrl("/library/get", { id });
+    }
+    $pos.set(0);
   }
   $cur.set(id);
   if (!hold) hold = holdAudio({ title: titleOf(s), artist: s.artist || "", onPlay: () => a.play(), onPause: () => a.pause(), onPrev: () => step(-1), onNext: () => step(1) });
-  else hold.meta(titleOf(s), s.artist || "", $covers.get()[s.id] || null);   
+  else hold.meta(titleOf(s), s.artist || "", $covers.get()[s.id] || null);
   a.play().catch(() => $playing.set(false));
+  if (s.yt) { stopBreath(); return; }
   if (breathing !== id) breatheSong(id);
-  readyShare(s);   
+  readyShare(s);
+}
+
+async function enrich() {
+  if (gate) return;
+  for (let i = 0; i < 3; i++) {
+    const l = $likes.get();
+    if (!l?.connected || !l.next || (($songs.get() || []).length + l.songs.length) >= COMB_MAX) return;
+    if (!(await readLikes(true))) return;
+  }
+}
+async function ytTap() {
+  $lErr.set("");
+  if ($yt.get() === "on" && $likes.get()?.connected) { $yt.set(""); return; }
+  if (gate) { $yt.set("on"); return; }
+  if (!session.get()) { authWall.set(authWall.get() + 1); return; }
+  $yt.set("on");
+  if (!$likes.get()?.connected) await readLikes();
+  if ($likes.get()?.connected) enrich();
+  else connect("fonoteka");
+}
+
+const ytAsked = new Set();
+async function ytCovers(list) {
+  if (gate) return;
+  const want = list.filter((s) => s.yt && s.cover && !ytAsked.has(s.id));
+  if (!want.length) return;
+  for (const s of want) ytAsked.add(s.id);
+  const got = await Promise.all(want.map((s) => fetch(s.cover, { signal: AbortSignal.timeout(15000) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null)));
+  const next = { ...$covers.get() };
+  want.forEach((s, i) => { if (got[i]) next[s.id] = URL.createObjectURL(got[i]); });
+  $covers.set(next);
+}
+
+async function tune(s) {
+  if (!s?.yt || !stackOf) return;
+  const st = stackOf.get();
+  if (st[st.length - 1]?.id === s.id) return;
+  stackOf.set([...st, s]);
+  if ($radios.get()[s.yt]) return;
+  $radios.set({ ...$radios.get(), [s.yt]: { songs: null } });
+  const hl = document.documentElement.lang === "en" ? "en" : "uk";
+  try {
+    const like = gate ? FIXTURE_RADIO.songs : await fetch(`${VPS_PROXY}/music/radio?v=${s.yt}&hl=${hl}`, { signal: AbortSignal.timeout(30000) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((j) => j.songs || []);
+    $radios.set({ ...$radios.get(), [s.yt]: { songs: like.filter((f) => f.id !== s.yt).map((f) => ytOf(songOfFound(f))) } });
+  } catch (e) {
+    const m = { ...$radios.get() }; delete m[s.yt]; $radios.set(m);
+    toastFn?.(T(tNow, e === 429 ? "errBusy" : "errRadio"));
+    const now = stackOf.get();
+    if (now[now.length - 1]?.id === s.id) stackOf.set(now.slice(0, -1));
+  }
+}
+
+const actKey = (k, s) => `${k}:${s.yt}`;
+function setAct(key, v) { const a = { ...$acts.get() }; if (v) a[key] = v; else delete a[key]; $acts.set(a); }
+function landed(row) {
+  if (!row?.id) return;
+  const u = $usage.get(); if (u) $usage.set({ ...u, count: u.count + 1, bytes: u.bytes + (row.size || 0) });
+  confirmed([row, ...($songs.get() || [])]);
+}
+function keepFail(e, fallback) {
+  if (e?.status === 401) { authWall.set(authWall.get() + 1); return; }
+  const why = (() => { try { return JSON.parse(e?.message).error; } catch { return String(e?.message || ""); } })();
+  $err.set(e?.status === 409 ? errorKey(409, why) : e?.status === 429 ? "errBusy" : fallback);
+}
+async function keepYt(s) {
+  const key = actKey("keep", s);
+  if ($acts.get()[key]) return;
+  if (!gate && !session.get()) { authWall.set(authWall.get() + 1); return; }
+  setAct(key, "busy"); $err.set("");
+  toastFn?.(T(tNow, "keeping"));
+  try {
+    if (!gate) landed(await taskCall("/library/keeptask", { url: s.url }));
+    setAct(key, "done"); toastFn?.(T(tNow, "kept"));
+  } catch (e) { setAct(key, ""); keepFail(e, "errKeep"); }
+}
+const MIX = ["slowed", "deep"];
+async function mixYt(s) {
+  const key = actKey("mix", s);
+  if ($acts.get()[key]) return;
+  if (!gate && !session.get()) { authWall.set(authWall.get() + 1); return; }
+  setAct(key, "busy"); $err.set("");
+  toastFn?.(T(tNow, "mixing"));
+  const got = gate ? MIX.map(() => ({ status: "fulfilled", value: null }))
+    : await Promise.allSettled(MIX.map((v) => taskCall("/library/keeptask", { url: s.url, v })));
+  const ok = got.filter((r) => r.status === "fulfilled");
+  for (const r of ok) landed(r.value);
+  if (!ok.length) { setAct(key, ""); keepFail(got[0].reason, "errMix"); return; }
+  setAct(key, "done");
+  toastFn?.(T(tNow, ok.length === MIX.length ? "mixed" : "mixedPart"));
 }
 
 let combApi = null, breathing = "", unbreathe = () => {};
@@ -184,13 +297,13 @@ async function breatheSong(id) {
 }
 function toggle() {
   if ($playing.get()) { if (gate) $playing.set(false); else audio?.pause(); return; }
-  const id = $cur.get() || ($songs.get() || [])[0]?.id;
-  if (id) play(id);
+  const id = $cur.get() || layerNow[0]?.id;
+  if (id) play(id, $cur.get() ? null : layerNow);
 }
 function step(dir, manual = true) {
-  const list = $songs.get() || [];
+  const list = (queue.some((s) => s.id === $cur.get()) ? queue : layerNow).filter((s) => songOf(s.id));
   const next = advance(list.findIndex((s) => s.id === $cur.get()), list.length, { step: dir, repeat: $repeat.get(), manual });
-  if (next >= 0) play(list[next].id);
+  if (next >= 0) play(list[next].id, list);
 }
 function seek(ms) { if (audio && !gate) audio.currentTime = ms / 1000; $pos.set(ms); }
 function stop() { stopBreath(); if (audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); } if (kept) { URL.revokeObjectURL(kept); kept = ""; } $cur.set(""); $playing.set(false); $pos.set(0); $dur.set(0); }
@@ -233,7 +346,7 @@ async function remove(s) {
 
 const links = new Map(), linking = new Map();   
 function readyShare(s) {
-  if (!s || gate) return Promise.resolve(null);
+  if (!s || gate || s.yt) return Promise.resolve(null);
   if (links.has(s.id)) return Promise.resolve(links.get(s.id));
   if (!linking.has(s.id)) linking.set(s.id, (async () => {
     try {
@@ -280,8 +393,26 @@ export function fonoteka({ S, toast, confirm }) {
   const songs = useStore($songs), usage = useStore($usage), uploads = useStore($uploads), err = useStore($err), held = useStore($held), covers = useStore($covers);
   const onPhone = songs ? songs.filter((s) => held.has(s.id)).length : 0;
   const cur = useStore($cur), playing = useStore($playing), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
-  toastFn = toast; tNow = t;
-  useEffect(() => { load(); }, []);
+  const stack = useStore(S.stack), radios = useStore($radios), likes = useStore($likes), yt = useStore($yt), acts = useStore($acts), lErr = useStore($lErr), lBusy = useStore($lBusy);
+  const sid = useStore(session)?.sid || "";
+  toastFn = toast; tNow = t; stackOf = S.stack;
+  useEffect(() => { load(); if (!gate) restore().catch(() => {}); }, []);
+  useEffect(() => { if (!gate && sid && $yt.get() === "on" && !$likes.get()?.connected) readLikes().then(enrich); }, [sid]);
+  useEffect(() => {
+    const on = () => { if (document.visibilityState === "visible" && $yt.get() === "on" && !$likes.get()?.connected && session.get()) readLikes().then(enrich); };
+    document.addEventListener("visibilitychange", on);
+    return () => document.removeEventListener("visibilitychange", on);
+  }, []);
+  const ytOn = yt === "on" && !!likes?.connected;
+  const top = stack.length ? stack[stack.length - 1] : null;
+  const tuned = top ? radios[top.yt] : null;
+  const layer = top ? (tuned?.songs ? [top, ...tuned.songs] : [])
+    : [...(songs || []), ...(ytOn ? likes.songs.map(ytOf) : [])].slice(0, COMB_MAX);
+  layerNow = layer;
+  const layerKey = layer.map((s) => s.id).join("|");
+  useEffect(() => { ytCovers(layer); }, [layerKey]);
+  const [bloom, setBloom] = useState(null);
+  useEffect(() => setBloom(null), [top?.id]);
   const now = cur ? songOf(cur) : null;
   const askDelete = (s) => confirm({ title: T(t, "delTitle"), body: T(t, "delBody", { name: titleOf(s) }), verb: T(t, "delYes"), onConfirm: () => remove(s) });
   const picker = useRef();
@@ -291,14 +422,27 @@ export function fonoteka({ S, toast, confirm }) {
     if ($cur.get()) readyShare(songOf($cur.get()));
     return () => { stopBreath(); combApi = null; };
   }, []);
-  const items = (songs || []).map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, color: "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
-  const onSettle = (it) => { const s = songOf(it.id); if (s && $cur.get() !== s.id) play(s.id); };
+  const items = layer.map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, color: s.yt ? "secondary" : "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
+  const onSettle = (it) => { const s = songOf(it.id); if (s && $cur.get() !== s.id) play(s.id, layerNow); };
+  const actsOf = (s) => {
+    const k = acts[actKey("keep", s)], m = acts[actKey("mix", s)];
+    return [
+      { id: "keep", icon: k === "done" ? "lucide:check" : "lucide:arrow-down-to-line", label: T(t, k === "done" ? "keptA" : "aKeep"), busy: k === "busy", done: k === "done", go: () => keepYt(s) },
+      { id: "mix", icon: m === "done" ? "lucide:check" : "lucide:disc-3", label: T(t, m === "done" ? "mixedA" : "aMix"), busy: m === "busy", done: m === "done", go: () => mixYt(s) },
+      { id: "radio", icon: "lucide:radio", label: T(t, "aRadio"), go: () => tune(s) },
+    ];
+  };
+  const actBtn = (s, a, small) => html`<button key=${a.id} ...${{ [`data-${a.id}`]: s.yt }} aria-label=${`${a.label}: ${titleOf(s)}`} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done}
+    onClick=${a.go} class=${`btn rounded-full sf-raised min-h-0 gap-1.5 font-medium ms-press ${small ? "btn-xs px-2" : "h-10 px-3.5 text-sm"} ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}>
+    ${Icon(a.icon, small ? "text-sm" : "text-base")}<span>${a.label}</span>
+  </button>`;
   const cellOf = (it, i, mode) => {
     const s = songOf(it.id); if (!s) return null;
     const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
-    const press = () => (on ? toggle() : play(s.id));
-    if (mode === "gl") return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null}><button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press}><span class="fk-name">${titleOf(s)}</span></button></div>`;
-    return html`<div key=${s.id} data-song=${s.id} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`}>
+    const press = () => (on ? toggle() : play(s.id, layerNow));
+    const mark = s.yt ? { "data-yt": s.yt } : { "data-song": s.id };
+    if (mode === "gl") return html`<div key=${s.id} ...${mark} data-cover=${cov ? "true" : null}><button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press}><span class="fk-name">${titleOf(s)}</span></button>${s.yt ? actsOf(s).map((a) => actBtn(s, a, true)) : null}</div>`;
+    return html`<div key=${s.id} ...${mark} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`}>
       <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press} class="fk-cell ms-press">
         <span class="fk-album">
           <span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${cov ? html`<img src=${cov} alt="" decoding="async" />` : null}</span>
@@ -307,8 +451,14 @@ export function fonoteka({ S, toast, confirm }) {
         </span>
         <span class="fk-name">${titleOf(s)}</span>
       </button>
+      ${s.yt && on ? html`<div class="flex flex-wrap justify-center gap-1">${actsOf(s).map((a) => actBtn(s, a, true))}</div>` : null}
     </div>`;
   };
+  const open = bloom ? songOf(bloom.id) : null;
+  const caption = open?.yt ? html`<div data-open-caption data-yt=${open.yt} class="fixed z-10 pointer-events-none flex justify-center -translate-x-1/2 w-[22rem] max-w-[100vw]"
+    style=${`left:${bloom.at.x}px;top:${Math.round(bloom.at.y + bloom.at.pitch * 0.93 + 14)}px`}>
+    <div class="flex items-center gap-2 pointer-events-auto">${actsOf(open).map((a) => actBtn(open, a, false))}</div>
+  </div>` : null;
   const head = useRef();
   const [headH, setHeadH] = useState(260);
   useEffect(() => {
@@ -319,22 +469,36 @@ export function fonoteka({ S, toast, confirm }) {
 
   return html`<div data-fonoteka data-playing=${playing ? "true" : null} data-songs=${songs ? songs.length : null} class="flex flex-col gap-[calc(var(--ms-gap)*2)] p-[var(--ms-pad)]">
     <${Island} pinned data-player className="w-full max-w-[36rem] flex flex-col items-stretch !py-2">
-      <${Transport} form dense locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!songs?.length} className="w-full"
+      <${Transport} form dense locale=${locale} playing=${playing} onToggle=${toggle} disabled=${!layer.length && !now} className="w-full"
         onPrev=${() => step(-1)} onNext=${() => step(1)} pos=${pos} dur=${dur} onSeek=${seek} onScrub=${seek} repeat=${shownRepeat(repeat)} onRepeat=${flipRepeat}
         title=${now ? titleOf(now) : T(t, "nothing")} subtitle=${now ? songLine(now, clock) : ""}
         actions=${[
-          { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => shareSong(now), disabled: !now, attr: { "data-share": true } },
-          { id: "del", icon: "lucide:trash-2", label: T(t, "aDelete"), haptic: "bump", onClick: () => now && askDelete(now), disabled: !now, attr: { "data-del": true } },
+          { id: "share", icon: "lucide:share-2", label: T(t, "aShare"), onClick: () => shareSong(now), disabled: !now || !!now.yt, attr: { "data-share": true } },
+          { id: "del", icon: "lucide:trash-2", label: T(t, "aDelete"), haptic: "bump", onClick: () => now && !now.yt && askDelete(now), disabled: !now || !!now.yt, attr: { "data-del": true } },
         ]} />
     </${Island}>
     <div ref=${head} class="relative z-10 flex flex-col gap-[calc(var(--ms-gap)*2)] pointer-events-none [&_button]:pointer-events-auto [&_input]:pointer-events-auto">
-    <section aria-labelledby="fk-shelf" class="flex flex-col gap-[var(--ms-gap)]">
+    ${top ? html`<nav data-radio-nav data-depth=${stack.length} aria-label=${T(t, "radio")} class="flex items-center gap-2">
+      <button data-back aria-label=${T(t, "aBack")} onClick=${() => S.stack.set(stack.slice(0, -1))} class="btn rounded-full sf-raised btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press">${Icon("lucide:arrow-left", "text-[length:var(--ms-icon)]")}</button>
+      <div class="min-w-0 flex-1 flex flex-col leading-tight gap-0.5">
+        <span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">${T(t, "radio")}${stack.length > 1 ? ` · ${stack.length}` : ""}</span>
+        <span class="font-semibold text-sm truncate">${[top.artist, titleOf(top)].filter(Boolean).join(" — ")}</span>
+      </div>
+      ${stack.length > 1 ? html`<button data-home aria-label=${T(t, "aHome")} onClick=${() => S.stack.set([])} class="btn rounded-full sf-raised btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press">${Icon("lucide:house", "text-[length:var(--ms-icon)]")}</button>` : null}
+    </nav>` : null}
+    ${top && err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
+    <section aria-labelledby="fk-shelf" class=${`flex flex-col gap-[var(--ms-gap)] ${top ? "hidden" : ""}`}>
       <div class="flex items-center justify-between gap-3">
         <h2 id="fk-shelf" class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">${T(t, "songs")}</h2>
-        
-        <button data-add onClick=${() => picker.current?.click()} class="btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-4 gap-2 font-medium ms-press">
-          ${Icon("lucide:plus", "text-[length:var(--ms-icon)]")}<span>${T(t, "add")}</span>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <button data-yt-music aria-pressed=${ytOn ? "true" : "false"} aria-label=${T(t, ytOn ? "ytHide" : "ytConnect")} disabled=${lBusy === "connect" || lBusy === "list"} onClick=${ytTap}
+            class=${`btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-3.5 gap-2 font-medium ms-press ${ytOn ? "text-secondary" : ""} ${lBusy === "connect" || lBusy === "list" ? "animate-pulse" : ""}`}>
+            ${Icon(ytOn ? "lucide:check" : "lucide:youtube", "text-[length:var(--ms-icon)]")}<span>YT Music</span>
+          </button>
+          <button data-add onClick=${() => picker.current?.click()} class="btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-4 gap-2 font-medium ms-press">
+            ${Icon("lucide:plus", "text-[length:var(--ms-icon)]")}<span>${T(t, "add")}</span>
+          </button>
+        </div>
       </div>
       <div class="flex flex-col gap-1 -mt-1">
         ${usage ? html`<div data-usage class="font-mono text-xs tabular-nums text-muted">${usageLine(usage, { songs: T(t, "wSongs"), of: T(t, "wOf") })}</div>` : null}
@@ -344,6 +508,7 @@ export function fonoteka({ S, toast, confirm }) {
         </div>` : null}
       </div>
       ${err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
+      ${lErr ? html`<div data-yt-err role="alert" class="text-sm text-error">${T(t, lErr)}</div>` : null}
       <div class="flex flex-col gap-1">
         ${uploads.map((u) => html`<div key=${u.k} data-upload data-state=${u.state} class="fk-row flex items-center gap-3 px-2 h-[var(--ms-ctl)]">
           
@@ -359,8 +524,11 @@ export function fonoteka({ S, toast, confirm }) {
       </div>
     </section>
     </div>
-    <${Comb} items=${items} cell=${cellOf} focus=${cur || null} loading=${songs === null} top=${headH + 32} onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; }} />
-    <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set((songs || []).map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
+    <${Comb} items=${items} cell=${cellOf} focus=${layer.some((s) => s.id === cur) ? cur : top?.id || null} loading=${top ? !tuned?.songs : songs === null} top=${headH + 32}
+      onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id, layerNow)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; }}
+      onBloom=${(it, at) => setBloom(it && songOf(it.id)?.yt ? { id: it.id, at } : null)} />
+    ${caption}
+    <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set(layer.map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
   </div>`;
