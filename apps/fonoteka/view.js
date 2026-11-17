@@ -492,7 +492,7 @@ export function fonoteka({ S, toast, confirm }) {
         <div class="flex items-center gap-2 shrink-0">
           <button data-yt-music aria-pressed=${ytOn ? "true" : "false"} aria-label=${T(t, ytOn ? "ytHide" : "ytConnect")} disabled=${lBusy === "connect" || lBusy === "list"} onClick=${ytTap}
             class=${`btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-3.5 gap-2 font-medium ms-press ${ytOn ? "text-secondary" : ""} ${lBusy === "connect" || lBusy === "list" ? "animate-pulse" : ""}`}>
-            ${Icon(ytOn ? "lucide:check" : "lucide:youtube", "text-[length:var(--ms-icon)]")}<span>YT Music</span>
+            ${Icon(ytOn ? "lucide:check" : "lucide:youtube", "text-[length:var(--ms-icon)]")}<span class="max-[380px]:hidden">YT Music</span>
           </button>
           <button data-add onClick=${() => picker.current?.click()} class="btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-4 gap-2 font-medium ms-press">
             ${Icon("lucide:plus", "text-[length:var(--ms-icon)]")}<span>${T(t, "add")}</span>

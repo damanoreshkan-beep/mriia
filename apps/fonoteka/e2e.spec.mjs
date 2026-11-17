@@ -74,10 +74,11 @@ export default [
       await ready(h);
       const yt = (sel = "") => `document.querySelectorAll('[data-comb-twin] [data-yt]${sel}').length`;
       h.expect((await h.count("[data-comb-twin] [data-yt]")) === 0, "соти YT до підключення");
+      const shelf = await h.attr("[data-fonoteka]", "data-songs");
       await h.tap("[data-yt-music]");
       h.expect(await h.until(`${yt()} === 4`), `не чотири вподобані соти: ${await h.count("[data-comb-twin] [data-yt]")}`);
       h.expect((await h.attr("[data-yt-music]", "aria-pressed")) === "true", "кнопка YT Music не увімкнена");
-      h.expect((await h.attr("[data-fonoteka]", "data-songs")) === "3", "вподобані потрапили на полицю без скачування");
+      h.expect((await h.attr("[data-fonoteka]", "data-songs")) === shelf, "вподобані потрапили на полицю без скачування");
       for (const a of ["keep", "mix", "radio"]) h.expect((await h.count(`[data-comb-twin] [data-${a}="dQw4w9WgXcQ"]`)) === 1, `немає дії ${a} на соті`);
       await h.click('[data-comb-twin] [data-keep="dQw4w9WgXcQ"]');
       h.expect(await h.until(`document.querySelector('[data-comb-twin] [data-keep="dQw4w9WgXcQ"]').disabled`), "Скачати не спрацювало");
