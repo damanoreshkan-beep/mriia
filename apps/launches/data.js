@@ -1,6 +1,7 @@
 import { fetchJson } from "/_rt/feed.js";
 import { dayKey } from "/_rt/calendar.js";
 import { gate } from "/_rt/gate.js";
+import { whoLabel } from "/_rt/country.js";
 
 const BELIEVE = (abbrev) => {
   const a = String(abbrev || "").toUpperCase();
@@ -25,6 +26,7 @@ function toItem(r, now) {
     id: r.id,
     title: r.name,
     provider: r.launch_service_provider?.name || "",
+    who: whoLabel(r.launch_service_provider?.name, r.launch_service_provider?.country_code, typeof document !== "undefined" ? document.documentElement.lang : "en"),
     net: r.net,
     precision,
     day: !fuzzy && !isNaN(t) ? dayKey(t) : "",
@@ -56,17 +58,17 @@ function fixture(now) {
   const H = 3600000, D = 86400000;
   const eom = Date.parse(endOfMonth(0)) + D - 1;
   const rows = [
-    ["Falcon 9 Block 5 | Starlink Group 12-4", "SpaceX", "Falcon 9 Block 5", Math.min(now + 2 * H, (now + eom) / 2), "MIN", "Go", "LEO",
+    ["Falcon 9 Block 5 | Starlink Group 12-4", ["SpaceX", "USA"], "Falcon 9 Block 5", Math.min(now + 2 * H, (now + eom) / 2), "MIN", "Go", "LEO",
       site(1, "Cape Canaveral SFS, FL, USA", "Space Launch Complex 40", 28.5619, -80.5772, "USA")],
-    ["Electron | Owl For One", "Rocket Lab", "Electron", now + 3 * D + 5 * H, "HR", "TBC", "SSO",
+    ["Electron | Owl For One", ["Rocket Lab", "USA"], "Electron", now + 3 * D + 5 * H, "HR", "TBC", "SSO",
       site(2, "Mahia Peninsula, New Zealand", "Rocket Lab Launch Complex 1A", -39.2616, 177.8649, "NZL")],
-    ["Soyuz 2.1a | Progress MS-34", "Roscosmos", "Soyuz 2.1a", now + 3 * D + 9 * H, "DAY", "Go", "LEO",
+    ["Soyuz 2.1a | Progress MS-34", ["Roscosmos", "RUS"], "Soyuz 2.1a", now + 3 * D + 9 * H, "DAY", "Go", "LEO",
       site(3, "Baikonur Cosmodrome, Kazakhstan", "31/6", 45.996, 63.564, "KAZ")],
-    ["Long March 8A | Unknown Payload", "CASC", "Long March 8A", now + 12 * D, "HR", "TBD", "LEO",
+    ["Long March 8A | Unknown Payload", ["CASC", "CHN"], "Long March 8A", now + 12 * D, "HR", "TBD", "LEO",
       site(4, "Wenchang Space Launch Site, China", "Commercial LC-1", 19.5973, 110.9308, "CHN")],
-    ["Ariane 62 | Metop-SG B1", "Arianespace", "Ariane 62", eom, "M", "TBD", "PO",
+    ["Ariane 62 | Metop-SG B1", ["Arianespace", "FRA"], "Ariane 62", eom, "M", "TBD", "PO",
       site(5, "Guiana Space Centre, French Guiana", "Ariane Launch Area 4", 5.2394, -52.7686, "GUF")],
-    ["Starship | Flight 15", "SpaceX", "Starship", Date.parse(endOfQuarter(1)), "Q4", "TBD", "Sub",
+    ["Starship | Flight 15", ["SpaceX", "USA"], "Starship", Date.parse(endOfQuarter(1)), "Q4", "TBD", "Sub",
       site(1, "Cape Canaveral SFS, FL, USA", "Space Launch Complex 40", 28.5619, -80.5772, "USA")],
   ];
   return rows.map(([name, agency, rocket, t, prec, status, orbit, pad], i) => ({
@@ -75,7 +77,7 @@ function fixture(now) {
     net: new Date(t).toISOString(),
     net_precision: { abbrev: prec },
     status: { abbrev: status },
-    launch_service_provider: { name: agency },
+    launch_service_provider: { name: agency[0], country_code: agency[1] },
     rocket: { configuration: { full_name: rocket } },
     mission: { description: "Fixture mission — the gate's own payload.", orbit: { abbrev: orbit } },
     pad,
@@ -86,7 +88,7 @@ function fixture(now) {
 export async function load(filters = {}) {
   const now = Date.now();
   if (gate) return { items: fixture(now).map((r) => toItem(r, now)), meta: {}, next: null };
-  const url = filters.cursor || "https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=40&hide_recent_previous=true";
+  const url = filters.cursor || "https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=40&hide_recent_previous=true&mode=detailed";
   const data = await fetchJson(url);
   if (!Array.isArray(data.results)) throw new Error("unavailable");
   return { items: data.results.map((r) => toItem(r, now)), meta: {}, next: data.next || null };

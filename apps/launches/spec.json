@@ -13,7 +13,7 @@
     "image": "thumb",
     "imageFit": "cover",
     "title": "title",
-    "subtitle": "provider",
+    "subtitle": "who",
     "view": "launch",
     "rows": [
       {
@@ -103,7 +103,8 @@
         "image": "thumb",
         "imageFit": "cover",
         "title": "title",
-        "subtitle": "provider",
+        "subtitle": "who",
+        "body": "mission",
         "more": "more",
         "meta": {
           "field": "net",
@@ -172,7 +173,8 @@
         "image": "thumb",
         "imageFit": "cover",
         "title": "title",
-        "subtitle": "provider",
+        "subtitle": "who",
+        "body": "mission",
         "more": "more",
         "meta": {
           "field": "net",

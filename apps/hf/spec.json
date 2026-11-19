@@ -97,16 +97,144 @@
             "catTextGen"
           ],
           [
+            "text-classification",
+            "catTextCls"
+          ],
+          [
+            "token-classification",
+            "catTokenCls"
+          ],
+          [
+            "zero-shot-classification",
+            "catZeroShot"
+          ],
+          [
+            "question-answering",
+            "catQA"
+          ],
+          [
+            "table-question-answering",
+            "catTableQA"
+          ],
+          [
+            "summarization",
+            "catSummary"
+          ],
+          [
+            "translation",
+            "catTranslation"
+          ],
+          [
+            "fill-mask",
+            "catFillMask"
+          ],
+          [
+            "sentence-similarity",
+            "catSimilarity"
+          ],
+          [
+            "text-ranking",
+            "catRanking"
+          ],
+          [
+            "feature-extraction",
+            "catEmbed"
+          ],
+          [
             "text-to-image",
             "catTextImage"
+          ],
+          [
+            "image-to-image",
+            "catImgImg"
+          ],
+          [
+            "image-text-to-image",
+            "catImgTextImg"
+          ],
+          [
+            "unconditional-image-generation",
+            "catUncondImg"
+          ],
+          [
+            "image-to-text",
+            "catImgText"
+          ],
+          [
+            "image-text-to-text",
+            "catVLM"
+          ],
+          [
+            "visual-question-answering",
+            "catVQA"
+          ],
+          [
+            "document-question-answering",
+            "catDocQA"
+          ],
+          [
+            "visual-document-retrieval",
+            "catDocRetrieval"
+          ],
+          [
+            "image-classification",
+            "catImgCls"
+          ],
+          [
+            "zero-shot-image-classification",
+            "catZeroShotImg"
+          ],
+          [
+            "object-detection",
+            "catObjDet"
+          ],
+          [
+            "zero-shot-object-detection",
+            "catZeroShotDet"
+          ],
+          [
+            "image-segmentation",
+            "catSegment"
+          ],
+          [
+            "mask-generation",
+            "catMask"
+          ],
+          [
+            "depth-estimation",
+            "catDepth"
+          ],
+          [
+            "keypoint-detection",
+            "catKeypoint"
+          ],
+          [
+            "image-feature-extraction",
+            "catImgEmbed"
           ],
           [
             "text-to-video",
             "catTextVideo"
           ],
           [
-            "image-text-to-text",
-            "catVLM"
+            "image-to-video",
+            "catImgVideo"
+          ],
+          [
+            "image-text-to-video",
+            "catImgTextVideo"
+          ],
+          [
+            "video-to-video",
+            "catVideoVideo"
+          ],
+          [
+            "video-text-to-text",
+            "catVideoText"
+          ],
+          [
+            "video-classification",
+            "catVideoCls"
           ],
           [
             "automatic-speech-recognition",
@@ -117,24 +245,40 @@
             "catTTS"
           ],
           [
-            "image-classification",
-            "catImgCls"
+            "audio-to-audio",
+            "catAudioAudio"
           ],
           [
-            "object-detection",
-            "catObjDet"
+            "audio-text-to-text",
+            "catAudioText"
           ],
           [
-            "feature-extraction",
-            "catEmbed"
+            "audio-classification",
+            "catAudioCls"
           ],
           [
-            "text-classification",
-            "catTextCls"
+            "text-to-3d",
+            "catText3d"
           ],
           [
-            "translation",
-            "catTranslation"
+            "image-to-3d",
+            "catImg3d"
+          ],
+          [
+            "any-to-any",
+            "catAny"
+          ],
+          [
+            "tabular-classification",
+            "catTabCls"
+          ],
+          [
+            "tabular-regression",
+            "catTabReg"
+          ],
+          [
+            "reinforcement-learning",
+            "catRL"
           ]
         ]
       },
@@ -151,6 +295,14 @@
           [
             "downloads",
             "sortDownloads"
+          ],
+          [
+            "trending",
+            "sortTrending"
+          ],
+          [
+            "newest",
+            "sortNewest"
           ]
         ]
       }
@@ -160,6 +312,7 @@
     {
       "id": "catalog",
       "type": "list",
+      "paginate": true,
       "icon": "lucide:sparkles",
       "label": "tabCatalog",
       "search": true,
@@ -176,6 +329,7 @@
         "title": "name",
         "subtitle": "author",
         "body": "desc",
+        "bodyFull": true,
         "more": "open",
         "meta": {
           "field": "createdAt",
@@ -220,6 +374,7 @@
         "title": "name",
         "subtitle": "author",
         "body": "desc",
+        "bodyFull": true,
         "more": "open",
         "meta": {
           "field": "createdAt",

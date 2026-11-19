@@ -10,14 +10,22 @@ const compact = (n) => {
 export async function load(filters = {}) {
   const spaces = filters.type === "spaces";
   const kind = spaces ? "spaces" : "models";
-  const sort = (!spaces && filters.sort === "downloads") ? "downloads" : "likes";
+  const SORT = { trending: "trendingScore", newest: "createdAt", likes: "likes" };
+  const sort = (!spaces && filters.sort === "downloads") ? "downloads" : (SORT[filters.sort] || "likes");
   const q = (filters.q || "").trim();
   const cat = (filters.category || "").trim();
   const params = new URLSearchParams({ sort, direction: "-1", limit: "40" });
   if (q) params.set("search", q);
   if (cat) params.set("filter", cat);
   if (!spaces) for (const f of ["downloads", "likes", "pipeline_tag", "library_name", "createdAt", "gated"]) params.append("expand[]", f);
-  const data = await fetchJson(`https://huggingface.co/api/${kind}?${params}`, { array: true });
+  const url = filters.cursor || `https://huggingface.co/api/${kind}?${params}`;
+  let data, next = null;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`status ${r.status}`);
+    data = await r.json();
+    next = (r.headers.get("link") || "").match(/<([^>]+)>;\s*rel="next"/)?.[1] || null;
+  } catch { data = await fetchJson(url, { array: true }); }
   const items = (Array.isArray(data) ? data : []).map((m) => {
     const id = m.id || m.modelId || "";
     const [org, ...rest] = id.split("/");
@@ -35,5 +43,5 @@ export async function load(filters = {}) {
       readme: m.gated ? "" : (spaces ? `https://huggingface.co/spaces/${id}` : `https://huggingface.co/${id}`),
     };
   }).filter((it) => it.id);
-  return { items, meta: {} };
+  return { items, meta: {}, next };
 }
