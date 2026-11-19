@@ -12,6 +12,7 @@ import { useLocalized } from "/_rt/localize.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { Scramble, Pixels } from "/_rt/skeleton.js";
 import { gate } from "/_rt/gate.js";
+import { PixelFx } from "/_rt/pixelfx.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -20,6 +21,8 @@ const SIGN_OVERRIDE = QS.get("sign");
 
 const API = `${VPS_PROXY}/horoscope`;
 const DAY_IDS = ["yesterday", "today", "tomorrow"], DAY_KEYS = ["dYesterday", "dToday", "dTomorrow"];
+
+const ELEMENT_FX = ["flamePillar", "healingBloom", "lightningStrike", "splash"];
 
 const RATINGS = [["love", "sex"], ["work", "hustle"], ["vibe", "vibe"], ["success", "success"]];
 
@@ -80,7 +83,7 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
     <div class="flex flex-col gap-[var(--ms-gap)]" data-state=${state} data-day-sel=${DAY_IDS[day]} data-sign-idx=${signIdx}>
       ${""}
       <button data-sign class="w-full flex items-center gap-[var(--ms-gap)] rounded-[var(--ms-r)] sf-raised sf-e2 sf-press p-[var(--ms-pad)] ms-press" onClick=${() => openScreen("signs")}>
-        <${SignOrb} i=${signIdx} />
+        <span class="relative shrink-0"><${SignOrb} i=${signIdx} /><${PixelFx} fx=${ELEMENT_FX[signIdx % 4]} play=${state === "ready" ? `${signIdx}:${day}` : null} scale=${1} /></span>
         <span class="flex-1 min-w-0 text-left">
           <span class="block font-bold text-lg leading-tight">${(t.signs || "").split("|")[signIdx] || ""}</span>
           <span class=${`block mt-0.5 ${LABEL}`}>${(t.signDates || "").split("|")[signIdx] || ""}</span>

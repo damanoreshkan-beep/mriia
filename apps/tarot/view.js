@@ -13,6 +13,7 @@ import { useSheetDrag, usePanX } from "/_rt/gesture.js";
 import { Sheet, Segmented } from "/_rt/ui.js";
 import { HeroStage } from "/_rt/hero.js";
 import { shapeOf, pathOf } from "/_rt/shape.js";
+import { PixelFx } from "/_rt/pixelfx.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
@@ -27,6 +28,7 @@ const Aura = (c) => {
 const QS = new URLSearchParams(location.search);
 const SPREAD_OVERRIDE = QS.get("spread");
 const imgURL = (file) => new URL(`./assets/${file}`, import.meta.url).href;
+const cardFx = (c, d) => c.arcana === "major" ? (d.reversed ? "shadowTendrils" : "featherBurst") : null;
 const randSeed = () => Math.floor(Math.random() * 0x100000000) >>> 0;
 const dk = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -156,16 +158,17 @@ function FitReading({ seed, rows, drawn, pos, t, loc, onOpen, paneRef, pan }) {
   const wpct = (94 / maxCols).toFixed(2);
   return html`<div data-reading ref=${paneRef} ...${pan || {}} class="flex-1 min-h-0 overflow-hidden flex flex-col gap-2 touch-pan-y will-change-transform">
     ${rows.map((row, ri) => html`<div class=${`flex-1 min-h-0 flex justify-center items-stretch gap-2${gate ? "" : " ms-stagger"}`} key=${`${seed}:${ri}`}>
-      ${row.map((pi) => html`<${FitTile} d=${drawn[pi]} pos=${pos[pi]} i=${pi} t=${t} loc=${loc} wpct=${wpct} onOpen=${() => onOpen(pi)} key=${pi} />`)}
+      ${row.map((pi) => html`<${FitTile} d=${drawn[pi]} pos=${pos[pi]} i=${pi} t=${t} loc=${loc} wpct=${wpct} play=${seed} onOpen=${() => onOpen(pi)} key=${pi} />`)}
     </div>`)}
   </div>`;
 }
 
-function FitTile({ d, pos, i, t, loc, wpct, onOpen }) {
+function FitTile({ d, pos, i, t, loc, wpct, play, onOpen }) {
   const c = DECK[d.card];
   return html`<button data-tile class="h-full min-h-0 flex flex-col items-center justify-center gap-1 ms-press" style=${`max-width:${wpct}%;--i:${i}`} aria-label=${`${cardName(c, loc)} — ${T(t, pos)}`} onClick=${onOpen}>
-    <div class="min-h-0 flex items-center justify-center w-full">
+    <div class="relative min-h-0 flex items-center justify-center w-full">
       <img src=${imgURL(c.img)} alt="" loading="lazy" class=${`max-h-full max-w-full w-auto h-auto object-contain rounded-md sf-e2 ${d.reversed ? "rotate-180" : ""}`} />
+      <${PixelFx} fx=${cardFx(c, d)} play=${cardFx(c, d) ? play : null} scale=${1} />
     </div>
     <div class=${`shrink-0 ${LBL} truncate max-w-full leading-tight`}>${T(t, pos)}</div>
   </button>`;
@@ -295,6 +298,7 @@ function Solo({ d, pos, t, loc, onOpen }) {
       ${Aura(c)}
       <button data-tile class="relative block w-full ms-press" onClick=${onOpen}>
         <img src=${imgURL(c.img)} alt=${cardName(c, loc)} class=${`w-full aspect-[350/600] object-cover rounded-[var(--ms-r-in)] sf-e3 ${d.reversed ? "rotate-180" : ""}`} />
+        <${PixelFx} fx=${cardFx(c, d)} play=${cardFx(c, d) ? c.id : null} scale=${2} />
       </button>
     </div>
     <div class="text-center">
