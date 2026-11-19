@@ -33,22 +33,18 @@ function renameSub(url, title) {
   subsDB.put(url, { name: title, url }).catch(() => { });
 }
 
-const sessDB = collection("reelSessions");
+if (idbSupported && !gate) collection("reelSessions").clear().catch(() => {});
 export const $sessions = atom({});
-export const sessionsReady = idbSupported && !gate
-  ? sessDB.all().then((rows) => $sessions.set(Object.fromEntries(rows.map((r) => [r.id, r.cookie])))).catch(() => {})
-  : Promise.resolve();
 export const sessionKey = (url) => registrableDomain(hostOf(url));
 export const sessionFor = (url) => $sessions.get()[sessionKey(url)] || "";
-export async function setSession(url, cookie) {
+export function setSession(url, cookie) {
   const k = sessionKey(url), c = String(cookie || "").trim();
   const next = { ...$sessions.get() };
   if (c) next[k] = c; else delete next[k];
   $sessions.set(next);
-  try { if (c) await sessDB.put(k, { cookie: c }); else await sessDB.remove(k); } catch { }
 }
-/** The site's answer to THIS phone's visit (edge `jar`: the cookie sent + its Set-Cookie) becomes the per-site
- *  session — filled by itself, the same slot a pasted session lives in (2026-10-23). Unchanged → no write. */
+/** The site's answer to this visit (edge `jar`: the cookie sent + its Set-Cookie) becomes the per-site session
+ *  for this app session only: held in memory, never stored, so every launch starts as a new visitor. */
 export function keepJar(url, sent, jar) {
   if (typeof jar === "string" && jar && jar !== sent) setSession(url, jar);
 }
