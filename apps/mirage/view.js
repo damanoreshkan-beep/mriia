@@ -120,46 +120,48 @@ export function mirage({ S, toast }) {
   const label = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
   const [body, tags] = (() => { const lines = read.text.trim().split(/\n+/); const last = lines[lines.length - 1] || ""; const isTags = lines.length > 1 && last.split(",").length >= 3 && last.length < 120; return isTags ? [lines.slice(0, -1).join("\n"), last.split(",").map((s) => s.trim()).filter(Boolean)] : [read.text, []]; })();
 
-  const frame = "max-w-full max-h-full rounded-[var(--ms-r)] object-contain sf-raised";
-  const slot = (inner) => html`<div class="absolute inset-0 flex items-center justify-center p-[var(--ms-gap)] pb-6">${inner}</div>`;
+  const full = "w-full h-full object-cover";
+  const bleed = () => {
+    if (slides.length) return html`<${Fragment}>
+      <div data-slides tabindex="0" role="region" aria-label=${T(t, "slides")} class="ms-stage z-[1] flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory outline-none" style="scrollbar-width:none" onScroll=${onScroll} onClick=${onSlidesTap}>
+        ${slides.map((s, i) => html`<div key=${s.url} class="w-full h-full shrink-0 snap-center">
+          <img data-result data-slide=${i} src=${s.url} alt=${st.prompt} class=${full} loading=${i > 1 ? "lazy" : "eager"} />
+        </div>`)}
+      </div>
+      ${mode === "edit" && hold ? html`<div class="ms-stage z-[2] pointer-events-none"><img src=${st.original} alt=${T(t, "original")} class=${full} /></div>` : null}
+    </${Fragment}>`;
+    if (working) return html`<div class="ms-stage z-[1] pointer-events-none"><${Dust} active=${true} progress=${live.pct ?? Math.min(0.9, elapsed / 40)} /></div>`;
+    if (!twoSlot && mode !== "make" && st.src && st.phase !== "camera") return html`<div class="ms-stage z-[1]" onClick=${() => S.screen.set("view")}><img data-result src=${st.src} alt="" class=${full} /></div>`;
+    return null;
+  };
+  const on = (inner) => html`<div class="absolute inset-0 pointer-events-auto">${inner}</div>`;
   const stage = () => {
-    if (mode !== "make" && st.phase === "empty") return html`<${Chooser} loc=${loc} onPick=${(u) => M.setSource(mode, u)} onCamera=${() => M.patch(mode, { phase: "camera" })} />`;
-    if (mode !== "make" && st.phase === "camera") return html`<${Camera} loc=${loc} privacy=${T(t, "primePrivacy")} onSettings=${() => S.screen.set("perms")} reason=${T(t, mode === "read" ? "primeReasonRead" : mode === "blend" ? "primeReasonBlend" : mode === "style" ? "primeReasonStyle" : "primeReason")}
-      onCapture=${(u) => twoSlot ? M.setSlot(mode, st.cam || "a", u) : M.setSource(mode, u)} onClose=${() => M.patch(mode, { phase: twoSlot ? "ready" : "empty", cam: null })} />`;
-    const dust = working && !slides.length ? html`<div class="absolute inset-0 rounded-[var(--ms-r)] overflow-hidden sf-raised"><${Dust} active=${true} progress=${live.pct ?? Math.min(0.9, elapsed / 40)} /></div>` : null;
+    if (mode !== "make" && st.phase === "empty") return on(html`<${Chooser} loc=${loc} onPick=${(u) => M.setSource(mode, u)} onCamera=${() => M.patch(mode, { phase: "camera" })} />`);
+    if (mode !== "make" && st.phase === "camera") return on(html`<${Camera} loc=${loc} privacy=${T(t, "primePrivacy")} onSettings=${() => S.screen.set("perms")} reason=${T(t, mode === "read" ? "primeReasonRead" : mode === "blend" ? "primeReasonBlend" : mode === "style" ? "primeReasonStyle" : "primeReason")}
+      onCapture=${(u) => twoSlot ? M.setSlot(mode, st.cam || "a", u) : M.setSource(mode, u)} onClose=${() => M.patch(mode, { phase: twoSlot ? "ready" : "empty", cam: null })} />`);
     const caption = working ? html`<div data-working class="absolute inset-x-0 bottom-[var(--ms-pad)] flex flex-col items-center gap-1 pointer-events-none text-white">
       <div class=${`font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums ${gate ? "" : "mg-sh"}`}>${T(t, mode === "read" ? "reading" : live.key)} · ${fmt(elapsed)}</div>
       ${live.step ? html`<div class="font-mono text-[0.68rem] text-white/70 tabular-nums">${live.step}</div>` : null}
     </div>` : null;
     if (slides.length) return html`<${Fragment}>
-      <div data-slides tabindex="0" role="region" aria-label=${T(t, "slides")} class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory outline-none" style="scrollbar-width:none" onScroll=${onScroll} onClick=${onSlidesTap}>
-        ${slides.map((s, i) => html`<div key=${s.url} class="w-full h-full shrink-0 snap-center flex items-center justify-center p-[var(--ms-gap)] pb-6">
-          <img data-result data-slide=${i} src=${s.url} alt=${st.prompt} class=${frame} loading=${i > 1 ? "lazy" : "eager"} />
-        </div>`)}
-      </div>
-      ${mode === "edit" && hold ? slot(html`<img src=${st.original} alt=${T(t, "original")} class=${`${frame} pointer-events-none`} />`) : null}
-      ${mode === "edit" ? html`<button data-compare aria-label=${T(t, "compare")} class="absolute top-3 left-3 z-10 btn btn-sm rounded-full gap-1.5 bg-black/50 text-white border-0 font-mono uppercase tracking-wide text-[0.68rem] select-none"
+      ${mode === "edit" ? html`<button data-compare aria-label=${T(t, "compare")} class="absolute top-3 left-3 z-10 pointer-events-auto btn btn-sm rounded-full gap-1.5 bg-black/50 text-white border-0 font-mono uppercase tracking-wide text-[0.68rem] select-none"
         onPointerDown=${() => setHold(true)} onPointerUp=${() => setHold(false)} onPointerLeave=${() => setHold(false)} onPointerCancel=${() => setHold(false)} onContextMenu=${(e) => e.preventDefault()}>${Icon("lucide:eye", "text-sm")}${T(t, "original")}</button>` : null}
       ${slides.length > 1 || st.more ? html`<div data-dots class="absolute inset-x-0 bottom-1.5 flex justify-center items-center gap-1.5 pointer-events-none">
-        ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full transition-[width,background-color] duration-[var(--t-state)] ease-[var(--ease-out)] ${i === st.idx ? "w-4 h-1.5 bg-base-content/80" : "w-1.5 h-1.5 bg-base-content/35"}`}></span>`)}
-        ${st.more ? html`<span class="w-1.5 h-1.5 rounded-full bg-base-content/35 animate-pulse"></span>` : null}
+        ${slides.map((s, i) => html`<span key=${s.url} class=${`rounded-full shadow-[0_0_4px_rgba(0,0,0,.5)] transition-[width,background-color] duration-[var(--t-state)] ease-[var(--ease-out)] ${i === st.idx ? "w-4 h-1.5 bg-white/90" : "w-1.5 h-1.5 bg-white/45"}`}></span>`)}
+        ${st.more ? html`<span class="w-1.5 h-1.5 rounded-full bg-white/45 animate-pulse"></span>` : null}
       </div>` : null}
     </${Fragment}>`;
-    if (dust) return html`<${Fragment}>${dust}${caption}</${Fragment}>`;
-    if (twoSlot) return html`<div class="absolute inset-0 flex flex-col gap-[var(--ms-gap)] p-[var(--ms-gap)] pb-6">
-      ${["a", "b"].map((sl) => html`<div key=${sl} data-slot=${sl} class="relative flex-1 min-h-0 flex items-center justify-center">
+    if (working) return caption;
+    if (twoSlot) return html`<div class="absolute inset-0 pointer-events-auto flex flex-col gap-0.5">
+      ${["a", "b"].map((sl) => html`<div key=${sl} data-slot=${sl} class="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden">
         ${st[sl] ? html`<${Fragment}>
-          <img data-result src=${st[sl]} alt="" class=${frame} onClick=${() => S.screen.set("view")} />
+          <img data-result src=${st[sl]} alt="" class=${full} onClick=${() => S.screen.set("view")} />
           <button data-slot-clear=${sl} aria-label=${T(t, "clearSlot")} class="absolute top-2 left-2 btn btn-circle btn-xs bg-black/50 text-white border-0" onClick=${() => M.clearSlot(mode, sl)}>${Icon("lucide:x", "text-sm")}</button>
         </${Fragment}>` : html`<${Chooser} loc=${loc} compact onPick=${(u) => M.setSlot(mode, sl, u)} onCamera=${() => M.patch(mode, { phase: "camera", cam: sl })} />`}
         ${mode === "style" ? html`<span data-slot-label=${sl} class="absolute top-2 right-2 rounded-full bg-black/50 px-2 py-0.5 font-mono uppercase tracking-wide text-[0.62rem] text-white">${T(t, sl === "a" ? "slotPhoto" : "slotStyle")}</span>` : null}
       </div>`)}
     </div>`;
-    if (st.src) return html`<${Fragment}>
-      ${slot(html`<img data-result src=${st.src} alt="" class=${`${frame} ${working ? "opacity-50" : ""} transition-opacity duration-[var(--t-state)] ease-[var(--ease-out)]`} onClick=${() => S.screen.set("view")} />`)}
-      ${mode === "read" && read.text && !working ? html`<button data-read-open class="absolute bottom-[var(--ms-pad)] left-1/2 -translate-x-1/2 btn btn-sm rounded-full gap-1.5 bg-black/50 text-white border-0" onClick=${() => S.screen.set("read")}>${Icon("lucide:scan-eye", "text-base")}${T(t, "readTitle")}</button>` : null}
-      ${working ? html`<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="rounded-full bg-black/55 px-4 py-2 text-white"><span class=${`font-mono text-[0.72rem] uppercase tracking-[0.18em] tabular-nums ${gate ? "" : "mg-sh"}`}>${T(t, mode === "read" ? "reading" : live.key)} · ${fmt(elapsed)}</span></div></div>` : null}
-    </${Fragment}>`;
+    if (st.src && mode === "read" && read.text) return html`<button data-read-open class="absolute bottom-[var(--ms-pad)] left-1/2 -translate-x-1/2 pointer-events-auto btn btn-sm rounded-full gap-1.5 bg-black/50 text-white border-0" onClick=${() => S.screen.set("read")}>${Icon("lucide:scan-eye", "text-base")}${T(t, "readTitle")}</button>`;
     return null;
   };
 
@@ -185,8 +187,17 @@ export function mirage({ S, toast }) {
           <${Segmented} attr="data-q" label=${T(t, "quality")} value=${opts.quality} onChange=${(q) => M.setOpts({ quality: q })}
             items=${[{ id: "fast", label: T(t, "qFast"), icon: "lucide:zap" }, { id: "2k", label: T(t, "q2k"), icon: "lucide:gem" }]} />
           <div class=${label}>${T(t, "aspect")}</div>
-          <${Segmented} attr="data-aspect" label=${T(t, "aspect")} scroll value=${opts.aspect} onChange=${(a) => M.setOpts({ aspect: a })}
-            items=${M.ASPECTS.map((id) => ({ id, label: id }))} />
+          <div role="group" aria-label=${T(t, "aspect")} class="grid grid-cols-4 gap-2">
+            ${M.ASPECTS.map((id) => {
+              const [a, b] = id.split(":").map(Number), sel = opts.aspect === id, side = 30;
+              const w = a >= b ? side : Math.round(side * a / b), h = a >= b ? Math.round(side * b / a) : side;
+              return html`<button key=${id} data-aspect=${id} aria-pressed=${sel ? "true" : "false"} onClick=${() => M.setOpts({ aspect: id })}
+                class=${`ms-press flex flex-col items-center justify-end gap-1.5 h-[4.5rem] pb-2 rounded-[var(--ms-r)] border transition-colors duration-[var(--t-state)] ease-[var(--ease-out)] ${sel ? "border-primary bg-primary/10" : "border-base-content/10 bg-base-content/[0.03]"}`}>
+                <span aria-hidden="true" class=${`rounded-[3px] border-2 ${sel ? "border-primary" : "border-base-content/50"}`} style=${`width:${w}px;height:${h}px`}></span>
+                <span class=${`font-mono text-[0.72rem] tabular-nums ${sel ? "text-primary" : "text-muted"}`}>${id}</span>
+              </button>`;
+            })}
+          </div>
         </${Fragment}>` : null}
         ${""}
         <div class="flex items-center justify-between gap-2">
@@ -242,11 +253,12 @@ export function mirage({ S, toast }) {
       </div>
     <//>
 
-    <div class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)] ms-side">
+    ${bleed()}
+    <div class="relative z-10 h-full min-h-0 flex flex-col gap-[var(--ms-gap)] ms-side pointer-events-none">
       <${Stage}>${stage()}<//>
 
       ${""}
-      <div class="ms-side-main shrink-0 flex flex-col justify-center">
+      <div class="ms-side-main shrink-0 flex flex-col justify-center pointer-events-auto">
       <${Island} className="w-full max-w-xl mx-auto flex flex-col gap-[var(--ms-gap)]">
         <${Segmented} attr="data-mode" label=${T(t, "tabStage")} items=${modeItems} value=${mode} onChange=${(m) => M.$mode.set(m)} />
 
