@@ -34,6 +34,8 @@
   "aLandscape": "Landscape",
   "model": "Model",
   "modelAuto": "Auto",
+  "modelAutoHint": "The first free model answers",
+  "modelQuality": "Quality",
   "modelCheck": "Check again",
   "modelsNone": "Could not reach the catalogue",
   "slides": "Variants",

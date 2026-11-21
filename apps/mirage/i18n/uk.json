@@ -34,6 +34,8 @@
   "aLandscape": "Пейзаж",
   "model": "Модель",
   "modelAuto": "Авто",
+  "modelAutoHint": "Відповідає перша вільна модель",
+  "modelQuality": "Якість",
   "modelCheck": "Перевірити ще раз",
   "modelsNone": "Каталог недоступний",
   "slides": "Варіанти",

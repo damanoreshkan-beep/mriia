@@ -85,6 +85,8 @@ export default [
       h.expect(await h.attr('[data-model="auto"]', "aria-pressed") === "true", "Авто не стандарт");
       h.expect((await h.count("[data-model]")) >= 3, "немає списку моделей");
       h.expect((await h.count("[data-models-check]")) === 1, "немає кнопки перевірки");
+      h.expect((await h.count('[data-model="black-forest-labs/FLUX.1-schnell"] [data-model-quality]')) === 1, "якісна модель без позначки");
+      h.expect((await h.count('[data-model="mrfakename/Z-Image-Turbo"] [data-model-quality]')) === 0, "швидка модель з позначкою якості");
       await h.click('[data-model="black-forest-labs/FLUX.1-schnell"]'); await h.wait(150);
       h.expect(await h.attr('[data-model="black-forest-labs/FLUX.1-schnell"]', "aria-pressed") === "true", "модель не вибралась");
       await h.back(); await h.wait(300);

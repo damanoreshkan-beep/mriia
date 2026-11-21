@@ -115,6 +115,7 @@ export function mirage({ S, toast }) {
   const chosen = opts.model?.[mode] || "auto";
   const modelSel = chosen !== "auto" && !modelList.some((m) => m.id === chosen) && models.at && !models.error ? "auto" : chosen;
   const shortName = (id) => { const n = id.split("/").pop(); return n.length > 20 ? n.slice(0, 19) + "…" : n; };
+  const niceName = (id) => id.split("/").pop().replace(/[-_]+/g, " ").trim();
   const optsMeta = modelSel !== "auto" ? shortName(modelSel) : mode === "make" ? T(t, opts.quality === "2k" ? "q2k" : "qFast") : null;
   const styleSel = styleOf(opts.style);
   const label = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
@@ -193,8 +194,22 @@ export function mirage({ S, toast }) {
           <div class=${label}>${T(t, "model")}</div>
           <button data-models-check aria-label=${T(t, "modelCheck")} class="btn btn-ghost btn-xs btn-circle text-base-content/70" disabled=${models.loading} onClick=${() => M.loadModels(true)}>${Icon("lucide:refresh-cw", `text-base ${models.loading ? "animate-spin" : ""}`)}</button>
         </div>
-        <${Segmented} attr="data-model" label=${T(t, "model")} scroll value=${modelSel} onChange=${(id) => M.setModel(mode, id)}
-          items=${[{ id: "auto", label: T(t, "modelAuto"), icon: "lucide:sparkles" }, ...modelList.map((m) => ({ id: m.id, label: shortName(m.id), title: m.id, dot: m.alive ? "var(--color-success)" : "color-mix(in oklch, var(--color-base-content) 35%, transparent)", meta: m.tier === "2k" ? "2K" : null }))]} />
+        <div role="group" aria-label=${T(t, "model")} class="flex flex-col gap-1.5">
+          ${[{ id: "auto" }, ...modelList].map((m) => {
+            const on = modelSel === m.id, auto = m.id === "auto", good = !auto && (m.quality ?? m.tier === "2k");
+            return html`<button key=${m.id} data-model=${m.id} aria-pressed=${on ? "true" : "false"} title=${auto ? "" : m.id} onClick=${() => M.setModel(mode, m.id)}
+              class=${`ms-press flex items-center gap-3 min-h-12 px-3 py-2 text-left rounded-[var(--ms-r)] border transition-colors duration-[var(--t-state)] ease-[var(--ease-out)] ${on ? "border-primary bg-primary/10" : "border-base-content/10 bg-base-content/[0.03]"}`}>
+              ${auto ? Icon("lucide:sparkles", `text-lg shrink-0 ${on ? "text-primary" : "text-base-content/70"}`)
+                : html`<span aria-hidden="true" class="w-2 h-2 mx-[5px] rounded-full shrink-0" style=${`background:${m.alive ? "var(--color-success)" : "color-mix(in oklch, var(--color-base-content) 30%, transparent)"}`}></span>`}
+              <span class="flex-1 min-w-0">
+                <span class="block truncate font-medium">${auto ? T(t, "modelAuto") : niceName(m.id)}</span>
+                <span class="block truncate text-xs text-muted">${auto ? T(t, "modelAutoHint") : m.id.split("/")[0]}</span>
+              </span>
+              ${good ? html`<span data-model-quality class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-mono uppercase tracking-wide text-secondary bg-secondary/10">${Icon("lucide:gem", "text-xs")}${T(t, "modelQuality")}</span>` : null}
+              ${on ? Icon("lucide:check", "text-lg shrink-0 text-primary") : null}
+            </button>`;
+          })}
+        </div>
         ${models.error && !modelList.length ? html`<p data-models-none class="text-sm text-error">${T(t, "modelsNone")}</p>` : null}
       </div>
     <//>
