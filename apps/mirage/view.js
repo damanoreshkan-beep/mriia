@@ -27,7 +27,6 @@ const GATE_EDIT = "add falling snow, cinematic";
 const ICONS = { make: "lucide:sparkles", edit: "lucide:wand-sparkles", read: "lucide:scan-eye", blend: "lucide:blend", style: "lucide:palette" };
 SPARKS.blend = ["put the second picture into the first", "dress the person in the second picture's outfit", "merge both into one scene", "the style of the second on the first"];
 SPARKS.style = ["a woman on a balcony at dusk", "a quiet street after rain", "a cat on a windowsill", "a portrait against a wide sky"];
-const ASPECTS = [["screen", "lucide:smartphone"], ["square", "lucide:square"], ["portrait", "lucide:rectangle-vertical"], ["landscape", "lucide:rectangle-horizontal"]];
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70";
 const SHIMMER = `.mg-sh{background:linear-gradient(90deg,rgba(255,255,255,.45) 0%,#fff 50%,rgba(255,255,255,.45) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mgSweep 2.2s linear infinite}
 @keyframes mgSweep{from{background-position:200% 0}to{background-position:-200% 0}}
@@ -186,8 +185,8 @@ export function mirage({ S, toast }) {
           <${Segmented} attr="data-q" label=${T(t, "quality")} value=${opts.quality} onChange=${(q) => M.setOpts({ quality: q })}
             items=${[{ id: "fast", label: T(t, "qFast"), icon: "lucide:zap" }, { id: "2k", label: T(t, "q2k"), icon: "lucide:gem" }]} />
           <div class=${label}>${T(t, "aspect")}</div>
-          <${Segmented} attr="data-aspect" label=${T(t, "aspect")} value=${opts.aspect} onChange=${(a) => M.setOpts({ aspect: a })}
-            items=${ASPECTS.map(([id, icon]) => ({ id, icon, label: T(t, "a" + id[0].toUpperCase() + id.slice(1)) }))} />
+          <${Segmented} attr="data-aspect" label=${T(t, "aspect")} scroll value=${opts.aspect} onChange=${(a) => M.setOpts({ aspect: a })}
+            items=${M.ASPECTS.map((id) => ({ id, label: id }))} />
         </${Fragment}>` : null}
         ${""}
         <div class="flex items-center justify-between gap-2">

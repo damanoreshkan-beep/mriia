@@ -71,9 +71,10 @@ export default [
       h.expect(await h.attr('[data-q="2k"]', "aria-pressed") === "true", "2K не стандарт");
       await h.click('[data-q="fast"]'); await h.wait(150);
       h.expect(await h.attr('[data-q="fast"]', "aria-pressed") === "true", "швидко не увімкнулось");
-      await h.click('[data-aspect="square"]'); await h.wait(150);
-      h.expect(await h.attr('[data-aspect="square"]', "aria-pressed") === "true", "квадрат не увімкнувся");
-      await h.click('[data-q="2k"]'); await h.click('[data-aspect="screen"]'); await h.wait(100);
+      h.expect((await h.count("[data-aspect]")) === 7, "не сім стандартних форм");
+      await h.click('[data-aspect="1:1"]'); await h.wait(150);
+      h.expect(await h.attr('[data-aspect="1:1"]', "aria-pressed") === "true", "1:1 не увімкнулось");
+      await h.click('[data-q="2k"]'); await h.click('[data-aspect="9:16"]'); await h.wait(100);
       await h.back(); await h.wait(300);
       h.expect((await h.prop("#opts", "open")) !== true, "Back не закрив sheet параметрів");
     },
