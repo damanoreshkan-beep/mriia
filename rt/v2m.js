@@ -1,4 +1,5 @@
 import { fib } from "@microspec/core/runtime/spectrum.js";
+import { filter, map, pipe, unique } from "@microspec/core/runtime/remeda.js";
 
 export const MIRRORS = [
   "https://modland.com/pub/modules/V2/",
@@ -12,12 +13,12 @@ const encPath = (s) => String(s).split("/").map(encodeURIComponent).join("/");
 
 /** Author sub-directories of the V2 tree. Skips the sort links (`?C=N&O=A`) and the parent link. */
 export function parseAuthors(html) {
-  const out = [];
-  for (const m of String(html).matchAll(/<a href="([^"?][^"]*)\/"/g)) {
-    const a = decodeURIComponent(m[1]);
-    if (a !== ".." && a !== "." && !out.includes(a)) out.push(a);
-  }
-  return out;
+  return pipe(
+    [...String(html).matchAll(/<a href="([^"?][^"]*)\/"/g)],
+    map((m) => decodeURIComponent(m[1])),
+    filter((a) => a !== ".." && a !== "."),
+    unique(),
+  );
 }
 
 /**
@@ -27,11 +28,8 @@ export function parseAuthors(html) {
  * library silently never saved anything.
  */
 export function parseListing(html) {
-  const out = [];
-  for (const m of String(html).matchAll(/<a href="([^"]+\.v2mz?)"[^>]*>[\s\S]*?<td class="size">\s*([0-9]+)/g)) {
-    out.push({ file: decodeURIComponent(m[1]), size: +m[2] });
-  }
-  return out;
+  return [...String(html).matchAll(/<a href="([^"]+\.v2mz?)"[^>]*>[\s\S]*?<td class="size">\s*([0-9]+)/g)]
+    .map((m) => ({ file: decodeURIComponent(m[1]), size: +m[2] }));
 }
 
 /** A tune's display title — the filename without its extension. */

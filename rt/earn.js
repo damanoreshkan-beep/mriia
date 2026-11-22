@@ -1,3 +1,5 @@
+import { filter, groupBy, map, pipe, reduce } from "@microspec/core/runtime/remeda.js";
+
 export const CURRENCIES = ["UAH", "USD"];
 const SYMBOL = { UAH: "₴", USD: "$" };
 const SUFFIX = { UAH: true };
@@ -64,13 +66,15 @@ export function fmtSpan(ms) {
 }
 
 export function vaultTotals(list) {
-  const by = {};
-  for (const s of list || []) {
-    const c = CURRENCIES.includes(s?.currency) ? s.currency : CURRENCIES[0];
-    (by[c] || (by[c] = { currency: c, sum: 0, ms: 0, count: 0 }));
-    by[c].sum += Number(s.amount) || 0;
-    by[c].ms += Number(s.ms) || 0;
-    by[c].count += 1;
-  }
-  return CURRENCIES.filter((c) => by[c]).map((c) => by[c]);
+  const by = groupBy(list || [], (s) => (CURRENCIES.includes(s?.currency) ? s.currency : CURRENCIES[0]));
+  return pipe(
+    CURRENCIES,
+    filter((c) => !!by[c]),
+    map((c) => ({
+      currency: c,
+      sum: reduce(by[c], (n, s) => n + (Number(s.amount) || 0), 0),
+      ms: reduce(by[c], (n, s) => n + (Number(s.ms) || 0), 0),
+      count: by[c].length,
+    })),
+  );
 }

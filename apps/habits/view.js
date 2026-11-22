@@ -9,6 +9,9 @@ import { collection, idbSupported } from "/_rt/db.js";
 import { downloadBlob } from "/_rt/apk.js";
 import { Panel, Sheet } from "/_rt/ui.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
+import { Effect } from "/_rt/fx.js";
+import { pipe, map, filter, range, reverse, sortBy, fromEntries, omitBy } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono uppercase tracking-wide font-semibold text-[length:var(--ms-label)] text-base-content/70";
@@ -42,8 +45,8 @@ function longest(id, marks) {
   return max;
 }
 function monthRate(id, marks) {
-  const now = new Date(), done = [];
-  for (let i = 0; i < now.getDate(); i++) if (marks[id + "|" + ymd(addDays(now, -i))]) done.push(1);
+  const now = new Date();
+  const done = pipe(range(0, now.getDate()), filter((i) => !!marks[id + "|" + ymd(addDays(now, -i))]));
   return Math.round((done.length / now.getDate()) * 100);
 }
 
@@ -57,15 +60,24 @@ function formsOf(hs) {
   return out;
 }
 
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const quietly = Effect.catchCause(() => Effect.void);
+const wantsSeed = () => typeof location !== "undefined" && location.search.includes(CONFIG.seedQuery);
+const seeded = Effect.forEach(CONFIG.seedHabits, ([name, icon, color], i) => tried(() => habitsColl.put("seed" + i, { name, icon, color, createdAt: Date.now() + i })).pipe(
+  Effect.andThen(Effect.forEach(pipe(range(0, CONFIG.seedDays), filter((d) => (d * 3 + i * 5) % 4 !== 0)),
+    (d) => tried(() => marksColl.put("seed" + i + "|" + ymd(addDays(new Date(), -d)), { d: 1 })), { discard: true })),
+), { discard: true });
+const shelf = Effect.gen(function* () {
+  const hs = yield* tried(() => habitsColl.all());
+  if (!hs.length && wantsSeed()) { yield* seeded; return true; }
+  const ms = yield* tried(() => marksColl.all());
+  $habits.set(pipe(hs, sortBy((h) => h.createdAt || 0)));
+  $marks.set(pipe(ms, map((m) => [m.id, 1]), fromEntries()));
+  return false;
+});
 async function loadAll() {
-  try {
-    const hs = await habitsColl.all();
-    if (!hs.length && typeof location !== "undefined" && location.search.includes("seed")) { await seed(); return loadAll(); }
-    const ms = await marksColl.all();
-    const map = {}; for (const m of ms) map[m.id] = 1;
-    $habits.set(hs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)));
-    $marks.set(map);
-  } catch { }
+  const again = await Effect.runPromise(shelf.pipe(Effect.catchCause(() => Effect.succeed(false))));
+  if (again) return loadAll();
   $ready.set(true);
 }
 async function addHabit(name, icon, color) {
@@ -77,36 +89,35 @@ async function addHabit(name, icon, color) {
 }
 async function removeHabit(id) {
   $habits.set($habits.get().filter((h) => h.id !== id));
-  const m = { ...$marks.get() }; for (const k in m) if (k.startsWith(id + "|")) delete m[k]; $marks.set(m);
-  try { await habitsColl.remove(id); const all = await marksColl.all(); await Promise.all(all.filter((r) => r.id.startsWith(id + "|")).map((r) => marksColl.remove(r.id))); } catch { }
+  $marks.set(pipe($marks.get(), omitBy((_, k) => k.startsWith(id + "|"))));
+  await Effect.runPromise(purged(id));
 }
+const purged = (id) => tried(() => habitsColl.remove(id)).pipe(
+  Effect.andThen(tried(() => marksColl.all())),
+  Effect.flatMap((all) => Effect.forEach(all.filter((r) => r.id.startsWith(id + "|")), (r) => tried(() => marksColl.remove(r.id)), { concurrency: "unbounded", discard: true })),
+  quietly,
+);
 async function toggle(id, day) {
   const key = id + "|" + day, m = { ...$marks.get() };
   if (m[key]) { delete m[key]; $marks.set(m); haptic.tick(); try { await marksColl.remove(key); } catch { } }
   else { m[key] = 1; $marks.set(m); haptic.bump(); try { await marksColl.put(key, { d: 1 }); } catch { } }
-}
-async function seed() {
-  const defs = [["Читати", "lucide:book-open", "#3b82f6"], ["Спорт", "lucide:dumbbell", "#10b981"], ["Вода", "lucide:droplets", "#14b8a6"]];
-  for (let i = 0; i < defs.length; i++) {
-    const id = "seed" + i; await habitsColl.put(id, { name: defs[i][0], icon: defs[i][1], color: defs[i][2], createdAt: Date.now() + i });
-    for (let d = 0; d < 70; d++) if ((d * 3 + i * 5) % 4 !== 0) await marksColl.put(id + "|" + ymd(addDays(new Date(), -d)), { d: 1 });
-  }
 }
 function exportData() {
   const blob = new Blob([JSON.stringify({ habits: $habits.get(), marks: Object.keys($marks.get()) }, null, 2)], { type: "application/json" });
   downloadBlob(blob, "habits.json");
 }
 async function importData(file) {
-  try {
-    const d = JSON.parse(await file.text());
-    for (const h of d.habits || []) await habitsColl.put(h.id, { name: h.name, icon: h.icon, color: h.color, createdAt: h.createdAt || Date.now() });
-    for (const k of d.marks || []) await marksColl.put(k, { d: 1 });
-    await loadAll();
-  } catch { }
+  await Effect.runPromise(tried(() => file.text()).pipe(
+    Effect.map((text) => JSON.parse(text)),
+    Effect.tap((d) => Effect.forEach(d.habits || [], (h) => tried(() => habitsColl.put(h.id, { name: h.name, icon: h.icon, color: h.color, createdAt: h.createdAt || Date.now() })), { discard: true })),
+    Effect.tap((d) => Effect.forEach(d.marks || [], (k) => tried(() => marksColl.put(k, { d: 1 })), { discard: true })),
+    Effect.andThen(tried(loadAll)),
+    quietly,
+  ));
 }
 
 const Dots = ({ h, marks, onToggle, t }) => {
-  const days = []; for (let i = 7; i >= 1; i--) days.push(ymd(addDays(new Date(), -i)));
+  const days = pipe(range(1, 8), reverse(), map((i) => ymd(addDays(new Date(), -i))));
   return html`<div class="overflow-x-auto -mx-0.5 px-0.5"><div class="flex gap-1.5 w-max pt-0.5" role="group" aria-label=${T(t, "week")}>${days.map((d) => {
     const on = !!marks[h.id + "|" + d];
     return html`<button key=${d} type="button" onClick=${() => onToggle(h.id, d)} aria-pressed=${on}

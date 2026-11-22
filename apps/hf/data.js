@@ -1,4 +1,17 @@
 import { viaProxy, fetchJson } from "/_rt/feed.js";
+import { Effect } from "/_rt/fx.js";
+import { pipe, map, filter } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
+
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const direct = (url) => tried(async () => {
+  const r = await fetch(url, { signal: AbortSignal.timeout(CONFIG.timeoutMs) });
+  if (!r.ok) throw new Error(`status ${r.status}`);
+  const data = await r.json();
+  return { data, next: (r.headers.get("link") || "").match(/<([^>]+)>;\s*rel="next"/)?.[1] || null };
+});
+const proxied = (url) => tried(() => fetchJson(url, { array: true })).pipe(Effect.map((data) => ({ data, next: null })));
+const listing = (url) => direct(url).pipe(Effect.catch(() => proxied(url)));
 
 const compact = (n) => {
   n = Number(n) || 0;
@@ -10,23 +23,17 @@ const compact = (n) => {
 export async function load(filters = {}) {
   const spaces = filters.type === "spaces";
   const kind = spaces ? "spaces" : "models";
-  const SORT = { trending: "trendingScore", newest: "createdAt", likes: "likes" };
+  const SORT = CONFIG.sorts;
   const sort = (!spaces && filters.sort === "downloads") ? "downloads" : (SORT[filters.sort] || "likes");
   const q = (filters.q || "").trim();
   const cat = (filters.category || "").trim();
-  const params = new URLSearchParams({ sort, direction: "-1", limit: "40" });
+  const params = new URLSearchParams({ sort, direction: "-1", limit: CONFIG.limit });
   if (q) params.set("search", q);
   if (cat) params.set("filter", cat);
-  if (!spaces) for (const f of ["downloads", "likes", "pipeline_tag", "library_name", "createdAt", "gated"]) params.append("expand[]", f);
-  const url = filters.cursor || `https://huggingface.co/api/${kind}?${params}`;
-  let data, next = null;
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) throw new Error(`status ${r.status}`);
-    data = await r.json();
-    next = (r.headers.get("link") || "").match(/<([^>]+)>;\s*rel="next"/)?.[1] || null;
-  } catch { data = await fetchJson(url, { array: true }); }
-  const items = (Array.isArray(data) ? data : []).map((m) => {
+  if (!spaces) for (const f of CONFIG.expand) params.append("expand[]", f);
+  const url = filters.cursor || `${CONFIG.api}${kind}?${params}`;
+  const { data, next } = await Effect.runPromise(listing(url));
+  const items = pipe(Array.isArray(data) ? data : [], map((m) => {
     const id = m.id || m.modelId || "";
     const [org, ...rest] = id.split("/");
     const name = rest.length ? rest.join("/") : id;
@@ -39,9 +46,9 @@ export async function load(filters = {}) {
       downloads: spaces ? "" : compact(m.downloads),
       likes: compact(m.likes),
       createdAt: m.createdAt ? Date.parse(m.createdAt) : 0,
-      url: spaces ? `https://huggingface.co/spaces/${id}` : `https://huggingface.co/${id}`,
-      readme: m.gated ? "" : (spaces ? `https://huggingface.co/spaces/${id}` : `https://huggingface.co/${id}`),
+      url: spaces ? `${CONFIG.spaces}${id}` : `${CONFIG.site}${id}`,
+      readme: m.gated ? "" : (spaces ? `${CONFIG.spaces}${id}` : `${CONFIG.site}${id}`),
     };
-  }).filter((it) => it.id);
+  }), filter((it) => !!it.id));
   return { items, meta: {}, next };
 }

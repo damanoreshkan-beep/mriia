@@ -2,6 +2,7 @@ import { createEngine } from "/_rt/audio.js";
 import { spectralFlux, createBeatState, stepBeat } from "/_rt/afterbeat.js";
 import { bassEnergy, stepPulse, idleGroove } from "/_rt/afterdark.js";
 import { dbToGain } from "/_rt/scifi.js";
+import { Effect } from "/_rt/fx.js";
 
 const LEVEL = -20;
 export const SFX = {
@@ -39,12 +40,13 @@ export function createSound({ muted }) {
   master.disconnect(); master.connect(limiter); limiter.connect(ctx.destination);
   const musicGain = ctx.createGain(); musicGain.gain.value = MUSIC; musicGain.connect(master);
 
+  const decoded = (name) => Effect.tryPromise({ try: async () => ctx.decodeAudioData(await (await fetch(url(name))).arrayBuffer()), catch: (e) => e });
+  const stocked = (name) => decoded(name).pipe(Effect.tap((buf) => Effect.sync(() => buffers.set(name, buf))), Effect.catch(() => Effect.void));
   async function load() {
     if (loading) return loading;
-    loading = Promise.all(Object.keys(SFX).map(async (name) => {
-      try { const ab = await (await fetch(url(name))).arrayBuffer(); buffers.set(name, await ctx.decodeAudioData(ab)); }
-      catch { }
-    })).then(() => { loaded = true; });
+    loading = Effect.runPromise(Effect.forEach(Object.keys(SFX), stocked, { concurrency: "unbounded", discard: true }).pipe(
+      Effect.tap(() => Effect.sync(() => { loaded = true; })),
+    ));
     return loading;
   }
   function play(name, { gain = 1, rate = 1 } = {}) {

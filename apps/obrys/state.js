@@ -4,6 +4,8 @@ import { report } from "/_rt/telemetry.js";
 import { session } from "/_rt/auth.js";
 import { fetchMyChars } from "/_rt/genchar.js";
 import { readGltf, gltfStats, modelName } from "/_rt/glb.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const SAMPLE = new URL("./assets/sample.glb", import.meta.url).href;
 
@@ -21,6 +23,9 @@ const fail = (r, code, info = {}) => {
   patch({ phase: "error", error: code, pct: null, stats: null, size: null, clips: [], playing: false });
   report("obrys.fail", { reason: code, ...info });
 };
+const STALE = { stale: true };
+const halt = (code, info) => ({ code, info });
+const settle = (r, flow) => Effect.runPromise(flow.pipe(Effect.catch((e) => Effect.sync(() => { if (e !== STALE) fail(r, e.code, e.info); }))));
 
 async function show(m) {
   if (!viewer || !m) return;
@@ -52,33 +57,45 @@ export async function openFile(file) {
   if (!file) return;
   const r = ++run;
   patch({ phase: "loading", pct: null, error: "", name: modelName(file.name) });
-  let buf;
-  try { buf = new Uint8Array(await file.arrayBuffer()); } catch { return fail(r, "eRead", { src: "file", bytes: file.size }); }
-  open(r, buf, modelName(file.name), "file");
+  await settle(r, Effect.tryPromise({ try: async () => new Uint8Array(await file.arrayBuffer()), catch: () => halt(CONFIG.download.unread, { src: "file", bytes: file.size }) }).pipe(
+    Effect.map((buf) => open(r, buf, modelName(file.name), "file")),
+  ));
 }
 
 /** Download with a live share when the server names the length. `src` = url · farm · sample. */
 export async function openUrl(url, name, src = "url") {
   const r = ++run;
   patch({ phase: "loading", pct: 0, error: "", name: name || modelName(url) });
-  let res;
-  try { res = await fetch(url); } catch { return fail(r, navigator.onLine === false ? "eNetwork" : src === "url" ? "eCors" : "eNetwork", { src }); }
-  if (!res.ok) return fail(r, res.status === 404 ? "eGone" : "eNetwork", { src, status: res.status });
+  const net = CONFIG.download;
+  await settle(r, Effect.tryPromise({ try: async () => fetch(url), catch: () => halt(navigator.onLine === false ? net.offline : net.blocked[src] || net.refused, { src }) }).pipe(
+    Effect.flatMap((res) => res.ok ? Effect.succeed(res) : Effect.fail(halt(net.codes[res.status] || net.refused, { src, status: res.status }))),
+    Effect.flatMap((res) => download(res, r, src)),
+    Effect.map((bytes) => open(r, bytes, name || modelName(url), src)),
+  ));
+}
+
+function download(res, r, src) {
   const total = +res.headers.get("content-length") || 0, chunks = [];
   let got = 0;
-  try {
-    const rd = res.body.getReader();
-    for (;;) {
-      const { done, value } = await rd.read();
-      if (done) break;
-      if (r !== run) return rd.cancel();
-      chunks.push(value); got += value.byteLength;
-      patch({ pct: total ? Math.min(99, Math.round((got / total) * 100)) : null });
-    }
-  } catch { return fail(r, "eNetwork", { src, got }); }
-  const bytes = new Uint8Array(got);
-  let at = 0; for (const c of chunks) { bytes.set(c, at); at += c.byteLength; }
-  open(r, bytes, name || modelName(url), src);
+  const lost = () => halt(CONFIG.download.refused, { src, got });
+  const pull = (rd) => Effect.tryPromise({ try: async () => rd.read(), catch: lost }).pipe(
+    Effect.flatMap(({ done, value }) => {
+      if (done) return Effect.void;
+      if (r !== run) return Effect.promise(() => rd.cancel()).pipe(Effect.andThen(Effect.fail(STALE)));
+      return Effect.try({ try: () => {
+        chunks.push(value); got += value.byteLength;
+        patch({ pct: total ? Math.min(CONFIG.download.maxPct, Math.round((got / total) * 100)) : null });
+      }, catch: lost }).pipe(Effect.andThen(Effect.suspend(() => pull(rd))));
+    }),
+  );
+  return Effect.try({ try: () => res.body.getReader(), catch: lost }).pipe(
+    Effect.flatMap(pull),
+    Effect.map(() => {
+      const bytes = new Uint8Array(got);
+      let at = 0; for (const c of chunks) { bytes.set(c, at); at += c.byteLength; }
+      return bytes;
+    }),
+  );
 }
 
 export function clear() { run++; current = null; patch({ phase: "empty", name: "", src: "", bytes: 0, stats: null, pct: null, error: "", size: null, clips: [], clip: 0, playing: false }); }

@@ -9,8 +9,10 @@ import { collection, idbSupported } from "/_rt/db.js";
 import { downloadBlob } from "/_rt/apk.js";
 import { isGate } from "/_rt/gate.js";
 import { sortWishes, wishTotals, fmtMoney, fetchWishMeta, CURRENCIES } from "/_rt/wish.js";
+import { Effect } from "/_rt/fx.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 
 const listsColl = collection("wishlists");
@@ -61,7 +63,10 @@ async function removeList(id) {
   $lists.set($lists.get().filter((l) => l.id !== id));
   $wishes.set($wishes.get().filter((w) => w.listId !== id));
   setActive($lists.get()[0]?.id || null);
-  try { await listsColl.remove(id); for (const w of dropped) await wishesColl.remove(w.id); } catch { }
+  await Effect.runPromise(tried(() => listsColl.remove(id)).pipe(
+    Effect.andThen(Effect.forEach(dropped, (w) => tried(() => wishesColl.remove(w.id)), { discard: true })),
+    Effect.ignore,
+  ));
 }
 
 const wishRec = (w) => ({ listId: w.listId, name: (w.name || "").trim(), price: w.price == null || !Number.isFinite(Number(w.price)) ? null : Math.max(0, Number(w.price)), currency: w.currency || "UAH", url: (w.url || "").trim(), image: w.image || "", want: w.want || 2, note: (w.note || "").trim(), granted: !!w.granted, createdAt: w.createdAt || Date.now() });
@@ -100,18 +105,24 @@ function exportData() {
   downloadBlob(blob, "wishlist.json");
 }
 async function importData(file) {
-  try {
-    const d = JSON.parse(await file.text());
-    for (const l of d.lists || []) await listsColl.put(l.id, { name: l.name, icon: l.icon, color: l.color, createdAt: l.createdAt || Date.now() });
-    for (const w of d.wishes || []) await wishesColl.put(w.id, wishRec(w));
-    await loadAll();
-  } catch { }
+  const putLists = (d) => Effect.try({ try: () => d.lists || [], catch: (e) => e }).pipe(
+    Effect.flatMap((lists) => Effect.forEach(lists, (l) => tried(() => listsColl.put(l.id, { name: l.name, icon: l.icon, color: l.color, createdAt: l.createdAt || Date.now() })), { discard: true })),
+  );
+  const putWishes = (d) => Effect.try({ try: () => d.wishes || [], catch: (e) => e }).pipe(
+    Effect.flatMap((wishes) => Effect.forEach(wishes, (w) => tried(() => wishesColl.put(w.id, wishRec(w))), { discard: true })),
+  );
+  await Effect.runPromise(tried(async () => JSON.parse(await file.text())).pipe(
+    Effect.tap(putLists),
+    Effect.tap(putWishes),
+    Effect.andThen(tried(() => loadAll())),
+    Effect.ignore,
+  ));
 }
 
 async function seed() {
   const now = Date.now();
   const L = [["bday", "День народження", "lucide:cake", "#fb7185"], ["home", "Для дому", "lucide:home", "#60a5fa"]];
-  for (let i = 0; i < L.length; i++) await listsColl.put(L[i][0], { name: L[i][1], icon: L[i][2], color: L[i][3], createdAt: now + i });
+  await Effect.runPromise(Effect.forEach(L, ([id, name, icon, color], i) => tried(() => listsColl.put(id, { name, icon, color, createdAt: now + i })), { discard: true }));
   const gift = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#2a1420"/><g fill="none" stroke="#fb7185" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="26" width="40" height="9" rx="2"/><path d="M32 26v26"/><path d="M46 35v15a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4V35"/><path d="M22 26a5 5 0 0 1 0-10 9 16 0 0 1 10 10 9 16 0 0 1 10-10 5 5 0 0 1 0 10"/></g></svg>');
   const W = [
     ["bday", "Sony WH-1000XM5 бездротові навушники", 13999, "UAH", 3, "Активне шумозаглушення", false, gift],
@@ -121,10 +132,7 @@ async function seed() {
     ["home", "Еспресо-кавоварка", 8900, "UAH", 2, "", false, ""],
     ["home", "Набір бавовняної білизни", 1990, "UAH", 1, "", false, ""],
   ];
-  for (let i = 0; i < W.length; i++) {
-    const [listId, name, price, currency, want, note, granted, image] = W[i];
-    await wishesColl.put("seed" + i, { listId, name, price, currency, url: "", image, want, note, granted, createdAt: now + i });
-  }
+  await Effect.runPromise(Effect.forEach(W, ([listId, name, price, currency, want, note, granted, image], i) => tried(() => wishesColl.put("seed" + i, { listId, name, price, currency, url: "", image, want, note, granted, createdAt: now + i })), { discard: true }));
 }
 
 const WantPips = ({ level, t }) => html`<span class="inline-flex items-center gap-1" role="img" aria-label=${`${T(t, "want")}: ${level}/3`}>

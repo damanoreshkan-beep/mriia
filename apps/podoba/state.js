@@ -9,10 +9,10 @@ import { taskOne, jobCode } from "/_rt/task.js";
 import { extOf, sizeOf, toDataURL } from "/_rt/intake.js";
 import { report } from "/_rt/telemetry.js";
 import { STYLES, styleOf } from "/_rt/styles.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const EDIT = `${VPS_PROXY}/image/edit`;
-const UPSCALE = `${VPS_PROXY}/image/upscale`;
-const MATERIAL = `${VPS_PROXY}/image/material`;
 const MAT_KEY = "podoba:mat";
 const savedMat = () => { try { const m = localStorage.getItem(MAT_KEY); return STYLES.some((s) => s.id === m) ? m : "lum"; } catch { return "lum"; } };
 /** The gate's camera: a still of our own (assets/mock.webp) — the shot, the store's captures, the keeper's stand-in. */
@@ -47,25 +47,37 @@ export async function shoot(frame, ctx) {
   hold?.(); hold = null; revoke(st.out?.url);
   patch({ phase: "working", frame, out: null, error: null, live: null, t0: Date.now() });
   if (gate) { await sleep(120); if (r === run) patch({ phase: "done", out: { url: mockURL, w: 768, h: 1024, ext: "webp", by: "" }, live: null }); return; }
-  if (frame.length > 9_000_000) return fail(r, "eBig");
+  if (frame.length > CONFIG.maxImage) return fail(r, "eBig");
   notifyAsk();
-  jobBase = MATERIAL;
-  hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") });
-  let res;
-  try {
-    res = await taskOne("/task", { route: "/feed/image/material", body: { image: frame, material: st.mat, seed } }, {
-      onStart: (_id, rep) => { if (r === run) job = rep.job; else cancelJob(MATERIAL, rep.job); },
-      onLive: (live) => { if (r === run) patch({ live }); },
-    });
-  } catch (e) { return fail(r, e.code || jobCode(e)); }
-  if (r !== run) return;
-  hold?.(); hold = null; job = null;
-  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : "eFailed");
-  const size = await sizeOf(res.blob);
-  if (r !== run) { revoke(res.url); return; }
-  patch({ phase: "done", out: { url: res.url, w: size?.w || 0, h: size?.h || 0, by: res.by, ext: extOf(res.blob) }, live: null });
-  if (document.visibilityState === "hidden") notify({ id: "podoba-done", title: T(ctx.t, "title"), body: T(ctx.t, "notifDone"), url: "./" }).catch(() => {});
+  await settle(develop(r, CONFIG.material, { image: frame, material: st.mat, seed }, ctx, (e) => e.code || jobCode(e)).pipe(
+    Effect.map(({ res, size }) => {
+      patch({ phase: "done", out: { url: res.url, w: size?.w || 0, h: size?.h || 0, by: res.by, ext: extOf(res.blob) }, live: null });
+      if (document.visibilityState === "hidden") notify({ id: "podoba-done", title: T(ctx.t, "title"), body: T(ctx.t, "notifDone"), url: "./" }).catch(() => {});
+    }),
+  ), (code) => fail(r, code));
 }
+
+const STALE = { stale: true };
+const refuse = (code) => Effect.fail({ code });
+const fresh = (r) => (v) => r === run ? Effect.succeed(v) : Effect.fail(STALE);
+const settle = (flow, onFail) => Effect.runPromise(flow.pipe(Effect.catch((e) => Effect.sync(() => { if (e !== STALE) onFail(e.code); }))));
+const develop = (r, row, body, ctx, codeOf) => Effect.sync(() => {
+  jobBase = VPS_PROXY + row.base;
+  hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, row.working) });
+}).pipe(
+  Effect.andThen(Effect.tryPromise({
+    try: async () => taskOne(CONFIG.task, { route: row.route, body }, {
+      onStart: (_id, rep) => { if (r === run) job = rep.job; else cancelJob(VPS_PROXY + row.base, rep.job); },
+      onLive: (live) => { if (r === run) patch({ live }); },
+    }),
+    catch: (e) => ({ code: codeOf(e) }),
+  })),
+  Effect.flatMap(fresh(r)),
+  Effect.tap(() => Effect.sync(() => { hold?.(); hold = null; job = null; })),
+  Effect.flatMap((res) => res.status !== "done" ? refuse(res.status === "busy" ? "eBusy" : row.refused) : Effect.promise(() => sizeOf(res.blob)).pipe(
+    Effect.flatMap((size) => r === run ? Effect.succeed({ res, size }) : Effect.sync(() => revoke(res.url)).pipe(Effect.andThen(Effect.fail(STALE)))),
+  )),
+);
 
 function fail(r, code) {
   if (r !== run) return;
@@ -80,26 +92,15 @@ export async function enhance(ctx) {
   const r = ++run;
   patch({ phase: "enhancing", error: null, live: null, t0: Date.now() });
   if (gate) { await sleep(120); if (r === run) patch({ phase: "done", out: { ...st.out, w: st.out.w * 4, h: st.out.h * 4, hd: true }, live: null }); return; }
-  let image;
-  try { image = (await toDataURL(st.out.url)).data; } catch { return failHd(r, "eHd"); }
-  if (r !== run) return;
-  jobBase = UPSCALE;
-  hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "enhancing") });
-  let res;
-  try {
-    res = await taskOne("/task", { route: "/feed/image/upscale", body: { image, quality: "hd" } }, {
-      onStart: (_id, rep) => { if (r === run) job = rep.job; else cancelJob(UPSCALE, rep.job); },
-      onLive: (live) => { if (r === run) patch({ live }); },
-    });
-  } catch (e) { return failHd(r, jobCode(e) === "eSignIn" ? "eSignIn" : "eHd"); }
-  if (r !== run) return;
-  hold?.(); hold = null; job = null;
-  if (res.status !== "done") return failHd(r, res.status === "busy" ? "eBusy" : "eHd");
-  const size = await sizeOf(res.blob);
-  if (r !== run) { revoke(res.url); return; }
-  const old = $st.get().out?.url;
-  patch({ phase: "done", out: { url: res.url, w: size?.w || 0, h: size?.h || 0, by: res.by, ext: extOf(res.blob), hd: true }, live: null });
-  revoke(old);
+  await settle(Effect.tryPromise({ try: async () => (await toDataURL(st.out.url)).data, catch: () => ({ code: CONFIG.upscale.refused }) }).pipe(
+    Effect.flatMap(fresh(r)),
+    Effect.flatMap((image) => develop(r, CONFIG.upscale, { image, quality: "hd" }, ctx, (e) => jobCode(e) === "eSignIn" ? "eSignIn" : CONFIG.upscale.refused)),
+    Effect.map(({ res, size }) => {
+      const old = $st.get().out?.url;
+      patch({ phase: "done", out: { url: res.url, w: size?.w || 0, h: size?.h || 0, by: res.by, ext: extOf(res.blob), hd: true }, live: null });
+      revoke(old);
+    }),
+  ), (code) => failHd(r, code));
 }
 function failHd(r, code) {
   if (r !== run) return;

@@ -5,6 +5,8 @@ import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { frameBox } from "/_rt/glb.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 const FOV = 40, VIEW_DIR = new THREE.Vector3(0.5, 0.25, 1).normalize();
@@ -163,43 +165,57 @@ export function createViewer(canvas, { accent = "#38D9F5" } = {}) {
    * session configuration is not supported" — the device runs one immersive session at a time.
    */
   async function startAR(overlay, { onStage, onEnd } = {}) {
-    if (xr) await xr.end().catch(() => {});
-    const t0 = performance.now();
-    arStage = (name, info) => onStage?.(name, Math.round(performance.now() - t0), info);
-    const CONFIGS = [
-      { optionalFeatures: ["hit-test", "dom-overlay"], domOverlay: { root: overlay } },
-      { optionalFeatures: ["hit-test"] },
-    ];
-    let session = null, config = 0;
-    for (; config < CONFIGS.length; config++) {
-      try { session = await navigator.xr.requestSession("immersive-ar", CONFIGS[config]); break; }
-      catch (e) { arStage("refused", { config, name: e?.name || "", why: String(e?.message || e).slice(0, 80) }); if (e?.name !== "NotSupportedError" || config === CONFIGS.length - 1) throw e; }
-    }
-    xr = session; seenFrame = false; seenSurface = false;
-    session.addEventListener("end", () => {
-      xr = null; hit = null; arStage = null; probeAt = 0; reticle.visible = false;
-      stand.visible = true; stand.position.set(0, 0, 0); stand.scale.setScalar(1); controls.enabled = true;
-      ro.disconnect(); ro.observe(canvas.parentElement); reset(); onEnd?.();
-    }, { once: true });
-    arStage("granted", { config, overlay: session.domOverlayState?.type || "none", features: [...(session.enabledFeatures || [])].join(",") });
-    try {
-      renderer.xr.setReferenceSpaceType("local");
-      await renderer.xr.setSession(session);
-      arStage("layer");
-      hit = session.requestHitTestSource
-        ? await session.requestHitTestSource({ space: await session.requestReferenceSpace("viewer") }).catch(() => null)
-        : null;
-      arStage(hit ? "hit-test" : "no-hit-test");
-    } catch (e) { session.end().catch(() => {}); throw e; }
-    placed = !hit; stand.visible = !hit; controls.enabled = false;
-    if (!hit) stand.position.set(0, -1.2, -1.5);
-    stand.scale.setScalar(modelSize > 2.5 ? 1 / modelSize : modelSize > 0 && modelSize < 0.05 ? 0.3 / modelSize : 1);
-    let firstPlace = true;
-    session.addEventListener("select", () => {
-      if (!reticle.visible) return;
-      placed = true; stand.position.setFromMatrixPosition(reticle.matrix); arStage?.("placed");
-      if (firstPlace) { firstPlace = false; probeAt = performance.now() + 1000; }
+    const AR = CONFIG.ar;
+    const CONFIGS = AR.sessions.map((s) => s.overlay ? { optionalFeatures: s.features, domOverlay: { root: overlay } } : { optionalFeatures: s.features });
+    const endPrevious = () => xr ? Effect.promise(() => xr.end().catch(() => {})) : Effect.void;
+    const clock = () => Effect.sync(() => {
+      const t0 = performance.now();
+      arStage = (name, info) => onStage?.(name, Math.round(performance.now() - t0), info);
     });
+    const request = (config) => Effect.tryPromise({ try: async () => navigator.xr.requestSession(AR.mode, CONFIGS[config]), catch: (e) => e }).pipe(
+      Effect.map((session) => ({ session, config })),
+      Effect.tapError((e) => Effect.sync(() => arStage("refused", { config, name: e?.name || "", why: String(e?.message || e).slice(0, AR.whyChars) }))),
+      Effect.catchIf((e) => e?.name === AR.fallbackOn && config < CONFIGS.length - 1, () => request(config + 1)),
+    );
+    const grant = ({ session, config }) => Effect.sync(() => {
+      xr = session; seenFrame = false; seenSurface = false;
+      session.addEventListener("end", () => {
+        xr = null; hit = null; arStage = null; probeAt = 0; reticle.visible = false;
+        stand.visible = true; stand.position.set(0, 0, 0); stand.scale.setScalar(1); controls.enabled = true;
+        ro.disconnect(); ro.observe(canvas.parentElement); reset(); onEnd?.();
+      }, { once: true });
+      arStage("granted", { config, overlay: session.domOverlayState?.type || "none", features: [...(session.enabledFeatures || [])].join(",") });
+    });
+    const layer = ({ session }) => Effect.tryPromise({
+      try: async () => {
+        renderer.xr.setReferenceSpaceType("local");
+        await renderer.xr.setSession(session);
+        arStage("layer");
+        hit = session.requestHitTestSource
+          ? await session.requestHitTestSource({ space: await session.requestReferenceSpace("viewer") }).catch(() => null)
+          : null;
+        arStage(hit ? "hit-test" : "no-hit-test");
+      },
+      catch: (e) => e,
+    }).pipe(Effect.tapError(() => Effect.sync(() => { session.end().catch(() => {}); })));
+    const place = ({ session }) => Effect.sync(() => {
+      placed = !hit; stand.visible = !hit; controls.enabled = false;
+      if (!hit) stand.position.set(0, -1.2, -1.5);
+      stand.scale.setScalar(modelSize > 2.5 ? 1 / modelSize : modelSize > 0 && modelSize < 0.05 ? 0.3 / modelSize : 1);
+      let firstPlace = true;
+      session.addEventListener("select", () => {
+        if (!reticle.visible) return;
+        placed = true; stand.position.setFromMatrixPosition(reticle.matrix); arStage?.("placed");
+        if (firstPlace) { firstPlace = false; probeAt = performance.now() + 1000; }
+      });
+    });
+    await Effect.runPromise(endPrevious().pipe(
+      Effect.andThen(clock()),
+      Effect.andThen(Effect.suspend(() => request(0))),
+      Effect.tap(grant),
+      Effect.tap(layer),
+      Effect.flatMap(place),
+    ));
   }
   const stopAR = () => xr?.end().catch(() => {});
 

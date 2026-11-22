@@ -8,6 +8,7 @@ import { shell } from "/_rt/shell.js";
 import { gate } from "/_rt/gate.js";
 import { transcribe, ensureModel, isModelCached, engineAvailable, MODELS, LANGS } from "./stt.js";
 import { log, logLines, clearLog, readMark, mark } from "./log.js";
+import { Effect } from "/_rt/fx.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
@@ -49,9 +50,9 @@ export function tgvoice({ S, toast }) {
   const needMB = need.reduce((s, l) => s + MODELS[l].approxMB, 0);
 
   const refreshCached = async () => {
-    const next = {};
-    for (const l of LANGS) next[l] = await isModelCached(l).catch(() => false);
-    setCached(next);
+    setCached(await Effect.runPromise(Effect.reduce(LANGS, () => ({}), (next, l) => Effect.promise(() => isModelCached(l).catch(() => false)).pipe(
+      Effect.map((ok) => ({ ...next, [l]: ok })),
+    ))));
   };
 
   async function run(arrayBuffer) {
@@ -117,9 +118,10 @@ export function tgvoice({ S, toast }) {
   const download = async () => {
     if (busyRef.current) return;
     busyRef.current = true; setErrKey(null);
-    try { for (const l of need) if (!cached[l]) await ensureModel(l, (fr) => setStage({ stage: "model", fraction: fr, lang: l })); }
-    catch { setErrKey("errFailed"); setPhase("error"); }
-    finally { busyRef.current = false; setStage(null); refreshCached(); }
+    await Effect.runPromise(Effect.forEach(need.filter((l) => !cached[l]), (l) => Effect.tryPromise({ try: async () => ensureModel(l, (fr) => setStage({ stage: "model", fraction: fr, lang: l })), catch: (e) => e }), { discard: true }).pipe(
+      Effect.catch(() => Effect.sync(() => { setErrKey("errFailed"); setPhase("error"); })),
+      Effect.ensuring(Effect.sync(() => { busyRef.current = false; setStage(null); refreshCached(); })),
+    ));
   };
 
   const doCopy = async () => { try { await navigator.clipboard.writeText(res.text); toast?.(T(t, "copied")); buzz(); } catch { } };

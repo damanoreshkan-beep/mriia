@@ -1,3 +1,4 @@
+import { chunk, filter, pipe, reduce } from "@microspec/core/runtime/remeda.js";
 import { distanceM } from "./trace.js";
 
 export const G = 9.80665;
@@ -115,7 +116,7 @@ export const tripInit = (day) => ({
   last: null, raw: null, v: null, moving: false, slowMs: 0, heading: null, sprint: SPRINT0,
 });
 
-const pairMax = (a) => { const out = []; for (let i = 0; i < a.length; i += 2) out.push(Math.max(a[i], a[i + 1] ?? a[i])); return out; };
+const pairMax = (a) => chunk(a, 2).map(([x, y]) => Math.max(x, y ?? x));
 
 export function tripStep(s, fix) {
   const last = s.last, dtMs = last ? fix.t - last.t : 0;
@@ -183,15 +184,18 @@ export const avgMs = (d) => (d?.moveMs > 0 ? d.dist / (d.moveMs / 1000) : 0);
 export const compass8 = (deg) => Math.round((((deg % 360) + 360) % 360) / 45) % 8;
 
 export function records(days) {
-  const r = { top: 0, lean: 0, best: null, far: 0, total: 0, rides: 0 };
-  for (const d of days || []) {
-    if (!(d.dist > 0)) continue;
-    r.rides++; r.total += d.dist;
-    r.top = Math.max(r.top, d.max || 0); r.far = Math.max(r.far, d.dist);
-    r.lean = Math.max(r.lean, d.maxL || 0, d.maxR || 0);
-    if (d.best != null) r.best = r.best == null ? d.best : Math.min(r.best, d.best);
-  }
-  return r;
+  return pipe(
+    days || [],
+    filter((d) => d.dist > 0),
+    reduce((r, d) => ({
+      top: Math.max(r.top, d.max || 0),
+      lean: Math.max(r.lean, d.maxL || 0, d.maxR || 0),
+      best: d.best == null ? r.best : r.best == null ? d.best : Math.min(r.best, d.best),
+      far: Math.max(r.far, d.dist),
+      total: r.total + d.dist,
+      rides: r.rides + 1,
+    }), { top: 0, lean: 0, best: null, far: 0, total: 0, rides: 0 }),
+  );
 }
 
 const pad2 = (n) => String(n).padStart(2, "0");

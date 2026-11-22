@@ -1,3 +1,5 @@
+import { filter, flatMap, isTruthy, map, pipe, uniqueBy } from "@microspec/core/runtime/remeda.js";
+
 const DAY = 86_400_000;
 
 export function ageDays(ts, now = Date.now()) {
@@ -65,29 +67,25 @@ function parseValue(raw) {
   return one ? [one] : [];
 }
 
+function fundingOf(key, h) {
+  const isUrl = /^https?:\/\//i.test(h);
+  const [url, label] = key === "custom" || isUrl ? [h, key === "custom" ? "" : (PLATFORMS[key]?.label || key)]
+    : PLATFORMS[key] ? [PLATFORMS[key].url(h), PLATFORMS[key].label]
+    : [];
+  return url !== undefined && /^https?:\/\//i.test(url) ? { platform: key, label: label || hostLabel(url), handle: isUrl ? "" : h, url } : null;
+}
+
 export function parseFunding(yamlText) {
   if (typeof yamlText !== "string" || !yamlText.trim()) return [];
-  const out = [];
-  const seen = new Set();
-  for (const line of yamlText.split(/\r?\n/)) {
-    if (/^\s/.test(line)) continue;
-    const m = stripComment(line).match(/^([a-z_][a-z0-9_]*)\s*:\s*(.*)$/i);
-    if (!m) continue;
-    const key = m[1].toLowerCase();
-    const handles = parseValue(m[2]);
-    for (const h of handles) {
-      const isUrl = /^https?:\/\//i.test(h);
-      let url, label;
-      if (key === "custom" || isUrl) { url = h; label = key === "custom" ? "" : (PLATFORMS[key]?.label || key); }
-      else if (PLATFORMS[key]) { url = PLATFORMS[key].url(h); label = PLATFORMS[key].label; }
-      else continue;
-      if (!/^https?:\/\//i.test(url)) continue;
-      if (seen.has(url)) continue;
-      seen.add(url);
-      out.push({ platform: key, label: label || hostLabel(url), handle: isUrl ? "" : h, url });
-    }
-  }
-  return out.sort((a, b) => {
+  return pipe(
+    yamlText.split(/\r?\n/),
+    filter((line) => !/^\s/.test(line)),
+    map((line) => stripComment(line).match(/^([a-z_][a-z0-9_]*)\s*:\s*(.*)$/i)),
+    filter(isTruthy),
+    flatMap((m) => parseValue(m[2]).map((h) => fundingOf(m[1].toLowerCase(), h))),
+    filter(isTruthy),
+    uniqueBy((f) => f.url),
+  ).sort((a, b) => {
     const ga = a.platform === "github", gb = b.platform === "github";
     return ga === gb ? 0 : ga ? -1 : 1;
   });

@@ -7,9 +7,12 @@ import { Globe, countryAt, worldReady, ringAround } from "/_rt/globe.js";
 import { watchList, place } from "/_rt/watch.js";
 import { isGate, MOCK } from "/_rt/gate.js";
 import { subpoint, makeSat, FALLBACK_TLE } from "/_rt/orbit.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+import { fetched, watch } from "./poll.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const TLE_URL = "https://tle.ivanstanojevic.me/api/tle/25544";
+const TLE_URL = CONFIG.tleUrl;
 const CACHE_KEY = "iss.tle.v1";
 const ME_KEY = "iss.me.v1";
 const GATE_ME = { lat: 50.45, lon: 30.52 };
@@ -82,19 +85,12 @@ export function iss({ S }) {
 
   useEffect(() => {
     if (isGate || MOCK) return;
-    let live = true;
-    const load = async () => {
-      try {
-        const r = await fetch(TLE_URL); if (!r.ok) throw 0; const j = await r.json();
-        if (!live || !j.line1 || !j.line2) return;
-        recRef.current = makeSat(j.line1, j.line2);
-        try { if (typeof localStorage !== "undefined") localStorage.setItem(CACHE_KEY, JSON.stringify({ line1: j.line1, line2: j.line2, name: j.name, date: j.date })); } catch { }
-        const p = subpoint(recRef.current, new Date()); if (p) setPos(p);
-      } catch { }
-    };
-    load();
-    const id = setInterval(load, 3 * 3600 * 1000);
-    return () => { live = false; clearInterval(id); };
+    return watch(CONFIG.tlePollMs, fetched(TLE_URL).pipe(Effect.tap((j) => Effect.sync(() => {
+      if (!j.line1 || !j.line2) return;
+      recRef.current = makeSat(j.line1, j.line2);
+      try { if (typeof localStorage !== "undefined") localStorage.setItem(CACHE_KEY, JSON.stringify({ line1: j.line1, line2: j.line2, name: j.name, date: j.date })); } catch { }
+      const p = subpoint(recRef.current, new Date()); if (p) setPos(p);
+    }))));
   }, []);
 
   useEffect(() => { const id = setInterval(() => { tick((x) => x + 1); if (worldReady()) clearInterval(id); }, 1000); return () => clearInterval(id); }, []);

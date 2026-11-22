@@ -16,6 +16,8 @@ import { isGate } from "/_rt/gate.js";
 import { wakeLock } from "/_rt/sensors.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { bindAudio, enableImmersion, disableImmersion, immersionState, immersionAvailable, SpectrumStage, VIZ, VIZ_COUNT } from "./viz.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
@@ -163,8 +165,8 @@ const VOICES = {
   rumble: (c, t, o) => nz(c, t, o.b.brown, { type: "lowpass", freq: 90, peak: 0.5, dur: o.spb * 0.95 }),
 };
 
-const PBASE = "https://tonejs.github.io/audio/drum-samples";
-const SFILES = ["kick", "snare", "hihat", "tom1", "tom2", "tom3"];
+const PBASE = CONFIG.samples.base;
+const SFILES = CONFIG.samples.files;
 const SMAP = { kick: "kick", hardkick: "kick", snare: "snare", clap: "snare", rim: "snare", hat: "hihat", ohat: "hihat", shaker: "hihat", ride: "hihat", crash: "hihat", tom: "tom1", conga: "tom2", cowbell: "tom3", clave: "tom3" };
 const PACKS = [{ id: "LINN", label: "LinnDrum" }, { id: "R8", label: "R-8" }, { id: "CR78", label: "CR-78" }, { id: "KPR77", label: "KPR-77" }, { id: "Techno", label: "Techno" }, { id: "Stark", label: "Stark" }, { id: "Bongos", label: "Bongos" }, { id: "4OP-FM", label: "FM" }, { id: "Kit8", label: "Kit 8" }, { id: "acoustic-kit", label: "Acoustic" }];
 const BUF = new Map();
@@ -175,9 +177,17 @@ async function loadPackSamples(id) {
   if (SFILES.every((f) => BUF.has(`${id}:${f}`))) return;
   const e = ensure(); if (!e) return;
   $loading.set(id);
-  await Promise.all(SFILES.map(async (f) => { const k = `${id}:${f}`; if (BUF.has(k)) return; try { const r = await fetch(`${PBASE}/${id}/${f}.mp3`); if (!r.ok) return; BUF.set(k, await e.ctx.decodeAudioData(await r.arrayBuffer())); } catch { } }));
+  await Effect.runPromise(Effect.forEach(SFILES, (f) => Effect.suspend(() => BUF.has(`${id}:${f}`) ? Effect.void : loadSample(e, id, f)), { concurrency: "unbounded", discard: true }));
   $loading.set(null);
 }
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const loadSample = (e, id, f) => tried(() => fetch(`${PBASE}/${id}/${f}.${CONFIG.samples.ext}`)).pipe(
+  Effect.flatMap((r) => !r.ok ? Effect.void : tried(() => r.arrayBuffer()).pipe(
+    Effect.flatMap((bytes) => tried(() => e.ctx.decodeAudioData(bytes))),
+    Effect.flatMap((buf) => Effect.sync(() => { BUF.set(`${id}:${f}`, buf); })),
+  )),
+  Effect.catch(() => Effect.void),
+);
 async function selectPack(id) { buzz(); $pack.set(id); await loadPackSamples(id); }
 
 function fire(step, time) {

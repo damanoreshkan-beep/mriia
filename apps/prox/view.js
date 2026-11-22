@@ -9,8 +9,18 @@ import { gate } from "/_rt/gate.js";
 import { band } from "/_rt/radar.js";
 import { signatures } from "/_rt/blesig.js";
 import { PRESETS, assemble } from "/_rt/blesend.js";
+import { Effect, Schedule } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
+const call = (action, args = {}) => tried(() => shell.call(action, args));
+const askGrant = (permission, granted) => call("system.grant", { permission }).pipe(
+  Effect.flatMap((r) => r?.state === "granted" ? attempt(granted).pipe(Effect.as(true)) : Effect.succeed(false)),
+  Effect.catch(() => Effect.succeed(false)),
+  Effect.flatMap((done) => done ? Effect.void : call("system.settings", { page: "app" }).pipe(Effect.ignore)),
+);
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider";
 const MONO = "font-mono text-[length:var(--ms-label)] tabular-nums";
 const CHIP = `shrink-0 rounded-full px-2 py-0.5 sf-inset ${LABEL} text-base-content/70`;
@@ -62,11 +72,7 @@ function noteError(e) {
 async function grant() {
   const p = $needPerm.get();
   if (!p) return;
-  try {
-    const r = await shell.call("system.grant", { permission: p });
-    if (r?.state === "granted") { $needPerm.set(null); $err.set(null); hush(); listen(); return; }
-  } catch { }
-  try { await shell.call("system.settings", { page: "app" }); } catch { }
+  await Effect.runPromise(askGrant(p, () => { $needPerm.set(null); $err.set(null); hush(); listen(); }));
 }
 
 const GATE_SEEN = {
@@ -103,16 +109,20 @@ function heard(frame) {
 
 async function diagnose() {
   if (gate) return;
-  try {
-    const info = await shell.call("system.info", {});
-    if (info && info.locationOn === false) { $blocked.set("locationOff"); return; }
-  } catch { }
-  try {
-    const st = await shell.call("ble.state", {});
-    if (st && st.supported === false) { $blocked.set("noBle"); return; }
-    if (st && st.on === false) { $blocked.set("bleOff"); return; }
-  } catch { }
-  $blocked.set(null);
+  const blocked = (why) => Effect.fail({ blocked: why });
+  const unblocked = (e) => !e?.blocked;
+  const locating = call("system.info").pipe(
+    Effect.flatMap((info) => info && info.locationOn === false ? blocked("locationOff") : Effect.void),
+    Effect.catchIf(unblocked, () => Effect.void),
+  );
+  const radio = call("ble.state").pipe(
+    Effect.flatMap((st) => st && st.supported === false ? blocked("noBle") : st && st.on === false ? blocked("bleOff") : Effect.void),
+    Effect.catchIf(unblocked, () => Effect.void),
+  );
+  await Effect.runPromise(locating.pipe(
+    Effect.andThen(radio),
+    Effect.matchEffect({ onFailure: (e) => Effect.sync(() => $blocked.set(e.blocked)), onSuccess: () => Effect.sync(() => $blocked.set(null)) }),
+  ));
 }
 
 function listen() {
@@ -315,16 +325,12 @@ function noteSErr(e) {
 async function grantSend() {
   const p = $sNeedPerm.get();
   if (!p) return;
-  try {
-    const r = await shell.call("system.grant", { permission: p });
-    if (r?.state === "granted") { $sNeedPerm.set(null); $sErr.set(null); return; }
-  } catch { }
-  try { await shell.call("system.settings", { page: "app" }); } catch { }
+  await Effect.runPromise(askGrant(p, () => { $sNeedPerm.set(null); $sErr.set(null); }));
 }
 
 const rnd = (n) => crypto.getRandomValues(new Uint8Array(n));
 let reemit = null;
-function stopReemit() { if (reemit) { clearInterval(reemit); reemit = null; } }
+function stopReemit() { if (reemit) { reemit.interruptUnsafe(); reemit = null; } }
 
 async function emit(preset) {
   stopReemit();
@@ -337,13 +343,16 @@ async function emit(preset) {
     $active.set({ id: preset.id, bytes, out: r?.bytes });
     $sErr.set(null);
     if (preset.dynamic) {
-      reemit = setInterval(async () => {
-        try {
-          const s2 = preset.build(val, rnd);
-          const r2 = await shell.call("ble.advertiseRaw", { structures: s2, ms: 0, connectable: !!preset.connectable });
-          $active.set({ id: preset.id, bytes: assemble(s2), out: r2?.bytes });
-        } catch (e) { stopReemit(); noteSErr(e); }
-      }, 2000);
+      const again = attempt(() => preset.build(val, rnd)).pipe(
+        Effect.flatMap((s2) => call("ble.advertiseRaw", { structures: s2, ms: 0, connectable: !!preset.connectable }).pipe(
+          Effect.flatMap((r2) => attempt(() => $active.set({ id: preset.id, bytes: assemble(s2), out: r2?.bytes }))),
+        )),
+      );
+      const fiber = Effect.runFork(Effect.sleep(CONFIG.reemitMs).pipe(
+        Effect.andThen(again.pipe(Effect.repeat(Schedule.fixed(CONFIG.reemitMs)))),
+        Effect.catch((e) => Effect.sync(() => { if (reemit === fiber) reemit = null; noteSErr(e); })),
+      ));
+      reemit = fiber;
     }
   } catch (e) { noteSErr(e); }
 }

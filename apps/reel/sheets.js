@@ -12,6 +12,11 @@ import { siteName } from "/_rt/sitelabel.js";
 import { Icon, openExternal } from "./util.js";
 import { subscribe, $sessions, sessionKey, setSession, $sessSite, $drawer, $searchBases, searchBaseFor, pullCast } from "./store.js";
 import { openAsSource } from "./feed.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
 
 export function SourceSheet({ S, t }) {
   const [val, setVal] = useState("");
@@ -70,23 +75,17 @@ async function exportClip({ item, format, mode, t, toast }) {
   const url = item?.orig || item?.video;
   if (!url || $busy.get()) return;
   $busy.set(`${format}-${mode}`);
-  try {
-    const r = await taskOne("/clip/task", { url, page: item.page || null, format });
-    if (r.status !== "done") { toast?.(r.error ? `${T(t, "expFail")}: ${r.error}` : T(t, "expFail")); return; }
-    const blob = r.blob;
-    const name = exportName(item, format);
-    if (mode === "share") {
-      const how = await shareFile(blob, name);
-      if (how === "saved") toast?.(T(t, "expSaved"));
-    } else {
-      downloadBlob(blob, name);
-      toast?.(T(t, "expSaved"));
-    }
-  } catch (e) {
-    toast?.(e?.status && e.message ? `${T(t, "expFail")}: ${e.message}` : T(t, "expFail"));
-  } finally {
-    $busy.set("");
-  }
+  const render = tried(() => taskOne(CONFIG.clipTask, { url, page: item.page || null, format }));
+  const deliver = (blob, name) => mode === "share"
+    ? tried(() => shareFile(blob, name)).pipe(Effect.flatMap((how) => attempt(() => { if (how === "saved") toast?.(T(t, "expSaved")); })))
+    : attempt(() => { downloadBlob(blob, name); toast?.(T(t, "expSaved")); });
+  await Effect.runPromise(render.pipe(
+    Effect.flatMap((r) => r.status !== "done"
+      ? attempt(() => { toast?.(r.error ? `${T(t, "expFail")}: ${r.error}` : T(t, "expFail")); })
+      : attempt(() => exportName(item, format)).pipe(Effect.flatMap((name) => deliver(r.blob, name)))),
+    Effect.catch((e) => Effect.sync(() => { toast?.(e?.status && e.message ? `${T(t, "expFail")}: ${e.message}` : T(t, "expFail")); })),
+    Effect.ensuring(Effect.sync(() => $busy.set(""))),
+  ));
 }
 
 export function MoreSheet({ S, t, item, src, title, subbed, toast }) {

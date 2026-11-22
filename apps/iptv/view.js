@@ -10,6 +10,8 @@ import { Pixels } from "/_rt/skeleton.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { sealedFrameUrl } from "/_rt/sealedfetch.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
@@ -42,23 +44,27 @@ function parseM3U(text) {
   return out;
 }
 
-async function listOf(code) {
-  if (!gate) {
-    try {
-      const r = await fetch(`${VPS_PROXY}/tvlist?c=${code}`);
-      if (r.ok) { const j = await r.json(); if (Array.isArray(j.channels)) return j.channels.map((c, i) => ({ ...c, id: String(i) + "|" + c.name })); }
-    } catch {  }
-  }
-  return parseM3U(await (await fetch(`https://iptv-org.github.io/iptv/countries/${code}.m3u`)).text());
-}
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const edgeList = (code) => tried(async () => {
+  const r = await fetch(`${VPS_PROXY}${CONFIG.listRoute}?c=${code}`);
+  if (!r.ok) return null;
+  const j = await r.json();
+  return Array.isArray(j.channels) ? j.channels.map((c, i) => ({ ...c, id: String(i) + "|" + c.name })) : null;
+}).pipe(Effect.catch(() => Effect.succeed(null)));
+const m3uList = (code) => tried(async () => parseM3U(await (await fetch(`${CONFIG.m3uBase}${code}.m3u`)).text()));
+const listOf = (code) => (gate ? Effect.succeed(null) : edgeList(code)).pipe(
+  Effect.flatMap((ch) => (ch ? Effect.succeed(ch) : m3uList(code))),
+);
 
 async function loadCountry(code) {
   $err.set(false); $cat.set(""); $query.set("");
   if (cache.has(code)) { $channels.set(cache.get(code)); $loading.set(false); return; }
   $loading.set(true);
-  try { const ch = await listOf(code); cache.set(code, ch); $channels.set(ch); }
-  catch { $channels.set([]); $err.set(true); }
-  $loading.set(false);
+  await Effect.runPromise(listOf(code).pipe(
+    Effect.tap((ch) => Effect.sync(() => { cache.set(code, ch); $channels.set(ch); })),
+    Effect.catchCause(() => Effect.sync(() => { $channels.set([]); $err.set(true); })),
+    Effect.andThen(Effect.sync(() => $loading.set(false))),
+  ));
 }
 
 const Tile = ({ ch, onPlay }) => html`<button data-ch class="flex flex-col gap-1 min-w-0 active:scale-95 transition-transform" aria-label=${ch.name} onClick=${() => onPlay(ch)}>

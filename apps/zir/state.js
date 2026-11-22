@@ -9,10 +9,13 @@ import { cancelJob } from "/_rt/imagejob.js";
 import { taskOne, jobCode } from "/_rt/task.js";
 import { mockArt, toDataURL, sizeOf, extOf } from "/_rt/intake.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
-const BASE = `${VPS_PROXY}/image/upscale`;
+const BASE = VPS_PROXY + CONFIG.base;
 const OPTS_KEY = "ms:zir:opts";
-const JOB_KEY = "ms:zir:job";
+const STALE = { stale: true };
+const stage = (fx, code) => Effect.tryPromise({ try: async () => fx(), catch: (e) => ({ code: code(e) }) });
 
 export const $st = atom({
   phase: gate ? "done" : "empty",
@@ -73,35 +76,46 @@ export async function enlarge(ctx) {
     patch({ phase: "done", out: { url: mockArt(3, 4), w: 3072, h: 4096, ext: "png", by: "gate" }, inW: 768, inH: 1024, live: null });
     return;
   }
-  let sent;
-  try { sent = await toDataURL(st.src); } catch { return fail(r, "eFailed"); }
-  if (r !== run) return;
-  patch({ inW: sent.w, inH: sent.h });
-  const { quality, model } = $opts.get();
-  hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") });
-  let res;
-  try {
-    res = await taskOne("/task", { route: "/feed/image/upscale", body: { image: sent.data, quality, ...(model && model !== "auto" ? { model } : {}) } }, {
+  const fresh = (v) => r === run ? Effect.succeed(v) : Effect.fail(STALE);
+  const source = stage(() => toDataURL(st.src), () => "eFailed").pipe(
+    Effect.flatMap(fresh),
+    Effect.tap((sent) => Effect.sync(() => patch({ inW: sent.w, inH: sent.h }))),
+  );
+  const upscale = (sent) => {
+    const { quality, model } = $opts.get();
+    hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") });
+    return stage(() => taskOne(CONFIG.task, { route: CONFIG.route, body: { image: sent.data, quality, ...(model && model !== "auto" ? { model } : {}) } }, {
       onStart: (_id, rep) => {
         if (r !== run) { cancelJob(BASE, rep.job); return; }
         job = rep.job;
-        try { localStorage.setItem(JOB_KEY, JSON.stringify({ job, ts: Date.now() })); } catch { }
+        try { localStorage.setItem(CONFIG.jobKey, JSON.stringify({ job, ts: Date.now() })); } catch { }
       },
       onLive: (live) => { if (r === run) patch({ live }); },
-    });
-  } catch (e) { if (r === run) { hold?.(); hold = null; fail(r, e.code || jobCode(e)); } return; }
-  if (r !== run) return;
-  hold?.(); hold = null;
-  try { localStorage.removeItem(JOB_KEY); } catch { }
-  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : "eFailed");
-  const size = (await sizeOf(res.blob)) || { w: 0, h: 0 };
-  if (r !== run) return;
-  const out = { url: res.url, w: size.w, h: size.h, ext: extOf(res.blob), by: res.by };
-  patch({ phase: "done", out, live: null });
-  writeLastGen(out.url, "").catch(() => {});
-  if (document.visibilityState === "hidden") {
-    if (await notifyAsk()) notify({ id: "zir-done", title: T(ctx.t, "done"), body: `${out.w}×${out.h}` }).catch(() => {});
-  }
+    }), (e) => e.code || jobCode(e)).pipe(
+      Effect.tapError(() => Effect.sync(() => { if (r === run) { hold?.(); hold = null; } })),
+      Effect.flatMap(fresh),
+      Effect.tap(() => Effect.sync(() => {
+        hold?.(); hold = null;
+        try { localStorage.removeItem(CONFIG.jobKey); } catch { }
+      })),
+    );
+  };
+  const measured = (res) => res.status !== "done" ? Effect.fail({ code: res.status === "busy" ? "eBusy" : "eFailed" })
+    : Effect.promise(() => sizeOf(res.blob)).pipe(Effect.map((size) => size || { w: 0, h: 0 }), Effect.flatMap(fresh), Effect.map((size) => ({ url: res.url, w: size.w, h: size.h, ext: extOf(res.blob), by: res.by })));
+  const shown = (out) => Effect.sync(() => {
+    patch({ phase: "done", out, live: null });
+    writeLastGen(out.url, "").catch(() => {});
+  }).pipe(
+    Effect.andThen(document.visibilityState !== "hidden" ? Effect.void : Effect.promise(() => notifyAsk()).pipe(
+      Effect.map((ok) => { if (ok) notify({ id: "zir-done", title: T(ctx.t, "done"), body: `${out.w}×${out.h}` }).catch(() => {}); }),
+    )),
+  );
+  await Effect.runPromise(source.pipe(
+    Effect.flatMap(upscale),
+    Effect.flatMap(measured),
+    Effect.flatMap(shown),
+    Effect.catch((e) => Effect.sync(() => { if (e !== STALE) fail(r, e.code); })),
+  ));
 }
 
 export function cancel() {

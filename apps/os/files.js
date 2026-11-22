@@ -6,6 +6,8 @@ import { T } from "/_rt/i18n.js";
 import { Panel } from "/_rt/ui.js";
 import { shell, ERR } from "/_rt/shell.js";
 import { Icon, LABEL } from "./ui.js";
+import { Effect } from "/_rt/fx.js";
+import { tried, call } from "./probe.js";
 
 const $fs = atom({ open: false, root: null, trail: [], entries: [], preview: null, busy: false, error: "" });
 const setFs = (patch) => $fs.set({ ...$fs.get(), ...patch });
@@ -59,11 +61,10 @@ async function fsEnterRoot(S, root) {
 
 async function fsGrant(S) {
   setFs({ busy: true, error: "" });
-  try {
-    const r = await shell.call("files.grant", {});
-    if (r?.granted) { await fsEnterRoot(S, { uri: r.uri, name: r.name }); return; }
-    setFs({ busy: false });
-  } catch (e) { setFs({ busy: false, error: e?.code || String(e) }); }
+  await Effect.runPromise(call("files.grant").pipe(
+    Effect.flatMap((r) => r?.granted ? tried(() => fsEnterRoot(S, { uri: r.uri, name: r.name })) : Effect.try({ try: () => setFs({ busy: false }), catch: (e) => e })),
+    Effect.catch((e) => Effect.sync(() => setFs({ busy: false, error: e?.code || String(e) }))),
+  ));
 }
 
 function Explorer({ S, t, loc, toast }) {
@@ -71,12 +72,11 @@ function Explorer({ S, t, loc, toast }) {
   const [roots, setRoots] = useState(null);
 
   const loadRoots = async () => {
-    try {
-      const r = await shell.call("files.roots", {});
-      const list = r.roots || [];
-      setRoots(list);
-      if (list.length === 1) await fsEnterRoot(S, list[0]);
-    } catch { setRoots([]); }
+    await Effect.runPromise(call("files.roots").pipe(
+      Effect.flatMap((r) => Effect.try({ try: () => { const list = r.roots || []; setRoots(list); return list; }, catch: (e) => e })),
+      Effect.flatMap((list) => list.length === 1 ? tried(() => fsEnterRoot(S, list[0])) : Effect.void),
+      Effect.catch(() => Effect.sync(() => setRoots([]))),
+    ));
   };
   useEffect(() => { if (fs.open && !fs.root) loadRoots(); }, [fs.open, fs.root]);
 
@@ -94,18 +94,21 @@ function Explorer({ S, t, loc, toast }) {
   };
 
   const saveLog = async () => {
-    try {
-      const r = await shell.call("system.logs", {});
+    const write = (r) => tried(() => {
       const body = (r.lines || []).join("\n");
       const b64 = btoa(unescape(encodeURIComponent(body)));
       const at = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-      const out = await shell.call("files.write", {
+      return shell.call("files.write", {
         uri: fs.root.uri, docId: fs.trail[fs.trail.length - 1].docId,
         name: `microspec-${at}.log`, mime: "text/plain", base64: b64,
       });
-      toast?.(`${T(t, "fsSaved")} · ${size(out.bytes, loc)}`);
-      await fsOpenFolder(S, fs.root, fs.trail);
-    } catch (e) { toast?.(e?.code || String(e)); }
+    });
+    await Effect.runPromise(call("system.logs").pipe(
+      Effect.flatMap(write),
+      Effect.flatMap((out) => Effect.try({ try: () => toast?.(`${T(t, "fsSaved")} · ${size(out.bytes, loc)}`), catch: (e) => e })),
+      Effect.andThen(tried(() => fsOpenFolder(S, fs.root, fs.trail))),
+      Effect.catch((e) => Effect.sync(() => toast?.(e?.code || String(e)))),
+    ));
   };
 
   const share = async (p) => {

@@ -17,8 +17,12 @@ import { haptic } from "/_rt/sensors.js";
 import { useLikes, LikesConnect, LikesHead, LikeRow, LikesSkeleton } from "/_rt/ytlikes.js";
 import { STEPS, DEFAULT_STEP, ORIGINAL_AT, carryTime, remixFile, roomKey, presetLine, whyKeys, parseTags, groundSong, errorKey, FIXTURE_LINK, FIXTURE_META, FIXTURE_ANALYSIS, FIXTURE_TAGS } from "/_rt/remix.js";
 import { startTask, followTask, fetchResumable, taskKey, taskCall } from "/_rt/task.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
 const STAGES = ["listen", "fetch", "measure", "mix"];
 const STAGE_UI = { listen: ["lucide:ear", "listening"], fetch: ["lucide:cloud-download", "stageFetch"], measure: ["lucide:audio-waveform", "stageMeasure"], mix: ["lucide:sparkles", "mixing"] };
 const LATER_ICONS = ["lucide:wifi-off", "lucide:audio-lines", "lucide:x", ...Object.values(STAGE_UI).map(([i]) => i)];
@@ -68,11 +72,26 @@ async function find(link) {
 
 async function askTags(meta, locale) {
   const { text } = groundSong(meta);
-  try {
-    const r = await Promise.race([askAI(text, locale, "remix"), new Promise((_, no) => setTimeout(() => no(new Error("slow")), 15000))]);
-    return parseTags(r?.text);
-  } catch { return null; }
+  return await Effect.runPromise(tried(() => askAI(text, locale, "remix")).pipe(
+    Effect.timeoutOrElse({ duration: CONFIG.tagsTimeoutMs, orElse: () => Effect.fail(new Error("slow")) }),
+    Effect.flatMap((r) => attempt(() => parseTags(r?.text))),
+    Effect.catch(() => Effect.succeed(null)),
+  ));
 }
+
+const download = (id, v, bytes, signal, my, mark) => {
+  let pct = 0;
+  const onProgress = (got, total) => { const p = total ? Math.min(100, Math.floor(got * 100 / total)) : 0; if (p !== pct) { pct = p; mark({ state: "dl", pct }); } };
+  return attempt(() => mark({ state: "dl", pct })).pipe(
+    Effect.andThen(tried(() => fetchResumable(`${VPS_PROXY}${CONFIG.files}/${id}/${v}`, { signal, size: bytes, onProgress }))),
+    Effect.flatMap((blob) => attempt(() => URL.createObjectURL(blob))),
+    Effect.flatMap((url) => my !== seq ? Effect.sync(() => URL.revokeObjectURL(url)) : attempt(() => {
+      mark({ state: "ready", url });
+      if ($step.get() === v) show(v);
+    })),
+    Effect.catch((e) => Effect.sync(() => { if (!signal.aborted) { report("remix.fail", { v, status: e?.status, err: String(e?.message || e).slice(0, 120) }); mark({ state: "err" }); } })),
+  );
+};
 
 async function mix(link, meta, locale) {
   if ($busy.get()) return;
@@ -90,46 +109,40 @@ async function mix(link, meta, locale) {
 
 async function make(v, link, my = seq) {
   const first = !$ana.get();
-  const ac = new AbortController(), signal = ac.signal;
-  runs.add(ac);
   const mark = (t) => { if (my === seq) $tracks.set({ ...$tracks.get(), [v]: t }); };
   const fail = (status) => {
     if (my !== seq) return;
     if (!first) return mark({ state: "err" });
     const k = errorKey(status); $err.set(k === "errMeta" ? "errMix" : k); $tracks.set({}); $busy.set("");
   };
-  mark({ state: "wait" });
   let file = null;
-  try {
-    const tags = $tags.get();
-    const { id } = await startTask("/music/task", { url: link, genre: tags?.genre || "", vocal: tags?.vocal || "", v, k: taskKey() }, { signal });
-    await followTask(id, (ev) => {
-      if (my !== seq) return;
-      if (ev.t === "stage") { if (first) $busy.set(ev.s === "measure" ? "measure" : "fetch"); }
-      else if (ev.t === "analysis") { if (!$ana.get()) $ana.set(ev); if (first) $busy.set("mix"); }
-      else if (ev.t === "render" && ev.v === v) mark({ state: "render" });
-      else if (ev.t === "ready" && ev.v === v) file = (async () => {
-        try {
-          let pct = 0;
-          mark({ state: "dl", pct });
-          const onProgress = (got, total) => { const p = total ? Math.min(100, Math.floor(got * 100 / total)) : 0; if (p !== pct) { pct = p; mark({ state: "dl", pct }); } };
-          const url = URL.createObjectURL(await fetchResumable(`${VPS_PROXY}/task/${id}/${v}`, { signal, size: ev.bytes, onProgress }));
-          if (my !== seq) { URL.revokeObjectURL(url); return; }
-          mark({ state: "ready", url });
-          if ($step.get() === v) show(v);   
-        } catch (e) { if (!signal.aborted) { report("remix.fail", { v, status: e?.status, err: String(e?.message || e).slice(0, 120) }); mark({ state: "err" }); } }
-      })();
-      else if (ev.t === "fail" && ev.v) { report("remix.fail", { v: ev.v, err: String(ev.error || "").slice(0, 120) }); mark({ state: "err" }); }
-      else if (ev.t === "fail") { report("task.fail", { status: ev.status, err: String(ev.error || "").slice(0, 120) }); fail(ev.status); }
-    }, { signal });
-    await file;
-  } catch (e) {
-    if (signal.aborted || my !== seq) return;
-    report("task.throw", { status: e?.status, err: String(e?.message || e).slice(0, 120) });
-    fail(e?.status);
-    return;
-  } finally { runs.delete(ac); }
-  if (my === seq && first) $busy.set("");
+  const onEvent = (id, signal) => (ev) => {
+    if (my !== seq) return;
+    if (ev.t === "stage") { if (first) $busy.set(ev.s === "measure" ? "measure" : "fetch"); }
+    else if (ev.t === "analysis") { if (!$ana.get()) $ana.set(ev); if (first) $busy.set("mix"); }
+    else if (ev.t === "render" && ev.v === v) mark({ state: "render" });
+    else if (ev.t === "ready" && ev.v === v) file = Effect.runPromise(download(id, v, ev.bytes, signal, my, mark));
+    else if (ev.t === "fail" && ev.v) { report("remix.fail", { v: ev.v, err: String(ev.error || "").slice(0, 120) }); mark({ state: "err" }); }
+    else if (ev.t === "fail") { report("task.fail", { status: ev.status, err: String(ev.error || "").slice(0, 120) }); fail(ev.status); }
+  };
+  const run = (signal) => Effect.sync(() => mark({ state: "wait" })).pipe(
+    Effect.andThen(tried(() => { const tags = $tags.get(); return startTask(CONFIG.task, { url: link, genre: tags?.genre || "", vocal: tags?.vocal || "", v, k: taskKey() }, { signal }); })),
+    Effect.flatMap((rep) => tried(() => { const { id } = rep; return followTask(id, onEvent(id, signal), { signal }); })),
+    Effect.andThen(Effect.suspend(() => tried(() => file))),
+    Effect.as(true),
+    Effect.catch((e) => Effect.sync(() => {
+      if (signal.aborted || my !== seq) return false;
+      report("task.throw", { status: e?.status, err: String(e?.message || e).slice(0, 120) });
+      fail(e?.status);
+      return false;
+    })),
+  );
+  const done = await Effect.runPromise(Effect.acquireUseRelease(
+    Effect.sync(() => { const ac = new AbortController(); runs.add(ac); return ac; }),
+    (ac) => run(ac.signal),
+    (ac) => Effect.sync(() => { runs.delete(ac); }),
+  ));
+  if (done && my === seq && first) $busy.set("");
 }
 
 function select(v, link) {

@@ -14,6 +14,8 @@ import { gate, MOCK } from "/_rt/gate.js";
 import { wakeLock } from "/_rt/sensors.js";
 import { collection } from "/_rt/db.js";
 import { shapeOf, pathOf } from "/_rt/shape.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -133,7 +135,7 @@ function stop() {
   $status.set("idle");
 }
 
-const MIC = { audio: { channelCount: { ideal: 1 }, echoCancellation: { ideal: false }, noiseSuppression: { ideal: false }, autoGainControl: { ideal: false }, sampleRate: { ideal: 48000 } }, video: false };
+const MIC = CONFIG.mic;
 
 async function start() {
   if ($status.get() === "listening") return;
@@ -143,15 +145,17 @@ async function start() {
   if (!audioSupported || !navigator.mediaDevices?.getUserMedia) { $status.set("unsupported"); return; }
 
   const mine = ++gen;
-  let s = null;
-  try { s = await navigator.mediaDevices.getUserMedia(MIC); }
-  catch (e) {
-    if (mine !== gen) return;
-    const n = e && e.name;
-    $status.set(n === "NotAllowedError" || n === "SecurityError" ? "denied" : "unavailable");
-    return;
-  }
-  if (mine !== gen) { s.getTracks().forEach((tr) => tr.stop()); return; }
+  await Effect.runPromise(Effect.tryPromise({ try: async () => navigator.mediaDevices.getUserMedia(MIC), catch: (e) => e }).pipe(Effect.matchEffect({
+    onFailure: (e) => Effect.sync(() => {
+      if (mine !== gen) return;
+      const n = e && e.name;
+      $status.set(CONFIG.refused.includes(n) ? "denied" : "unavailable");
+    }),
+    onSuccess: (s) => Effect.sync(() => mine !== gen ? s.getTracks().forEach((tr) => tr.stop()) : listen(s)),
+  })));
+}
+
+function listen(s) {
   stream = s;
   $primed.set("1");
 

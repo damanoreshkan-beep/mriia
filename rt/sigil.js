@@ -1,3 +1,5 @@
+import { filter, pipe, unique } from "@microspec/core/runtime/remeda.js";
+
 export const PLANETS = [
   { key: "saturn", order: 3 },
   { key: "jupiter", order: 4 },
@@ -30,11 +32,9 @@ export const normalize = (intent) => Array.from(String(intent || "").toUpperCase
 export function distill(intent) {
   const letters = normalize(intent);
   if (!letters.length) return [];
-  const seen = new Set(), out = [];
-  for (const ch of letters) { if (VOWELS.has(ch)) continue; if (seen.has(ch)) continue; seen.add(ch); out.push(ch); }
+  const out = pipe(letters, filter((ch) => !VOWELS.has(ch)), unique());
   if (out.length >= 2) return out;
-  const seen2 = new Set(), all = [];
-  for (const ch of letters) { if (seen2.has(ch)) continue; seen2.add(ch); all.push(ch); }
+  const all = unique(letters);
   return all.length ? all : letters.slice(0, 1);
 }
 

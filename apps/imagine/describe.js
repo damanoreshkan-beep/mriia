@@ -10,13 +10,26 @@ import { Chooser, Camera, mockArt, toDataURL } from "/_rt/intake.js";
 import { Scramble } from "/_rt/skeleton.js";
 import { promptHandoff, editHandoff } from "./handoff.js";
 import { usePromptHistory, HistorySheet } from "./history.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
-const ASK = {
-  uk: { read: "Опиши це зображення українською: 2–3 речення про те, що на ньому і який настрій, потім окремим рядком до 5 ключових тегів через кому.", q: "Відповідай українською, коротко і по суті, спираючись лише на це зображення. Питання: " },
-  en: { read: "Describe this image in English: 2–3 sentences on what is in it and its mood, then, on a separate line, up to 5 key tags separated by commas.", q: "Answer in English, briefly and to the point, from this image alone. Question: " },
+const ASK = CONFIG.ask;
+const STALE = { stale: true };
+const refuse = (key) => Effect.fail({ key });
+const current = (alive) => Effect.suspend(() => (alive() ? Effect.void : Effect.fail(STALE)));
+const imageOf = (src) => Effect.tryPromise({ try: async () => (await toDataURL(src)).data, catch: () => ({ key: "dsFailed" }) });
+const fits = (image) => (image.length > CONFIG.maxImageChars ? refuse("eBig") : Effect.void);
+const refusal = (e) => (e?.status === 429 ? "eRate" : e?.status === 413 ? "eBig" : e?.status ? "dsFailed" : "eNetwork");
+const vision = (image, prompt) => Effect.tryPromise({
+  try: async () => taskCall(CONFIG.taskRoute, { route: CONFIG.visionRoute, body: { image, prompt, maxTokens: CONFIG.maxTokens } }),
+  catch: (e) => ({ key: refusal(e) }),
+});
+const answerOf = (j) => {
+  const out = String(j?.text || "").trim();
+  return out ? Effect.succeed(out) : refuse("dsFailed");
 };
 const gateText = "Гірське озеро на світанку: дзеркальна вода віддзеркалює рожеві піки, над берегом стелиться легкий туман. Тиша, прохолода і золоте світло перших променів.\n\nгори, озеро, світанок, туман, тиша";
 const tool = "btn btn-ghost btn-sm btn-circle text-base-content/70 ms-press";
@@ -45,18 +58,17 @@ export function describe({ S, toast }) {
     buzz(); setError(null); setText(""); setPhase("reading");
     if (q) remember(q);
     if (gate) { await sleep(120); if (run === runRef.current) { setText(q ? `${gateText.split("\n")[0]}` : gateText); setPhase("done"); } return; }
-    let image;
-    try { image = (await toDataURL(srcUrl)).data; } catch { return fail(run, "dsFailed"); }
-    if (run !== runRef.current) return;
-    if (image.length > 9_000_000) return fail(run, "eBig");
+    const alive = () => run === runRef.current;
     const ask = ASK[loc] || ASK.en;
-    let j;
-    try { j = await taskCall("/task", { route: "/feed/vision", body: { image, prompt: q ? ask.q + q : ask.read, maxTokens: 400 } }); }
-    catch (e) { if (run === runRef.current) fail(run, e?.status === 429 ? "eRate" : e?.status === 413 ? "eBig" : e?.status ? "dsFailed" : "eNetwork"); return; }
-    if (run !== runRef.current) return;
-    const out = String(j?.text || "").trim();
-    if (!out) return fail(run, "dsFailed");
-    setText(out); setPhase("done"); buzz(12);
+    await Effect.runPromise(imageOf(srcUrl).pipe(
+      Effect.tap(() => current(alive)),
+      Effect.tap(fits),
+      Effect.flatMap((image) => vision(image, q ? ask.q + q : ask.read)),
+      Effect.tap(() => current(alive)),
+      Effect.flatMap(answerOf),
+      Effect.tap((out) => Effect.sync(() => { setText(out); setPhase("done"); buzz(12); })),
+      Effect.catch((e) => (e === STALE ? Effect.void : Effect.sync(() => fail(run, e.key)))),
+    ));
   };
 
   const copy = async () => { try { await navigator.clipboard.writeText(text); toast?.(T(t, "copied")); } catch { toast?.(T(t, "eNetwork")); } };

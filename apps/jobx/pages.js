@@ -6,8 +6,17 @@ import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { session } from "/_rt/auth.js";
 import { EMPLOYMENT, empKey, CITIES, CITY_IDS, cityName, inCity, $city, DISTRICTS, $jobs, $sent, $posting, $err, $form, jobById, shortSalary, kmFromCentre, applyLink, streetOf, salaryNote, rowTitle, isNew } from "./jobs.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 export const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const posted = (body) => (gate ? Effect.void : Effect.tryPromise({
+  try: async () => {
+    const r = await fetch(`${VPS_PROXY}${CONFIG.postRoute}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body()) });
+    if (!r.ok) throw new Error("post " + r.status);
+  },
+  catch: (e) => e,
+}));
 
 export function JobRow({ t, j, loc, onOpen }) {
   const km = kmFromCentre(j.lat, j.lon), pay = shortSalary(j.salary), street = streetOf(j.address);
@@ -90,11 +99,11 @@ function PostPage({ t, loc, onBack }) {
     const sess = session.get();
     if (!gate && !(sess && sess.sid)) { $err.set("needLogin"); return; }
     $err.set(null); $posting.set(true);
-    try {
-      if (!gate) { const r = await fetch(`${VPS_PROXY}/jobs/post`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sid: sess.sid, title: f.title, company: f.company, salary: f.salary, employment: f.employment, description: f.description, contact: f.contact, city, lat, lon, address }) }); if (!r.ok) throw new Error("post " + r.status); }
-      $sent.set(true); ["title", "company", "salary", "description", "contact"].forEach((k) => $form.setKey(k, ""));
-    } catch { $err.set("errFailed"); }
-    $posting.set(false);
+    await Effect.runPromise(posted(() => ({ sid: sess.sid, title: f.title, company: f.company, salary: f.salary, employment: f.employment, description: f.description, contact: f.contact, city, lat, lon, address })).pipe(
+      Effect.tap(() => Effect.sync(() => { $sent.set(true); CONFIG.clearOnSent.forEach((k) => $form.setKey(k, "")); })),
+      Effect.catchCause(() => Effect.sync(() => $err.set("errFailed"))),
+      Effect.andThen(Effect.sync(() => $posting.set(false))),
+    ));
   };
   return html`<${Page} t=${t} title=${T(t, "postTitle")} onBack=${onBack}>
     ${sent

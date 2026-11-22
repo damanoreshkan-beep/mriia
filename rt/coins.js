@@ -1,5 +1,8 @@
 import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 import { gate } from "@microspec/core/runtime/gate.js";
+import { Effect } from "@microspec/core/runtime/fx.js";
+import { tried } from "./task.js";
+import { COINS } from "./coins.config.js";
 
 const tg = () => { try { return (typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp) || null; } catch { return null; } };
 
@@ -22,16 +25,24 @@ const H = { "content-type": "application/json" };
  */
 export async function buyCoins(sku) {
   if (gate || !packOf(sku)) return "error";
-  let link;
-  try {
-    const r = await fetch(`${VPS_PROXY}/stars/invoice`, { method: "POST", headers: H, body: JSON.stringify({ sku }) });
-    if (r.status === 401) return "eSignIn";
+  const invoiced = tried(async () => {
+    const r = await fetch(`${VPS_PROXY}${COINS.invoice}`, { method: "POST", headers: H, body: JSON.stringify({ sku }) });
+    if (r.status === 401) return { code: "eSignIn" };
     const j = await r.json().catch(() => ({}));
-    link = j.link;
-  } catch { return "error"; }
-  if (!link) return "error";
-  const w = tg();
-  if (w && w.initData && w.openInvoice) return await new Promise((ok) => { try { w.openInvoice(link, (s) => ok(s || "failed")); } catch { ok("error"); } });
-  try { const win = window.open(link, "_blank", "noopener"); if (!win) location.href = link; } catch { location.href = link; }
-  return "opened";
+    return { link: j.link };
+  }).pipe(Effect.catch(() => Effect.succeed({ code: "error" })));
+  const settled = (w, link) => Effect.callback((resume) => {
+    try { w.openInvoice(link, (s) => resume(Effect.succeed(s || "failed"))); } catch { resume(Effect.succeed("error")); }
+  });
+  const opened = (link) => Effect.sync(() => {
+    try { const win = window.open(link, "_blank", "noopener"); if (!win) location.href = link; } catch { location.href = link; }
+    return "opened";
+  });
+  const paid = (link) => Effect.suspend(() => {
+    const w = tg();
+    return w && w.initData && w.openInvoice ? settled(w, link) : opened(link);
+  });
+  return await Effect.runPromise(invoiced.pipe(
+    Effect.flatMap(({ code, link }) => code ? Effect.succeed(code) : !link ? Effect.succeed("error") : paid(link)),
+  ));
 }

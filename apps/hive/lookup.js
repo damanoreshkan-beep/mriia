@@ -3,6 +3,8 @@ import { gate } from "/_rt/gate.js";
 import { rotates } from "/_rt/radar.js";
 import { parseOui } from "/_rt/oui.js";
 import { $look, $oui } from "./store.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 /**
  * What we may honestly ASK about this find. Null is an answer too — it means the transmitter did not say
@@ -40,13 +42,20 @@ export async function askAbout(d, field, onFound) {
   $look.set({ addr: d.addr, state: "asking", v: null });
   const settle = (v) => { $look.set({ addr: d.addr, state: "done", v }); if (v.found) onFound?.(); };
   if (gate) { settle(GATE_LOOKUP[d.kind] || { found: false, reason: "unknown" }); return; }
-  try {
-    const r = await fetch(`${VPS_PROXY}/hive/lookup`, {
+  await Effect.runPromise(asked(req).pipe(
+    Effect.tap((v) => Effect.sync(() => settle(v))),
+    Effect.catchCause(() => Effect.sync(() => settle({ found: false, reason: "unavailable" }))),
+  ));
+}
+const asked = (req) => Effect.tryPromise({
+  try: async () => {
+    const r = await fetch(`${VPS_PROXY}${CONFIG.lookupRoute}`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(req),
     });
-    settle(r.ok ? await r.json() : { found: false, reason: "unavailable" });
-  } catch { settle({ found: false, reason: "unavailable" }); }
-}
+    return r.ok ? await r.json() : { found: false, reason: "unavailable" };
+  },
+  catch: (e) => e,
+});
 let ouiPending = false;
 export function loadOui() {
   if (ouiPending || $oui.get()) return;

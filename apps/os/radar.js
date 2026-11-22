@@ -7,6 +7,8 @@ import { gate } from "/_rt/gate.js";
 import { shell, ERR } from "/_rt/shell.js";
 import { permLabels, refreshHeld, heldPermissions } from "/_rt/permissions.js";
 import { Icon, LABEL } from "./ui.js";
+import { Effect } from "/_rt/fx.js";
+import { probe, offered } from "./probe.js";
 
 const SEEN_MS = 20_000;
 const WIFI_MS = 30_000;
@@ -93,19 +95,15 @@ export function radar({ S, t, toast }) {
   }); };
 
   const sweepRadios = async () => {
-    if (shell.has("wifi.scan")) {
-      try {
-        const r = await shell.call("wifi.scan", {});
+    await Effect.runPromise(Effect.all([
+      offered("wifi.scan", probe("wifi.scan", (r) => {
         setNets((r.networks || []).slice().sort((a, b) => b.rssi - a.rssi));
         setThrottled(!!r.throttled);
-      } catch { }
-    }
-    if (shell.has("cell.info")) {
-      try {
-        const r = await shell.call("cell.info", {});
+      }, () => {})),
+      offered("cell.info", probe("cell.info", (r) => {
         setCells((r.cells || []).slice().sort((a, b) => (b.rssi || -999) - (a.rssi || -999)));
-      } catch { }
-    }
+      }, () => {})),
+    ], { discard: true }));
   };
 
   const start = () => {

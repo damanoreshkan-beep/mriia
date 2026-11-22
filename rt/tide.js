@@ -1,3 +1,5 @@
+import { filter, fromEntries, map, pipe } from "@microspec/core/runtime/remeda.js";
+
 export const CATEGORIES = [
   { id: "deep", key: "cDeep", hue: 214 },
   { id: "groove", key: "cGroove", hue: 28 },
@@ -86,15 +88,17 @@ export function somaNow(json) {
 
 /** SomaFM `channels.json` → { id: { listeners, now: {title, artist}|null } }. Listeners arrive as STRINGS. */
 export function somaChannels(json) {
-  const out = {};
-  for (const c of (json && Array.isArray(json.channels)) ? json.channels : []) {
-    if (!c || !c.id) continue;
-    const n = parseInt(c.listeners, 10);
-    const lp = String(c.lastPlaying || "").trim();
-    const m = /^(.*?)\s+-\s+(.*)$/.exec(lp);
-    out[c.id] = { listeners: Number.isFinite(n) ? n : null, now: lp ? (m ? { artist: m[1], title: m[2] } : { artist: "", title: lp }) : null };
-  }
-  return out;
+  return pipe(
+    (json && Array.isArray(json.channels)) ? json.channels : [],
+    filter((c) => !!(c && c.id)),
+    map((c) => {
+      const n = parseInt(c.listeners, 10);
+      const lp = String(c.lastPlaying || "").trim();
+      const m = /^(.*?)\s+-\s+(.*)$/.exec(lp);
+      return [c.id, { listeners: Number.isFinite(n) ? n : null, now: lp ? (m ? { artist: m[1], title: m[2] } : { artist: "", title: lp }) : null }];
+    }),
+    fromEntries(),
+  );
 }
 
 /** Asymmetric one-pole follower: rise with `attack`, fall with `release` (VU feel). Pure, per frame. */

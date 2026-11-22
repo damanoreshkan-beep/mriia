@@ -5,6 +5,7 @@ import { gate } from "/_rt/gate.js";
 import { mulberry32 } from "/_rt/groove.js";
 import { letterTile } from "/_rt/tile.js";
 import { Sheet } from "/_rt/ui.js";
+import { times } from "/_rt/remeda.js";
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const MAX_AV = 12;
@@ -17,13 +18,11 @@ function readTheme() {
 
 function constellation(n) {
   if (n <= 1) return [{ x: 0.5, y: 0.5 }];
-  const pts = [];
-  for (let i = 0; i < n; i++) {
+  return times(n, (i) => {
     const r = 0.46 * Math.sqrt((i + 0.6) / n);
     const a = i * GOLDEN;
-    pts.push({ x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) });
-  }
-  return pts;
+    return { x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) };
+  });
 }
 
 export function Finale({ devs = [], t, open = false, onClose }) {

@@ -1,14 +1,18 @@
 import { S, SFX } from "/_rt/swarm.js";
 import { createEngine } from "/_rt/audio.js";
+import { Effect } from "/_rt/fx.js";
 
 export const WASM_URL = new URL("./assets/swarm.wasm", import.meta.url).href;
 export const GATE_SEED = 0xB0DA;
 
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+
 export async function loadEngine(url = WASM_URL) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`swarm.wasm ${res.status}`);
-  const { instance } = await WebAssembly.instantiate(await res.arrayBuffer(), {});
-  const E = instance.exports;
+  const E = await Effect.runPromise(tried(() => fetch(url)).pipe(
+    Effect.flatMap((res) => res.ok ? tried(() => res.arrayBuffer()) : Effect.fail(new Error(`swarm.wasm ${res.status}`))),
+    Effect.flatMap((bytes) => tried(() => WebAssembly.instantiate(bytes, {}))),
+    Effect.map(({ instance }) => instance.exports),
+  ));
   return {
     init: (seed) => E.game_init(seed >>> 0),
     step: (input) => E.game_step(input >>> 0),

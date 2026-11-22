@@ -1,4 +1,5 @@
 import { noteFreq } from "@microspec/core/runtime/audio.js";
+import { range } from "@microspec/core/runtime/remeda.js";
 
 export const centsToRatio = (c) => 2 ** (c / 1200);
 export const semiToRatio = (s) => 2 ** (s / 12);
@@ -12,9 +13,7 @@ export const equalPower = (x) => { const c = Math.max(0, Math.min(1, x)); return
 
 export function detune(base, voices, spreadCents) {
   if (voices <= 1) return [base];
-  const out = [];
-  for (let i = 0; i < voices; i++) { const t = i / (voices - 1) - 0.5; out.push(base * centsToRatio(t * spreadCents)); }
-  return out;
+  return range(0, voices).map((i) => base * centsToRatio((i / (voices - 1) - 0.5) * spreadCents));
 }
 
 export const LAYERS = ["hull", "vent", "reactor", "servo", "tele", "deep"];

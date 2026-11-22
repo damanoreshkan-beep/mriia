@@ -4,8 +4,11 @@ import { T } from "/_rt/i18n.js";
 import { Panel } from "/_rt/ui.js";
 import { shell } from "/_rt/shell.js";
 import { Icon, Field } from "./ui.js";
+import { Effect } from "/_rt/fx.js";
+import { tried, call, probe, offered } from "./probe.js";
+import { CONFIG } from "./config.js";
 
-const PORT = 8765;
+const PORT = CONFIG.bridgePort;
 
 export function Audit({ t, toast }) {
   const [srv, setSrv] = useState(null);
@@ -19,13 +22,11 @@ export function Audit({ t, toast }) {
   const live = !!srv?.running;
 
   const refresh = async () => {
-    try { setSrv(await shell.call("server.status", {})); } catch { setSrv(null); }
-    if (shell.has("control.settings")) {
-      try { const s = await shell.call("control.settings", {}); setSet(s); setBright(s.brightness ?? 50); } catch { }
-    }
-    if (shell.has("control.overlay")) {
-      try { setOverlay((await shell.call("control.overlay", {})).granted); } catch { }
-    }
+    await Effect.runPromise(Effect.all([
+      probe("server.status", setSrv, () => setSrv(null)),
+      offered("control.settings", probe("control.settings", (s) => { setSet(s); setBright(s.brightness ?? 50); }, () => {})),
+      offered("control.overlay", probe("control.overlay", (v) => setOverlay(v.granted), () => {})),
+    ], { discard: true }));
   };
   useEffect(() => {
     refresh();
@@ -37,12 +38,13 @@ export function Audit({ t, toast }) {
   const start = async () => {
     if (busy) return;
     setBusy(true);
-    try {
-      await shell.call("server.start", { port: PORT, loopback: true, mcp: true });
-      await shell.call("bg.start", { title: T(t, "bridgeNote") });
-      await refresh();
-      try { setReport(await shell.call("system.audit", {})); } catch { }
-    } catch (e) { toast?.(e?.code || String(e)); } finally { setBusy(false); }
+    await Effect.runPromise(call("server.start", { port: PORT, loopback: true, mcp: true }).pipe(
+      Effect.andThen(call("bg.start", { title: T(t, "bridgeNote") })),
+      Effect.andThen(tried(() => refresh())),
+      Effect.andThen(probe("system.audit", setReport, () => {})),
+      Effect.catch((e) => Effect.sync(() => toast?.(e?.code || String(e)))),
+      Effect.ensuring(Effect.sync(() => setBusy(false))),
+    ));
   };
 
   const stop = async () => {

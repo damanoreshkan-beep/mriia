@@ -13,6 +13,7 @@ import { Scramble } from "/_rt/skeleton.js";
 import { gate } from "/_rt/gate.js";
 import { Sheet } from "/_rt/ui.js";
 import { Reading } from "./reading.js";
+import { fromEntries } from "/_rt/remeda.js";
 import { LBL, signOf, bodyLabel, dm, ASPECT_KEY, cap1, signName, digKey, fmtHitAt, hitKey } from "./lib.js";
 
 const GATE_INTERP = { uk: "Сатурн у квадратурі до натального Сонця робить цей період вимогливим: те, що ти будуєш, перевіряють на міцність, і поспіх лише додасть тертя. Транзитний Меркурій ретроградним рухом повертає до старої розмови, яку варто переписати, а не форсувати. Тригон Юпітера до натального Місяця дає тиху опору — рухайся послідовно, і обов'язок обернеться на структуру, а не на пастку.", en: "Saturn square your natal Sun makes this stretch exacting: what you are building is being tested for load, and pushing only adds friction. A retrograde Mercury turns you back to an old conversation worth rewriting rather than forcing. Jupiter's trine to your natal Moon lends quiet support — move step by step and the duty becomes structure, not a snare." };
@@ -218,9 +219,7 @@ export function AskSheet({ open, onClose, C, t, loc }) {
     let dead = false;
     const id = setTimeout(() => {
       if (dead) return;
-      const out = {};
-      for (const a of C.hits.slice(0, 4)) out[hitKey(a)] = hitTimes(a.t, a.natalLon, a.signedAngle, whenMs);
-      setHits(out);
+      setHits(fromEntries(C.hits.slice(0, 4).map((a) => [hitKey(a), hitTimes(a.t, a.natalLon, a.signedAngle, whenMs)])));
     }, 0);
     return () => { dead = true; clearTimeout(id); };
   }, [wantsTiming, contactSig, whenMs]);

@@ -2,6 +2,8 @@ import { atom } from "nanostores";
 import { map as nmap } from "nanostores";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 export const EMPLOYMENT = ["full", "part", "remote", "contract", "internship"];
 export const empKey = { full: "empFull", part: "empPart", remote: "empRemote", contract: "empContract", internship: "empInternship" };
@@ -60,14 +62,23 @@ export const $form = nmap({ title: "", company: "", district: "shevchenkivskyi",
 
 export async function loadJobs() {
   if (gate) { $jobs.set(MOCK_JOBS); $loading.set(false); return; }
-  try {
-    const r = await fetch(`${VPS_PROXY}/jobs/list`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-    const j = await r.json();
-    let list = Array.isArray(j && j.jobs) ? j.jobs : [];
-    if (!list.length && DEV_HOST) list = MOCK_JOBS;
-    $jobs.set(list);
-  } catch { if (DEV_HOST) $jobs.set(MOCK_JOBS); } finally { $loading.set(false); }
+  await Effect.runPromise(listed.pipe(
+    Effect.map((j) => {
+      const list = Array.isArray(j && j.jobs) ? j.jobs : [];
+      return !list.length && DEV_HOST ? MOCK_JOBS : list;
+    }),
+    Effect.tap((list) => Effect.sync(() => $jobs.set(list))),
+    Effect.catchCause(() => Effect.sync(() => { if (DEV_HOST) $jobs.set(MOCK_JOBS); })),
+    Effect.ensuring(Effect.sync(() => $loading.set(false))),
+  ));
 }
+const listed = Effect.tryPromise({
+  try: async () => {
+    const r = await fetch(`${VPS_PROXY}${CONFIG.listRoute}`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    return r.json();
+  },
+  catch: (e) => e,
+});
 export const jobById = (id) => $jobs.get().find((j) => String(j.id) === String(id)) || null;
 
 export function shortSalary(s) {

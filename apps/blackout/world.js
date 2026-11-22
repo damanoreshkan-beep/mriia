@@ -5,6 +5,14 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import { hipsOf, fit, retarget } from "./rig.js";
 import { glbUrl } from "./state.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
+const W = CONFIG.world, H = CONFIG.horde;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const orNull = (fx) => tried(fx).pipe(Effect.catch(() => Effect.succeed(null)));
+const imageAt = (src) => Effect.callback((resume) => { const i = new Image(); i.onload = () => resume(Effect.succeed(i)); i.onerror = (e) => resume(Effect.fail(e)); i.src = src; });
+const all = (effects) => Effect.all(effects, { concurrency: "unbounded" });
 
 export const STREET_W = 10, CHUNK = 24, AHEAD = 4, BEHIND = 2;
 export const LANE_W = 2.2, LANES = 4;
@@ -186,12 +194,12 @@ export function createWorld(scene) {
 
   const P = {}, facades = [], carTex = [];
   let road = null, walk = null, bandMat = null, roadReady = false;
-  const ready = (async () => {
-    const [facadeImg, graffiti, asphalt, metal, sidewalk, props, ...rust] = await Promise.all([
-      new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = A("assets/tex-facade.webp"); }),
-      tex(A("assets/tex-graffiti.webp")), tex(A("assets/tex-asphalt.webp"), [(STREET_W + WALK * 2) / 7, CHUNK / 7]), tex(A("assets/tex-metal.webp"), [2, 1]), tex(A("assets/tex-sidewalk.webp")),
-      loader.loadAsync(A("assets/props.glb")),
-      ...CARS.map((k) => tex(A(`assets/tex-car-${k}.webp`))),
+  const ready = Effect.runPromise(Effect.gen(function* () {
+    const [facadeImg, graffiti, asphalt, metal, sidewalk, props, ...rust] = yield* all([
+      imageAt(A(W.facade)),
+      tried(() => tex(A(W.graffiti))), tried(() => tex(A(W.asphalt), [(STREET_W + WALK * 2) / 7, CHUNK / 7])), tried(() => tex(A(W.metal), [2, 1])), tried(() => tex(A(W.sidewalk))),
+      tried(() => loader.loadAsync(A(W.props))),
+      ...CARS.map((k) => tried(() => tex(A(W.carPrefix + k + W.carExt)))),
     ]);
     carTex.push(...rust);
     for (const s of [3, 11]) facades.push(facadeSet(facadeImg, s));
@@ -204,7 +212,7 @@ export function createWorld(scene) {
     M.deck.map = deckTex; M.deck.color.set(0x4a4c50); M.deck.needsUpdate = true; grade(M.deck);
     M.rail.map = metal; M.rail.color.set(0x8a8e92); M.rail.needsUpdate = true;
     M.post.map = metal; M.post.color.set(0x6a6e70); M.post.needsUpdate = true;
-    const canTex = await tex(A("assets/tex-can.webp")).catch(() => null);
+    const canTex = yield* orNull(() => tex(A(W.can)));
     if (canTex) { canTex.wrapS = THREE.RepeatWrapping; canTex.repeat.set(2, 1); M.can.map = canTex; M.can.emissiveMap = canTex; M.can.color.set(0xffffff); M.can.emissive.set(0x9bffb0); M.can.emissiveIntensity = 0.9; M.can.needsUpdate = true; }
     const cap = { sedan: 16, taxi: 16, suv: 16, van: 16, hatch: 16, bin: 24, lamp: 32, barrier: 16, planter: 16, cone: 16 };
     for (const node of props.scene.children) {
@@ -222,16 +230,16 @@ export function createWorld(scene) {
     P.pool = pool(poolGeo, M.pool, 32, group);
     P.beam = pool(coneGeo, M.beam, 32, group);
     roadReady = true;
-  })();
+  }));
 
   const horde = { chars: [], run: null, attack: null, walk: null, die: null, hit: null };
-  const hordeReady = (async () => {
-    const [zrun, zattack, zwalk, zdie, zhit] = await Promise.all(["zrun", "zattack", "zwalk", "zdie", "zhit"].map((n) => loader.loadAsync(A(`assets/clip-${n}.glb`)).catch(() => null)));
+  const hordeReady = Effect.runPromise(Effect.gen(function* () {
+    const [zrun, zattack, zwalk, zdie, zhit] = yield* all(H.clips.map((n) => orNull(() => loader.loadAsync(A(H.clipPrefix + n + H.clipExt)))));
     const of = (g) => (g ? { clip: g.animations[0], rig: hipsOf(g.scene) } : null);
     horde.run = of(zrun); horde.attack = of(zattack); horde.walk = of(zwalk); horde.die = of(zdie); horde.hit = of(zhit);
-    const loaded = await Promise.all(HORDE_SKINS.map((id) => loader.loadAsync(glbUrl(id)).then((g) => ({ root: undead(fit(g.scene, Z_H)), rig: hipsOf(g.scene) })).catch(() => null)));
+    const loaded = yield* all(HORDE_SKINS.map((id) => orNull(async () => { const g = await loader.loadAsync(glbUrl(id)); return { root: undead(fit(g.scene, Z_H)), rig: hipsOf(g.scene) }; })));
     horde.chars = loaded.filter(Boolean);
-  })();
+  }));
   hordeReady.catch(() => {});
   const zombies = [], deadMats = [];
   const ZBONES = [["Head", 0.55], ["Neck", 0.3], ["Spine1", 0.35], ["Spine2", 0.25], ["LeftArm", 1.0], ["RightArm", 1.0], ["LeftForeArm", 1.2], ["RightForeArm", 1.2], ["LeftHand", 0.6], ["RightHand", 0.6]];

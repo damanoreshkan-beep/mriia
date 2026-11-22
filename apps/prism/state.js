@@ -5,6 +5,8 @@ import { taskOne, jobCode } from "/_rt/task.js";
 import { mockArt, toDataURL } from "/_rt/intake.js";
 import { session } from "/_rt/auth.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 export const MATERIALS = [
   { id: "lum", theme: "lum" }, { id: "paper", theme: "paper" }, { id: "ink", theme: "ink" }, { id: "chrome", theme: "mercury" },
@@ -13,8 +15,8 @@ export const MATERIALS = [
 ];
 export const foxOf = (theme) => `/_rt/theme-${theme}.webp`;
 const FOX = foxOf("plain");   
-const BASE = `${VPS_PROXY}/styles`;
-const CONCURRENT = 4;          
+const BASE = VPS_PROXY + CONFIG.styles.base;
+const CONCURRENT = CONFIG.concurrent;
 
 const MOCK_STYLES = [{ id: "a1b2c3d4e5f60718", name: "Вітраж", prompt: "stained glass with dark lead lines", thumb: mockArt(9) }];
 export const $src = atom(gate ? mockArt(5) : null);          
@@ -45,13 +47,10 @@ export async function splitAll(mode) {
     jobs.forEach((j, i) => setTimeout(() => { if (r === run) patchTile(tileKey(mode, j.key), { state: "done", url: mockArt(20 + i) }); }, 60 + i * 30));
     return;
   }
-  let sent;
-  try { sent = await toDataURL(src); } catch { $err.set("eImage"); for (const j of jobs) patchTile(tileKey(mode, j.key), { state: "fail" }); return; }
-  const queue = [...jobs];
-  const worker = async () => {
-    for (let j = queue.shift(); j && r === run; j = queue.shift()) await draw(r, mode, j, sent.data);
-  };
-  await Promise.all(Array.from({ length: CONCURRENT }, worker));
+  await Effect.runPromise(tried(() => toDataURL(src)).pipe(
+    Effect.flatMap((sent) => Effect.forEach(jobs, (j) => Effect.suspend(() => r === run ? draw(r, mode, j, sent.data) : Effect.void), { concurrency: CONCURRENT, discard: true })),
+    Effect.catch(() => Effect.sync(() => { $err.set("eImage"); for (const j of jobs) patchTile(tileKey(mode, j.key), { state: "fail" }); })),
+  ));
 }
 
 /** One tile again (a failed one, or the person wants another take). */
@@ -61,22 +60,29 @@ export async function redraw(mode, key) {
   const body = own ? { material: "custom", style: own.prompt } : { material: key };
   patchTile(tileKey(mode, key), { state: "work", url: null });
   if (gate) { setTimeout(() => patchTile(tileKey(mode, key), { state: "done", url: mockArt(40) }), 80); return; }
-  let sent; try { sent = await toDataURL(src); } catch { patchTile(tileKey(mode, key), { state: "fail" }); return; }
-  await draw(run, mode, { key, body }, sent.data);
+  await Effect.runPromise(tried(() => toDataURL(src)).pipe(Effect.matchEffect({
+    onFailure: () => Effect.sync(() => patchTile(tileKey(mode, key), { state: "fail" })),
+    onSuccess: (sent) => Effect.suspend(() => draw(run, mode, { key, body }, sent.data)),
+  })));
 }
 
-async function draw(r, mode, j, image) {
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const material = (body) => tried(() => taskOne(CONFIG.task, { route: CONFIG.route, body }));
+
+function draw(r, mode, j, image) {
   const k = tileKey(mode, j.key);
-  let res;
-  try { res = await taskOne("/task", { route: "/feed/image/material", body: { image, mode, seed: Math.floor(Math.random() * 1e9), ...j.body } }); }
-  catch (e) { if (r === run) { patchTile(k, { state: "fail" }); const c = e.code || jobCode(e); if (c !== "eFailed") $err.set(c); report("prism.fail", { key: j.key, mode, code: c }); } return; }
-  if (r !== run) return;
-  if (res.status !== "done") { patchTile(k, { state: "fail" }); if (res.status === "busy") $err.set("eBusy"); return; }
-  patchTile(k, { state: "done", url: res.url, blob: res.blob });
+  return material({ image, mode, seed: Math.floor(Math.random() * 1e9), ...j.body }).pipe(Effect.matchEffect({
+    onFailure: (e) => Effect.sync(() => { if (r === run) { patchTile(k, { state: "fail" }); const c = e.code || jobCode(e); if (c !== "eFailed") $err.set(c); report("prism.fail", { key: j.key, mode, code: c }); } }),
+    onSuccess: (res) => Effect.sync(() => {
+      if (r !== run) return;
+      if (res.status !== "done") { patchTile(k, { state: "fail" }); if (res.status === "busy") $err.set("eBusy"); return; }
+      patchTile(k, { state: "done", url: res.url, blob: res.blob });
+    }),
+  }));
 }
 
 async function call(op, body = {}) {
-  const r = await fetch(`${BASE}/${op}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sid: session.get()?.sid, ...body }), signal: AbortSignal.timeout(60_000) });
+  const r = await fetch(`${BASE}/${op}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sid: session.get()?.sid, ...body }), signal: AbortSignal.timeout(CONFIG.styles.timeoutMs) });
   const j = await r.json().catch(() => null);
   if (!r.ok) throw Object.assign(new Error(j?.error || String(r.status)), { status: r.status, code: j?.error });
   return j;
@@ -101,12 +107,14 @@ async function thumbOf(blob, side = 256) {
 /** Draw the fox in `prompt` (the preview the person judges before saving) → { url, thumb } or throws a code. */
 export async function foxIn(prompt, mode) {
   if (gate) return { url: mockArt(33), thumb: mockArt(33) };
-  const fox = await toDataURL(FOX, 512);
-  let res;
-  try { res = await taskOne("/task", { route: "/feed/image/material", body: { image: fox.data, material: "custom", style: prompt, mode, seed: 7 } }); }
-  catch (e) { throw Object.assign(new Error("fox"), { code: e.code || jobCode(e) }); }
-  if (res.status !== "done") throw Object.assign(new Error("fox"), { code: res.status === "busy" ? "eBusy" : "eFailed" });
-  return { url: res.url, thumb: await thumbOf(res.blob) };
+  const refused = (code) => Object.assign(new Error("fox"), { code });
+  return await Effect.runPromise(tried(() => toDataURL(FOX, CONFIG.fox.side)).pipe(
+    Effect.flatMap((fox) => material({ image: fox.data, material: "custom", style: prompt, mode, seed: CONFIG.fox.seed }).pipe(
+      Effect.catch((e) => Effect.fail(refused(e.code || jobCode(e)))),
+    )),
+    Effect.flatMap((res) => res.status !== "done" ? Effect.fail(refused(res.status === "busy" ? "eBusy" : "eFailed"))
+      : tried(() => thumbOf(res.blob)).pipe(Effect.map((thumb) => ({ url: res.url, thumb })))),
+  ));
 }
 
 export async function saveStyle({ name, prompt, thumb }) {

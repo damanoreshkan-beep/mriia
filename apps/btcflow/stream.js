@@ -1,15 +1,27 @@
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
 const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-const PRICE_URL = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT";
 const WHALE_BTC = 5;
 const CAP = 1000;
 const trunc = (a) => (a ? a.slice(0, 10) + "…" + a.slice(-6) : "—");
+const every = (ms, step) => step.pipe(Effect.forkChild, Effect.andThen(Effect.sleep(ms)), Effect.forever);
+const lastPrice = Effect.tryPromise({ try: async () => +(await (await fetch(CONFIG.priceUrl)).json()).price, catch: (e) => e });
+const session = (url, onOpen, onMessage) => Effect.callback((resume) => {
+  const ws = new WebSocket(url);
+  ws.onopen = () => onOpen(ws);
+  ws.onmessage = onMessage;
+  ws.onclose = () => resume(Effect.void);
+  ws.onerror = () => ws.close();
+  return Effect.sync(() => ws.close());
+});
 
 export function stream(push) {
   let price = isLocal ? 62000 : 0;
-  if (!isLocal) {
-    const loadPrice = async () => { try { price = +(await (await fetch(PRICE_URL)).json()).price || price; } catch { } };
-    loadPrice(); setInterval(loadPrice, 60000);
-  }
+  if (!isLocal) Effect.runFork(every(CONFIG.pricePollMs, lastPrice.pipe(
+    Effect.tap((p) => Effect.sync(() => { price = p || price; })),
+    Effect.catch(() => Effect.void),
+  )));
   const usd = (btc) => (price ? "$" + Math.round(btc * price).toLocaleString("en-US") : "");
   const rows = [];
   const emit = () => push(rows.slice(0, CAP));
@@ -58,16 +70,9 @@ export function stream(push) {
     return;
   }
 
-  let ws, retry, alive = true;
-  const connect = () => {
-    if (!alive) return;
-    ws = new WebSocket("wss://ws.blockchain.info/inv");
-    ws.onopen = () => ws.send(JSON.stringify({ op: "unconfirmed_sub" }));
-    ws.onmessage = (e) => { try { const d = JSON.parse(e.data); if (d.op === "utx" && d.x) add(d.x); } catch { } };
-    ws.onclose = () => { if (alive) retry = setTimeout(connect, 2000); };
-    ws.onerror = () => ws.close();
-  };
-  connect();
+  const subscribe = (ws) => ws.send(JSON.stringify(CONFIG.subscribe));
+  const tx = (e) => { try { const d = JSON.parse(e.data); if (d.op === "utx" && d.x) add(d.x); } catch { } };
+  const fiber = Effect.runFork(session(CONFIG.socket, subscribe, tx).pipe(Effect.andThen(Effect.sleep(CONFIG.reconnectMs)), Effect.forever));
   setInterval(emit, 500);
-  addEventListener("pagehide", () => { alive = false; clearTimeout(retry); ws?.close(); });
+  addEventListener("pagehide", () => fiber.interruptUnsafe());
 }

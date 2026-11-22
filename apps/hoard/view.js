@@ -9,6 +9,7 @@ import { gate } from "/_rt/gate.js";
 import { Sheet, Segmented, Island, Panel, FROST } from "/_rt/ui.js";
 import { GlStage } from "/_rt/glstage.js";
 import { collection } from "/_rt/db.js";
+import { Effect } from "/_rt/fx.js";
 import { fitText } from "/_rt/fittext.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import {
@@ -35,17 +36,16 @@ const FIXTURE_SESSIONS = [
 
 const byEnded = (rows) => [...rows].sort((a, b) => (b.endedAt || b._ts || 0) - (a.endedAt || a._ts || 0));
 
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const listed = tried(() => ledger.all());
+const seeded = Effect.forEach(FIXTURE_SESSIONS, (s) => tried(() => ledger.put(s.id, s)), { discard: true }).pipe(Effect.andThen(listed));
+const ledgerRows = listed.pipe(Effect.flatMap((all) => (gate && !all.length ? seeded : Effect.succeed(all))));
 async function loadSessions() {
-  try {
-    let all = await ledger.all();
-    if (gate && !all.length) {
-      for (const s of FIXTURE_SESSIONS) await ledger.put(s.id, s);
-      all = await ledger.all();
-    }
-    $sessions.set(byEnded(all));
-  } catch {
-    $sessions.set(gate ? byEnded(FIXTURE_SESSIONS) : []);
-  }
+  await Effect.runPromise(ledgerRows.pipe(
+    Effect.map(byEnded),
+    Effect.tap((rows) => Effect.sync(() => $sessions.set(rows))),
+    Effect.catchCause(() => Effect.sync(() => $sessions.set(gate ? byEnded(FIXTURE_SESSIONS) : []))),
+  ));
 }
 if (gate && !started()) $startedAt.set(String(Date.now() - FIXTURE_STARTED));
 
@@ -126,9 +126,11 @@ export function flow({ t, S, toast }) {
     const amount = earned(perSec, ms);
     $startedAt.set("0");
     const rec = { amount, ms, currency: rate.currency, mode: rate.mode, endedAt: Date.now() };
-    try { await ledger.put(String(at), rec); await loadSessions(); }
-    catch { $sessions.set(byEnded([{ id: String(at), ...rec }, ...$sessions.get()])); }
-    toast?.(T(t, "banked", { v: fmtAmount(amount, rate.currency, 2) }));
+    await Effect.runPromise(tried(() => ledger.put(String(at), rec)).pipe(
+      Effect.andThen(tried(loadSessions)),
+      Effect.catchCause(() => Effect.sync(() => $sessions.set(byEnded([{ id: String(at), ...rec }, ...$sessions.get()])))),
+      Effect.andThen(Effect.sync(() => toast?.(T(t, "banked", { v: fmtAmount(amount, rate.currency, 2) })))),
+    ));
   };
 
   const modeWord = T(t, rate.mode === "month" ? "modeMonth" : rate.mode === "shift" ? "modeShift" : "modeDay");

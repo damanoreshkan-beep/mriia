@@ -17,6 +17,8 @@ import { mic, tilt, wakeLock } from "/_rt/sensors.js";
 import { MicPrime } from "/_rt/camprime.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { shapeOf, pathOf } from "/_rt/shape.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { } };
@@ -252,6 +254,14 @@ async function shareWav(bytes, name, t) {
   downloadBlob(blob, `${name}.wav`);
   return "saved";
 }
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const exported = ({ take, loopArr, bpm, name, t, toast }) => tried(() => renderWav(take, loopArr, bpm)).pipe(
+  Effect.flatMap((bytes) => (!bytes ? Effect.void : tried(() => shareWav(bytes, name, t)).pipe(
+    Effect.tap((how) => Effect.sync(() => { if (how === "saved") toast?.(T(t, "toastExport")); })),
+  ))),
+  Effect.catchCause(() => Effect.sync(() => toast?.(T(t, "toastExportFail")))),
+  Effect.andThen(Effect.sync(() => $busy.set(false))),
+);
 
 function peaks(pcm, n) {
   const out = new Array(n).fill(0); if (!pcm?.length) return out;
@@ -316,9 +326,7 @@ export function grain({ S, screen, openScreen, closeScreen, toast }) {
   const exportWav = async () => {
     const tk = $take.get(); if (!tk || busy) return;
     $busy.set(true);
-    try { const bytes = await renderWav(tk, $loop.get(), $bpm.get()); if (bytes) { const how = await shareWav(bytes, `grain-${tk.pitched ? tk.name : "take"}`, t); if (how === "saved") toast?.(T(t, "toastExport")); } }
-    catch { toast?.(T(t, "toastExportFail")); }
-    $busy.set(false);
+    await Effect.runPromise(exported({ take: tk, loopArr: $loop.get(), bpm: $bpm.get(), name: `grain-${tk.pitched ? tk.name : "take"}`, t, toast }));
   };
 
   const recording = cap === "recording", arming = cap === "arming", working = cap === "working";
@@ -478,9 +486,7 @@ export function grainTakes({ S, undo, toast }) {
   };
   const share = async (it) => {
     if (busy) return; $busy.set(true);
-    try { const bytes = await renderWav(it, it.loop || $loop.get(), it.bpm || 84); if (bytes) { const how = await shareWav(bytes, `grain-${it.name}`, t); if (how === "saved") toast?.(T(t, "toastExport")); } }
-    catch { toast?.(T(t, "toastExportFail")); }
-    $busy.set(false);
+    await Effect.runPromise(exported({ take: it, loopArr: it.loop || $loop.get(), bpm: it.bpm || CONFIG.defaultBpm, name: `grain-${it.name}`, t, toast }));
   };
 
   if (!useReveal(list !== null)) {

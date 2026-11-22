@@ -1,6 +1,10 @@
 import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 import { sys } from "@microspec/core/runtime/i18n.js";
+import { Effect } from "@microspec/core/runtime/fx.js";
 import { PACKS, buyCoins, packOf } from "./coins.js";
+import { tried } from "./task.js";
+import { PAY } from "./pay.config.js";
+import { WALLET } from "./wallet.config.js";
 
 const H = { "content-type": "application/json" };
 
@@ -13,10 +17,10 @@ const WALT_COPY = {
 /** The packs for the sheet: `{ id, amount }` in the edge's order. Pure. */
 export const sheetPacks = () => PACKS.map((p) => ({ id: p.sku, amount: p.coins }));
 
-const boughtSignal = (wallet, signal) => new Promise((ok) => {
-  const off = wallet.$bought.listen((v) => { if (v > 0) { off(); ok({ status: "paid", coins: v, balance: wallet.$wallet.get().balance }); } });
-  signal.addEventListener("abort", () => { off(); ok(null); }, { once: true });
-});
+const boughtSignal = (wallet, signal) => Effect.runPromise(Effect.callback((resume) => {
+  const off = wallet.$bought.listen((v) => { if (v > 0) { off(); resume(Effect.succeed({ status: "paid", coins: v, balance: wallet.$wallet.get().balance })); } });
+  signal.addEventListener("abort", () => { off(); resume(Effect.succeed(null)); }, { once: true });
+}));
 
 /**
  * Stars: inside Telegram the invoice settles in place; from a browser it opens in Telegram and the sheet waits for
@@ -43,44 +47,47 @@ export function starsMethod(wallet) {
  */
 export function tonMethod(wallet, loc) {
   const offer = () => wallet.$wallet.get().ton;
-  const call = (route, body) => fetch(`${VPS_PROXY}/wallet/${route}`, { method: "POST", headers: H, body: JSON.stringify({ app: wallet.app, ...body }) });
+  const { ton } = PAY;
+  const call = (route, body, signal) => fetch(`${VPS_PROXY}${WALLET.route}${route}`, { method: "POST", headers: H, body: JSON.stringify({ app: wallet.app, ...body }), ...(signal ? { signal } : {}) });
+  const failed = { status: "error", message: "" };
+  const invoiced = (pack) => tried(async () => {
+    const r = await call(ton.invoice, { sku: pack.id });
+    return r.ok ? { inv: await r.json() } : null;
+  }).pipe(Effect.catch(() => Effect.succeed(null)));
+  const asked = (inv, signal) => tried(async () => {
+    const r = await call(ton.wait, { id: inv.id }, signal);
+    return r.ok ? await r.json() : null;
+  }).pipe(Effect.catch(() => Effect.succeed(null)));
+  const judged = (st) => Effect.sync(() => {
+    if (st.paid) { wallet.refresh(); return { status: "paid", coins: st.coins, balance: st.balance }; }
+    if (st.held) return { status: "held", why: st.why };
+    if (st.expired) return { status: "expired" };
+    return undefined;
+  });
+  const waited = (inv, signal, miss = 0) => signal.aborted ? Effect.succeed(null) : asked(inv, signal).pipe(
+    Effect.flatMap((st) => {
+      if (signal.aborted) return Effect.succeed(null);
+      if (!st) return miss + 1 > ton.misses
+        ? Effect.succeed({ ...failed })
+        : Effect.sleep(ton.backoff * (miss + 1)).pipe(Effect.andThen(Effect.suspend(() => waited(inv, signal, miss + 1))));
+      return judged(st).pipe(Effect.flatMap((out) => out ? Effect.succeed(out) : waited(inv, signal, 0)));
+    }),
+  );
+  const offered = (inv) => ({
+    status: "await", link: inv.link, qr: inv.link, exp: inv.exp,
+    fields: [
+      { key: "amount", label: sys("payAmount", loc), value: `${inv.grams} TON` },
+      { key: "address", label: sys("payAddress", loc), value: inv.address },
+      { key: "comment", label: sys("payComment", loc), value: inv.comment },
+    ],
+    wait: async (signal) => await Effect.runPromise(waited(inv, signal)),
+  });
   return {
     id: "ton", label: "TON", icon: "token-branded:ton",
     available: !!offer(),
     aside: { ...(WALT_COPY[loc] || WALT_COPY.en), href: WALT },
     price: (pack) => `${offer()?.prices?.[pack.id] ?? "…"} TON`,
-    pay: async (pack) => {
-      let inv;
-      try {
-        const r = await call("ton", { sku: pack.id });
-        if (!r.ok) return { status: "error", message: "" };
-        inv = await r.json();
-      } catch { return { status: "error", message: "" }; }
-      return {
-        status: "await", link: inv.link, qr: inv.link, exp: inv.exp,
-        fields: [
-          { key: "amount", label: sys("payAmount", loc), value: `${inv.grams} TON` },
-          { key: "address", label: sys("payAddress", loc), value: inv.address },
-          { key: "comment", label: sys("payComment", loc), value: inv.comment },
-        ],
-        wait: async (signal) => {
-          for (let miss = 0; !signal.aborted;) {
-            let st;
-            try {
-              const r = await fetch(`${VPS_PROXY}/wallet/ton/wait`, { method: "POST", headers: H, body: JSON.stringify({ app: wallet.app, id: inv.id }), signal });
-              st = r.ok ? await r.json() : null;
-            } catch { st = null; }
-            if (signal.aborted) return null;
-            if (!st) { if (++miss > 6) return { status: "error", message: "" }; await new Promise((ok) => setTimeout(ok, 1500 * miss)); continue; }
-            miss = 0;
-            if (st.paid) { wallet.refresh(); return { status: "paid", coins: st.coins, balance: st.balance }; }
-            if (st.held) return { status: "held", why: st.why };
-            if (st.expired) return { status: "expired" };
-          }
-          return null;
-        },
-      };
-    },
+    pay: async (pack) => await Effect.runPromise(invoiced(pack).pipe(Effect.map((got) => got ? offered(got.inv) : { ...failed }))),
   };
 }
 

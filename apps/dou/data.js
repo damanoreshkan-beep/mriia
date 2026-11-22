@@ -1,4 +1,6 @@
 import { VPS_PROXY } from "/_rt/feed.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 const proxied = (u) => (isLocal ? "/feed" : VPS_PROXY) + "?url=" + encodeURIComponent(u);
 
@@ -10,10 +12,15 @@ async function fetchFeed(url, ok) {
 }
 
 const okFeed = (x) => x.includes("<item") || x.includes("<option");
-const PAGE = "https://jobs.dou.ua/vacancies/";
-const SEARCH = "&search=%D0%B1%D1%80%D0%BE%D0%BD%D1%8E%D0%B2%D0%B0%D0%BD%D0%BD%D1%8F";
-const feedBase = (c) => "https://jobs.dou.ua/vacancies/feeds/?category=" + encodeURIComponent(c);
-const TECH = ["React", "Vue", "Nuxt", "Next", "Angular", "Svelte", "TypeScript", "JavaScript", "Node", "Astro", "RxJS", "Pinia", "Redux", "GraphQL", "Tailwind"];
+const PAGE = CONFIG.page;
+const SEARCH = CONFIG.search;
+const feedBase = (c) => CONFIG.feeds + encodeURIComponent(c);
+const TECH = CONFIG.tech;
+const settled = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e }).pipe(
+  Effect.map((value) => ({ ok: true, value })),
+  Effect.catch(() => Effect.succeed({ ok: false })),
+);
+const feed = (url) => settled(() => fetchFeed(url, okFeed));
 
 function parseTitle(t) {
   const i = t.indexOf(" в ");
@@ -46,13 +53,16 @@ async function cats() {
   return _cats;
 }
 export async function load(filters) {
-  const cat = filters.category || "Front End";
+  const cat = filters.category || CONFIG.category;
   const ex = filters.exp ? "&exp=" + filters.exp : "";
-  const [b, a, c] = await Promise.allSettled([fetchFeed(feedBase(cat) + SEARCH + ex, okFeed), fetchFeed(feedBase(cat) + ex, okFeed), cats()]);
-  const bronL = b.status === "fulfilled" ? parse(b.value, true) : [];
-  const all = a.status === "fulfilled" ? parse(a.value, false) : [];
-  if (b.status !== "fulfilled" && a.status !== "fulfilled") throw new Error("feeds");
-  const seen = new Set(bronL.map((j) => j.link));
-  const rest = all.filter((j) => !seen.has(j.link));
-  return { items: [...bronL, ...rest], meta: { bron: bronL.length, rest: rest.length, categories: c.status === "fulfilled" ? c.value : [] } };
+  return Effect.runPromise(Effect.all([feed(feedBase(cat) + SEARCH + ex), feed(feedBase(cat) + ex), settled(cats)], { concurrency: "unbounded" }).pipe(
+    Effect.flatMap(([b, a, c]) => {
+      const bronL = b.ok ? parse(b.value, true) : [];
+      const all = a.ok ? parse(a.value, false) : [];
+      if (!b.ok && !a.ok) return Effect.fail(new Error("feeds"));
+      const seen = new Set(bronL.map((j) => j.link));
+      const rest = all.filter((j) => !seen.has(j.link));
+      return Effect.succeed({ items: [...bronL, ...rest], meta: { bron: bronL.length, rest: rest.length, categories: c.ok ? c.value : [] } });
+    }),
+  ));
 }

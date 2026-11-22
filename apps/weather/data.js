@@ -2,18 +2,17 @@ import { fetchJson } from "/_rt/feed.js";
 import { geo } from "/_rt/sensors.js";
 import { gate } from "/_rt/gate.js";
 import { wmoIcon, wmoKey, solarPosition, moonPhase, skyVary, skyInk } from "/_rt/weather.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
-const KYIV = { lat: 50.4501, lng: 30.5234, place: null };
-const LAST = "ms-weather-fix";
+const KYIV = CONFIG.fallback;
+const LAST = CONFIG.lastFixKey;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
 
-async function placeName(lat, lng, loc) {
-  try {
-    const g = await fetchJson(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${loc}`,
-    );
-    return g.city || g.locality || g.principalSubdivision || null;
-  } catch { return null; }
-}
+const placeName = (lat, lng, loc) => tried(() => fetchJson(`${CONFIG.geocode}?latitude=${lat}&longitude=${lng}&localityLanguage=${loc}`)).pipe(
+  Effect.flatMap((g) => Effect.try({ try: () => g.city || g.locality || g.principalSubdivision || null, catch: (e) => e })),
+  Effect.catch(() => Effect.succeed(null)),
+);
 
 const FIXTURE = {
   place: "Kyiv",
@@ -30,21 +29,19 @@ export async function load() {
 
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(LAST) || "null"); } catch { }
-  let fix = null;
-  try { fix = await geo.once({ timeout: 6000, maximumAge: 600000 }); } catch { }
-  if (fix) {
-    try { localStorage.setItem(LAST, JSON.stringify({ lat: fix.lat, lng: fix.lng })); } catch { }
-  }
-  const at = fix || saved || KYIV;
-  const place = fix ? await placeName(at.lat, at.lng, loc) : (saved ? await placeName(at.lat, at.lng, loc) : null);
-
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${at.lat.toFixed(4)}&longitude=${at.lng.toFixed(4)}` +
-    "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m," +
-    "wind_direction_10m,wind_gusts_10m,cloud_cover,precipitation,precipitation_probability,is_day,visibility,uv_index" +
-    "&hourly=temperature_2m,weather_code" +
-    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
-    "&timezone=auto&forecast_days=5";
-  return shape(place, at.lat, at.lng, await fetchJson(url), loc);
+  const locate = tried(() => geo.once({ ...CONFIG.geo })).pipe(
+    Effect.catch(() => Effect.succeed(null)),
+    Effect.tap((fix) => Effect.sync(() => { if (fix) { try { localStorage.setItem(LAST, JSON.stringify({ lat: fix.lat, lng: fix.lng })); } catch { } } })),
+  );
+  const forecast = (at) => tried(() => fetchJson(`${CONFIG.forecast.base}?latitude=${at.lat.toFixed(4)}&longitude=${at.lng.toFixed(4)}${CONFIG.forecast.query}`));
+  return await Effect.runPromise(locate.pipe(
+    Effect.flatMap((fix) => {
+      const at = fix || saved || KYIV;
+      return (fix || saved ? placeName(at.lat, at.lng, loc) : Effect.succeed(null)).pipe(
+        Effect.flatMap((place) => forecast(at).pipe(Effect.map((wire) => shape(place, at.lat, at.lng, wire, loc)))),
+      );
+    }),
+  ));
 }
 
 /** The fixture in the wire's own shape, so everything below stays under test rather than being bypassed. */

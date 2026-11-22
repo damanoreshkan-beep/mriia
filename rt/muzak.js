@@ -1,3 +1,5 @@
+import { filter, flatMap, pipe, range, uniqueBy } from "@microspec/core/runtime/remeda.js";
+
 export function videoId(s) {
   let u;
   try { u = new URL(String(s || "").trim()); } catch { return null; }
@@ -38,16 +40,13 @@ export const FIXTURE_SEARCH = { songs: [
 ] };
 
 export function mixRadios(lists, skip = []) {
-  const out = [], seen = new Set(skip);
-  for (let i = 0, any = true; any; i++) {
-    any = false;
-    for (const l of lists) {
-      if (i >= l.length) continue;
-      any = true;
-      if (!seen.has(l[i].id)) { seen.add(l[i].id); out.push(l[i]); }
-    }
-  }
-  return out;
+  const skipped = new Set(skip);
+  return pipe(
+    range(0, Math.max(0, ...lists.map((l) => l.length))),
+    flatMap((i) => lists.filter((l) => i < l.length).map((l) => l[i])),
+    filter((song) => !skipped.has(song.id)),
+    uniqueBy((song) => song.id),
+  );
 }
 
 export const FIXTURE_RADIO = { songs: [

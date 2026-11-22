@@ -11,6 +11,27 @@ import { gate } from "/_rt/gate.js";
 import { shell } from "/_rt/shell.js";
 import { CATEGORIES, COUNTRIES, KIND_OF, presetQuery, parseQuery, freeTerm } from "./categories.js";
 import fixture from "./fixture.json" with { type: "json" };
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
+const R = CONFIG.routes;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const jsonOrNull = (path) => tried(async () => { const r = await fetch(VPS_PROXY + path); return r.ok ? r.json() : null; }).pipe(Effect.catch(() => Effect.succeed(null)));
+const signedIn = (me) => (me ? Effect.succeed(me) : tried(() => restore()).pipe(Effect.catch(() => Effect.succeed(null))));
+const searched = (query, cc) => tried(async () => {
+  const r = await fetch(VPS_PROXY + R.search, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, country: cc || "" }) });
+  const j = await r.json().catch(() => null);
+  return { r, j };
+});
+const refusalOf = (j) => (j && Object.hasOwn(CONFIG.reasons, j.error) ? CONFIG.reasons[j.error] : CONFIG.failReason);
+const viaShell = (title, text) => (!shell.has("share.send") ? Effect.succeed(false)
+  : tried(() => shell.call("share.send", { title, text })).pipe(Effect.as(true), Effect.catch(() => Effect.succeed(false))));
+const viaWebShare = (title, text) => (!(typeof navigator !== "undefined" && navigator.share) ? Effect.succeed(false)
+  : tried(() => navigator.share({ title, text })).pipe(Effect.as(true), Effect.catch((e) => Effect.succeed(e?.name === "AbortError"))));
+const viaClipboard = (text, copied) => tried(() => navigator.clipboard.writeText(text)).pipe(
+  Effect.tap(() => Effect.sync(copied)),
+  Effect.catchCause(() => Effect.void),
+);
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const ACCENT = "#F5B94D";
@@ -64,30 +85,29 @@ export function map({ S, toast, openScreen, closeScreen }) {
     setShownN(PAGE);
     if (!query || gate) return;
     const my = ++seq.current;
+    const latest = () => my === seq.current;
     setReason(""); setLoading(true);
-    try {
-      const r = await fetch(VPS_PROXY + "/shodan/search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, country: cc || "" }) });
-      const j = await r.json().catch(() => null);
-      if (my !== seq.current) return;
-      if (r.ok && j && Array.isArray(j.matches)) {
-        setHosts(j.matches.map((m) => ({ ...m, kind: kind || m.kind || "access" })));
-        if (!j.matches.length) setReason("noHosts");
-      } else { setHosts([]); setReason(j && j.error === "no_key" ? "noKey" : j && j.error === "no_query_credits" ? "creditsWarn" : "updFail"); }
-    } catch { if (my === seq.current) setReason("updFail"); }
-    finally { if (my === seq.current) setLoading(false); }
+    await Effect.runPromise(searched(query, cc).pipe(
+      Effect.tap(({ r, j }) => Effect.sync(() => {
+        if (!latest()) return;
+        if (r.ok && j && Array.isArray(j.matches)) {
+          setHosts(j.matches.map((m) => ({ ...m, kind: kind || m.kind || "access" })));
+          if (!j.matches.length) setReason("noHosts");
+        } else { setHosts([]); setReason(refusalOf(j)); }
+      })),
+      Effect.catchCause(() => Effect.sync(() => { if (latest()) setReason(CONFIG.failReason); })),
+      Effect.ensuring(Effect.sync(() => { if (latest()) setLoading(false); })),
+    ));
   };
   const liveOf = (p, cc) => (cc ? presetQuery(p, cc) : (freeTerm(p) || presetQuery(p, "")));
 
   useEffect(() => {
     if (gate) return;
-    let alive = true;
-    (async () => {
-      if (!me) await restore().catch(() => null);
-      if (!alive) return;
+    const fiber = Effect.runFork(signedIn(me).pipe(Effect.tap(() => Effect.sync(() => {
       const p = CATEGORIES.find((c) => c.id === (cat || "cameras")).presets[0];
       runLive(liveOf(p, country), KIND_OF[p], country);
-    })();
-    return () => { alive = false; };
+    }))));
+    return () => fiber.interruptUnsafe();
   }, [me]);
 
   const catOfPreset = (p) => (CATEGORIES.find((c) => c.presets.includes(p)) || CATEGORIES[0]).id;
@@ -101,9 +121,10 @@ export function map({ S, toast, openScreen, closeScreen }) {
   };
   const shareHost = async (h) => {
     const text = hostText(h, t, loc), title = `${h.ip}${h.port ? ":" + h.port : ""}`;
-    if (shell.has("share.send")) { try { await shell.call("share.send", { title, text }); return; } catch { } }
-    if (typeof navigator !== "undefined" && navigator.share) { try { await navigator.share({ title, text }); return; } catch (e) { if (e?.name === "AbortError") return; } }
-    try { await navigator.clipboard.writeText(text); toast && toast(T(t, "shareCopied")); } catch { }
+    await Effect.runPromise(viaShell(title, text).pipe(
+      Effect.flatMap((done) => (done ? Effect.succeed(true) : viaWebShare(title, text))),
+      Effect.flatMap((done) => (done ? Effect.void : viaClipboard(text, () => toast && toast(T(t, "shareCopied"))))),
+    ));
   };
 
   const all = useMemo(() => {
@@ -265,19 +286,13 @@ export function state({ S }) {
   const [live, setLive] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      if (gate) return;
-      const s = me || await restore().catch(() => null);
-      if (!s || !alive) return;
-      try {
-        const r = await fetch(VPS_PROXY + "/shodan/info");
-        if (!r.ok) return;
-        const j = await r.json();
-        if (alive && j && typeof j.scan_credits === "number") { setAcc(j); setLive(true); }
-      } catch { }
-    })();
-    return () => { alive = false; };
+    if (gate) return;
+    const fiber = Effect.runFork(signedIn(me).pipe(
+      Effect.flatMap((s) => (!s ? Effect.void : jsonOrNull(R.info).pipe(Effect.tap((j) => Effect.sync(() => {
+        if (j && typeof j.scan_credits === "number") { setAcc(j); setLive(true); }
+      }))))),
+    ));
+    return () => fiber.interruptUnsafe();
   }, [me]);
 
   const num = (n) => n == null ? "—" : Number(n).toLocaleString(loc === "uk" ? "uk-UA" : "en-US");
@@ -326,15 +341,16 @@ export function trace({ S }) {
     const to = mode === "me" ? "me" : target.trim();
     if (!to || busy) return;
     setBusy(true); setFailed(false);
-    try {
+    await Effect.runPromise(Effect.suspend(() => {
       const q = encodeURIComponent(to);
-      const [tr, dn] = await Promise.all([
-        fetch(VPS_PROXY + "/net/trace?target=" + q).then((r) => r.ok ? r.json() : null).catch(() => null),
-        fetch(VPS_PROXY + "/net/dns?name=" + q).then((r) => r.ok ? r.json() : null).catch(() => null),
-      ]);
-      if (tr && Array.isArray(tr.hops) && tr.hops.length) { setHops(tr.hops); setLive(true); } else setFailed(true);
-      if (dn && dn.records) setDns(dn);
-    } finally { setBusy(false); }
+      return Effect.all([jsonOrNull(R.trace + q), jsonOrNull(R.dns + q)], { concurrency: "unbounded" });
+    }).pipe(
+      Effect.tap(([tr, dn]) => Effect.sync(() => {
+        if (tr && Array.isArray(tr.hops) && tr.hops.length) { setHops(tr.hops); setLive(true); } else setFailed(true);
+        if (dn && dn.records) setDns(dn);
+      })),
+      Effect.ensuring(Effect.sync(() => setBusy(false))),
+    ));
   };
 
   useEffect(() => {

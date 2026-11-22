@@ -9,11 +9,16 @@ import { shareFile, downloadBlob } from "/_rt/apk.js";
 import { toDataURL, mockArt } from "/_rt/intake.js";
 import { toEnglish } from "/_rt/translate.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect } from "/_rt/fx.js";
+import { drop, reverse, take } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 
-const BASE = `${VPS_PROXY}/video`;
+const BASE = VPS_PROXY + CONFIG.base;
+const STALE = { stale: true };
+const stage = (fx, code) => Effect.tryPromise({ try: async () => fx(), catch: (e) => ({ code: code(e) }) });
+const refuse = (code) => Effect.fail({ code });
 export const WORDS_MAX = 500;
 const CAP = 24;
-const MIN_CLIP_BYTES = 4096;
 const DECODE_MS = 8000;
 const MOCK_CLIP = new URL("./assets/mock.webm", import.meta.url).href;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -114,9 +119,9 @@ let runs = 0, job = null, ctl = null;
 function land({ blob, url, by, words, pic, dur, res }) {
   const id = newId(), ts = Date.now();
   const clip = { id, url: url || URL.createObjectURL(blob), blob, words, pic: pic || "", by: by || "", ts, dur: dur || 0, res: res || "" };
-  let list = [clip, ...$clips.get()];
-  while (list.length > CAP) { const gone = list.pop(); clipStore.remove(gone.id).catch(() => {}); revoke(gone.url); }
-  $clips.set(list);
+  const all = [clip, ...$clips.get()];
+  reverse(drop(all, CAP)).forEach((gone) => { clipStore.remove(gone.id).catch(() => {}); revoke(gone.url); });
+  $clips.set(take(all, CAP));
   $clip.set(clip);
   if (idbSupported && !gate) clipStore.put(id, { blob, words, pic: !!clip.pic, by: clip.by, dur: clip.dur, res: clip.res }).catch(() => {});
   setJob({ phase: "done", error: null, eta: null, pct: null, elapsed: 0 });
@@ -141,32 +146,33 @@ export async function generate() {
     if (blob) land({ blob, by: model || "mock", words, pic: src, dur: 1.5, res: "192x256" }); else fail(run, "eFailed");
     return;
   }
-  let sent = words;
-  if (words) {
-    try { sent = await toEnglish(words); } catch (e) { fail(run, e?.code || "eTranslate"); return; }
-    if (run !== runs) return;
-  }
-  const ac = ctl = new AbortController();
-  const t0 = Date.now();
-  const clock = setInterval(() => { if (run === runs) setJob({ elapsed: Math.round((Date.now() - t0) / 1000) }); }, 1000);   
-  let r, by = "";
-  try {
-    const body = { prompt: sent, ...(model ? { model } : {}) };
-    if (src) {
-      let sent; try { sent = await toDataURL(src); } catch { throw { code: "eFailed" }; }
-      if (run !== runs) return;
-      body.image = sent.data;
-    }
-    r = await taskOne("/video/task", body, { signal: ac.signal,
+  let by = "";
+  const fresh = (v) => run === runs ? Effect.succeed(v) : Effect.fail(STALE);
+  const translate = !words ? Effect.succeed(words) : stage(() => toEnglish(words), (e) => e?.code || "eTranslate").pipe(Effect.flatMap(fresh));
+  const ticking = (t0) => Effect.acquireRelease(
+    Effect.sync(() => setInterval(() => { if (run === runs) setJob({ elapsed: Math.round((Date.now() - t0) / 1000) }); }, CONFIG.clockMs)),
+    (clock) => Effect.sync(() => clearInterval(clock)),
+  );
+  const frame = !src ? Effect.succeed({}) : stage(() => toDataURL(src), () => "eFailed").pipe(Effect.flatMap(fresh), Effect.map((s) => ({ image: s.data })));
+  const film = (sent, ac) => Effect.scoped(ticking(Date.now()).pipe(
+    Effect.andThen(frame),
+    Effect.flatMap((pic) => stage(() => taskOne(CONFIG.task, { prompt: sent, ...(model ? { model } : {}), ...pic }, { signal: ac.signal,
       onStart: (id) => { if (run === runs) job = id; else cancelJob(BASE, id); },
-      onLive: (m) => { if (run === runs && m.t === "progress") { if (m.phase) by = m.phase; setJob({ eta: m.eta ?? null, pct: m.pct ?? null }); } } });
-  } catch (e) { if (run === runs) fail(run, e?.code || jobCode(e)); return; }
-  finally { clearInterval(clock); }
-  if (run !== runs) return;
-  job = null;
-  if (r.status !== "done") { fail(run, r.status === "busy" ? "eBusy" : "eFailed"); return; }
-  if (!r.blob || !r.blob.type.startsWith("video/") || r.blob.size < MIN_CLIP_BYTES) { fail(run, "eFailed"); return; }
-  land({ blob: r.blob, url: r.url, by: r.by || by, words, pic: src });
+      onLive: (m) => { if (run === runs && m.t === "progress") { if (m.phase) by = m.phase; setJob({ eta: m.eta ?? null, pct: m.pct ?? null }); } } }), (e) => e?.code || jobCode(e))),
+  ));
+  const verify = (r) => {
+    job = null;
+    if (r.status !== "done") return refuse(r.status === "busy" ? "eBusy" : "eFailed");
+    if (!r.blob || !r.blob.type.startsWith("video/") || r.blob.size < CONFIG.minClipBytes) return refuse("eFailed");
+    return Effect.succeed(r);
+  };
+  await Effect.runPromise(translate.pipe(
+    Effect.flatMap((sent) => film(sent, ctl = new AbortController())),
+    Effect.flatMap(fresh),
+    Effect.flatMap(verify),
+    Effect.map((r) => land({ blob: r.blob, url: r.url, by: r.by || by, words, pic: src })),
+    Effect.catch((e) => Effect.sync(() => { if (e !== STALE) fail(run, e.code); })),
+  ));
 }
 
 /** A clip from the collection goes on the stage (muted autoplay; the transport unmutes). */

@@ -13,6 +13,9 @@ import { vendorOf } from "/_rt/oui.js";
 import { $roseAt, $devices, $fix, $target, $scanning, $err, RADIO_MS, $now, Icon, useField, $oui, $look, $copied, Legend, Reason, KIND_ICON, labelOf } from "./store.js";
 import { loadOui, askAbout } from "./lookup.js";
 import { dossier, copyText, MapView } from "./details.js";
+import { Effect } from "/_rt/fx.js";
+import { pipe, map, filter } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 
 const HUNT_TAU = 30_000;
 let rose = newRose(72, HUNT_TAU);
@@ -63,29 +66,25 @@ function upsert(frame, at) {
 
 const cellNum = (v) => (Number.isInteger(v) && v > 0 && v < 0x10000000 ? v : null);
 
+const wifiRows = (r) => pipe(r.networks || [],
+  filter((n) => !!n.bssid),
+  map((n) => ({ addr: n.bssid, name: n.ssid || "", rssi: n.rssi, kind: "wifi", ftm: n.ftm, freq: n.freq })));
+const cellRows = (r) => pipe(r.cells || [],
+  map((c) => ({ c, id: c.pci ?? c.cid ?? c.lac })),
+  filter(({ id }) => id != null),
+  map(({ c, id }) => ({
+    addr: `${c.type || "cell"}:${id}`, name: `${(c.type || "cell").toUpperCase()} ${c.arfcn ?? ""}`.trim(),
+    rssi: c.rssi, kind: "lte", serving: !!c.serving, cid: cellNum(c.cid), lac: cellNum(c.lac),
+    mcc: cellNum(c.mcc), mnc: cellNum(c.mnc), radio: (c.type || "lte").toLowerCase(),
+  })));
+const sensed = (method, rowsOf) => (!shell.has(method) ? Effect.void : Effect.tryPromise({ try: async () => shell.call(method, {}), catch: (e) => e }).pipe(
+  Effect.map(rowsOf),
+  Effect.tap((rows) => Effect.sync(() => rows.forEach((row) => upsert(row)))),
+  Effect.catchCause(() => Effect.void),
+));
+const RADIOS = [[CONFIG.radios.wifi, wifiRows], [CONFIG.radios.cell, cellRows]];
 async function sweepRadios() {
-  if (shell.has("wifi.scan")) {
-    try {
-      const r = await shell.call("wifi.scan", {});
-      for (const n of r.networks || []) {
-        if (n.bssid) upsert({ addr: n.bssid, name: n.ssid || "", rssi: n.rssi, kind: "wifi", ftm: n.ftm, freq: n.freq });
-      }
-    } catch { }
-  }
-  if (shell.has("cell.info")) {
-    try {
-      const r = await shell.call("cell.info", {});
-      for (const c of r.cells || []) {
-        const id = c.pci ?? c.cid ?? c.lac;
-        if (id == null) continue;
-        upsert({
-          addr: `${c.type || "cell"}:${id}`, name: `${(c.type || "cell").toUpperCase()} ${c.arfcn ?? ""}`.trim(),
-          rssi: c.rssi, kind: "lte", serving: !!c.serving, cid: cellNum(c.cid), lac: cellNum(c.lac),
-          mcc: cellNum(c.mcc), mnc: cellNum(c.mnc), radio: (c.type || "lte").toLowerCase(),
-        });
-      }
-    } catch { }
-  }
+  await Effect.runPromise(Effect.forEach(RADIOS, ([method, rowsOf]) => sensed(method, rowsOf), { discard: true }));
 }
 
 export function startScan() {

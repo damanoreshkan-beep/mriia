@@ -6,6 +6,8 @@ import { holdBackground } from "/_rt/bghold.js";
 import { taskOne, jobCode } from "/_rt/task.js";
 import { mockArt, toDataURL } from "/_rt/intake.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const GATE_GLB = "data:model/gltf-binary;base64,Z2xURgIAAAA=";
 
@@ -47,25 +49,37 @@ export async function sculpt(ctx) {
     patch({ phase: "done", out: { url: GATE_GLB, bytes: 8_541_060, by: "gate" }, live: null });
     return;
   }
-  let sent;
-  try { sent = await toDataURL(st.src); } catch { return fail(r, "eFailed"); }
-  if (r !== run) return;
-  hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") });
-  let res;
-  try {
-    res = await taskOne("/task", { route: "/feed/site3d", body: { image: sent.data, model: "Prism 3.1" } }, {
-      onLive: (live) => { if (r === run) patch({ live }); },
-    });
-  } catch (e) { if (r === run) fail(r, e.code || jobCode(e)); return; }
-  if (r !== run) return;
-  hold?.(); hold = null;
-  const why = res.error || "";
-  if (res.status !== "done") return fail(r, res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(why) ? "ePolicy" : /^site: /.test(why) ? "eFailed" : "eSite");
-  patch({ phase: "done", out: { url: res.url, bytes: res.blob.size, by: res.by }, live: null });
-  if (document.visibilityState === "hidden") {
-    if (await notifyAsk()) notify({ id: "lipka-done", title: T(ctx.t, "done"), body: T(ctx.t, "download") }).catch(() => {});
-  }
+  await Effect.runPromise(encoded(st.src).pipe(
+    Effect.tap(() => current(r)),
+    Effect.tap(() => Effect.sync(() => { hold = holdBackground({ title: T(ctx.t, "title"), body: T(ctx.t, "working") }); })),
+    Effect.flatMap((sent) => meshed(r, sent)),
+    Effect.tap(() => current(r)),
+    Effect.tap(() => Effect.sync(() => { hold?.(); hold = null; })),
+    Effect.flatMap(verdict),
+    Effect.tap((res) => Effect.sync(() => patch({ phase: "done", out: { url: res.url, bytes: res.blob.size, by: res.by }, live: null }))),
+    Effect.as(true),
+    Effect.catch((e) => (e === STALE ? Effect.succeed(false) : Effect.sync(() => { fail(r, e.code); return false; }))),
+    Effect.flatMap((done) => (done ? announced(ctx) : Effect.void)),
+  ));
 }
+const STALE = { stale: true };
+const current = (r) => Effect.suspend(() => (r === run ? Effect.void : Effect.fail(STALE)));
+const encoded = (src) => Effect.tryPromise({ try: async () => toDataURL(src), catch: () => ({ code: "eFailed" }) });
+const meshed = (r, sent) => Effect.tryPromise({
+  try: async () => taskOne(CONFIG.taskRoute, { route: CONFIG.route, body: { image: sent.data, model: CONFIG.model } }, {
+    onLive: (live) => { if (r === run) patch({ live }); },
+  }),
+  catch: (e) => ({ code: e.code || jobCode(e) }),
+});
+const verdict = (res) => {
+  const why = res.error || "";
+  return res.status === "done" ? Effect.succeed(res)
+    : Effect.fail({ code: res.status === "busy" ? "eBusy" : /content policy|rejected/i.test(why) ? "ePolicy" : /^site: /.test(why) ? "eFailed" : "eSite" });
+};
+const announced = (ctx) => Effect.suspend(() => (document.visibilityState !== "hidden" ? Effect.void
+  : Effect.tryPromise({ try: async () => notifyAsk(), catch: (e) => e }).pipe(
+    Effect.tap((ok) => Effect.sync(() => { if (ok) notify({ id: "lipka-done", title: T(ctx.t, "done"), body: T(ctx.t, "download") }).catch(() => {}); })),
+  )));
 
 export const liveOf = (live) => {
   const st = String(live?.stage || live?.phase || "");

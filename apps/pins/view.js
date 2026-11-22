@@ -9,8 +9,11 @@ import { collection } from "/_rt/db.js";
 import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { parseInput, pinInfoURL, boardPinsURL, readPins, ladder, ratio } from "/_rt/pinterest.js";
+import { Effect } from "/_rt/fx.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
 const SAVED = collection("pinsSaved");
 
 const $q = atom("");
@@ -45,37 +48,36 @@ async function grab(raw) {
   if (parsed.kind === "unknown") { $err.set("errUnknown"); return; }
 
   $busy.set(true); $err.set(""); $items.set([]);
-  try {
-    if (gate) { $kind.set("pin"); $items.set(FIXTURE); return; }
-    let url;
-    if (parsed.kind === "board") { $kind.set("board"); url = boardPinsURL(parsed.user, parsed.slug); }
-    else {
-      const id = parsed.kind === "short" ? await resolveShort(parsed.code) : parsed.id;
-      $kind.set("pin"); url = pinInfoURL(id);
-    }
-    const r = await fetch(url);
-    if (!r.ok) throw new Error("fetch");
-    const pins = readPins(await r.json());
-    if (!pins.length) { $err.set("errEmpty"); return; }
-    $items.set(pins);
-  } catch (e) {
-    $err.set(e && e.message === "short" ? "errShort" : "errFetch");
-  } finally { $busy.set(false); }
+  const source = parsed.kind === "board"
+    ? attempt(() => { $kind.set("board"); return boardPinsURL(parsed.user, parsed.slug); })
+    : (parsed.kind === "short" ? tried(() => resolveShort(parsed.code)) : Effect.succeed(parsed.id)).pipe(
+      Effect.flatMap((id) => attempt(() => { $kind.set("pin"); return pinInfoURL(id); })),
+    );
+  const pinsAt = (url) => tried(() => fetch(url)).pipe(
+    Effect.flatMap((r) => r.ok ? tried(() => r.json()) : Effect.fail(new Error("fetch"))),
+    Effect.flatMap((j) => attempt(() => readPins(j))),
+  );
+  const fixture = attempt(() => { $kind.set("pin"); $items.set(FIXTURE); });
+  const land = (pins) => attempt(() => { if (!pins.length) $err.set("errEmpty"); else $items.set(pins); });
+  await Effect.runPromise((gate ? fixture : source.pipe(Effect.flatMap(pinsAt), Effect.flatMap(land))).pipe(
+    Effect.catch((e) => Effect.sync(() => $err.set(e && e.message === "short" ? "errShort" : "errFetch"))),
+    Effect.ensuring(Effect.sync(() => $busy.set(false))),
+  ));
 }
 
 function confirmFull(pin) {
   if (!pin?.src || gate) return;
   const rungs = ladder(pin.src);
-  let i = 0;
-  const tryNext = () => {
-    if (i >= rungs.length) return;
-    const url = rungs[i++];
+  const loads = (url) => Effect.callback((resume) => {
     const img = new Image();
-    img.onload = () => { if (img.naturalWidth > 0) $full.set({ ...$full.get(), [pin.id]: url }); else tryNext(); };
-    img.onerror = tryNext;
+    img.onload = () => resume(img.naturalWidth > 0 ? Effect.succeed(url) : Effect.fail(url));
+    img.onerror = () => resume(Effect.fail(url));
     img.src = url;
-  };
-  tryNext();
+  });
+  const rung = (i) => i >= rungs.length ? Effect.void : loads(rungs[i]).pipe(
+    Effect.matchEffect({ onFailure: () => rung(i + 1), onSuccess: (url) => Effect.sync(() => $full.set({ ...$full.get(), [pin.id]: url })) }),
+  );
+  Effect.runFork(rung(0));
 }
 
 const fullOf = (pin, full) => full[pin.id] || pin.src;

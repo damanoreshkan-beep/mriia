@@ -1,5 +1,6 @@
 import { mulberry32 } from "@microspec/core/runtime/groove.js";
 import { midiToFreq } from "@microspec/core/runtime/audio.js";
+import { flatMap, pipe, range } from "@microspec/core/runtime/remeda.js";
 
 export { midiToFreq };
 
@@ -45,9 +46,7 @@ export const VOICE_CEIL = 88;
 
 export function buildScale(rootMidi, modeKey, octaves = 3) {
   const steps = MODES[modeKey] || MODES.major;
-  const out = [];
-  for (let o = 0; o < octaves; o++) for (const s of steps) out.push(rootMidi + s + 12 * o);
-  return out;
+  return pipe(range(0, octaves), flatMap((o) => steps.map((s) => rootMidi + s + 12 * o)));
 }
 
 export const chordPitchClasses = (rootMidi, intervals) => new Set(intervals.map((iv) => (((rootMidi + iv) % 12) + 12) % 12));
@@ -78,8 +77,7 @@ export function voiceLead(prev, chordRootMidi, intervals) {
 export function pickChord(palette, currentIdx, rng) {
   if (!palette.length) return 0;
   if (palette.length === 1) return 0;
-  const choices = [];
-  for (let i = 0; i < palette.length; i++) if (i !== currentIdx) choices.push(i);
+  const choices = range(0, palette.length).filter((i) => i !== currentIdx);
   return choices[Math.floor(rng() * choices.length) % choices.length];
 }
 
@@ -94,12 +92,10 @@ export function sparkleNote(chordRootMidi, intervals, sparkleOctaves, rng) {
 export const ENO_BASE = [17.3, 19.7, 23.1, 29.3, 31.7, 37.1, 41.3];
 export function enoLoops(count, rng) {
   const n = Math.max(1, Math.min(ENO_BASE.length, count | 0));
-  const out = [];
-  for (let i = 0; i < n; i++) {
+  return range(0, n).map((i) => {
     const len = ENO_BASE[i] * (1 + 0.05 * (rng() * 2 - 1));
-    out.push({ len, phase: rng() * len });
-  }
-  return out;
+    return { len, phase: rng() * len };
+  });
 }
 export const loopsForDensity = (density) => Math.max(3, Math.min(ENO_BASE.length, Math.round(3 + density * 4)));
 

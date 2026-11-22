@@ -1,3 +1,5 @@
+import { flatMap, pipe, unique } from "@microspec/core/runtime/remeda.js";
+
 export const PIDGETS = "https://widgets.pinterest.com/v3/pidgets";
 export const pinInfoURL = (id) => `${PIDGETS}/pins/info/?pin_ids=${encodeURIComponent(id)}`;
 export const boardPinsURL = (user, slug) => `${PIDGETS}/boards/${encodeURIComponent(user)}/${encodeURIComponent(slug)}/pins/`;
@@ -25,12 +27,13 @@ export function ladder(url) {
   const m = String(url || "").match(/^(https?:\/\/i\.pinimg\.com\/)([^/]+)(\/.+)$/i);
   if (!m) return url ? [url] : [];
   const [, host, , path] = m;
-  const out = [];
-  for (const size of SIZES) {
-    out.push(`${host}${size}${path}`);
-    if (size === "originals" && /\.jpg$/i.test(path)) out.push(`${host}${size}${path.replace(/\.jpg$/i, ".png")}`);
-  }
-  return [...new Set(out)];
+  return pipe(
+    SIZES,
+    flatMap((size) => size === "originals" && /\.jpg$/i.test(path)
+      ? [`${host}${size}${path}`, `${host}${size}${path.replace(/\.jpg$/i, ".png")}`]
+      : [`${host}${size}${path}`]),
+    unique(),
+  );
 }
 
 export function trimPin(raw) {

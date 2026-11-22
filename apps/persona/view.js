@@ -13,7 +13,10 @@ import { chats, chat as loadChat, send, create, deleteChat, deleteCharacter, voi
 import { taskOne } from "/_rt/task.js";
 import { speechChunks, designFor, voicePhaseKey } from "/_rt/personavoice.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
+import { Effect } from "/_rt/fx.js";
+import { reduce } from "/_rt/remeda.js";
 import { toItem } from "./data.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
@@ -37,16 +40,19 @@ let seq = 0;
 const tmpId = () => "tmp" + (++seq);
 const asMsgs = (list) => (list || []).map((m) => ({ id: m.id, role: m.role, content: m.content }));
 
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
+const markLoaded = (characterId) => patch(characterId, (th) => ({ ...th, loaded: true }));
+
 async function loadThread(characterId) {
   if (threadOf(characterId).loaded) return;
-  try {
-    const list = await chats();
-    const mine = list.filter((c) => c.character_id === characterId);
-    patch(characterId, (th) => ({ ...th, history: mine }));
-    if (!mine.length) { patch(characterId, (th) => ({ ...th, loaded: true })); return; }
-    const got = await loadChat(mine[0].id);
-    patch(characterId, (th) => ({ ...th, chatId: mine[0].id, loaded: true, messages: asMsgs(got?.messages) }));
-  } catch { patch(characterId, (th) => ({ ...th, loaded: true })); }
+  await Effect.runPromise(tried(async () => (await chats()).filter((c) => c.character_id === characterId)).pipe(
+    Effect.tap((mine) => attempt(() => patch(characterId, (th) => ({ ...th, history: mine })))),
+    Effect.flatMap((mine) => !mine.length ? attempt(() => markLoaded(characterId)) : tried(() => loadChat(mine[0].id)).pipe(
+      Effect.flatMap((got) => attempt(() => patch(characterId, (th) => ({ ...th, chatId: mine[0].id, loaded: true, messages: asMsgs(got?.messages) })))),
+    )),
+    Effect.catch(() => Effect.sync(() => markLoaded(characterId))),
+  ));
 }
 
 async function openHistoryChat(characterId, chatId) {
@@ -113,14 +119,22 @@ function stopVoice() {
   if (player) { player.onended = null; player.pause(); player.removeAttribute("src"); }
   $voice.set({ id: null, phase: "", pct: 0 });
 }
-const playPiece = (url, onTime) => new Promise((done, fail) => {
+const playPiece = (url, onTime) => Effect.callback((resume) => {
   const p = ensurePlayer();
   p.src = url;
   p.ontimeupdate = () => onTime(p.duration ? p.currentTime / p.duration : 0);
-  p.onended = () => done();
-  p.onerror = () => fail(new Error("decode"));
-  p.play().catch(fail);
+  p.onended = () => resume(Effect.void);
+  p.onerror = () => resume(Effect.fail(new Error("decode")));
+  p.play().catch((e) => resume(Effect.fail(e)));
 });
+const STALE = { stale: true };
+const castPieces = (msg, characterId, fresh) => spoken.has(msg.id) ? Effect.void : tried(async () => designFor(await voiceOf(characterId), msg.content)).pipe(
+  Effect.tap(fresh),
+  Effect.flatMap((design) => attempt(() => {
+    spoken.set(msg.id, speechChunks(msg.content).map((text) =>
+      taskOne(CONFIG.task, { route: CONFIG.voice.route, body: { text, design } }).then((r) => { if (r.status !== "done") throw new Error(r.status); return r.url; })));
+  })),
+);
 
 async function speakReply(msg, characterId) {
   const cur = $voice.get();
@@ -134,40 +148,38 @@ async function speakReply(msg, characterId) {
   if (gate) return;
   ensurePlayer(); meter?.ac.resume?.().catch?.(() => {});   
   $voice.set({ id: msg.id, phase: "casting", pct: 0 });
-  try {
-    if (!spoken.has(msg.id)) {
-      const design = designFor(await voiceOf(characterId), msg.content);
-      if (my !== voiceRun) return;
-      spoken.set(msg.id, speechChunks(msg.content).map((text) =>
-        taskOne("/task", { route: "/feed/voice", body: { text, design } }).then((r) => { if (r.status !== "done") throw new Error(r.status); return r.url; })));
-    }
-    const pieces = spoken.get(msg.id), n = pieces.length;
+  const fresh = () => my === voiceRun ? Effect.void : Effect.fail(STALE);
+  const making = (pieces) => attempt(() => {
+    const n = pieces.length;
     let made = 0;
     $voice.set({ id: msg.id, phase: "making", pct: 0 });
-    for (const p of pieces) p.then(() => { made++; if (my === voiceRun && $voice.get().phase === "making") $voice.set({ id: msg.id, phase: "making", pct: made / n }); }, () => {});
-    for (let i = 0; i < n; i++) {
-      const url = await pieces[i];
-      if (my !== voiceRun) return;
-      $voice.set({ id: msg.id, phase: "playing", pct: i / n });
-      await playPiece(url, (f) => { if (my === voiceRun && $voice.get().phase === "playing") $voice.set({ id: msg.id, phase: "playing", pct: (i + f) / n }); });
-      if (my !== voiceRun) return;
-    }
-    $voice.set({ id: null, phase: "", pct: 0 });
-  } catch {
-    spoken.delete(msg.id);   
-    if (my === voiceRun) $voice.set({ id: msg.id, phase: "error", pct: 0 });
-  }
+    pieces.forEach((p) => p.then(() => { made++; if (my === voiceRun && $voice.get().phase === "making") $voice.set({ id: msg.id, phase: "making", pct: made / n }); }, () => {}));
+  });
+  const playing = (pieces) => Effect.forEach(pieces, (piece, i) => tried(() => piece).pipe(
+    Effect.tap(fresh),
+    Effect.tap(() => attempt(() => $voice.set({ id: msg.id, phase: "playing", pct: i / pieces.length }))),
+    Effect.flatMap((url) => playPiece(url, (f) => { if (my === voiceRun && $voice.get().phase === "playing") $voice.set({ id: msg.id, phase: "playing", pct: (i + f) / pieces.length }); })),
+    Effect.andThen(Effect.suspend(fresh)),
+  ), { discard: true });
+  await Effect.runPromise(castPieces(msg, characterId, fresh).pipe(
+    Effect.map(() => spoken.get(msg.id)),
+    Effect.tap(making),
+    Effect.flatMap(playing),
+    Effect.flatMap(() => attempt(() => $voice.set({ id: null, phase: "", pct: 0 }))),
+    Effect.catch((e) => e === STALE ? Effect.void : Effect.sync(() => {
+      spoken.delete(msg.id);
+      if (my === voiceRun) $voice.set({ id: msg.id, phase: "error", pct: 0 });
+    })),
+  ));
 }
 
 function turnsOf(messages) {
-  const turns = [];
-  for (const m of messages) {
+  return reduce(messages, (turns, m) => {
     const last = turns[turns.length - 1];
-    if (m.role === "user") turns.push({ key: m.id, q: m, a: null });
-    else if (last && last.q && !last.a) last.a = m;
-    else turns.push({ key: m.id, q: null, a: m });
-  }
-  return turns;
+    if (m.role === "user") return [...turns, { key: m.id, q: m, a: null }];
+    if (last && last.q && !last.a) return [...turns.slice(0, -1), { ...last, a: m }];
+    return [...turns, { key: m.id, q: null, a: m }];
+  }, []);
 }
 
 const startOver = (characterId) => patch(characterId, (th) => ({ ...th, chatId: null, messages: [], loaded: true }));

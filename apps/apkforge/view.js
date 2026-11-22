@@ -6,10 +6,24 @@ import { Panel } from "/_rt/ui.js";
 import { siteName } from "/_rt/sitelabel.js";
 import { buildApk, fetchSiteIconPng, letterTilePng, adaptiveFromTile, downloadBlob, apkFilename } from "/_rt/apk.js";
 import { gate } from "/_rt/gate.js";
+import { Effect } from "/_rt/fx.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const accent = () => (getComputedStyle(document.documentElement).getPropertyValue("--app-accent").trim() || "#F2B84B");
 const SEED_URL = "https://anubis.world";
+
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const orElse = (fx, fallback) => tried(fx).pipe(Effect.catch(() => Effect.succeed(fallback)));
+const siteIcon = (url, name) => gate ? tried(() => letterTilePng(name || "A", accent()))
+  : tried(() => fetchSiteIconPng(url)).pipe(Effect.flatMap((png) => png ? Effect.succeed(png) : tried(() => letterTilePng(name || url, accent()))));
+const tileFor = (icon, name) => icon ? Effect.succeed(icon) : orElse(() => letterTilePng(name, accent()), icon);
+const layersFor = (iconB64) => orElse(() => adaptiveFromTile(iconB64, accent()), {});
+const forgeApk = (url, name, icon) => tileFor(icon, name).pipe(
+  Effect.flatMap((iconB64) => gate ? Effect.void : layersFor(iconB64).pipe(
+    Effect.flatMap((layers) => tried(() => buildApk({ url, name: name.trim(), iconB64, fgB64: layers.fg, bg: layers.bg }))),
+    Effect.tap((blob) => Effect.sync(() => downloadBlob(blob, apkFilename(name)))),
+  )),
+);
 
 export function forge({ S, toast }) {
   const t = useStore(S.t);
@@ -27,16 +41,12 @@ export function forge({ S, toast }) {
   }, [url]);
 
   useEffect(() => {
-    let live = true;
-    (async () => {
-      try {
-        if (!url) { setIcon(null); return; }
-        const png = gate ? await letterTilePng(name || "A", accent())
-          : (await fetchSiteIconPng(url)) || await letterTilePng(name || url, accent());
-        if (live) setIcon(png || null);
-      } catch { if (live) setIcon(null); }
-    })();
-    return () => { live = false; };
+    if (!url) { setIcon(null); return; }
+    const fiber = Effect.runFork(siteIcon(url, name).pipe(
+      Effect.tap((png) => Effect.sync(() => setIcon(png || null))),
+      Effect.catchCause(() => Effect.sync(() => setIcon(null))),
+    ));
+    return () => fiber.interruptUnsafe();
   }, [gate ? name : url]);
 
   const valid = /^https?:\/\/.+/i.test(url) && !!name.trim();
@@ -44,19 +54,11 @@ export function forge({ S, toast }) {
   const generate = async () => {
     if (!valid || busy) return;
     setBusy(true); setErr(null); setDone(null);
-    try {
-      let iconB64 = icon;
-      if (!iconB64) { try { iconB64 = await letterTilePng(name, accent()); } catch { } }
-      if (!gate) {
-        let layers = {}; try { layers = await adaptiveFromTile(iconB64, accent()); } catch { }
-        const blob = await buildApk({ url, name: name.trim(), iconB64, fgB64: layers.fg, bg: layers.bg });
-        downloadBlob(blob, apkFilename(name));
-      }
-      setDone(apkFilename(name));
-      toast?.(T(t, "forgeDone"));
-    } catch (e) {
-      setErr(T(t, "forgeErr"));
-    } finally { setBusy(false); }
+    await Effect.runPromise(forgeApk(url, name, icon).pipe(
+      Effect.tap(() => Effect.sync(() => { setDone(apkFilename(name)); toast?.(T(t, "forgeDone")); })),
+      Effect.catchCause(() => Effect.sync(() => setErr(T(t, "forgeErr")))),
+      Effect.ensuring(Effect.sync(() => setBusy(false))),
+    ));
   };
 
   return html`<div data-forge-screen data-busy=${busy ? "1" : "0"} data-done=${done ? "1" : "0"} data-valid=${valid ? "1" : "0"} class="flex flex-col gap-[var(--ms-gap)] max-w-md w-full mx-auto">

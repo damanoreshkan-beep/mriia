@@ -85,13 +85,8 @@ const MARK = /\[\s*([123])\s*\]/g;
 
 export function parseActs(text) {
   const s = String(text || "").trim();
-  const found = [];
-  let m;
-  MARK.lastIndex = 0;
-  while ((m = MARK.exec(s)) !== null) found.push({ n: Number(m[1]), at: m.index, end: MARK.lastIndex });
-  const first = new Map();
-  for (const f of found) if (!first.has(f.n)) first.set(f.n, f);
-  const marks = [1, 2, 3].map((n) => first.get(n)).filter(Boolean);
+  const found = [...s.matchAll(MARK)].map((m) => ({ n: Number(m[1]), at: m.index, end: m.index + m[0].length }));
+  const marks = [1, 2, 3].map((n) => found.find((f) => f.n === n)).filter(Boolean);
   if (marks.length < 3) return { acts: [s, "", ""], ok: false, truncated: false };
   const acts = marks.map((mk, i) => {
     const stop = i + 1 < marks.length ? marks[i + 1].at : s.length;

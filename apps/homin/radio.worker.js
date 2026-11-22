@@ -5,10 +5,13 @@ import { detectCtcss } from "/_rt/ctcss.js";
 import { instantFreq, magnitude } from "/_rt/burst.js";
 import { decodeOOK, PROTO_NAMES } from "/_rt/ism433.js";
 import { synthBand } from "/_rt/fixture433.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const post = (m, transfer) => self.postMessage(m, transfer || []);
 const SAMPLE_RATE = 2_400_000;
-const CHUNK_MS = 250;
+const CHUNK_MS = CONFIG.synthChunkMs;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
 
 let mode = "idle", rx = null, gate = false, listenCh = null;
 const seen = new Map();
@@ -131,30 +134,36 @@ async function openRadio() {
   return dev;
 }
 
-async function run() {
-  mode = "scan";
-  if (gate) {
-    const bytes = synthBand({ ms: CHUNK_MS });
-    while (mode === "scan") {
-      post({ type: "events", events: analyse(bytes) });
-      demod(bytes);
-      await new Promise((r) => setTimeout(r, 900));
-    }
-    return;
-  }
-  try { rx = await openRadio(); } catch { rx = null; }
-  if (!rx) { post({ type: "state", connected: false }); mode = "idle"; return; }
-  post({ type: "state", connected: true });
+const heard = (bytes) => { post({ type: "events", events: analyse(bytes) }); demod(bytes); };
+const synthScan = (bytes) => Effect.sync(() => heard(bytes)).pipe(
+  Effect.andThen(Effect.sleep(CONFIG.synthPauseMs)),
+  Effect.repeat({ while: () => mode === "scan" }),
+  Effect.asVoid,
+);
+const opened = tried(openRadio).pipe(Effect.catch(() => Effect.succeed(null)));
+const absent = Effect.sync(() => { post({ type: "state", connected: false }); mode = "idle"; });
+const connected = Effect.sync(() => post({ type: "state", connected: true }));
+const streamed = (dev) => tried(async () => {
   while (mode === "scan") {
     let bytes;
-    try { bytes = await rx.read(); } catch { break; }
+    try { bytes = await dev.read(); } catch { break; }
     if (!bytes.length) continue;
-    post({ type: "events", events: analyse(bytes) });
-    demod(bytes);
+    heard(bytes);
   }
-  try { await rx.stop(); } catch { }
-  rx = null;
-  post({ type: "state", connected: false });
+});
+const released = (dev) => tried(() => dev.stop()).pipe(
+  Effect.ignore,
+  Effect.andThen(Effect.sync(() => { rx = null; post({ type: "state", connected: false }); })),
+);
+const scan = opened.pipe(
+  Effect.tap((dev) => Effect.sync(() => { rx = dev; })),
+  Effect.flatMap((dev) => !dev ? absent : connected.pipe(Effect.andThen(streamed(dev)), Effect.andThen(released(dev)))),
+);
+
+async function run() {
+  mode = "scan";
+  if (gate) return Effect.runPromise(synthScan(synthBand({ ms: CHUNK_MS })));
+  await Effect.runPromise(scan);
 }
 
 self.onmessage = async (e) => {

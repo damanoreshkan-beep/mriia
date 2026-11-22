@@ -11,8 +11,14 @@ import { shareFile, downloadBlob } from "/_rt/apk.js";
 import { conditionSample, encodeWav } from "/_rt/grain.js";
 import { referenceWav, wavDataUrl, decodeWav, mockVoice, envelope, REF_RATE } from "/_rt/wav.js";
 import { CHARACTERS, characterOf } from "./characters.js";
+import { Effect } from "/_rt/fx.js";
+import { drop, reverse, take as keep, times } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 
-const BASE = `${VPS_PROXY}/voice`;
+const BASE = VPS_PROXY + CONFIG.base;
+const STALE = { stale: true };
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
 export const TAKE_MAX = 10;
 const TAKE_MIN = 1.2;
 export const BARS = 48;
@@ -142,7 +148,7 @@ async function adopt(blob) {
   try {
     const ctx = new AC();
     const dec = await ctx.decodeAudioData(await blob.arrayBuffer());
-    const chans = []; for (let c = 0; c < dec.numberOfChannels; c++) chans.push(dec.getChannelData(c));
+    const chans = times(dec.numberOfChannels, (c) => dec.getChannelData(c));
     try { ctx.close(); } catch { }
     const c = conditionSample(chans, dec.sampleRate);
     if (c.dur < TAKE_MIN) { $rec.set({ state: "idle", bars: [], since: 0, err: "short" }); return; }
@@ -155,9 +161,9 @@ let runs = 0, job = null;
 function land({ blob, url, by, words, voice, style }) {
   const id = newId(), ts = Date.now(), echo = { id, url: url || URL.createObjectURL(blob), blob, words, voice, style, by: by || "", ts };
   $echo.set(echo);
-  let list = [echo, ...$echoes.get()];
-  while (list.length > CAP) { const gone = list.pop(); revoke(gone.url); echoStore.remove(gone.id).catch(() => {}); }
-  $echoes.set(list);
+  const all = [echo, ...$echoes.get()];
+  reverse(drop(all, CAP)).forEach((gone) => { revoke(gone.url); echoStore.remove(gone.id).catch(() => {}); });
+  $echoes.set(keep(all, CAP));
   if (idbSupported && !gate) echoStore.put(id, { blob, words, voice, style, by: echo.by }).catch(() => {});
   $gen.set({ phase: "done", error: null, eta: null, pct: null, elapsed: 0 });
   load(echo.url);
@@ -177,24 +183,28 @@ export async function generate() {
     land({ blob: wavBlob(mockVoice(1.6, REF_RATE, hashOf(words + voice + (style?.id || ""))), REF_RATE), words, voice, style: style?.id || "", by: "mock" });
     return;
   }
-  let r;
-  try {
-    let body;
-    if (clone) {
-      const ref = voice === "mine" ? referenceWav(take.pcm, take.sr) : (await preset(voice))?.bytes;
-      if (!ref) throw { code: "eFailed" };
-      body = { text: words, audio: wavDataUrl(ref), instruct: style?.recipe || "", seed: 0 };
-    } else body = { text: words, voice, seed: 0 };
-    if (run !== runs) return;
-    r = await taskOne("/task", { route: "/feed/voice", body }, {
-      onStart: (_id, rep) => { if (run === runs) job = rep.job; else cancelJob(BASE, rep.job); },
-      onLive: (m) => { if (run === runs) $gen.set({ ...$gen.get(), eta: m.eta ?? null, pct: m.pct ?? null, elapsed: m.elapsed || 0 }); },
-    });
-  } catch (e) { if (run === runs) $gen.set({ phase: "error", error: e?.code || jobCode(e), eta: null, pct: null, elapsed: 0 }); return; }
-  if (run !== runs) return;
-  job = null;
-  if (r.status === "done") land({ blob: r.blob, url: r.url, by: r.by, words, voice, style: style?.id || "" });
-  else $gen.set({ phase: "error", error: r.status === "busy" ? "eBusy" : "eFailed", eta: null, pct: null, elapsed: 0 });
+  const fresh = (v) => run === runs ? Effect.succeed(v) : Effect.fail(STALE);
+  const failed = (error) => $gen.set({ phase: "error", error, eta: null, pct: null, elapsed: 0 });
+  const reference = voice === "mine" ? attempt(() => referenceWav(take.pcm, take.sr)) : tried(() => preset(voice)).pipe(Effect.map((p) => p?.bytes));
+  const body = !clone ? Effect.succeed({ text: words, voice, seed: 0 }) : reference.pipe(
+    Effect.flatMap((ref) => ref ? attempt(() => ({ text: words, audio: wavDataUrl(ref), instruct: style?.recipe || "", seed: 0 })) : Effect.fail({ code: "eFailed" })),
+  );
+  const say = (b) => tried(() => taskOne(CONFIG.task, { route: CONFIG.route, body: b }, {
+    onStart: (_id, rep) => { if (run === runs) job = rep.job; else cancelJob(BASE, rep.job); },
+    onLive: (m) => { if (run === runs) $gen.set({ ...$gen.get(), eta: m.eta ?? null, pct: m.pct ?? null, elapsed: m.elapsed || 0 }); },
+  }));
+  await Effect.runPromise(body.pipe(
+    Effect.flatMap(fresh),
+    Effect.flatMap(say),
+    Effect.catch((e) => e === STALE ? Effect.fail(STALE) : Effect.sync(() => { if (run === runs) failed(e?.code || jobCode(e)); }).pipe(Effect.andThen(Effect.fail(STALE)))),
+    Effect.flatMap(fresh),
+    Effect.map((r) => {
+      job = null;
+      if (r.status === "done") land({ blob: r.blob, url: r.url, by: r.by, words, voice, style: style?.id || "" });
+      else failed(r.status === "busy" ? "eBusy" : "eFailed");
+    }),
+    Effect.catchIf((e) => e === STALE, () => Effect.void),
+  ));
 }
 
 let el = null;

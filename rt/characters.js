@@ -3,23 +3,23 @@ import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 import { gate } from "@microspec/core/runtime/gate.js";
 import { session } from "@microspec/core/runtime/auth.js";
 import { parseSse } from "@microspec/core/runtime/sse.js";
+import { Effect } from "@microspec/core/runtime/fx.js";
+import { abortAfter, readAll, tried } from "./task.js";
+import { CHARACTERS } from "./characters.config.js";
 export { parseSse };
 
 const BASE = VPS_PROXY;
+const { route, timeout: TIMEOUT } = CHARACTERS;
 const sidOf = () => session.get()?.sid || null;
 
-async function post(path, body, timeout = 20000) {
-  const ctrl = new AbortController();
-  const to = setTimeout(() => ctrl.abort(), timeout);
-  try {
-    const r = await fetch(`${BASE}/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
-    if (!r.ok) { const e = new Error(`${path} ${r.status}`); e.status = r.status; try { e.body = await r.json(); } catch { } throw e; }
-    return await r.json();
-  } catch (e) {
-    if (e && typeof e.status === "number") throw e;
-    const err = new Error(`${path} network`); err.status = 0; throw err;
-  } finally { clearTimeout(to); }
-}
+const posted = (path, body, timeout) => abortAfter(timeout, (signal) => tried(async () => {
+  const r = await fetch(`${BASE}/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
+  if (!r.ok) { const e = new Error(`${path} ${r.status}`); e.status = r.status; try { e.body = await r.json(); } catch { } throw e; }
+  return await r.json();
+})).pipe(
+  Effect.catch((e) => Effect.fail(e && typeof e.status === "number" ? e : Object.assign(new Error(`${path} network`), { status: 0 }))),
+);
+const post = (path, body, timeout = TIMEOUT.call) => Effect.runPromise(posted(path, body, timeout));
 
 export const $characters = atom(null);
 let lastSid = session.get()?.sid || null;
@@ -28,7 +28,7 @@ session.listen((s) => { const sid = s?.sid || null; if (sid !== lastSid) { lastS
 export async function characters({ force = false } = {}) {
   if (gate) { if (!$characters.get()) $characters.set(FIXTURE_CHARACTERS); return $characters.get(); }
   if (!force && $characters.get()) return $characters.get();
-  const j = await post("chars", { ...(sidOf() ? { sid: sidOf() } : {}) });
+  const j = await post(route.list, { ...(sidOf() ? { sid: sidOf() } : {}) });
   const list = (j?.characters || []).map(trimCharacter);
   $characters.set(list);
   return list;
@@ -46,7 +46,7 @@ export async function lookup(q) {
   if (gate) return FIXTURE_CANDIDATES.filter((c) => c.title.toLowerCase().includes(String(q).toLowerCase()));
   const sid = sidOf();
   if (!sid) return [];
-  const j = await post("chars/lookup", { sid, q });
+  const j = await post(route.lookup, { sid, q });
   return (j?.candidates || []).map((c) => ({ key: c.key, title: c.title, description: c.description || "", thumb: c.thumb || "", url: c.url || "" }));
 }
 
@@ -57,7 +57,7 @@ export function voiceOf(id) {
   if (!voices.has(id)) {
     const sid = sidOf();
     if (!sid) return Promise.reject(Object.assign(new Error("no session"), { status: 401 }));
-    voices.set(id, post("chars/voice", { sid, id }, 45000).then((j) => j.voice).catch((e) => { voices.delete(id); throw e; }));
+    voices.set(id, post(route.voice, { sid, id }, TIMEOUT.voice).then((j) => j.voice).catch((e) => { voices.delete(id); throw e; }));
   }
   return voices.get(id);
 }
@@ -66,7 +66,7 @@ export function voiceOf(id) {
 export async function publish(id, isPublic = true) {
   const sid = sidOf();
   if (!sid) throw Object.assign(new Error("no session"), { status: 401 });
-  const j = await post("chars/publish", { sid, id, public: isPublic });
+  const j = await post(route.publish, { sid, id, public: isPublic });
   const cur = $characters.get() || [];
   $characters.set(cur.map((c) => (c.id === id ? { ...c, public: !!j.public } : c)));
   return !!j.public;
@@ -77,7 +77,7 @@ export async function create(key) {
   if (gate) { const c = FIXTURE_CHARACTERS[0]; return c; }
   const sid = sidOf();
   if (!sid) throw Object.assign(new Error("no session"), { status: 401 });
-  const j = await post("chars/create", { sid, key }, 90000);
+  const j = await post(route.create, { sid, key }, TIMEOUT.create);
   const c = trimCharacter(j.character);
   const cur = $characters.get() || [];
   if (!cur.some((x) => x.id === c.id)) $characters.set([c, ...cur]);
@@ -89,7 +89,7 @@ export async function deleteCharacter(id) {
   if (gate) { $characters.set(($characters.get() || []).filter((c) => c.id !== id)); return true; }
   const sid = sidOf();
   if (!sid) return false;
-  const j = await post("chars/delete", { sid, id });
+  const j = await post(route.remove, { sid, id });
   if (j?.ok) $characters.set(($characters.get() || []).filter((c) => c.id !== id));
   return !!j?.ok;
 }
@@ -98,7 +98,7 @@ export async function chats() {
   if (gate) return FIXTURE_CHATS;
   const sid = sidOf();
   if (!sid) return [];
-  const j = await post("chats", { sid });
+  const j = await post(route.chats, { sid });
   return j?.chats || [];
 }
 
@@ -106,14 +106,14 @@ export async function chat(id) {
   if (gate) return { chat: { id, character_id: FIXTURE_CHARACTERS[0].id }, messages: FIXTURE_THREAD };
   const sid = sidOf();
   if (!sid) return null;
-  return await post("chats/get", { sid, id });
+  return await post(route.chat, { sid, id });
 }
 
 export async function deleteChat(id) {
   if (gate) return true;
   const sid = sidOf();
   if (!sid) return false;
-  const j = await post("chats/delete", { sid, id });
+  const j = await post(route.dropChat, { sid, id });
   return !!j?.ok;
 }
 
@@ -125,12 +125,6 @@ export async function send({ characterId, chatId = null, text, locale = "en" }, 
   if (gate) return fixtureStream(text, locale, { onMeta, onDelta, signal, chatId });
   const sid = sidOf();
   if (!sid) throw Object.assign(new Error("no session"), { status: 401 });
-  const r = await fetch(`${BASE}/chat/stream`, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ sid, characterId, chatId, text, locale }), signal,
-  });
-  if (!r.ok || !r.body) { const e = new Error(`chat ${r.status}`); e.status = r.status; throw e; }
-  const reader = r.body.getReader(), dec = new TextDecoder(), p = parseSse();
   let acc = "", meta = null, done = null, error = null;
   const handle = (ev) => {
     if (ev.event === "meta") { meta = ev.data; onMeta?.(ev.data); }
@@ -138,14 +132,22 @@ export async function send({ characterId, chatId = null, text, locale = "en" }, 
     else if (ev.event === "error") error = ev.data;
     else if (ev.data && typeof ev.data.d === "string") { acc += ev.data.d; onDelta?.(ev.data.d, acc); }
   };
-  while (true) {
-    const { value, done: end } = await reader.read();
-    if (end) break;
-    for (const ev of p.push(dec.decode(value, { stream: true }))) handle(ev);
-  }
-  for (const ev of p.end()) handle(ev);
-  if (error && !acc) { const e = new Error(error.error || "chat failed"); e.status = 502; throw e; }
-  return { chatId: meta?.chatId ?? chatId, by: done?.by ?? null, complete: !!done?.complete, text: acc, messageId: done?.messageId ?? null };
+  const asked = tried(() => fetch(`${BASE}/${route.stream}`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sid, characterId, chatId, text, locale }), signal,
+  })).pipe(
+    Effect.flatMap((r) => !r.ok || !r.body ? Effect.fail(Object.assign(new Error(`chat ${r.status}`), { status: r.status })) : Effect.succeed(r.body.getReader())),
+  );
+  const heard = (reader) => Effect.suspend(() => {
+    const dec = new TextDecoder(), p = parseSse();
+    return readAll(reader, (value) => { for (const ev of p.push(dec.decode(value, { stream: true }))) handle(ev); }).pipe(
+      Effect.andThen(Effect.sync(() => { for (const ev of p.end()) handle(ev); })),
+    );
+  });
+  const replied = Effect.suspend(() => error && !acc
+    ? Effect.fail(Object.assign(new Error(error.error || "chat failed"), { status: 502 }))
+    : Effect.succeed({ chatId: meta?.chatId ?? chatId, by: done?.by ?? null, complete: !!done?.complete, text: acc, messageId: done?.messageId ?? null }));
+  return await Effect.runPromise(asked.pipe(Effect.flatMap(heard), Effect.andThen(replied)));
 }
 
 const portrait = (hue, initials) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450"><rect width="300" height="450" fill="hsl(${hue} 28% 22%)"/><circle cx="150" cy="170" r="70" fill="hsl(${hue} 30% 34%)"/><rect x="60" y="260" width="180" height="150" rx="60" fill="hsl(${hue} 30% 34%)"/><text x="150" y="190" text-anchor="middle" font-family="sans-serif" font-size="56" font-weight="700" fill="hsl(${hue} 20% 88%)">${initials}</text></svg>`)}`;

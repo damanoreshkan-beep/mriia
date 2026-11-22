@@ -1,3 +1,5 @@
+import { filter, isTruthy, map, pipe, unique } from "@microspec/core/runtime/remeda.js";
+
 const SHORTENERS = new Set(["bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "cutt.ly", "rebrand.ly", "ow.ly", "buff.ly", "t.me", "tiny.cc", "shorturl.at", "rb.gy", "clck.ru", "surl.li", "trib.al"]);
 const CODE_SCHEMES = new Set(["javascript", "data", "vbscript", "file", "blob"]);
 
@@ -7,14 +9,7 @@ const scriptOf = (cp) => {
   if ((cp >= 0x41 && cp <= 0x5A) || (cp >= 0x61 && cp <= 0x7A)) return "latin";
   return null;
 };
-function mixedScript(host) {
-  for (const label of host.split(".")) {
-    const s = new Set();
-    for (const ch of label) { const k = scriptOf(ch.codePointAt(0)); if (k) s.add(k); }
-    if (s.size > 1) return true;
-  }
-  return false;
-}
+const mixedScript = (host) => host.split(".").some((label) => pipe([...label], map((ch) => scriptOf(ch.codePointAt(0))), filter(isTruthy), unique()).length > 1);
 function rawHost(raw) {
   const m = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)/i.exec(raw);
   if (!m) return "";
@@ -54,14 +49,20 @@ function finishUrl(u, raw, pre) {
   if (scheme !== "http" && scheme !== "https") return { kind: "scheme", raw, scheme, host: u.host, verdict: "caution", flags: [{ level: "warn", code: "non-web-scheme" }] };
 
   const host = u.hostname.toLowerCase();
-  const flags = [...pre];
-  if (u.username || u.password) flags.push({ level: "danger", code: "userinfo" });
-  if (scheme === "http") flags.push({ level: "warn", code: "insecure" });
-  if (mixedScript(rawHost(raw))) flags.push({ level: "danger", code: "mixed-script" });
-  else if (host.split(".").some((l) => l.startsWith("xn--"))) flags.push({ level: "warn", code: "punycode" });
-  if (isIp(host)) flags.push({ level: "warn", code: "ip-host" });
+  const mixed = mixedScript(rawHost(raw));
   const reg = host.split(".").slice(-2).join(".");
-  if (SHORTENERS.has(host) || SHORTENERS.has(reg)) flags.push({ level: "warn", code: "shortener" });
+  const flags = [...pre, ...pipe(
+    [
+      [u.username || u.password, { level: "danger", code: "userinfo" }],
+      [scheme === "http", { level: "warn", code: "insecure" }],
+      [mixed, { level: "danger", code: "mixed-script" }],
+      [!mixed && host.split(".").some((l) => l.startsWith("xn--")), { level: "warn", code: "punycode" }],
+      [isIp(host), { level: "warn", code: "ip-host" }],
+      [SHORTENERS.has(host) || SHORTENERS.has(reg), { level: "warn", code: "shortener" }],
+    ],
+    filter(([on]) => !!on),
+    map(([, flag]) => flag),
+  )];
 
   const verdict = flags.some((f) => f.level === "danger") ? "danger" : flags.some((f) => f.level === "warn") ? "caution" : "safe";
   return { kind: "url", raw, url: u.href, scheme, host: u.hostname, path: (u.pathname + u.search) || "/", flags, verdict };

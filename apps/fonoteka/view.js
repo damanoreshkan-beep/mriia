@@ -24,6 +24,19 @@ import { clock } from "/_rt/muzak.js";
 import { isAudio, songLine, usageLine, titleOf, errorKey, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
 import { songStore, keeper } from "/_rt/songstore.js";
 import { coverBlob } from "/_rt/id3.js";
+import { Effect, Semaphore, Cause } from "/_rt/fx.js";
+import { pipe, filter, forEach, zip, map, fromEntries } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
+
+const R = CONFIG.routes;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const orNull = (fx) => tried(fx).pipe(Effect.catch(() => Effect.succeed(null)));
+const settled = (eff) => eff.pipe(
+  Effect.map((value) => ({ status: "fulfilled", value })),
+  Effect.catch((reason) => Effect.succeed({ status: "rejected", reason })),
+);
+const squashed = (handle) => Effect.catchCause((cause) => handle(Cause.squash(cause)));
+const postJson = (path, body, init) => fetch(`${VPS_PROXY}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body, ...init });
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
 const $songs = atom(gate ? FIXTURE_SONGS : null);   
@@ -45,19 +58,17 @@ const keep = gate ? null : keeper({
   onFail: (e, s) => report("keep.fail", { status: e?.status || 0, err: String(e?.message || e).slice(0, 120), size: s.size }),
 });
 const $covers = atom(gate ? { [FIXTURE_SONGS[0].id]: "/_rt/theme-lum.webp" } : {});   
-let coverRun = Promise.resolve();
+const coverQueue = Semaphore.makeUnsafe(1);
+const coverOf = (s) => Effect.suspend(() => (s.id in $covers.get() ? Effect.void : orNull(() => store.blob(s.id)).pipe(
+  Effect.flatMap((blob) => (blob ? orNull(() => coverBlob(blob)) : Effect.succeed(null))),
+  Effect.tap((pic) => Effect.sync(() => $covers.set({ ...$covers.get(), [s.id]: pic ? URL.createObjectURL(pic) : "" }))),
+)));
 function readCovers() {
   if (!store) return;
   const known = $covers.get(), held = $held.get();
-  for (const s of $songs.get() || []) {
-    if (!held.has(s.id) || s.id in known) continue;
-    coverRun = coverRun.then(async () => {
-      if (s.id in $covers.get()) return;
-      const blob = await store.blob(s.id).catch(() => null);
-      const pic = blob ? await coverBlob(blob).catch(() => null) : null;
-      $covers.set({ ...$covers.get(), [s.id]: pic ? URL.createObjectURL(pic) : "" });
-    });
-  }
+  pipe($songs.get() || [],
+    filter((s) => held.has(s.id) && !(s.id in known)),
+    forEach((s) => { Effect.runFork(Semaphore.withPermit(coverQueue)(coverOf(s))); }));
 }
 if (!gate) { $songs.listen(readCovers); $held.listen(readCovers); }
 
@@ -71,23 +82,71 @@ async function load() {
   if (loaded) return;
   loaded = true;
   store?.held().then((h) => $held.set(h)).catch(() => {});
-  navigator.storage?.persist?.().catch(() => {});   
-  try {
-    const r = await fetch(`${VPS_PROXY}/library/list`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(20000) });
-    if (!r.ok) { if (r.status === 401) { $songs.set([]); return; } report("list.fail", { status: r.status }); return offline(); }
-    const j = await r.json();
-    $usage.set({ count: j.count, bytes: j.bytes, maxFiles: j.maxFiles, maxBytes: j.maxBytes });
-    confirmed(j.songs || []);
-  } catch { offline(); }
+  navigator.storage?.persist?.().catch(() => {});
+  await Effect.runPromise(listed.pipe(
+    Effect.catchCause(() => Effect.sync(() => { offline(); return "done"; })),
+    Effect.flatMap((v) => (v === "refused" ? tried(offline) : Effect.void)),
+  ));
 }
+const listed = tried(() => postJson(R.list, "{}", { signal: AbortSignal.timeout(CONFIG.listTimeoutMs) })).pipe(
+  Effect.flatMap((r) => {
+    if (r.ok) return tried(() => r.json()).pipe(Effect.map((j) => {
+      $usage.set({ count: j.count, bytes: j.bytes, maxFiles: j.maxFiles, maxBytes: j.maxBytes });
+      confirmed(j.songs || []);
+      return "done";
+    }));
+    if (r.status === 401) return Effect.sync(() => { $songs.set([]); return "done"; });
+    return Effect.sync(() => { report("list.fail", { status: r.status }); return "refused"; });
+  }),
+);
+const shelf = Effect.all([orNull(() => store?.readShelf()), orNull(() => store?.held())]);
 
 async function offline() {
-  const saved = await store?.readShelf().catch(() => null);
-  const held = await store?.held().catch(() => null);
+  const [saved, held] = await Effect.runPromise(shelf);
   if (!saved || !held?.size) { $err.set("errList"); $songs.set([]); return; }
   $usage.set(saved.usage); $held.set(held);
   $songs.set(saved.songs.filter((s) => held.has(s.id)));
 }
+
+const markErr = (k) => $uploads.set($uploads.get().map((u) => (u.k === k ? { ...u, state: "err" } : u)));
+const progress = (k) => (sent, total) => { const pct = total ? Math.floor(sent * 100 / total) : 0; $uploads.set($uploads.get().map((u) => (u.k === k && u.pct !== pct ? { ...u, pct } : u))); };
+const refused = (f, k, e) => Effect.sync(() => {
+  if (e.status === 401) authWall.set(authWall.get() + 1);
+  const why = (() => { try { return JSON.parse(e.message).error; } catch { return ""; } })();
+  report("upload.fail", { status: e.status, why: String(why || "").slice(0, 80), name: String(f.name || "").slice(0, 40), size: f.size, type: f.type });
+  const key = errorKey(e.status, why); if (key) $err.set(key);
+  markErr(k);
+});
+const crashed = (f, k) => (e) => Effect.sync(() => { report("upload.throw", { err: String(e?.message || e).slice(0, 120), name: String(f.name || "").slice(0, 40), size: f.size }); $err.set("errUpload"); markErr(k); });
+const sent = (f, k) => tried(() => uploadResumable(R.up, { n: f.name }, f, { onProgress: progress(k) })).pipe(Effect.map((id) => ({ id })));
+const rowOf = (id) => tried(async () => {
+  const r = await postJson(R.uprow, JSON.stringify({ id }));
+  if (!r.ok) throw new Error(`uprow ${r.status}`);
+  return r.json();
+});
+const counted = (f, row) => Effect.sync(() => {
+  report("upload.ok", { size: f.size, dur: row.dur }, "info");
+  const u = $usage.get(); if (u) $usage.set({ ...u, count: u.count + 1, bytes: u.bytes + row.size });
+});
+const stored = (f, row) => !store ? Effect.void : tried(() => store.put(row.id, f)).pipe(
+  Effect.as(true),
+  Effect.catch(() => Effect.succeed(false)),
+  Effect.flatMap((ok) => (ok ? Effect.sync(() => $held.set(new Set([...$held.get(), row.id]))) : Effect.void)),
+);
+const shelved = (k, row) => Effect.sync(() => {
+  confirmed([row, ...($songs.get() || [])]);
+  $uploads.set($uploads.get().filter((x) => x.k !== k));
+  toastFn?.(T(tNow, "uploaded"));
+});
+const uploaded = (f, k) => sent(f, k).pipe(
+  Effect.catchIf((e) => !!e?.status, (e) => refused(f, k, e).pipe(Effect.as(null))),
+  Effect.flatMap((up) => (!up ? Effect.void : rowOf(up.id).pipe(
+    Effect.tap((row) => counted(f, row)),
+    Effect.tap((row) => stored(f, row)),
+    Effect.tap((row) => shelved(k, row)),
+  ))),
+  squashed(crashed(f, k)),
+);
 
 let toastFn = null, tNow = null;
 takeShared((s) => {
@@ -101,29 +160,7 @@ async function upload(f) {
   $uploads.set([{ k, name: f.name, state: "up" }, ...$uploads.get()]);
   $err.set("");
   if (gate) { $uploads.set($uploads.get().filter((u) => u.k !== k)); return; }
-  try {
-    let id;
-    try {
-      id = await uploadResumable("/library/up", { n: f.name }, f, { onProgress: (sent, total) => { const pct = total ? Math.floor(sent * 100 / total) : 0; $uploads.set($uploads.get().map((u) => (u.k === k && u.pct !== pct ? { ...u, pct } : u))); } });
-    } catch (e) {
-      if (!e?.status) throw e;
-      if (e.status === 401) authWall.set(authWall.get() + 1);
-      const why = (() => { try { return JSON.parse(e.message).error; } catch { return ""; } })();
-      report("upload.fail", { status: e.status, why: String(why || "").slice(0, 80), name: String(f.name || "").slice(0, 40), size: f.size, type: f.type });
-      const key = errorKey(e.status, why); if (key) $err.set(key);
-      $uploads.set($uploads.get().map((u) => (u.k === k ? { ...u, state: "err" } : u)));
-      return;
-    }
-    const r = await fetch(`${VPS_PROXY}/library/uprow`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
-    if (!r.ok) throw new Error(`uprow ${r.status}`);
-    const row = await r.json();
-    report("upload.ok", { size: f.size, dur: row.dur }, "info");
-    const u = $usage.get(); if (u) $usage.set({ ...u, count: u.count + 1, bytes: u.bytes + row.size });
-    if (store) await store.put(row.id, f).then(() => $held.set(new Set([...$held.get(), row.id])), () => {});
-    confirmed([row, ...($songs.get() || [])]);
-    $uploads.set($uploads.get().filter((x) => x.k !== k));
-    toastFn?.(T(tNow, "uploaded"));
-  } catch (e) { report("upload.throw", { err: String(e?.message || e).slice(0, 120), name: String(f.name || "").slice(0, 40), size: f.size }); $err.set("errUpload"); $uploads.set($uploads.get().map((u) => (u.k === k ? { ...u, state: "err" } : u))); }
+  await Effect.runPromise(uploaded(f, k));
 }
 
 function ensure() {
@@ -179,12 +216,13 @@ async function play(id, list) {
 
 async function enrich() {
   if (gate) return;
-  for (let i = 0; i < 3; i++) {
-    const l = $likes.get();
-    if (!l?.connected || !l.next || (($songs.get() || []).length + l.songs.length) >= COMB_MAX) return;
-    if (!(await readLikes(true))) return;
-  }
+  await Effect.runPromise(likePage.pipe(Effect.repeat({ times: CONFIG.likePages - 1, while: (more) => more }), Effect.asVoid));
 }
+const likePage = Effect.suspend(() => {
+  const l = $likes.get();
+  if (!l?.connected || !l.next || (($songs.get() || []).length + l.songs.length) >= COMB_MAX) return Effect.succeed(false);
+  return tried(() => readLikes(true)).pipe(Effect.map((got) => !!got));
+});
 async function ytTap() {
   $lErr.set("");
   if ($yt.get() === "on" && $likes.get()?.connected) { $yt.set(""); return; }
@@ -201,11 +239,17 @@ async function ytCovers(list) {
   const want = list.filter((s) => s.yt && s.cover && !ytAsked.has(s.id));
   if (!want.length) return;
   for (const s of want) ytAsked.add(s.id);
-  const got = await Promise.all(want.map((s) => fetch(s.cover, { signal: AbortSignal.timeout(15000) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null)));
-  const next = { ...$covers.get() };
-  want.forEach((s, i) => { if (got[i]) next[s.id] = URL.createObjectURL(got[i]); });
-  $covers.set(next);
+  await Effect.runPromise(Effect.forEach(want, (s) => coverAt(s.cover), { concurrency: "unbounded" }).pipe(
+    Effect.map((got) => pipe(zip(want, got), filter(([, blob]) => !!blob), map(([s, blob]) => [s.id, URL.createObjectURL(blob)]), fromEntries())),
+    Effect.tap((fresh) => Effect.sync(() => $covers.set({ ...$covers.get(), ...fresh }))),
+  ));
 }
+const coverAt = (url) => orNull(async () => { const r = await fetch(url, { signal: AbortSignal.timeout(CONFIG.coverTimeoutMs) }); return r.ok ? r.blob() : null; });
+const radioOf = (s, hl) => (gate ? Effect.succeed(FIXTURE_RADIO.songs) : tried(async () => {
+  const r = await fetch(`${VPS_PROXY}${R.radio}?v=${s.yt}&hl=${hl}`, { signal: AbortSignal.timeout(CONFIG.radioTimeoutMs) });
+  if (!r.ok) throw r.status;
+  return (await r.json()).songs || [];
+}));
 
 async function tune(s) {
   if (!s?.yt || !stackOf) return;
@@ -215,16 +259,15 @@ async function tune(s) {
   if ($radios.get()[s.yt]) return;
   $radios.set({ ...$radios.get(), [s.yt]: { songs: null } });
   const hl = document.documentElement.lang === "en" ? "en" : "uk";
-  try {
-    const like = gate ? FIXTURE_RADIO.songs : await fetch(`${VPS_PROXY}/music/radio?v=${s.yt}&hl=${hl}`, { signal: AbortSignal.timeout(30000) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((j) => j.songs || []);
-    $radios.set({ ...$radios.get(), [s.yt]: { songs: like.filter((f) => f.id !== s.yt).map((f) => ytOf(songOfFound(f))) } });
-  } catch (e) {
-    const m = { ...$radios.get() }; delete m[s.yt]; $radios.set(m);
-    toastFn?.(T(tNow, e === 429 ? "errBusy" : "errRadio"));
-    const now = stackOf.get();
-    if (now[now.length - 1]?.id === s.id) stackOf.set(now.slice(0, -1));
-  }
+  await Effect.runPromise(radioOf(s, hl).pipe(
+    Effect.tap((like) => Effect.sync(() => $radios.set({ ...$radios.get(), [s.yt]: { songs: like.filter((f) => f.id !== s.yt).map((f) => ytOf(songOfFound(f))) } }))),
+    squashed((e) => Effect.sync(() => {
+      const m = { ...$radios.get() }; delete m[s.yt]; $radios.set(m);
+      toastFn?.(T(tNow, e === 429 ? "errBusy" : "errRadio"));
+      const now = stackOf.get();
+      if (now[now.length - 1]?.id === s.id) stackOf.set(now.slice(0, -1));
+    })),
+  ));
 }
 
 const actKey = (k, s) => `${k}:${s.yt}`;
@@ -245,12 +288,13 @@ async function keepYt(s) {
   if (!gate && !session.get()) { authWall.set(authWall.get() + 1); return; }
   setAct(key, "busy"); $err.set("");
   toastFn?.(T(tNow, "keeping"));
-  try {
-    if (!gate) landed(await taskCall("/library/keeptask", { url: s.url }));
-    setAct(key, "done"); toastFn?.(T(tNow, "kept"));
-  } catch (e) { setAct(key, ""); keepFail(e, "errKeep"); }
+  await Effect.runPromise((gate ? Effect.void : keepTask({ url: s.url }).pipe(Effect.tap((row) => Effect.sync(() => landed(row))))).pipe(
+    Effect.tap(() => Effect.sync(() => { setAct(key, "done"); toastFn?.(T(tNow, "kept")); })),
+    squashed((e) => Effect.sync(() => { setAct(key, ""); keepFail(e, "errKeep"); })),
+  ));
 }
-const MIX = ["slowed", "deep"];
+const keepTask = (body) => tried(() => taskCall(R.keep, body));
+const MIX = CONFIG.mix;
 async function mixYt(s) {
   const key = actKey("mix", s);
   if ($acts.get()[key]) return;
@@ -258,7 +302,7 @@ async function mixYt(s) {
   setAct(key, "busy"); $err.set("");
   toastFn?.(T(tNow, "mixing"));
   const got = gate ? MIX.map(() => ({ status: "fulfilled", value: null }))
-    : await Promise.allSettled(MIX.map((v) => taskCall("/library/keeptask", { url: s.url, v })));
+    : await Effect.runPromise(Effect.forEach(MIX, (v) => settled(keepTask({ url: s.url, v })), { concurrency: "unbounded" }));
   const ok = got.filter((r) => r.status === "fulfilled");
   for (const r of ok) landed(r.value);
   if (!ok.length) { setAct(key, ""); keepFail(got[0].reason, "errMix"); return; }

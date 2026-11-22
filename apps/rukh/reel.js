@@ -5,15 +5,15 @@ import { cancelJob } from "/_rt/imagejob.js";
 import { taskOne, taskCall } from "/_rt/task.js";
 import { toEnglish } from "/_rt/translate.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
-const BASE = `${VPS_PROXY}/video`;
+const BASE = VPS_PROXY + CONFIG.base;
 /** The chunk. The edge clamps to the same number and writes
  *  it into the Space's own Duration control where the row has one; see `CHUNK_MAX_SEC` in edge/video.js. */
 export const CHUNK_SEC = 2;
 /** */
 export const LENGTHS = [15, 30, 60];
-const MIN_CLIP_BYTES = 4096;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** `{ phase: idle|writing|filming|done|error, error, at, of }` — `at` is the chunk being filmed, 1-based. */
 export const $reelJob = atom({ phase: "idle", error: null, at: 0, of: 0 });
@@ -31,22 +31,38 @@ const setChunk = (i, p) => $reel.set($reel.get().map((c) => (c.i === i ? { ...c,
  * the caller then films the next beat from words alone rather than from a black square.
  */
 export async function lastFrame(blob) {
-  const url = URL.createObjectURL(blob);
-  try {
-    const v = document.createElement("video");
-    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
-    const meta = await new Promise((ok) => { v.onloadedmetadata = () => ok(true); v.onerror = () => ok(false); setTimeout(() => ok(false), 8000); });
-    if (!meta || !v.videoWidth) return "";
-    v.currentTime = Math.max(0, (v.duration || 0) - 0.06);
-    const seeked = await new Promise((ok) => { v.onseeked = () => ok(true); v.onerror = () => ok(false); setTimeout(() => ok(false), 8000); });
-    if (!seeked) return "";
-    const c = document.createElement("canvas");
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.92);
-  } catch { return ""; }
-  finally { URL.revokeObjectURL(url); }
+  return await Effect.runPromise(Effect.acquireUseRelease(
+    Effect.sync(() => URL.createObjectURL(blob)),
+    grab,
+    (url) => Effect.sync(() => URL.revokeObjectURL(url)),
+  ));
 }
+
+const STALE = { stale: true };
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
+const mediaEvent = (v, name) => Effect.callback((resume) => {
+  v[`on${name}`] = () => resume(Effect.succeed(true));
+  v.onerror = () => resume(Effect.succeed(false));
+}).pipe(Effect.timeoutOrElse({ duration: CONFIG.frame.waitMs, orElse: () => Effect.succeed(false) }));
+const grab = (url) => attempt(() => {
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+  return v;
+}).pipe(
+  Effect.flatMap((v) => mediaEvent(v, "loadedmetadata").pipe(
+    Effect.flatMap((meta) => !meta || !v.videoWidth ? Effect.succeed("") : attempt(() => { v.currentTime = Math.max(0, (v.duration || 0) - CONFIG.frame.tailSec); }).pipe(
+      Effect.andThen(mediaEvent(v, "seeked")),
+      Effect.flatMap((seeked) => !seeked ? Effect.succeed("") : attempt(() => {
+        const c = document.createElement("canvas");
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+        return c.toDataURL(CONFIG.frame.mime, CONFIG.frame.quality);
+      })),
+    )),
+  )),
+  Effect.catch(() => Effect.succeed("")),
+);
 
 /**
  * ONE prompt → N beats, one per chunk, from the edge's text cascade. A failure is not fatal: the reel falls
@@ -95,51 +111,46 @@ export async function runReel({ prompt, firstFrame = "", locale = "en" }) {
   $reel.set(beats.map((beat, n) => ({ i: n + 1, beat, status: "waiting", url: "", blob: null, thumb: "", dur: 0 })));
   setJob({ phase: "filming", at: 1, of: beats.length });
 
-  let carry = firstFrame;
-  for (const [n, beat] of beats.entries()) {
-    if (run !== runs) return;
-    const i = n + 1;
-    setJob({ at: i });
-    setChunk(i, { status: "filming" });
-
-    if (gate) {
-      await sleep(60);
-      if (run !== runs) return;
-      const blob = await (await fetch(new URL("./assets/mock.webm", import.meta.url).href)).blob().catch(() => null);
-      if (!blob) { setChunk(i, { status: "error" }); continue; }
-      setChunk(i, { status: "done", blob, url: URL.createObjectURL(blob), dur: 1.5, thumb: "" });
-      continue;
-    }
-
-    try {
-      let beatEn;
-      try { beatEn = await toEnglish(beat); } catch { setChunk(i, { status: "error" }); carry = ""; continue; }
-      if (run !== runs) return;
-      const body = { prompt: beatEn, seconds: CHUNK_SEC, ...(carry ? { image: carry } : {}) };
-      const ac = ctl = new AbortController();
-      const r = await taskOne("/video/task", body, { signal: ac.signal, onStart: (id) => { if (run === runs) live = id; else cancelJob(BASE, id); } });
-      live = null;
-      if (run !== runs) return;
-      if (r.status !== "done" || !r.blob || !r.blob.type.startsWith("video/") || r.blob.size < MIN_CLIP_BYTES) {
-        setChunk(i, { status: "error" });
-        carry = "";
-        continue;
-      }
-      const url = r.url || URL.createObjectURL(r.blob);
-      const thumb = await lastFrame(r.blob);
-      if (run !== runs) return;
-      setChunk(i, { status: "done", blob: r.blob, url, dur: r.dur || 0, thumb });
-      carry = thumb;
-    } catch (e) {
-      if (run !== runs) return;
-      live = null;
-      setChunk(i, { status: "error" });
-      carry = "";
-    }
-  }
-
-  if (run !== runs) return;
-  const made = $reel.get().filter((c) => c.status === "done").length;
-  setJob({ phase: made ? "done" : "error", error: made ? null : "eFailed", at: 0 });
-  report("reel.done", { of: beats.length, made, seconds });
+  const fresh = (v) => run === runs ? Effect.succeed(v) : Effect.fail(STALE);
+  const broken = (i) => Effect.sync(() => { setChunk(i, { status: "error" }); return ""; });
+  const mock = (i, carry) => Effect.sleep(CONFIG.gateDelayMs).pipe(
+    Effect.andThen(Effect.suspend(() => fresh())),
+    Effect.andThen(Effect.promise(async () => (await fetch(new URL("./assets/mock.webm", import.meta.url).href)).blob().catch(() => null))),
+    Effect.map((blob) => {
+      if (!blob) setChunk(i, { status: "error" });
+      else setChunk(i, { status: "done", blob, url: URL.createObjectURL(blob), dur: 1.5, thumb: "" });
+      return carry;
+    }),
+  );
+  const shoot = (i, beatEn, carry) => tried(() => {
+    const ac = ctl = new AbortController();
+    return taskOne(CONFIG.task, { prompt: beatEn, seconds: CHUNK_SEC, ...(carry ? { image: carry } : {}) }, { signal: ac.signal, onStart: (id) => { if (run === runs) live = id; else cancelJob(BASE, id); } });
+  }).pipe(
+    Effect.tap(() => Effect.sync(() => { live = null; })),
+    Effect.flatMap(fresh),
+    Effect.flatMap((r) => r.status !== "done" || !r.blob || !r.blob.type.startsWith("video/") || r.blob.size < CONFIG.minClipBytes ? broken(i)
+      : attempt(() => r.url || URL.createObjectURL(r.blob)).pipe(
+        Effect.flatMap((url) => tried(() => lastFrame(r.blob)).pipe(
+          Effect.flatMap(fresh),
+          Effect.tap((thumb) => Effect.sync(() => setChunk(i, { status: "done", blob: r.blob, url, dur: r.dur || 0, thumb }))),
+        )),
+      )),
+  );
+  const film = (i, beat, carry) => tried(() => toEnglish(beat)).pipe(
+    Effect.matchEffect({ onFailure: () => broken(i), onSuccess: (beatEn) => fresh(beatEn).pipe(Effect.flatMap((en) => shoot(i, en, carry))) }),
+    Effect.catchIf((e) => e !== STALE, () => Effect.suspend(() => fresh()).pipe(Effect.andThen(Effect.sync(() => { live = null; })), Effect.andThen(broken(i)))),
+  );
+  const chunk = (carry, beat, n) => Effect.suspend(() => fresh()).pipe(
+    Effect.andThen(Effect.sync(() => { setJob({ at: n + 1 }); setChunk(n + 1, { status: "filming" }); })),
+    Effect.andThen(Effect.suspend(() => gate ? mock(n + 1, carry) : film(n + 1, beat, carry))),
+  );
+  await Effect.runPromise(Effect.reduce(beats, () => firstFrame, chunk).pipe(
+    Effect.flatMap(fresh),
+    Effect.tap(() => Effect.sync(() => {
+      const made = $reel.get().filter((c) => c.status === "done").length;
+      setJob({ phase: made ? "done" : "error", error: made ? null : "eFailed", at: 0 });
+      report("reel.done", { of: beats.length, made, seconds });
+    })),
+    Effect.catchIf((e) => e === STALE, () => Effect.void),
+  ));
 }

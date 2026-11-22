@@ -3,9 +3,12 @@ import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
 import { session } from "@microspec/core/runtime/auth.js";
 import { gate } from "@microspec/core/runtime/gate.js";
 import { report } from "@microspec/core/runtime/telemetry.js";
+import { Effect } from "@microspec/core/runtime/fx.js";
+import { tried } from "./task.js";
+import { WALLET } from "./wallet.config.js";
 
 const H = { "content-type": "application/json" };
-const sidNow = () => { try { return localStorage.getItem("ms:gh:sid") || ""; } catch { return ""; } };
+const sidNow = () => { try { return localStorage.getItem(WALLET.sidKey) || ""; } catch { return ""; } };
 
 const buyOutcome = (status) => (status === 200 ? "ok" : status === 402 ? "poor" : status === 401 ? "eSignIn" : "error");
 
@@ -18,7 +21,7 @@ export function makeWallet(app, { gateBalance = 0 } = {}) {
   const $wallet = atom({ ready: gate, signedIn: gate, balance: gate ? gateBalance : 0, owned: [] });
   const $bought = atom(0);
   const set = (patch) => $wallet.set({ ...$wallet.get(), ...patch });
-  const call = (route, body = {}) => fetch(`${VPS_PROXY}/wallet/${route}`, { method: "POST", headers: H, body: JSON.stringify({ app, ...body }) });
+  const call = (route, body = {}) => fetch(`${VPS_PROXY}${WALLET.route}${route}`, { method: "POST", headers: H, body: JSON.stringify({ app, ...body }) });
   let awaitingPurchase = 0;
 
   async function refresh() {
@@ -59,28 +62,34 @@ export function makeWallet(app, { gateBalance = 0 } = {}) {
   /** A run starts: a ticket from the edge (a promise of it — the run does not wait), or null for a guest. */
   function startRun() {
     if (gate || !sidNow()) return Promise.resolve(null);
-    return call("run").then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.ticket ? String(j.ticket) : null)).catch(() => null);
+    return Effect.runPromise(tried(() => call("run")).pipe(
+      Effect.flatMap((r) => (r.ok ? tried(() => r.json()) : Effect.succeed(null))),
+      Effect.map((j) => (j && j.ticket ? String(j.ticket) : null)),
+      Effect.catchCause(() => Effect.succeed(null)),
+    ));
   }
   /** The run is over: claim its coins. Resolves {granted, kept} — kept false for a guest (nothing is saved). */
   async function finishRun(ticketP, coins) {
     const n = Math.max(0, Math.floor(Number(coins) || 0));
     if (gate) { set({ balance: $wallet.get().balance + n }); return { granted: n, kept: true }; }
-    const ticket = await ticketP;
-    if (!ticket) { report("wallet.earn", { app, coins: n, ticket: false, signedIn: !!sidNow() }, "warn"); return { granted: 0, kept: !!sidNow() }; }
-    try {
+    const guest = Effect.sync(() => { report("wallet.earn", { app, coins: n, ticket: false, signedIn: !!sidNow() }, "warn"); return { granted: 0, kept: !!sidNow() }; });
+    const claimed = (ticket) => tried(async () => {
       const r = await call("earn", { ticket, coins: n });
       if (!r.ok) { report("wallet.earn", { app, coins: n, ticket, status: r.status }, "warn"); return { granted: 0, kept: r.status !== 401 }; }
       const j = await r.json();
       set({ balance: Math.max(0, Number(j.balance ?? $wallet.get().balance) || 0) });
       report("wallet.earn", { app, coins: n, ticket, status: 200, granted: j.granted, why: j.why || "" }, "info");
       return { granted: Math.max(0, Number(j.granted) || 0), kept: true };
-    } catch (e) { report("wallet.earn", { app, coins: n, ticket, thrown: String(e && e.message || e).slice(0, 80) }, "warn"); return { granted: 0, kept: true }; }
+    }).pipe(
+      Effect.catch((e) => Effect.sync(() => { report("wallet.earn", { app, coins: n, ticket, thrown: String(e && e.message || e).slice(0, WALLET.thrownCap) }, "warn"); return { granted: 0, kept: true }; })),
+    );
+    return await Effect.runPromise(tried(() => ticketP).pipe(Effect.flatMap((ticket) => (ticket ? claimed(ticket) : guest))));
   }
 
   /** A Stars payment went to Telegram: for the next two minutes a growing balance is announced; look a few times now. */
   function purchasing() {
-    awaitingPurchase = Date.now() + 120_000;
-    for (const ms of [1500, 4000, 9000, 20000]) setTimeout(refresh, ms);
+    awaitingPurchase = Date.now() + WALLET.purchaseWindow;
+    Effect.runFork(Effect.forEach(WALLET.looks, (ms) => Effect.sleep(ms).pipe(Effect.andThen(Effect.sync(() => { refresh(); }))), { concurrency: "unbounded", discard: true }));
   }
 
   if (!gate && typeof document !== "undefined") {

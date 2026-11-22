@@ -2,6 +2,7 @@ import { atom, map } from "nanostores";
 import { shell, ERR } from "/_rt/shell.js";
 import { gate } from "/_rt/gate.js";
 import { permAndroid, refreshHeld, heldPermissions } from "/_rt/permissions.js";
+import { Effect } from "/_rt/fx.js";
 
 export const $state = atom({ running: false, peerCount: 0, myPeerID: "", nick: "" });
 export const $peers = atom([]);
@@ -54,13 +55,11 @@ const toUv = (px, py) => {
 export function sites() {
   if (!fieldBox.w) return [];
   const { cx, cy } = fieldGeom();
-  const out = [...toUv(cx, cy), 0, 0];
-  for (const p of $peers.get().slice(0, 7)) {
+  return [...toUv(cx, cy), 0, 0, ...$peers.get().slice(0, 7).flatMap((p) => {
     const id = p.peerID || "";
     const { px, py } = placeOf(id);
-    out.push(...toUv(px, py), 1, siteOf(id)[2]);
-  }
-  return out;
+    return [...toUv(px, py), 1, siteOf(id)[2]];
+  })];
 }
 
 /** An event just happened — the field answers with one ripple. */
@@ -94,15 +93,15 @@ async function startLive() {
   note("ok", `mesh.start → peerID ${peerID || "—"} nick ${nick || "—"}`);
   $state.set({ ...$state.get(), running: true, myPeerID: peerID, nick });
   await checkHeld();
-  const data = (name) => (fn) => (v) => { if (v && v.ack !== undefined) return note("ack", name); if (v) fn(v); };
-  cancels.push(shell.subscribe("mesh.peers", {}, data("mesh.peers")((list) => {
+  const listen = (name, fn) => cancels.push(shell.subscribe(name, {}, (v) => { if (v && v.ack !== undefined) return note("ack", name); if (v) fn(v); }, (e) => note("err", `${name}: ${faultOf(e).code} ${faultOf(e).detail}`)));
+  listen("mesh.peers", (list) => {
     const peers = list?.peers || [];
     note("peers", `${peers.length} · ${peers.map((p) => p.nick || p.peerID).join(", ") || "—"}`);
     $peers.set(peers);
     $state.set({ ...$state.get(), peerCount: peers.length });
     bump();
-  }), (e) => note("err", `mesh.peers: ${faultOf(e).code} ${faultOf(e).detail}`)));
-  cancels.push(shell.subscribe("mesh.messages", {}, data("mesh.messages")((m) => {
+  });
+  listen("mesh.messages", (m) => {
     note("in", `${m.kind === "private" ? "private" : "public"} from ${m.nick || m.fromPeerID}: ${m.text}`);
     if (m.kind === "private") {
       const t = $threads.get()[m.fromPeerID] || [];
@@ -110,14 +109,14 @@ async function startLive() {
     } else {
       $room.set([...$room.get(), { id: m.msgId, from: m.fromPeerID, nick: m.nick, text: m.text, ts: m.ts, mine: false }]);
     }
-  }), (e) => note("err", `mesh.messages: ${faultOf(e).code} ${faultOf(e).detail}`)));
-  cancels.push(shell.subscribe("mesh.receipts", {}, data("mesh.receipts")((r) => {
+  });
+  listen("mesh.receipts", (r) => {
     note("rcpt", `${r.msgId} → ${r.state}`);
     for (const [pid, arr] of Object.entries($threads.get())) {
       const i = arr.findIndex((x) => x.id === r.msgId);
       if (i >= 0) { const copy = arr.slice(); copy[i] = { ...copy[i], status: r.state }; $threads.setKey(pid, copy); }
     }
-  }), (e) => note("err", `mesh.receipts: ${faultOf(e).code} ${faultOf(e).detail}`)));
+  });
 }
 
 async function checkHeld() {
@@ -214,44 +213,49 @@ export async function diagnose() {
     state: { ...$state.get() }, fault: $fault.get(),
   };
   if (!shell.present) return d;
-  try {
-    const info = await shell.call("system.info", {});
-    d.held = info.perms || null;
-    d.caps = info.caps ?? null;
-    d.device = `${info.model || "?"} · Android ${info.release || "?"} (sdk ${info.sdk ?? "?"}) · ${info.pkg || "?"} · bridge ${info.bridge ?? "?"}`;
-    d.locationOn = info.locationOn ?? null;
-    if (d.held) d.missing = d.needs.filter((p) => !d.held[p]);
-  } catch (e) { d.held = `system.info failed: ${faultOf(e).code}`; }
-  try { d.ble = await shell.call("ble.state", {}); } catch (e) { d.ble = `ble.state failed: ${faultOf(e).code}`; }
-  try { d.mesh = await shell.call("mesh.state", {}); } catch (e) { d.mesh = `mesh.state failed: ${faultOf(e).code}`; }
-  try { d.bridgeLog = (await shell.call("system.logs", {})).lines || []; } catch { d.bridgeLog = null; }
+  const probe = (action, land, lost) => Effect.tryPromise({ try: async () => shell.call(action, {}), catch: (e) => e }).pipe(
+    Effect.flatMap((v) => Effect.try({ try: () => land(v), catch: (e) => e })),
+    Effect.catch((e) => Effect.sync(() => lost(e))),
+  );
+  await Effect.runPromise(Effect.all([
+    probe("system.info", (info) => {
+      d.held = info.perms || null;
+      d.caps = info.caps ?? null;
+      d.device = `${info.model || "?"} · Android ${info.release || "?"} (sdk ${info.sdk ?? "?"}) · ${info.pkg || "?"} · bridge ${info.bridge ?? "?"}`;
+      d.locationOn = info.locationOn ?? null;
+      if (d.held) d.missing = d.needs.filter((p) => !d.held[p]);
+    }, (e) => { d.held = `system.info failed: ${faultOf(e).code}`; }),
+    probe("ble.state", (v) => { d.ble = v; }, (e) => { d.ble = `ble.state failed: ${faultOf(e).code}`; }),
+    probe("mesh.state", (v) => { d.mesh = v; }, (e) => { d.mesh = `mesh.state failed: ${faultOf(e).code}`; }),
+    probe("system.logs", (v) => { d.bridgeLog = v.lines || []; }, () => { d.bridgeLog = null; }),
+  ], { discard: true }));
   return d;
 }
 
 /** */
 export function report(d) {
-  const L = [];
-  L.push(`поголос · ${d.at}`);
-  L.push(`device:     ${d.device ?? "—"}`);
-  L.push(`shell:      ${d.shell}`);
-  L.push(`apk caps:   ${d.caps ?? "—"}`);
-  L.push(`  mesh in apk caps: ${d.caps == null ? "—" : d.caps.split(",").map((c) => c.trim()).includes("mesh") ? "yes" : "NO — this install does not carry the mesh flavour"}`);
-  L.push(`capability: ${d.capability}`);
-  L.push(`mesh.start: ${d.meshStart}`);
-  L.push(`needs:      ${d.needs.join(", ") || "—"}`);
-  L.push(`held:       ${d.held && typeof d.held === "object" ? d.needs.map((p) => `${p}=${d.held[p] ? "yes" : "NO"}`).join(" ") : d.held ?? "—"}`);
-  L.push(`location:   ${d.locationOn === null ? "—" : d.locationOn ? "on" : "OFF — a BLE scan returns empty with no error"}`);
-  L.push(`ble:        ${typeof d.ble === "object" && d.ble ? JSON.stringify(d.ble) : d.ble ?? "—"}`);
-  L.push(`mesh:       ${typeof d.mesh === "object" && d.mesh ? JSON.stringify(d.mesh) : d.mesh ?? "—"}`);
-  L.push(`page state: ${JSON.stringify(d.state)}`);
-  L.push(`fault:      ${d.fault ? `${d.fault.code} ${d.fault.detail}` : "none"}`);
-  L.push("");
-  L.push("-- events (page) --");
-  for (const l of $log.get()) L.push(`${new Date(l.t).toISOString().slice(11, 19)} ${l.kind.padEnd(5)} ${l.text}`);
-  L.push("");
-  L.push("-- bridge (system.logs) --");
-  for (const l of d.bridgeLog || []) L.push(String(l));
-  return L.join("\n");
+  return [
+    `поголос · ${d.at}`,
+    `device:     ${d.device ?? "—"}`,
+    `shell:      ${d.shell}`,
+    `apk caps:   ${d.caps ?? "—"}`,
+    `  mesh in apk caps: ${d.caps == null ? "—" : d.caps.split(",").map((c) => c.trim()).includes("mesh") ? "yes" : "NO — this install does not carry the mesh flavour"}`,
+    `capability: ${d.capability}`,
+    `mesh.start: ${d.meshStart}`,
+    `needs:      ${d.needs.join(", ") || "—"}`,
+    `held:       ${d.held && typeof d.held === "object" ? d.needs.map((p) => `${p}=${d.held[p] ? "yes" : "NO"}`).join(" ") : d.held ?? "—"}`,
+    `location:   ${d.locationOn === null ? "—" : d.locationOn ? "on" : "OFF — a BLE scan returns empty with no error"}`,
+    `ble:        ${typeof d.ble === "object" && d.ble ? JSON.stringify(d.ble) : d.ble ?? "—"}`,
+    `mesh:       ${typeof d.mesh === "object" && d.mesh ? JSON.stringify(d.mesh) : d.mesh ?? "—"}`,
+    `page state: ${JSON.stringify(d.state)}`,
+    `fault:      ${d.fault ? `${d.fault.code} ${d.fault.detail}` : "none"}`,
+    "",
+    "-- events (page) --",
+    ...$log.get().map((l) => `${new Date(l.t).toISOString().slice(11, 19)} ${l.kind.padEnd(5)} ${l.text}`),
+    "",
+    "-- bridge (system.logs) --",
+    ...(d.bridgeLog || []).map((l) => String(l)),
+  ].join("\n");
 }
 
 function startMock() {

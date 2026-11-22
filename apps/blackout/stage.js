@@ -6,6 +6,9 @@ import { createWorld, LANES, laneX } from "./world.js";
 import { hipsOf, fit, retarget } from "./rig.js";
 import { glbUrl, muted, weaponById, wieldedArm, $weapon } from "./state.js";
 import { createSound } from "./sound.js";
+import { Effect } from "/_rt/fx.js";
+
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
 
 const DRACO_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 const CLIPS = {
@@ -45,9 +48,7 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
   const loader = new GLTFLoader(); const draco = new DRACOLoader(); draco.setDecoderPath(DRACO_PATH); loader.setDRACOLoader(draco);
   const raw = {};
   let mixer = null, actions = {}, current = null, rig = null, oneShot = null, skin = null, hand = null;
-  async function loadClips() {
-    await Promise.all(Object.entries(CLIPS).map(async ([id, c]) => { const g = await loader.loadAsync(c.url); raw[id] = { clip: g.animations[0], rig: hipsOf(g.scene) }; }));
-  }
+  const clipsLoaded = () => Effect.forEach(Object.entries(CLIPS), ([id, c]) => tried(async () => { const g = await loader.loadAsync(c.url); raw[id] = { clip: g.animations[0], rig: hipsOf(g.scene) }; }), { concurrency: "unbounded", discard: true });
   async function loadSkin(id) {
     const g = await loader.loadAsync(glbUrl(id));
     const root = fit(g.scene, TARGET_H);
@@ -75,7 +76,12 @@ export async function createStage(canvas, { getInput, onStatus, onStat, onEvent 
   const muzzleMat = new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 });
   gun.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.22), gunMat));
   const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), muzzleMat); muzzle.position.set(0, 0.04, -0.16); gun.add(muzzle);
-  try { await Promise.all([loadClips(), street.ready]); await loadSkin(skinId); } catch (e) { onStatus("failed", "glb: " + String(e && e.message || e).slice(0, 70)); return null; }
+  const staged = await Effect.runPromise(Effect.all([clipsLoaded(), tried(() => street.ready)], { concurrency: "unbounded" }).pipe(
+    Effect.andThen(tried(() => loadSkin(skinId))),
+    Effect.as(true),
+    Effect.catch((e) => Effect.sync(() => { onStatus("failed", "glb: " + String(e && e.message || e).slice(0, 70)); return false; })),
+  ));
+  if (!staged) return null;
 
   const sound = createSound({ muted });
   const sfx = (name, o) => sound?.play(name, o);

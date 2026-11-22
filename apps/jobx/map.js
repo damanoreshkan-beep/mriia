@@ -2,6 +2,8 @@ import { html } from "htm/preact";
 import { useEffect, useRef } from "preact/hooks";
 import { isGate } from "/_rt/gate.js";
 import { viewFor, DEV_HOST, $glReady, shortSalary } from "./jobs.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const GEO = `${location.origin}/geo`;   
 const LUMA = "9.4.2";
@@ -128,9 +130,12 @@ async function makeDeck(canvas, cityId) {
   const VIEW = viewFor(cityId);
   const gbase = `${GEO}/${cityId}`;
   const geo = {};
-  const grab = async (n) => { try { geo[n] = await (await fetch(`${gbase}/${n}.json`)).json(); } catch { geo[n] = null; } };
-  const baseLayers = cityId === "kyiv" ? ["water", "roads", "districts", "metro"] : ["water", "roads"];
-  await Promise.all(baseLayers.map(grab));
+  const grab = (n) => Effect.tryPromise({ try: async () => (await fetch(`${gbase}/${n}.json`)).json(), catch: (e) => e }).pipe(
+    Effect.catch(() => Effect.succeed(null)),
+    Effect.tap((g) => Effect.sync(() => { geo[n] = g; })),
+  );
+  const baseLayers = CONFIG.layers[cityId] || CONFIG.layers.other;
+  await Effect.runPromise(Effect.forEach(baseLayers, grab, { concurrency: "unbounded", discard: true }));
   const stations = colourStations(geo.metro);
   const districtLabels = (geo.districts && geo.districts.features || []).filter((f) => f.properties && f.properties.name && f.properties.center).map((f) => ({ name: f.properties.name, coordinates: f.properties.center }));
 

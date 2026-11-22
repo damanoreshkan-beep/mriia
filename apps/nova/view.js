@@ -11,7 +11,10 @@ import { scoreRepo, parseFunding } from "/_rt/underrated.js";
 import { session, MOCK_USER, login, logout, restore, star } from "/_rt/auth.js";
 import { Sheet, Panel } from "/_rt/ui.js";
 import { Scramble } from "/_rt/skeleton.js";
+import { Effect } from "/_rt/fx.js";
+import { pipe, map, filter, uniqueBy, sortBy, take } from "/_rt/remeda.js";
 import { Finale } from "./finale.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] tracking-wider";
@@ -42,6 +45,33 @@ function toDev(it) {
     lang: it.language || "", score, reasons,
   };
 }
+
+const topDevs = (items) => {
+  const devs = pipe(items, map(toDev), filter((d) => d.owner && d.repo));
+  return pipe(devs,
+    uniqueBy((d) => d.owner),
+    map((o) => devs.filter((d) => d.owner === o.owner).reduce((best, d) => (d.score > best.score ? d : best))),
+    sortBy([(d) => d.score, "desc"]),
+    take(CONFIG.devs.top),
+  );
+};
+
+const timed = (ms, use) => Effect.acquireUseRelease(
+  Effect.sync(() => { const ctrl = new AbortController(); return { ctrl, to: setTimeout(() => ctrl.abort(), ms) }; }),
+  ({ ctrl }) => use(ctrl.signal),
+  ({ to }) => Effect.sync(() => clearTimeout(to)),
+);
+const fundingUrl = (d, path) => `${CONFIG.funding.raw}/${path.replace("{owner}", d.owner).replace("{repo}", d.repo)}`;
+const firstFunding = (d, [path, ...rest]) => fundingAt(fundingUrl(d, path)).pipe(
+  Effect.flatMap((l) => l || !rest.length ? Effect.succeed(l) : firstFunding(d, rest)),
+);
+const fundingAt = (u) => timed(CONFIG.funding.timeoutMs, (signal) => Effect.tryPromise({ try: async () => fetch(u, { signal }), catch: (e) => e })).pipe(
+  Effect.flatMap((r) => !r.ok ? Effect.succeed(null) : Effect.tryPromise({
+    try: async () => { const txt = await r.text(); return /^\s*</.test(txt) ? null : parseFunding(txt); },
+    catch: (e) => e,
+  })),
+  Effect.catch(() => Effect.succeed(null)),
+);
 
 const MOCK_DEVS = [
   { owner: "amelia-rt", repo: "featherquery", name: "amelia-rt", avatar: "", url: "https://github.com/amelia-rt/featherquery", desc: "A 3 kB reactive query cache with zero dependencies.", stars: 34, forks: 4, lang: "TypeScript", score: 92, reasons: ["reasonFresh", "reasonFewStars", "reasonNeedsHelp", "reasonSolo", "reasonDocumented"] },
@@ -87,14 +117,7 @@ export function nova({ S, tab, toast, openScreen, closeScreen }) {
         const page = 1 + Math.floor(Math.random() * 6);
         const params = new URLSearchParams({ q: query(), sort: "updated", order: "desc", per_page: "40", page: String(page) });
         const data = await fetchJson(`${API}?${params}`, { timeout: 15000 });
-        const byOwner = new Map();
-        for (const it of data.items || []) {
-          const d = toDev(it);
-          if (!d.owner || !d.repo) continue;
-          const prev = byOwner.get(d.owner);
-          if (!prev || d.score > prev.score) byOwner.set(d.owner, d);
-        }
-        const list = [...byOwner.values()].sort((a, b) => b.score - a.score).slice(0, 18);
+        const list = topDevs(data.items || []);
         if (!dead) { setDevs(list); setErr(list.length === 0); }
       } catch { if (!dead) { setDevs([]); setErr(true); } }
     })();
@@ -125,18 +148,7 @@ export function nova({ S, tab, toast, openScreen, closeScreen }) {
   const openSupport = async (d) => {
     setTarget(d); setFunding({ loading: true }); openScreen("support");
     if (gate) { setFunding(MOCK_FUNDING[d.owner] || []); return; }
-    const tryUrl = async (u) => {
-      try {
-        const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 8000);
-        const r = await fetch(u, { signal: ctrl.signal }); clearTimeout(to);
-        if (!r.ok) return null;
-        const txt = await r.text();
-        return /^\s*</.test(txt) ? null : parseFunding(txt);
-      } catch { return null; }
-    };
-    const links = (await tryUrl(`https://raw.githubusercontent.com/${d.owner}/.github/HEAD/.github/FUNDING.yml`))
-      || (await tryUrl(`https://raw.githubusercontent.com/${d.owner}/${d.repo}/HEAD/.github/FUNDING.yml`))
-      || [];
+    const links = await Effect.runPromise(firstFunding(d, CONFIG.funding.paths).pipe(Effect.map((l) => l || [])));
     setFunding(links);
   };
 

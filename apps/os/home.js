@@ -16,6 +16,11 @@ import { Console } from "./console.js";
 import { Ports } from "./ports.js";
 import { Audit } from "./audit.js";
 import { band } from "./radar.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+import { tried, probe as probeOnce, offered } from "./probe.js";
+
+const probe = (action, land, lost) => offered(action, probeOnce(action, land, lost));
 
 const TILE_DOT = { granted: "bg-success", partial: "bg-warning", denied: "bg-error", needsApp: "bg-base-content/30", staleApp: "bg-warning", prompt: "", unsupported: "", unknown: "" };
 
@@ -25,10 +30,9 @@ function Launcher({ S, loc, t, toast }) {
   const keys = Object.keys(PERMISSIONS);
 
   const refresh = async () => {
-    await refreshHeld();
-    const out = {};
-    for (const k of keys) out[k] = (await permState(k)).state;
-    setStates(out);
+    setStates(await Effect.runPromise(tried(() => refreshHeld()).pipe(
+      Effect.andThen(Effect.reduce(keys, () => ({}), (out, k) => tried(() => permState(k)).pipe(Effect.map((p) => ({ ...out, [k]: p.state }))))),
+    )));
   };
   useEffect(() => { refresh(); }, []);
 
@@ -94,16 +98,16 @@ function Station({ S, t, toast }) {
   const toggle = async () => {
     if (busy) return;
     setBusy(true);
-    try {
-      if (st?.running) { await shell.call("server.stop", {}); }
-      else {
-        await shell.call("server.start", { port: 8080 });
-        const page = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">`
-          + `<title>${T(t, "title")}</title><body style="font:16px system-ui;padding:2rem"><h1>${T(t, "title")}</h1>`;
-        await shell.call("server.put", { path: "/", contentType: "text/html; charset=utf-8", base64: btoa(unescape(encodeURIComponent(page))) });
-      }
-      await read();
-    } catch (e) { toast?.(e?.code || String(e)); } finally { setBusy(false); }
+    const page = () => `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">`
+      + `<title>${T(t, "title")}</title><body style="font:16px system-ui;padding:2rem"><h1>${T(t, "title")}</h1>`;
+    const serve = tried(() => shell.call("server.start", { port: CONFIG.stationPort })).pipe(
+      Effect.andThen(tried(() => shell.call("server.put", { path: "/", contentType: "text/html; charset=utf-8", base64: btoa(unescape(encodeURIComponent(page()))) }))),
+    );
+    await Effect.runPromise((st?.running ? tried(() => shell.call("server.stop", {})) : serve).pipe(
+      Effect.andThen(tried(() => read())),
+      Effect.catch((e) => Effect.sync(() => toast?.(e?.code || String(e)))),
+      Effect.ensuring(Effect.sync(() => setBusy(false))),
+    ));
   };
 
   const on = !!st?.running;
@@ -144,14 +148,16 @@ export function home({ S, t, toast }) {
   const [upd, setUpd] = useState(false);
 
   const read = async () => {
-    if (shell.has("system.info")) { try { setInfo(await shell.call("system.info", {})); } catch { } }
-    if (shell.has("system.battery")) { try { setBatt(await shell.call("system.battery", {})); } catch { setBatt(null); } }
-    if (shell.has("wifi.info")) { try { setNet(await shell.call("wifi.info", {})); } catch { setNet(null); } }
-    if (shell.has("files.roots")) { try { setRoots((await shell.call("files.roots", {})).roots || []); } catch { setRoots(null); } }
-    if (shell.has("ble.state")) { try { setBle(await shell.call("ble.state", {})); } catch { setBle(null); } }
-    if (shell.has("usb.list")) { try { setUsb((await shell.call("usb.list", {})).devices || []); } catch { setUsb(null); } }
-    if (shell.has("alarm.list")) { try { setAlarms((await shell.call("alarm.list", {})).alarms || []); } catch { setAlarms(null); } }
-    if (shell.has("server.status")) { try { setSrv(await shell.call("server.status", {})); } catch { setSrv(null); } }
+    await Effect.runPromise(Effect.all([
+      probe("system.info", setInfo, () => {}),
+      probe("system.battery", setBatt, () => setBatt(null)),
+      probe("wifi.info", setNet, () => setNet(null)),
+      probe("files.roots", (v) => setRoots(v.roots || []), () => setRoots(null)),
+      probe("ble.state", setBle, () => setBle(null)),
+      probe("usb.list", (v) => setUsb(v.devices || []), () => setUsb(null)),
+      probe("alarm.list", (v) => setAlarms(v.alarms || []), () => setAlarms(null)),
+      probe("server.status", setSrv, () => setSrv(null)),
+    ], { discard: true }));
   };
   useEffect(() => {
     read();
@@ -169,13 +175,21 @@ export function home({ S, t, toast }) {
   const update = async () => {
     if (upd) return;
     setUpd(true);
-    try {
-      const url = location.href.split("#")[0].split("?")[0];
-      const blob = await buildApk({ url, name: T(t, "title"), power: "os" });
-      const b64 = await new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(String(f.result).split(",")[1]); f.onerror = rej; f.readAsDataURL(blob); });
-      await shell.call("system.update", { name: apkFilename(T(t, "title")), base64: b64 });
-      toast?.(T(t, "updStarted"));
-    } catch (e) { toast?.(e?.code || T(t, "updFailed")); } finally { setUpd(false); }
+    const build = tried(() => buildApk({ url: location.href.split("#")[0].split("?")[0], name: T(t, "title"), power: "os" }));
+    const encode = (blob) => Effect.callback((resume) => {
+      const f = new FileReader();
+      f.onload = () => resume(Effect.succeed(String(f.result).split(",")[1]));
+      f.onerror = (ev) => resume(Effect.fail(ev));
+      f.readAsDataURL(blob);
+    });
+    const install = (base64) => tried(() => shell.call("system.update", { name: apkFilename(T(t, "title")), base64 }));
+    await Effect.runPromise(build.pipe(
+      Effect.flatMap(encode),
+      Effect.flatMap(install),
+      Effect.flatMap(() => Effect.try({ try: () => toast?.(T(t, "updStarted")), catch: (e) => e })),
+      Effect.catch((e) => Effect.sync(() => toast?.(e?.code || T(t, "updFailed")))),
+      Effect.ensuring(Effect.sync(() => setUpd(false))),
+    ));
   };
 
   const sub = (body) => html`<div data-home data-screen=${screen}>${body}</div>`;

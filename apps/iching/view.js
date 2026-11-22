@@ -15,12 +15,14 @@ import { useSheetDrag } from "/_rt/gesture.js";
 import { ORGANIC, shapeOf, scalePath, shaper } from "/_rt/shape.js";
 import { nameOf } from "./book.js";
 import { HeroStage } from "/_rt/hero.js";
+import { Effect } from "/_rt/fx.js";
 
 /** Pack six line values (6..9, bottom first) into the 0..1 seed hero.wgsl unpacks as six base-4 digits. */
 const packSeed = (ls) => { let n = 0; for (let i = 5; i >= 0; i--) n = n * 4 + ((ls[i] ?? 7) - 6); return n / 4096; };
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const CASTS = collection("ichingCasts");
+const erased = (r) => Effect.tryPromise({ try: async () => CASTS.del(r.id), catch: (e) => e }).pipe(Effect.ignore);
 
 const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const instant = () => gate || reduced();
@@ -447,7 +449,7 @@ export function ichingLog({ S, screen, openScreen, closeScreen, confirm, undo })
     body: T(t, "logClearBody", { n: rows?.length ?? 0 }),
     action: T(t, "logClear"),
     onConfirm: async () => {
-      if (!gate) await Promise.all((rows ?? []).map((r) => CASTS.del(r.id).catch(() => {})));
+      if (!gate) await Effect.runPromise(Effect.forEach(rows ?? [], erased, { concurrency: "unbounded", discard: true }));
       setRows([]);
       $logv.set($logv.get() + 1);
     },

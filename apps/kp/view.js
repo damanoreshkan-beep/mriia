@@ -6,11 +6,21 @@ import { Scramble, Pixels, useReveal } from "/_rt/skeleton.js";
 import { Panel } from "/_rt/ui.js";
 import { shapeOf, shaper } from "/_rt/shape.js";
 import { isGate, MOCK, gate } from "/_rt/gate.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
-const KP_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json";
-const WIND_URL = "https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json";
+const KP_URL = CONFIG.kpUrl;
+const WIND_URL = CONFIG.windUrl;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const windOf = (wR) => tried(async () => (await wR.json())?.[0]?.proton_speed ?? null).pipe(Effect.catch(() => Effect.succeed(null)));
+const spaceWeather = Effect.all([tried(() => fetch(KP_URL)), tried(() => fetch(WIND_URL))], { concurrency: "unbounded" }).pipe(
+  Effect.flatMap(([kpR, wR]) => (!kpR.ok ? Effect.fail(0) : tried(() => kpR.json()).pipe(
+    Effect.flatMap((entries) => windOf(wR).pipe(Effect.map((wind) => ({ entries, wind })))),
+  ))),
+);
+const every = (ms, step) => step.pipe(Effect.forkChild, Effect.andThen(Effect.sleep(ms)), Effect.forever);
 
 const kpIdx = (kp) => Math.max(0, Math.min(9, Math.floor(kp)));
 const kpFill = (kp) => `var(--kp-${kpIdx(kp)})`;
@@ -53,19 +63,11 @@ export function kp({ S }) {
 
   useEffect(() => {
     if (isGate || MOCK) return;
-    let live = true;
-    const load = async () => {
-      try {
-        const [kpR, wR] = await Promise.all([fetch(KP_URL), fetch(WIND_URL)]);
-        if (!kpR.ok) throw 0;
-        const entries = await kpR.json();
-        let wind = null; try { wind = (await wR.json())?.[0]?.proton_speed ?? null; } catch { }
-        if (live) { setData({ entries, wind }); setErr(false); }
-      } catch { if (live) setErr(true); }
-    };
-    load();
-    const id = setInterval(load, 120000);
-    return () => { live = false; clearInterval(id); };
+    const fiber = Effect.runFork(every(CONFIG.pollMs, spaceWeather.pipe(
+      Effect.tap((d) => Effect.sync(() => { setData(d); setErr(false); })),
+      Effect.catchCause(() => Effect.sync(() => setErr(true))),
+    )));
+    return () => fiber.interruptUnsafe();
   }, []);
 
   const ready = useReveal(!!data);

@@ -6,9 +6,12 @@ import { Scramble, useReveal } from "/_rt/skeleton.js";
 import { Globe } from "/_rt/globe.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { isGate, MOCK } from "/_rt/gate.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+import { fetched, watch } from "./poll.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
-const USGS = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson";
+const USGS = CONFIG.usgs;
 
 const MAG = [["#41C06F", "#136B3A"], ["#8FBE45", "#3F6B24"], ["#D8B23C", "#6E5200"], ["#E2932F", "#985800"], ["#E7742E", "#A24810"], ["#EC5A4A", "#B63125"], ["#C94BBA", "#8E2A86"]];
 const MAG_INK = [["#A1BCAB", "#304E3D"], ["#ACBB95", "#445738"], ["#C6B581", "#564618"], ["#D5AF7F", "#7F5419"], ["#E3A986", "#8F4A1F"], ["#EFA39B", "#A6352B"], ["#E2A0DA", "#8E2A86"]];
@@ -40,14 +43,11 @@ export function quakes({ S }) {
 
   useEffect(() => {
     if (isGate || MOCK) return;
-    let live = true;
-    const load = async () => {
-      try { const r = await fetch(USGS); if (!r.ok) throw 0; const q = parse(await r.json()); if (live) { setList(q); setErr(false); } }
-      catch { if (live) setErr(true); }
-    };
-    load();
-    const id = setInterval(load, 120000);
-    return () => { live = false; clearInterval(id); };
+    return watch(CONFIG.quakesPollMs, fetched(USGS).pipe(
+      Effect.map(parse),
+      Effect.tap((q) => Effect.sync(() => { setList(q); setErr(false); })),
+      Effect.catchCause(() => Effect.sync(() => setErr(true))),
+    ));
   }, []);
 
   const top = list && list.length ? list.reduce((a, b) => (b.mag > a.mag ? b : a)) : null;

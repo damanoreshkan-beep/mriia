@@ -1,4 +1,8 @@
 const NBSP = " ";
+import { Effect } from "@microspec/core/runtime/fx.js";
+import { filter, find, groupBy, map, pipe, reduce } from "@microspec/core/runtime/remeda.js";
+import { abortAfter, tried } from "./task.js";
+import { WISH } from "./wish.config.js";
 
 const CUR = {
   "$": "USD", "us$": "USD", "usd": "USD",
@@ -28,15 +32,13 @@ const NUM_RE = "\\d[\\d.,\\u00a0\\u202f ]*\\d|\\d";
 const PRICE_RE = new RegExp(`(?:(${CUR_RE})\\s*)?(${NUM_RE})(?:\\s*(${CUR_RE}))?`, "gi");
 
 export function parsePrice(text) {
-  const s = String(text || "");
-  for (const m of s.matchAll(PRICE_RE)) {
-    const cur = curOf(m[1]) || curOf(m[3]);
-    if (!cur) continue;
-    const price = toNumber(m[2]);
-    if (price == null || price <= 0) continue;
-    return { price, currency: cur };
-  }
-  return null;
+  return pipe(
+    [...String(text || "").matchAll(PRICE_RE)],
+    map((m) => ({ cur: curOf(m[1]) || curOf(m[3]), m })),
+    filter(({ cur }) => !!cur),
+    map(({ cur, m }) => ({ price: toNumber(m[2]), currency: cur })),
+    find(({ price }) => price != null && price > 0),
+  ) ?? null;
 }
 
 function pickImage(data) {
@@ -57,14 +59,12 @@ export function parseWishMeta(data, url) {
 }
 
 export async function fetchWishMeta(url) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 10000);
-  try {
-    const r = await fetch("https://r.jina.ai/" + url, { signal: ctrl.signal, headers: { Accept: "application/json", "X-Timeout": "8" } });
+  const read = (signal) => tried(async () => {
+    const r = await fetch(WISH.reader + url, { signal, headers: { Accept: "application/json", "X-Timeout": WISH.readerTimeout } });
     if (!r.ok) throw new Error("status " + r.status);
-    const data = (await r.json())?.data || {};
-    return parseWishMeta(data, url);
-  } finally { clearTimeout(t); }
+    return (await r.json())?.data || {};
+  });
+  return await Effect.runPromise(abortAfter(WISH.timeout, read).pipe(Effect.map((data) => parseWishMeta(data, url))));
 }
 
 export function sortWishes(list) {
@@ -72,14 +72,16 @@ export function sortWishes(list) {
 }
 
 export function wishTotals(list) {
-  const by = {};
-  for (const w of list || []) {
-    if (w.granted || w.price == null || !(w.price > 0)) continue;
-    const c = w.currency || "UAH";
-    (by[c] || (by[c] = { currency: c, sum: 0, count: 0 }));
-    by[c].sum += w.price; by[c].count += 1;
-  }
-  return CURRENCIES.filter((c) => by[c]).map((c) => by[c]);
+  const by = pipe(
+    list || [],
+    filter((w) => !w.granted && w.price != null && w.price > 0),
+    groupBy((w) => w.currency || "UAH"),
+  );
+  return pipe(
+    CURRENCIES,
+    filter((c) => !!by[c]),
+    map((c) => ({ currency: c, sum: reduce(by[c], (s, w) => s + w.price, 0), count: by[c].length })),
+  );
 }
 
 export function fmtMoney(n, currency) {

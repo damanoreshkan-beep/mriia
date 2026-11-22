@@ -10,7 +10,10 @@ import { mockArt, toDataURL, sizeOf, extOf } from "/_rt/intake.js";
 import { cancelJob } from "/_rt/imagejob.js";
 import { startTask, followSlides, taskOne, taskCall, taskKey, jobCode } from "/_rt/task.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect } from "/_rt/fx.js";
+import { mapValues } from "/_rt/remeda.js";
 import { styleOf } from "./styles.js";
+import { CONFIG } from "./config.js";
 
 export const MODES = ["make", "edit", "read", "blend", "style"];
 export const TWO_SLOT = ["blend", "style"];
@@ -21,8 +24,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const randSeed = () => Math.floor(Math.random() * 1e9);
 const JOB_KEY = (mode) => `ms:mirage:job:${mode}`;
 const OPTS_KEY = "ms:mirage:opts";
-const BASE = { make: `${VPS_PROXY}/image`, edit: `${VPS_PROXY}/image/edit`, blend: `${VPS_PROXY}/image/blend`, style: `${VPS_PROXY}/image/style` };
-const ROUTE = { make: "/feed/image", edit: "/feed/image/edit", blend: "/feed/image/blend", style: "/feed/image/style" };   
+const BASE = mapValues(CONFIG.base, (p) => VPS_PROXY + p);
+const ROUTE = CONFIG.route;
 
 export const $mode = atom("make");
 export const $make = atom({ prompt: gate ? GATE_PROMPT : "", phase: gate ? "done" : "idle",
@@ -72,17 +75,29 @@ const freeSlides = (list, keep = []) => list.forEach((s) => { if (!keep.includes
 const held = () => [$edit.get().src, $edit.get().original, $read.get().src, $blend.get().a, $blend.get().b, $style.get().a, $style.get().b];
 const stillHeld = (url) => [...held(), ...$make.get().slides.map((s) => s.url), ...$edit.get().slides.map((s) => s.url), ...$blend.get().slides.map((s) => s.url), ...$style.get().slides.map((s) => s.url)].includes(url);
 
-async function race(mode, body, run, ctx, seed) {
-  const alive = () => run === runs[mode];
-  let rep;
-  try { rep = await startTask("/task", { route: ROUTE[mode], body, k: taskKey() }); } catch (e) { return fail(mode, run, e.code || jobCode(e)); }
-  if (!alive()) { cancelJob(BASE[mode], rep.job); return; }
-  jobs[mode] = rep.job;
-  const t0 = Date.now();
-  try { localStorage.setItem(JOB_KEY(mode), JSON.stringify({ job: rep.job, task: rep.id, prompt: body.prompt, seed, ts: t0, quality: body.quality })); } catch { }
-  patch(mode, { t0 });
-  await followJob(mode, rep.id, run, ctx, seed);
-}
+const STALE = { stale: true };
+const stage = (fx, code) => Effect.tryPromise({ try: async () => fx(), catch: (e) => ({ code: code(e) }) });
+const refuse = (code) => Effect.fail({ code });
+const fresh = (alive) => (v) => alive() ? Effect.succeed(v) : Effect.fail(STALE);
+const settle = (flow, onFail) => Effect.runPromise(flow.pipe(Effect.catch((e) => Effect.sync(() => { if (e !== STALE) onFail(e.code); }))));
+const aliveOf = (mode, run) => () => run === runs[mode];
+const pixels = (url, code) => stage(async () => (await toDataURL(url)).data, () => code);
+const sized = (image) => image.length > CONFIG.maxImage ? refuse("eBig") : Effect.succeed(image);
+const english = (mode, run, p) => Effect.sync(() => patch(mode, { live: { stage: "translate" } })).pipe(
+  Effect.andThen(stage(() => toEnglish(p), (e) => e.code || "eTranslate")),
+  Effect.flatMap(fresh(aliveOf(mode, run))),
+);
+const raced = (mode, body, run, ctx, seed) => stage(() => startTask(CONFIG.task, { route: ROUTE[mode], body, k: taskKey() }), (e) => e.code || jobCode(e)).pipe(
+  Effect.flatMap((rep) => aliveOf(mode, run)() ? Effect.succeed(rep) : Effect.sync(() => cancelJob(BASE[mode], rep.job)).pipe(Effect.andThen(Effect.fail(STALE)))),
+  Effect.tap((rep) => Effect.sync(() => {
+    jobs[mode] = rep.job;
+    const t0 = Date.now();
+    try { localStorage.setItem(JOB_KEY(mode), JSON.stringify({ job: rep.job, task: rep.id, prompt: body.prompt, seed, ts: t0, quality: body.quality })); } catch { }
+    patch(mode, { t0 });
+  })),
+  Effect.flatMap((rep) => Effect.promise(() => followJob(mode, rep.id, run, ctx, seed))),
+);
+const failer = (mode, run) => (code) => fail(mode, run, code);
 
 async function followJob(mode, task, run, ctx, seed) {
   const alive = () => run === runs[mode];
@@ -124,13 +139,10 @@ export async function conjure(ctx) {
   patch("make", { slides: [], idx: 0, more: false, error: null, live: null, phase: "working", t0: Date.now() });
   if (gate) { await sleep(90); if (run === runs.make) patch("make", { slides: [seed, seed + 1, seed + 2, seed + 3].map((s) => ({ url: mockArt(s), seed: s })), phase: "done" }); return; }
   notifyAsk();
-  patch("make", { live: { stage: "translate" } });
-  let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail("make", run, e.code || "eTranslate"); }
-  if (run !== runs.make) return;
-  const sb = styleOf($opts.get().style)?.block;
-  if (sb) pEn = `${pEn}, ${sb}`;
-  const { quality, aspect } = $opts.get();
-  await race("make", { prompt: pEn, quality, aspect, seed, k: K, model: modelFor("make") }, run, ctx, seed);
+  await settle(english("make", run, p).pipe(
+    Effect.map((pEn) => { const sb = styleOf($opts.get().style)?.block; return sb ? `${pEn}, ${sb}` : pEn; }),
+    Effect.flatMap((pEn) => { const { quality, aspect } = $opts.get(); return raced("make", { prompt: pEn, quality, aspect, seed, k: K, model: modelFor("make") }, run, ctx, seed); }),
+  ), failer("make", run));
 }
 
 export async function rework(ctx) {
@@ -142,14 +154,13 @@ export async function rework(ctx) {
   patch("edit", { slides: [], idx: 0, more: false, error: null, live: null, phase: "working", t0: Date.now() });
   if (gate) { await sleep(120); if (run === runs.edit) patch("edit", { slides: [0, 1, 2, 3].map((n) => ({ url: mockArt(seed + n), seed: seed + n })), phase: "done" }); return; }
   notifyAsk();
-  let image;
-  try { image = (await toDataURL(st.src)).data; } catch { return fail("edit", run, "eFailed"); }
-  if (run !== runs.edit) return;
-  if (image.length > 9_000_000) return fail("edit", run, "eBig");
-  patch("edit", { live: { stage: "translate" } });
-  let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail("edit", run, e.code || "eTranslate"); }
-  if (run !== runs.edit) return;
-  await race("edit", { image, prompt: pEn, seed, k: K, model: modelFor("edit") }, run, ctx, seed);
+  await settle(pixels(st.src, "eFailed").pipe(
+    Effect.flatMap(fresh(aliveOf("edit", run))),
+    Effect.flatMap(sized),
+    Effect.flatMap((image) => english("edit", run, p).pipe(
+      Effect.flatMap((pEn) => raced("edit", { image, prompt: pEn, seed, k: K, model: modelFor("edit") }, run, ctx, seed)),
+    )),
+  ), failer("edit", run));
 }
 
 export function keepEditing() {
@@ -168,14 +179,13 @@ async function fuse(mode, ctx) {
   patch(mode, { slides: [], idx: 0, more: false, error: null, live: null, phase: "working", t0: Date.now() });
   if (gate) { await sleep(120); if (run === runs[mode]) patch(mode, { slides: [0, 1, 2, 3].map((n) => ({ url: mockArt(seed + n), seed: seed + n })), phase: "done" }); return; }
   notifyAsk();
-  let images;
-  try { images = (await Promise.all([toDataURL(st.a), toDataURL(st.b)])).map((x) => x.data); } catch { return fail(mode, run, "eFailed"); }
-  if (run !== runs[mode]) return;
-  if (images.some((i) => i.length > 9_000_000)) return fail(mode, run, "eBig");
-  patch(mode, { live: { stage: "translate" } });
-  let pEn; try { pEn = await toEnglish(p); } catch (e) { return fail(mode, run, e.code || "eTranslate"); }
-  if (run !== runs[mode]) return;
-  await race(mode, { images, prompt: pEn, seed, k: K, model: modelFor(mode) }, run, ctx, seed);
+  await settle(Effect.forEach([st.a, st.b], (url) => pixels(url, "eFailed"), { concurrency: "unbounded" }).pipe(
+    Effect.flatMap(fresh(aliveOf(mode, run))),
+    Effect.tap((images) => Effect.forEach(images, sized, { discard: true })),
+    Effect.flatMap((images) => english(mode, run, p).pipe(
+      Effect.flatMap((pEn) => raced(mode, { images, prompt: pEn, seed, k: K, model: modelFor(mode) }, run, ctx, seed)),
+    )),
+  ), failer(mode, run));
 }
 export const blend = (ctx) => fuse("blend", ctx);
 export const stylize = (ctx) => fuse("style", ctx);
@@ -204,22 +214,18 @@ export async function readPhoto(ctx) {
   const run = ++runs.read, q = st.question.trim();
   patch("read", { error: null, text: "", phase: "working" });
   if (gate) { await sleep(120); if (run === runs.read) patch("read", { text: q ? GATE_TEXT.split("\n")[0] : GATE_TEXT, phase: "done" }); return true; }
-  let image;
-  try { image = (await toDataURL(st.src)).data; } catch { return fail("read", run, "eRead"); }
-  if (run !== runs.read) return;
-  if (image.length > 9_000_000) return fail("read", run, "eBig");
-  const ask = ASK[ctx.loc] || ASK.en;
-  let j;
-  try { j = await taskCall("/task", { route: "/feed/vision", body: { image, prompt: q ? ask.q + q : ask.read, maxTokens: 400, model: modelFor("read") } }); }
-  catch (e) { const s = e?.status; if (run === runs.read) fail("read", run, s === 429 ? "eRate" : s === 413 ? "eBig" : s === 502 ? "eReadBusy" : s ? "eRead" : "eNetwork"); return; }
-  if (run !== runs.read) return;
-  const out = String(j?.text || "").trim();
-  if (!out) return fail("read", run, "eRead");
-  patch("read", { text: out, phase: "done" });
-  return true;
+  const alive = aliveOf("read", run);
+  return await settle(pixels(st.src, "eRead").pipe(
+    Effect.flatMap(fresh(alive)),
+    Effect.flatMap(sized),
+    Effect.flatMap((image) => { const ask = ASK[ctx.loc] || ASK.en; return stage(() => taskCall(CONFIG.task, { route: CONFIG.vision.route, body: { image, prompt: q ? ask.q + q : ask.read, maxTokens: CONFIG.vision.maxTokens, model: modelFor("read") } }), (e) => { const s = e?.status; return s ? CONFIG.vision.codes[s] || CONFIG.vision.refused : CONFIG.vision.offline; }); }),
+    Effect.flatMap(fresh(alive)),
+    Effect.map((j) => String(j?.text || "").trim()),
+    Effect.flatMap((out) => out ? Effect.sync(() => { patch("read", { text: out, phase: "done" }); return true; }) : refuse("eRead")),
+  ), failer("read", run));
 }
 
-const UPSCALE = `${VPS_PROXY}/image/upscale`;
+const UPSCALE = VPS_PROXY + CONFIG.upscale.base;
 /** `{ mode, url, phase: idle|working|done|error, live, error }` — one enhance at a time, for the picture in view. */
 export const $enhance = atom({ mode: "", url: "", phase: "idle", live: null, error: null });
 let enhanceRun = 0, enhanceJob = null;
@@ -237,23 +243,20 @@ export async function enhance(mode) {
     $enhance.set({ mode, url: out.url, phase: "done", live: null, error: null });
   };
   if (gate) { await sleep(350); land({ url: mockArt(cur.seed || 3, 4), w: 3072, h: 4096, ext: "png", by: "gate" }); return; }
-  let sent;
-  try { sent = (await toDataURL(cur.url)).data; } catch { return fail("eFailed"); }
-  if (r !== enhanceRun) return;
-  let res;
-  try {
-    res = await taskOne("/task", { route: "/feed/image/upscale", body: { image: sent, quality: "hd" } }, {
+  const alive = () => r === enhanceRun;
+  await settle(pixels(cur.url, "eFailed").pipe(
+    Effect.flatMap(fresh(alive)),
+    Effect.flatMap((sent) => stage(() => taskOne(CONFIG.task, { route: CONFIG.upscale.route, body: { image: sent, quality: CONFIG.upscale.quality } }, {
       onStart: (_id, rep) => { if (r === enhanceRun) enhanceJob = rep.job; else cancelJob(UPSCALE, rep.job); },
       onLive: (live) => { if (r === enhanceRun) $enhance.set({ ...$enhance.get(), live }); },
-    });
-  } catch (e) { if (r === enhanceRun) fail(e?.code || jobCode(e)); return; }
-  enhanceJob = null;
-  if (r !== enhanceRun) return;
-  if (res.status !== "done") return fail(res.status === "busy" ? "eBusy" : "eFailed");
-  try {
-    const size = (await sizeOf(res.blob)) || { w: 0, h: 0 };
-    land({ url: res.url, w: size.w, h: size.h, ext: extOf(res.blob), by: res.by });
-  } catch (e) { report("enhance.land", { msg: e?.message || String(e) }); fail("eFailed"); }
+    }), (e) => e?.code || jobCode(e))),
+    Effect.tap(() => Effect.sync(() => { enhanceJob = null; })),
+    Effect.flatMap(fresh(alive)),
+    Effect.flatMap((res) => res.status !== "done" ? refuse(res.status === "busy" ? "eBusy" : "eFailed") : stage(async () => {
+      const size = (await sizeOf(res.blob)) || { w: 0, h: 0 };
+      land({ url: res.url, w: size.w, h: size.h, ext: extOf(res.blob), by: res.by });
+    }, (e) => { report("enhance.land", { msg: e?.message || String(e) }); return "eFailed"; })),
+  ), fail);
 }
 
 export function cancel(mode) {

@@ -13,6 +13,15 @@ import { Island, Segmented, Transport, Stage } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
 import { MIRRORS, parseAuthors, parseListing, titleOf, trackId, trackURL, authorURL, normGain } from "/_rt/v2m.js";
 import { ByteStage, bindAudio, bindProgress, setTuneBytes } from "./viz.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
+const MISS = { miss: true };
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const fromMirrors = (urlOf, read, m = 0) => m >= MIRRORS.length ? Effect.fail(MISS) : tried(() => fetch(urlOf(m))).pipe(
+  Effect.flatMap((r) => r.ok ? tried(() => read(r)) : Effect.fail(MISS)),
+  Effect.catch(() => fromMirrors(urlOf, read, m + 1)),
+);
 
 const AC = typeof AudioContext !== "undefined" ? AudioContext
   : typeof webkitAudioContext !== "undefined" ? webkitAudioContext : null;
@@ -121,13 +130,9 @@ async function bytesFor(track) {
   if (track.bytes) return track.bytes.slice(0);
   if (track.src) return await (await fetch(assetURL(track.src))).arrayBuffer();
   if (gate) return await (await fetch(assetURL(DEMO.src))).arrayBuffer();
-  for (let m = 0; m < MIRRORS.length; m++) {
-    try {
-      const r = await fetch(trackURL(track.author, track.file, m));
-      if (r.ok) return await r.arrayBuffer();
-    } catch { }
-  }
-  throw new Error("unreachable");
+  return await Effect.runPromise(fromMirrors((m) => trackURL(track.author, track.file, m), (r) => r.arrayBuffer()).pipe(
+    Effect.catch(() => Effect.fail(new Error("unreachable"))),
+  ));
 }
 
 async function maybeGunzip(buf) {
@@ -203,37 +208,29 @@ const GATE_TUNES = Array.from({ length: 96 }, (_, i) => ({
   size: 2048 + ((i * 7919) % 120000),
 }));
 
-async function fetchText(pathFor) {
-  for (let m = 0; m < MIRRORS.length; m++) {
-    try { const r = await fetch(pathFor(m)); if (r.ok) return await r.text(); } catch { }
-  }
-  return null;
-}
+const textFrom = (pathFor) => fromMirrors(pathFor, (r) => r.text()).pipe(Effect.catch(() => Effect.succeed(null)));
 
 async function refreshCatalog() {
   if ($syncing.get() || gate) return;
   $syncing.set(true);
-  try {
-    const root = await fetchText((m) => MIRRORS[m]);
-    if (!root) return;
+  const crawl = (root) => {
     const authors = parseAuthors(root);
-    const queue = [...authors];
     const acc = [];
     const cold = !($tunes.get() || []).length;
-    await Promise.all(Array.from({ length: 6 }, async () => {
-      while (queue.length) {
-        const a = queue.shift();
-        const html = await fetchText((m) => authorURL(a, m));
-        if (!html) continue;
-        for (const e of parseListing(html)) acc.push({ author: a, ...e });
-        if (cold) $tunes.set([...acc]);
-      }
+    const author = (a) => textFrom((m) => authorURL(a, m)).pipe(Effect.map((html) => {
+      if (!html) return;
+      parseListing(html).forEach((e) => acc.push({ author: a, ...e }));
+      if (cold) $tunes.set([...acc]);
     }));
-    if (acc.length) {
-      $tunes.set(acc);
-      try { await CATALOG.put(CATALOG_KEY, { tunes: acc }); } catch { }
-    } else if (cold) $tunes.set([]);
-  } finally { $syncing.set(false); }
+    const keep = () => acc.length
+      ? Effect.sync(() => $tunes.set(acc)).pipe(Effect.andThen(tried(() => CATALOG.put(CATALOG_KEY, { tunes: acc })).pipe(Effect.ignore)))
+      : Effect.sync(() => { if (cold) $tunes.set([]); });
+    return Effect.forEach(authors, author, { concurrency: CONFIG.catalogConcurrency, discard: true }).pipe(Effect.andThen(Effect.suspend(keep)));
+  };
+  await Effect.runPromise(textFrom((m) => MIRRORS[m]).pipe(
+    Effect.flatMap((root) => !root ? Effect.void : crawl(root)),
+    Effect.ensuring(Effect.sync(() => $syncing.set(false))),
+  ));
 }
 
 let catalogStarted = false;

@@ -17,9 +17,16 @@ import { videoId, clock, byline, errorKey, songOfFound, mixRadios, FIXTURE_LINK,
 import { taskOne, taskCall } from "/_rt/task.js";
 import { session, restore } from "/_rt/auth.js";
 import { useLikes, connect, $lBusy, LikesConnect, LikesHead, LikeRow, LikesSkeleton } from "/_rt/ytlikes.js";
+import { Effect } from "/_rt/fx.js";
+import { sum } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
+const radioJson = (id, hl) => tried(() => fetch(`${VPS_PROXY}${CONFIG.radio.path}?v=${id}&hl=${hl}`, { signal: AbortSignal.timeout(CONFIG.radio.timeoutMs) })
+  .then((r) => (r.ok ? r.json() : Promise.reject(r.status))));
 const $link = atom(gate ? FIXTURE_LINK : "");
 const $meta = atom(gate ? FIXTURE_META : null);
 const $busy = atom("");        
@@ -131,14 +138,14 @@ function share(s, toast, t) {
   navigator.share(data).catch((e) => { if (e?.name !== "AbortError") copy(); });
 }
 
-const MIX = ["slowed", "deep"];
+const MIX = CONFIG.mix;
 const $mixed = atom({});   
 async function mix(s, toast, t) {
   if ($mixed.get()[s.id]) return;
   $mixed.set({ ...$mixed.get(), [s.id]: "busy" }); $err.set("");
   toast?.(T(t, "mixing"));
   const done = gate ? MIX.length
-    : (await Promise.allSettled(MIX.map((v) => taskCall("/library/keeptask", { url: s.url, v })))).filter((r) => r.status === "fulfilled").length;
+    : await Effect.runPromise(Effect.forEach(MIX, (v) => tried(() => taskCall(CONFIG.keep, { url: s.url, v })).pipe(Effect.as(1), Effect.catch(() => Effect.succeed(0))), { concurrency: "unbounded" }).pipe(Effect.map(sum)));
   if (!done) { const m = { ...$mixed.get() }; delete m[s.id]; $mixed.set(m); $err.set("errMix"); return; }
   $mixed.set({ ...$mixed.get(), [s.id]: "done" });
   toast?.(T(t, done === MIX.length ? "mixed" : "mixedPart"));
@@ -174,14 +181,16 @@ async function tune(s, S) {
   if ($cur.get() !== s.id) play(s, [s]);   
   S.tab.set("radio");
   const hl = document.documentElement.lang === "en" ? "en" : "uk";
-  try {
-    const like = gate ? FIXTURE_RADIO.songs : await fetch(`${VPS_PROXY}/music/radio?v=${s.id}&hl=${hl}`, { signal: AbortSignal.timeout(30000) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((j) => j.songs || []);
+  const land = (like) => {
     if (my !== radioSeq) return;
     const r = radioOf(s, like);
     $radio.set(r);
-    if ($cur.get() === s.id) $q.set(r.songs);   
-  } catch (e) { if (my === radioSeq && e !== 401) $radio.set({ seed: s, songs: null, err: e === 429 ? "errBusy" : "errRadio" }); else if (my === radioSeq) $radio.set(null); }   
+    if ($cur.get() === s.id) $q.set(r.songs);
+  };
+  await Effect.runPromise((gate ? Effect.succeed(FIXTURE_RADIO.songs) : radioJson(s.id, hl).pipe(Effect.flatMap((j) => attempt(() => j.songs || [])))).pipe(
+    Effect.flatMap((like) => attempt(() => land(like))),
+    Effect.catch((e) => Effect.sync(() => { if (my === radioSeq && e !== 401) $radio.set({ seed: s, songs: null, err: e === 429 ? "errBusy" : "errRadio" }); else if (my === radioSeq) $radio.set(null); })),
+  ));
 }
 
 const $menu = atom(null);
@@ -412,16 +421,18 @@ async function readRecs(liked, locale, more = false) {
   const seeds = liked.slice(rseed, rseed + (more ? SEEDS_MORE : SEEDS_FIRST)), was = $recs.get() || [];
   rseed += seeds.length;
   $rerr.set(""); $rbusy.set(more ? "more" : "list");
-  try {
-    const got = await Promise.allSettled(seeds.map((s) => fetch(`${VPS_PROXY}/music/radio?v=${s.id}&hl=${locale === "en" ? "en" : "uk"}`, { signal: AbortSignal.timeout(30000) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))));
-    const lists = got.filter((g) => g.status === "fulfilled").map((g) => (g.value.songs || []).map(songOfFound));
+  const land = (got) => {
+    const lists = got.map((j) => (j.songs || []).map(songOfFound));
     if (!lists.length) { if (!was.length) $rerr.set("errRecs"); return; }
     const songs = [...was, ...mixRadios(lists, [...liked.map((s) => s.id), ...was.map((s) => s.id)])];
     $recs.set(songs);
-    if (more && $q.get() === was) $q.set(songs);   
-  } catch { if (!was.length) $rerr.set("errRecs"); }
-  finally { $rbusy.set(""); }
+    if (more && $q.get() === was) $q.set(songs);
+  };
+  await Effect.runPromise(Effect.forEach(seeds, (s) => radioJson(s.id, locale === "en" ? "en" : "uk").pipe(Effect.map((j) => [j]), Effect.catch(() => Effect.succeed([]))), { concurrency: "unbounded" }).pipe(
+    Effect.flatMap((got) => attempt(() => land(got.flat()))),
+    Effect.catch(() => Effect.sync(() => { if (!was.length) $rerr.set("errRecs"); })),
+    Effect.ensuring(Effect.sync(() => $rbusy.set(""))),
+  ));
 }
 
 

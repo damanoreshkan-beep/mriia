@@ -9,12 +9,17 @@ import { suggest } from "/_rt/ai-text.js";
 import { cancelJob } from "/_rt/imagejob.js";
 import { taskSlides, jobCode } from "/_rt/task.js";
 import { LINES, WORLDS, worldOf, voiceOf, composePrompt, mockFrame, seedUrl } from "./worlds.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
+const STALE = { stale: true };
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
 
 const OPTS_KEY = "ms:vydyvo:opts";
 const BASE = `${VPS_PROXY}/image`;
 const CAP = 2 + 4;
 const AHEAD = 2;
-const K = 2;
+const K = CONFIG.k;
 const BACKOFF = { eRate: 120_000, eBusy: 300_000, eFailed: 180_000, eNetwork: 60_000, eSignIn: 600_000, eTranslate: 60_000 };
 const DEFAULT = { prompt: "", every: 120, quality: "2k", char: "lum" };
 export const EVERY = [30, 60, 120, 300];
@@ -153,35 +158,47 @@ async function generate() {
     patchGen({ phase: "idle", until: Date.now() + 3000 });
     return;
   }
-  let subject = o.prompt.trim(), scene = "";
-  const userDriven = !!subject;
+  const typed = o.prompt.trim();
+  const userDriven = !!typed;
   const painted = $frames.get().map((f) => f.subject).filter(Boolean).slice(-8);
   const spark = [
-    userDriven ? `Owner's subject (depict exactly this): ${subject}.` : `In the spirit of: ${world.subject}.`,
+    userDriven ? `Owner's subject (depict exactly this): ${typed}.` : `In the spirit of: ${world.subject}.`,
     painted.length ? `Already painted: ${painted.join(" | ")}` : "",
   ].filter(Boolean).join("\n");
-  try { scene = jsonField(await suggest("scene", spark, ctxRef?.loc || "uk"), "scene").slice(0, 300); } catch { }
-  if (run !== runs) return;
-  if (scene) subject = scene;
-  if (subject) { try { subject = await toEnglish(subject); } catch (e) { return fail(run, e.code || "eTranslate"); } }
-  if (run !== runs) return;
-  const prompt = composePrompt(subject, world, mode, userDriven);
-  const sw = (typeof screen !== "undefined" && screen.width) || window.innerWidth || 1;
-  const sh = (typeof screen !== "undefined" && screen.height) || window.innerHeight || 1;
-  const ratio = Math.max(0.3, Math.min(3, sw / sh));
-  hold = holdBackground({ title: T(ctxRef.t, "title"), body: T(ctxRef.t, "notifWorking") });
-  let got = 0, status;
-  try {
-    status = await taskSlides("/feed/image", { prompt, quality: o.quality, aspect: "screen", ratio, seed, k: K }, {
+  const fresh = (v) => run === runs ? Effect.succeed(v) : Effect.fail(STALE);
+  const imagine = tried(() => suggest("scene", spark, ctxRef?.loc || "uk")).pipe(
+    Effect.map((out) => jsonField(out, "scene").slice(0, CONFIG.sceneChars)),
+    Effect.catch(() => Effect.succeed("")),
+  );
+  const english = (subject) => !subject ? Effect.succeed(subject) : tried(() => toEnglish(subject)).pipe(Effect.mapError((e) => ({ code: e.code || "eTranslate" })));
+  const paint = (prompt, scene) => {
+    let got = 0;
+    const sw = (typeof screen !== "undefined" && screen.width) || window.innerWidth || 1;
+    const sh = (typeof screen !== "undefined" && screen.height) || window.innerHeight || 1;
+    const ratio = Math.max(CONFIG.ratio.min, Math.min(CONFIG.ratio.max, sw / sh));
+    hold = holdBackground({ title: T(ctxRef.t, "title"), body: T(ctxRef.t, "notifWorking") });
+    return tried(() => taskSlides(CONFIG.route, { prompt, quality: o.quality, aspect: CONFIG.aspect, ratio, seed, k: K }, {
       onStart: (_id, rep) => { if (run === runs) job = rep.job; else cancelJob(BASE, rep.job); },
       onLive: (live) => { if (run === runs) patchGen({ live }); },
       onSlide: (s) => { if (run !== runs) return; got++; const fid = addFrame({ url: s.url, blob: s.blob, preset: wid, prompt: o.prompt, subject: scene || null, mode, w: s.w, h: s.h }); lineFor(fid, world, mode, o.prompt, ctxRef?.loc); },
-    });
-  } catch (e) { return fail(run, e.code || jobCode(e)); }
-  if (run !== runs) return;
-  hold?.(); hold = null; job = null;
-  if (got) patchGen({ phase: "idle", error: null, live: null, until: Date.now() + 5000 });
-  else fail(run, status === "busy" ? "eBusy" : "eFailed");
+    })).pipe(
+      Effect.mapError((e) => ({ code: e.code || jobCode(e) })),
+      Effect.flatMap(fresh),
+      Effect.map((status) => {
+        hold?.(); hold = null; job = null;
+        if (got) patchGen({ phase: "idle", error: null, live: null, until: Date.now() + CONFIG.restMs });
+        else fail(run, status === "busy" ? "eBusy" : "eFailed");
+      }),
+    );
+  };
+  await Effect.runPromise(imagine.pipe(
+    Effect.flatMap(fresh),
+    Effect.flatMap((scene) => english(scene || typed).pipe(
+      Effect.flatMap(fresh),
+      Effect.flatMap((subject) => paint(composePrompt(subject, world, mode, userDriven), scene)),
+    )),
+    Effect.catch((e) => Effect.sync(() => { if (e !== STALE) fail(run, e.code); })),
+  ));
 }
 function fail(run, code) {
   if (run !== runs) return;

@@ -10,11 +10,20 @@ import { gate } from "/_rt/gate.js";
 import {
   VOICE_TTL_MS, fitText, encodeVoice, readFrame, hexOf, newSender, hueOf, callsign, mergeVoices,
 } from "/_rt/earshot.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] tracking-wider text-base-content/70";
 
-const HOLD_MS = 60_000;
+const HOLD_MS = CONFIG.holdMs;
+const call = (method, args) => Effect.tryPromise({ try: async () => shell.call(method, args), catch: (e) => e });
+const verdict = (method, judge) => call(method, {}).pipe(Effect.map(judge), Effect.catch(() => Effect.succeed(null)));
+const CHECKS = [
+  ["system.info", (info) => (info && info.locationOn === false ? "locationOff" : null)],
+  ["ble.state", (st) => (st && st.supported === false ? "noBle" : st && st.on === false ? "bleOff" : null)],
+];
+const firstBlock = CHECKS.reduce((found, [method, judge]) => found.pipe(Effect.flatMap((hit) => (hit ? Effect.succeed(hit) : verdict(method, judge)))), Effect.succeed(null));
 
 const $voices = atom([]);
 const $listening = atom(false);
@@ -39,14 +48,16 @@ function noteError(e) {
 async function grant() {
   const p = $needPerm.get();
   if (!p) return;
-  try {
-    const r = await shell.call("system.grant", { permission: p });
-    if (r?.state === "granted") { $needPerm.set(null); $err.set(null); hush(); listen(); return; }
-  } catch { }
-  try { await shell.call("system.settings", { page: "app" }); } catch { }
+  await Effect.runPromise(call("system.grant", { permission: p }).pipe(
+    Effect.map((r) => r?.state === "granted"),
+    Effect.catch(() => Effect.succeed(false)),
+    Effect.flatMap((ok) => ok
+      ? Effect.sync(() => { $needPerm.set(null); $err.set(null); hush(); listen(); })
+      : call("system.settings", { page: CONFIG.settingsPage }).pipe(Effect.ignore)),
+  ));
 }
 
-const SENDER_KEY = "earshot.sender";
+const SENDER_KEY = CONFIG.senderKey;
 function loadSender() {
   try {
     const kept = Number(localStorage.getItem(SENDER_KEY));
@@ -86,16 +97,9 @@ function heard(frame) {
  */
 async function diagnose() {
   if (gate) return;
-  try {
-    const info = await shell.call("system.info", {});
-    if (info && info.locationOn === false) { $blocked.set("locationOff"); return; }
-  } catch { }
-  try {
-    const st = await shell.call("ble.state", {});
-    if (st && st.supported === false) { $blocked.set("noBle"); return; }
-    if (st && st.on === false) { $blocked.set("bleOff"); return; }
-  } catch { }
-  $blocked.set(null);
+  await Effect.runPromise(firstBlock.pipe(
+    Effect.tap((hit) => Effect.sync(() => $blocked.set(hit))),
+  ));
 }
 
 function listen() {
@@ -124,14 +128,13 @@ async function send(text) {
   const at = Date.now();
   const keep = () => $mine.set([...$mine.get(), { seq, text: fit.text, at, until: at + HOLD_MS }]);
   if (gate) { keep(); return; }
-  try {
-    await shell.call("ble.advertise", { data: hexOf(bytes), ms: HOLD_MS });
-    keep();
-    $err.set(null);
-  } catch (e) {
-    noteError(e);
-    $err.set(`${$err.get()} · bridge ${shell.version}/${shell.catalogueVersion} · ${bytes.length}B`);
-  }
+  await Effect.runPromise(call("ble.advertise", { data: hexOf(bytes), ms: HOLD_MS }).pipe(
+    Effect.tap(() => Effect.sync(() => { keep(); $err.set(null); })),
+    Effect.catch((e) => Effect.sync(() => {
+      noteError(e);
+      $err.set(`${$err.get()} · bridge ${shell.version}/${shell.catalogueVersion} · ${bytes.length}B`);
+    })),
+  ));
 }
 
 /** One conversation, oldest first — theirs and yours in the order they happened. */

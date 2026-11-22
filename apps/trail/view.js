@@ -10,6 +10,12 @@ import { collection } from "/_rt/db.js";
 import { downloadBlob } from "/_rt/apk.js";
 import { mulberry32 } from "/_rt/groove.js";
 import { bbox, centre, spanM, boxAround, segments, simplify, project, length, stops } from "/_rt/trace.js";
+import { Effect } from "/_rt/fx.js";
+import { reduce } from "/_rt/remeda.js";
+
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
+const call = (action, args = {}) => tried(() => shell.call(action, args));
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
@@ -50,14 +56,15 @@ async function onFix(fix) {
 
 async function reconcile() {
   if (!shell.has("bg.status")) return;
-  try {
-    const st = await shell.call("bg.status", {});
-    if (!st?.running) { $rec.set(false); return; }
+  const tally = (st) => attempt(() => {
     $rec.set(true);
     const day = dayOf(dayIdOf(Date.now()));
-    const lost = Math.max(0, (st.fixes || 0) - day.points.length);
-    if (lost !== day.lost) await putDay({ ...day, lost });
-  } catch { }
+    return { day, lost: Math.max(0, (st.fixes || 0) - day.points.length) };
+  }).pipe(Effect.flatMap(({ day, lost }) => lost !== day.lost ? tried(() => putDay({ ...day, lost })) : Effect.void));
+  await Effect.runPromise(call("bg.status").pipe(
+    Effect.flatMap((st) => !st?.running ? attempt(() => $rec.set(false)) : tally(st)),
+    Effect.catch(() => Effect.void),
+  ));
 }
 
 async function checkPermission() {
@@ -75,12 +82,15 @@ async function checkPermission() {
 
 async function startDay(t) {
   $err.set(null);
-  try {
-    await shell.call("bg.start", { title: T(t, "title"), body: T(t, "recording"), location: true });
+  const watch = attempt(() => {
     cancelWatch?.();
     cancelWatch = shell.subscribe("location.watch", {}, onFix, (e) => $err.set(e?.code || ERR.failed));
     $rec.set(true);
-  } catch (e) { $err.set(e?.code || ERR.failed); }
+  });
+  await Effect.runPromise(tried(() => shell.call("bg.start", { title: T(t, "title"), body: T(t, "recording"), location: true })).pipe(
+    Effect.andThen(watch),
+    Effect.catch((e) => Effect.sync(() => $err.set(e?.code || ERR.failed))),
+  ));
 }
 
 async function stopDay() {
@@ -134,9 +144,7 @@ const isHome = (points) => { const b = bbox(points); if (!b) return true; const 
 /** One scale for the whole month: each day keeps its own centre, every day shares the span. A 2 km day
  *  drawing the same size as a 40 km one would be the prettiest lie this app could tell. */
 function sharedSpan(days) {
-  let span = MIN_SPAN_M;
-  for (const d of days) { const b = bbox(d.points); if (!b) continue; const s = spanM(b); span = Math.max(span, s.w, s.h); }
-  return span;
+  return reduce(days, (span, d) => { const b = bbox(d.points); if (!b) return span; const s = spanM(b); return Math.max(span, s.w, s.h); }, MIN_SPAN_M);
 }
 
 /** A day's OWN window, slightly grown so the ink is not flush against the frame. The month grid does not

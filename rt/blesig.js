@@ -1,3 +1,4 @@
+import { flat, pipe } from "@microspec/core/runtime/remeda.js";
 import { parseAd, adSummary } from "./radar.js";
 
 const APPLE = 0x004c, MICROSOFT = 0x0006, SAMSUNG = 0x0075;
@@ -135,18 +136,18 @@ export function decodeEddystone(v) {
  */
 export function signatures(raw) {
   const s = adSummary(parseAd(raw));
-  const out = [];
-  const apple = s.mfg[APPLE];
-  if (apple) out.push(...decodeContinuity(apple));
-  const swift = s.mfg[MICROSOFT];
-  if (swift) { const d = decodeSwiftPair(swift); if (d) out.push(d); }
-  const samsung = s.mfg[SAMSUNG];
-  if (samsung) out.push(decodeSamsung(samsung));
-  const fp = s.serviceData[FAST_PAIR];
-  if (fp) out.push(decodeFastPair(fp));
-  const ed = s.serviceData[EDDYSTONE];
-  if (ed) { const d = decodeEddystone(ed); if (d) out.push(d); }
-  return out;
+  const apple = s.mfg[APPLE], swift = s.mfg[MICROSOFT], samsung = s.mfg[SAMSUNG];
+  const fp = s.serviceData[FAST_PAIR], ed = s.serviceData[EDDYSTONE];
+  return pipe(
+    [
+      apple ? decodeContinuity(apple) : [],
+      swift ? [decodeSwiftPair(swift)].filter(Boolean) : [],
+      samsung ? [decodeSamsung(samsung)] : [],
+      fp ? [decodeFastPair(fp)] : [],
+      ed ? [decodeEddystone(ed)].filter(Boolean) : [],
+    ],
+    flat(),
+  );
 }
 
 /** The complete taxonomy, so the grid can show every card with its explanation even when the air is quiet. */

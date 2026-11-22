@@ -1,59 +1,43 @@
 import { detect } from "/_rt/langid.js";
 import { gate } from "/_rt/gate.js";
 import { log, mark } from "./log.js";
+import { Effect } from "/_rt/fx.js";
+import { sum, fromEntries } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 
 const assetURL = (f) => new URL(`./assets/${f}`, import.meta.url).href;
 
 export const LID_HEAD_SEC = 8;
 export const MODEL_ROOT_FS = "/models";
 
-const HF = "https://huggingface.co";
-export const MODELS = {
-  uk: {
-    label: "Українська", type: "moonshine2", approxMB: 120,
-    files: {
-      encoder: `${HF}/onnx-community/moonshine-tiny-uk-ONNX/resolve/main/onnx/encoder_model_quantized.onnx`,
-      mergedDecoder: `${HF}/onnx-community/moonshine-tiny-uk-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx`,
-      tokens: `${HF}/csukuangfj2/sherpa-onnx-moonshine-base-uk-quantized-2026-02-27/resolve/main/tokens.txt`,
-    },
-  },
-  ru: {
-    label: "Русский", type: "transducer", approxMB: 71,
-    files: {
-      encoder: `${HF}/csukuangfj/sherpa-onnx-zipformer-ru-int8-2025-04-20/resolve/main/encoder.int8.onnx`,
-      decoder: `${HF}/csukuangfj/sherpa-onnx-zipformer-ru-int8-2025-04-20/resolve/main/decoder.onnx`,
-      joiner: `${HF}/csukuangfj/sherpa-onnx-zipformer-ru-int8-2025-04-20/resolve/main/joiner.int8.onnx`,
-      tokens: `${HF}/csukuangfj/sherpa-onnx-zipformer-ru-int8-2025-04-20/resolve/main/tokens.txt`,
-    },
-  },
-  en: {
-    label: "English", type: "moonshine", approxMB: 40,
-    files: {
-      preprocessor: `${HF}/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/main/preprocess.onnx`,
-      encoder: `${HF}/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/main/encode.int8.onnx`,
-      uncachedDecoder: `${HF}/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/main/uncached_decode.int8.onnx`,
-      cachedDecoder: `${HF}/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/main/cached_decode.int8.onnx`,
-      tokens: `${HF}/csukuangfj/sherpa-onnx-moonshine-tiny-en-int8/resolve/main/tokens.txt`,
-    },
-  },
-};
+export const MODELS = CONFIG.models;
 
 export const LANGS = Object.keys(MODELS);
 
 const resolveUrl = (u) => u;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const MISS = { miss: true };
 
 export async function decodePcm16k(arrayBuffer, headSeconds = 0) {
   const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AC) throw new Error("no AudioContext");
-  let ctx = new AC({ sampleRate: 16000 });
-  let buf;
-  try { buf = await ctx.decodeAudioData(arrayBuffer.slice(0)); }
-  finally { ctx.close?.(); }
-  let mono = downmix(buf);
-  let rate = buf.sampleRate;
-  if (rate !== 16000) { mono = await resampleTo16k(mono, rate); rate = 16000; }
-  if (headSeconds > 0 && mono.length > headSeconds * 16000) mono = mono.subarray(0, Math.round(headSeconds * 16000));
-  return { pcm: mono, sampleRate: rate, durationSec: buf.duration };
+  const decoded = Effect.acquireUseRelease(
+    Effect.sync(() => new AC({ sampleRate: CONFIG.rate })),
+    (ctx) => tried(() => ctx.decodeAudioData(arrayBuffer.slice(0))),
+    (ctx) => Effect.sync(() => { ctx.close?.(); }),
+  );
+  const resampled = (buf) => {
+    const mono = downmix(buf);
+    return buf.sampleRate !== CONFIG.rate ? tried(() => resampleTo16k(mono, buf.sampleRate)).pipe(Effect.map((pcm) => ({ pcm, rate: CONFIG.rate })))
+      : Effect.succeed({ pcm: mono, rate: buf.sampleRate });
+  };
+  return await Effect.runPromise(decoded.pipe(
+    Effect.flatMap((buf) => resampled(buf).pipe(Effect.map(({ pcm, rate }) => ({
+      pcm: headSeconds > 0 && pcm.length > headSeconds * CONFIG.rate ? pcm.subarray(0, Math.round(headSeconds * CONFIG.rate)) : pcm,
+      sampleRate: rate,
+      durationSec: buf.duration,
+    })))),
+  ));
 }
 
 function downmix(buf) {
@@ -75,55 +59,60 @@ async function resampleTo16k(mono, srcRate) {
   return rendered.getChannelData(0);
 }
 
-const CACHE = "tgvoice-models-v1";
+const CACHE = CONFIG.cache;
 
-async function fetchCached(url, onProgress) {
-  const abs = resolveUrl(url);
-  const cache = await caches.open(CACHE);
-  const hit = await cache.match(abs);
-  if (hit) return new Uint8Array(await hit.arrayBuffer());
-  const res = await fetch(abs);
-  if (!res.ok) throw new Error(`fetch ${res.status}`);
-  const total = Number(res.headers.get("content-length")) || 0;
-  const reader = res.body.getReader();
-  const chunks = []; let got = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
+const drain = (reader, onProgress, total, chunks, got) => tried(() => reader.read()).pipe(
+  Effect.flatMap(({ done, value }) => {
+    if (done) return Effect.succeed({ chunks, got });
     chunks.push(value); got += value.length;
     onProgress?.(got, total);
-  }
-  const bytes = new Uint8Array(got); let off = 0;
-  for (const c of chunks) { bytes.set(c, off); off += c.length; }
-  await cache.put(abs, new Response(bytes, { headers: { "content-type": "application/octet-stream" } }));
-  return bytes;
-}
+    return Effect.suspend(() => drain(reader, onProgress, total, chunks, got));
+  }),
+);
+const download = (abs, onProgress) => tried(() => fetch(abs)).pipe(
+  Effect.flatMap((res) => !res.ok ? Effect.fail(new Error(`fetch ${res.status}`)) : Effect.suspend(() => drain(res.body.getReader(), onProgress, Number(res.headers.get("content-length")) || 0, [], 0))),
+  Effect.map(({ chunks, got }) => {
+    const bytes = new Uint8Array(got); let off = 0;
+    for (const c of chunks) { bytes.set(c, off); off += c.length; }
+    return bytes;
+  }),
+);
+const cached = (url, onProgress) => {
+  const abs = resolveUrl(url);
+  return tried(() => caches.open(CACHE)).pipe(
+    Effect.flatMap((cache) => tried(() => cache.match(abs)).pipe(
+      Effect.flatMap((hit) => hit ? tried(async () => new Uint8Array(await hit.arrayBuffer()))
+        : download(abs, onProgress).pipe(Effect.tap((bytes) => tried(() => cache.put(abs, new Response(bytes, { headers: { "content-type": "application/octet-stream" } })))))),
+    )),
+  );
+};
 
 /** Is a language's whole model already in the cache (so it works offline right now)? */
 export async function isModelCached(lang) {
   if (gate) return lang === "uk";
-  try {
-    const cache = await caches.open(CACHE);
-    for (const u of Object.values(MODELS[lang].files)) if (!(await cache.match(resolveUrl(u)))) return false;
-    return true;
-  } catch { return false; }
+  return await Effect.runPromise(tried(() => caches.open(CACHE)).pipe(
+    Effect.flatMap((cache) => Effect.try({ try: () => Object.values(MODELS[lang].files), catch: (e) => e }).pipe(
+      Effect.flatMap((urls) => Effect.forEach(urls, (u) => tried(() => cache.match(resolveUrl(u))).pipe(
+        Effect.flatMap((hit) => hit ? Effect.void : Effect.fail(MISS)),
+      ), { discard: true })),
+    )),
+    Effect.as(true),
+    Effect.catch(() => Effect.succeed(false)),
+  ));
 }
 
 /** Download every file of a language's model, reporting fraction [0,1]. Idempotent (cache hits are instant). */
 export async function ensureModel(lang, onFraction) {
   const files = Object.entries(MODELS[lang].files);
-  const bytes = {};
   const done = new Array(files.length).fill(0);
   const totalGuess = MODELS[lang].approxMB * 1024 * 1024;
-  for (let i = 0; i < files.length; i++) {
-    const [key, url] = files[i];
-    bytes[key] = await fetchCached(url, (got) => {
-      done[i] = got;
-      onFraction?.(Math.min(0.99, done.reduce((a, b) => a + b, 0) / totalGuess));
-    });
-  }
-  onFraction?.(1);
-  return bytes;
+  return await Effect.runPromise(Effect.forEach(files, ([key, url], i) => cached(url, (got) => {
+    done[i] = got;
+    onFraction?.(Math.min(CONFIG.progressCap, sum(done) / totalGuess));
+  }).pipe(Effect.map((bytes) => [key, bytes]))).pipe(
+    Effect.map(fromEntries),
+    Effect.tap(() => Effect.sync(() => { onFraction?.(1); })),
+  ));
 }
 
 let enginePromise = null;
@@ -131,35 +120,28 @@ let enginePromise = null;
 /** Has the vendored WASM engine been built and committed? False until CI produces it. */
 export async function engineAvailable() {
   if (gate) return true;
-  try { const r = await fetch(assetURL("sherpa-onnx-wasm-web.wasm"), { method: "HEAD" }); return r.ok; }
+  try { const r = await fetch(assetURL(CONFIG.engine.wasm), { method: "HEAD" }); return r.ok; }
   catch { return false; }
 }
 
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error(`script failed: ${src}`));
-    document.head.appendChild(s);
-  });
-}
+const loadScript = (src) => Effect.callback((resume) => {
+  const s = document.createElement("script");
+  s.src = src; s.onload = (ev) => resume(Effect.succeed(ev)); s.onerror = () => resume(Effect.fail(new Error(`script failed: ${src}`)));
+  document.head.appendChild(s);
+});
 
 function loadEngine() {
   if (enginePromise) return enginePromise;
-  enginePromise = (async () => {
-    log("engine: loading scripts");
-    await loadScript(assetURL("sherpa-onnx-asr.js"));
-    await loadScript(assetURL("sherpa-onnx-wasm-web.js"));
-    mark("engine");
-    log("engine: instantiating wasm");
-    const Module = await globalThis.SherpaOnnx({
+  enginePromise = Effect.runPromise(Effect.sync(() => log("engine: loading scripts")).pipe(
+    Effect.andThen(Effect.forEach(CONFIG.engine.scripts, (f) => loadScript(assetURL(f)), { discard: true })),
+    Effect.tap(() => Effect.sync(() => { mark("engine"); log("engine: instantiating wasm"); })),
+    Effect.andThen(tried(() => globalThis.SherpaOnnx({
       locateFile: (p) => assetURL(p),
       print: (s) => log(`wasm: ${s}`),
       printErr: (s) => log(`wasm! ${s}`),
-    });
-    mark(null);
-    log("engine: ready");
-    return Module;
-  })();
+    }))),
+    Effect.tap(() => Effect.sync(() => { mark(null); log("engine: ready"); })),
+  ));
   enginePromise.catch((e) => { log(`engine: FAILED ${e && e.message || e}`); enginePromise = null; });
   return enginePromise;
 }
@@ -174,38 +156,44 @@ async function buildRecognizer(Module, lang, files) {
     paths[key] = p;
   }
   const m = MODELS[lang];
-  const modelConfig = { tokens: paths.tokens, numThreads: 1, debug: 0, provider: "cpu" };
+  const R = CONFIG.recognizer;
+  const modelConfig = { tokens: paths.tokens, numThreads: R.numThreads, debug: R.debug, provider: R.provider };
   if (m.type === "nemo_ctc") { modelConfig.nemoCtc = { model: paths.model }; modelConfig.modelType = "nemo_ctc"; }
   else if (m.type === "transducer") { modelConfig.transducer = { encoder: paths.encoder, decoder: paths.decoder, joiner: paths.joiner }; }
   else if (m.type === "moonshine") { modelConfig.moonshine = { preprocessor: paths.preprocessor, encoder: paths.encoder, uncachedDecoder: paths.uncachedDecoder, cachedDecoder: paths.cachedDecoder }; }
   else if (m.type === "moonshine2") { modelConfig.moonshine = { encoder: paths.encoder, mergedDecoder: paths.mergedDecoder }; }
   const rec = new globalThis.OfflineRecognizer({
-    featConfig: { sampleRate: 16000, featureDim: 80 },
-    modelConfig, decodingMethod: "greedy_search",
+    featConfig: { sampleRate: CONFIG.rate, featureDim: R.featureDim },
+    modelConfig, decodingMethod: R.decodingMethod,
   }, Module);
   if (!rec.handle) { try { rec.free(); } catch { } throw new Error(`modelInit:${lang}`); }
   return rec;
 }
 
-async function withRecognizer(lang, files, fn) {
-  const Module = await loadEngine();
-  mark(`recognizer-${lang}`);
-  log(`recognizer ${lang}: creating session`);
-  const rec = await buildRecognizer(Module, lang, files);
-  try {
-    mark(`run-${lang}`);
-    const out = await fn(rec);
-    mark(null);
-    return out;
-  } finally {
+const withRecognizer = (lang, files, use) => Effect.acquireUseRelease(
+  tried(() => loadEngine()).pipe(
+    Effect.tap(() => Effect.sync(() => { mark(`recognizer-${lang}`); log(`recognizer ${lang}: creating session`); })),
+    Effect.flatMap((Module) => tried(() => buildRecognizer(Module, lang, files)).pipe(Effect.map((rec) => ({ Module, rec })))),
+  ),
+  ({ rec }) => Effect.sync(() => mark(`run-${lang}`)).pipe(
+    Effect.andThen(use(rec)),
+    Effect.tap(() => Effect.sync(() => mark(null))),
+  ),
+  ({ Module, rec }) => Effect.sync(() => {
     try { rec.free(); } catch { }
     try {
       const dir = `${MODEL_ROOT_FS}/${lang}`;
       for (const f of Module.FS.readdir(dir)) if (f !== "." && f !== "..") Module.FS.unlink(`${dir}/${f}`);
     } catch { }
     log(`recognizer ${lang}: freed`);
-  }
-}
+  }),
+);
+const recognize = (lang, files, pcm, onChunk) => withRecognizer(lang, files, (rec) => tried(() => runOne(rec, pcm, onChunk)));
+const decoded = (arrayBuffer) => Effect.sync(() => mark("decode")).pipe(
+  Effect.andThen(tried(() => decodePcm16k(arrayBuffer))),
+  Effect.tap(({ pcm, durationSec }) => Effect.sync(() => { mark(null); log(`decode: ${durationSec.toFixed(1)}s → ${pcm.length} samples`); })),
+);
+const model = (lang, onFraction) => tried(() => ensureModel(lang, onFraction));
 
 export const CHUNK_SEC = 45;
 async function runOne(rec, pcm, onChunk) {
@@ -244,51 +232,48 @@ export async function transcribe(arrayBuffer, lang, onStage) {
     const chosen = lang === "auto" ? "uk" : lang;
     return { text: FIXTURE[chosen], lang: chosen, ambiguous: false };
   }
-  if (!(await engineAvailable())) throw new Error("engineUnavailable");
-
-  if (lang !== "auto") {
-    log(`transcribe ${lang}: start (${arrayBuffer.byteLength}b)`);
-    onStage?.({ stage: "model", lang });
-    const files = await ensureModel(lang, (f) => onStage?.({ stage: "model", fraction: f, lang }));
-    onStage?.({ stage: "decode" });
-    mark("decode");
-    const { pcm, durationSec } = await decodePcm16k(arrayBuffer);
-    mark(null);
-    log(`decode: ${durationSec.toFixed(1)}s → ${pcm.length} samples`);
-    onStage?.({ stage: "transcribe", lang });
-    const text = await withRecognizer(lang, files, (rec) =>
-      runOne(rec, pcm, (fr) => onStage?.({ stage: "transcribe", lang, fraction: fr })));
-    log(`transcribe ${lang}: done (${text.length} chars)`);
-    return { text, lang, ambiguous: false };
-  }
-
-  const avail = [];
-  for (const l of LANGS) if (await isModelCached(l)) avail.push(l);
-  if (!avail.length) throw new Error("noModels");
-  log(`transcribe auto: start (${arrayBuffer.byteLength}b, models: ${avail.join(" ")})`);
-
-  onStage?.({ stage: "decodeHead" });
-  mark("decode");
-  const { pcm, durationSec } = await decodePcm16k(arrayBuffer);
-  mark(null);
-  log(`decode: ${durationSec.toFixed(1)}s → ${pcm.length} samples`);
-  const head = pcm.length > LID_HEAD_SEC * 16000 ? pcm.subarray(0, LID_HEAD_SEC * 16000) : pcm;
-  const wholeClip = head.length === pcm.length;
-
-  const candidates = {};
-  for (const l of avail) {
-    onStage?.({ stage: "detect", lang: l });
-    const files = await ensureModel(l);
-    candidates[l] = await withRecognizer(l, files, (rec) => runOne(rec, head));
-    log(`detect ${l}: ${(candidates[l] || "").length} chars`);
-  }
-  const picked = detect(candidates);
-  log(`detect: picked ${picked.lang} (conf ${picked.confidence.toFixed(2)}${picked.ambiguous ? ", ambiguous" : ""})`);
-  if (wholeClip) return { text: candidates[picked.lang], lang: picked.lang, ambiguous: picked.ambiguous };
-  onStage?.({ stage: "transcribe", lang: picked.lang });
-  const files = await ensureModel(picked.lang);
-  const text = await withRecognizer(picked.lang, files, (rec) =>
-    runOne(rec, pcm, (fr) => onStage?.({ stage: "transcribe", lang: picked.lang, fraction: fr })));
-  log(`transcribe ${picked.lang}: done (${text.length} chars)`);
-  return { text, lang: picked.lang, ambiguous: picked.ambiguous };
+  const stage = (s) => Effect.sync(() => onStage?.(s));
+  const full = (l, files, pcm, ambiguous) => stage({ stage: "transcribe", lang: l }).pipe(
+    Effect.andThen(files),
+    Effect.flatMap((fs) => recognize(l, fs, pcm, (fr) => onStage?.({ stage: "transcribe", lang: l, fraction: fr }))),
+    Effect.tap((text) => Effect.sync(() => log(`transcribe ${l}: done (${text.length} chars)`))),
+    Effect.map((text) => ({ text, lang: l, ambiguous })),
+  );
+  const fixed = Effect.sync(() => log(`transcribe ${lang}: start (${arrayBuffer.byteLength}b)`)).pipe(
+    Effect.andThen(stage({ stage: "model", lang })),
+    Effect.andThen(model(lang, (f) => onStage?.({ stage: "model", fraction: f, lang }))),
+    Effect.flatMap((files) => stage({ stage: "decode" }).pipe(
+      Effect.andThen(decoded(arrayBuffer)),
+      Effect.flatMap(({ pcm }) => full(lang, Effect.succeed(files), pcm, false)),
+    )),
+  );
+  const cachedLangs = Effect.forEach(LANGS, (l) => tried(() => isModelCached(l)).pipe(Effect.map((ok) => (ok ? [l] : [])))).pipe(
+    Effect.map((ls) => ls.flat()),
+    Effect.flatMap((avail) => avail.length ? Effect.succeed(avail) : Effect.fail(new Error("noModels"))),
+  );
+  const candidatesOf = (avail, head) => Effect.reduce(avail, () => ({}), (candidates, l) => stage({ stage: "detect", lang: l }).pipe(
+    Effect.andThen(model(l)),
+    Effect.flatMap((files) => recognize(l, files, head)),
+    Effect.map((text) => ({ ...candidates, [l]: text })),
+    Effect.tap((next) => Effect.sync(() => log(`detect ${l}: ${(next[l] || "").length} chars`))),
+  ));
+  const auto = cachedLangs.pipe(
+    Effect.tap((avail) => Effect.sync(() => log(`transcribe auto: start (${arrayBuffer.byteLength}b, models: ${avail.join(" ")})`))),
+    Effect.flatMap((avail) => stage({ stage: "decodeHead" }).pipe(
+      Effect.andThen(decoded(arrayBuffer)),
+      Effect.flatMap(({ pcm }) => {
+        const head = pcm.length > LID_HEAD_SEC * CONFIG.rate ? pcm.subarray(0, LID_HEAD_SEC * CONFIG.rate) : pcm;
+        const wholeClip = head.length === pcm.length;
+        return candidatesOf(avail, head).pipe(Effect.flatMap((candidates) => {
+          const picked = detect(candidates);
+          log(`detect: picked ${picked.lang} (conf ${picked.confidence.toFixed(2)}${picked.ambiguous ? ", ambiguous" : ""})`);
+          if (wholeClip) return Effect.succeed({ text: candidates[picked.lang], lang: picked.lang, ambiguous: picked.ambiguous });
+          return full(picked.lang, model(picked.lang), pcm, picked.ambiguous);
+        }));
+      }),
+    )),
+  );
+  return await Effect.runPromise(tried(() => engineAvailable()).pipe(
+    Effect.flatMap((ok) => !ok ? Effect.fail(new Error("engineUnavailable")) : lang !== "auto" ? fixed : auto),
+  ));
 }

@@ -9,6 +9,11 @@ import { Panel } from "@microspec/core/runtime/ui.js";
 import { openOutside } from "@microspec/core/runtime/tma.js";
 import { session, restore } from "@microspec/core/runtime/auth.js";
 import { clock, FIXTURE_LIKES } from "./muzak.js";
+import { Effect, Cause } from "@microspec/core/runtime/fx.js";
+import { tried } from "./task.js";
+import { YTLIKES } from "./ytlikes.config.js";
+
+const GONE = Symbol("gone");
 
 const Icon = (icon, cls = "") => html`<iconify-icon icon=${icon} class=${cls}></iconify-icon>`;
 
@@ -26,7 +31,7 @@ try {
   }
 } catch { }
 
-const yt = (route, body = {}) => fetch(`${VPS_PROXY}/google/yt/${route}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });
+const yt = (route, body = {}) => fetch(`${VPS_PROXY}${YTLIKES.route}${route}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(YTLIKES.timeout) });
 const ytErr = async (r) => ((await r.json().catch(() => ({}))).error === "quota" ? "errQuota" : "errLikes");
 
 /** Reads the list (or, `more`, its next page). → `{ was, songs }` when a page grew the list, so a caller walking the
@@ -36,22 +41,30 @@ export async function readLikes(more = false) {
   const was = more ? $likes.get() : null;
   if (more && !was?.next) return null;
   $lBusy.set(more ? "more" : "list");
-  try {
-    let songs = was?.songs || [], page = was?.next || "", j = null;
-    for (let i = 0; i < 4; i++) {
-      const r = await yt("likes", page ? { page } : {});
-      if (!r.ok) { if (r.status === 401) $likes.set({ connected: false }); else $lErr.set(await ytErr(r)); return null; }
-      j = await r.json();
-      if (!j.connected) { $likes.set(j); return null; }
-      const seen = new Set(songs.map((s) => s.id));
-      songs = [...songs, ...j.songs.filter((s) => !seen.has(s.id))];
-      page = j.next || "";
-      if (songs.length > (was?.songs.length || 0) || !page) break;
-    }
-    $likes.set({ ...j, songs, next: page || null });
-    return more ? { was: was.songs, songs } : null;
-  } catch { $lErr.set("errLikes"); return null; }
-  finally { $lBusy.set(""); }
+  const refused = (r) => (r.status === 401 ? Effect.sync(() => $likes.set({ connected: false })) : tried(() => ytErr(r)).pipe(Effect.map((k) => $lErr.set(k)))).pipe(
+    Effect.andThen(Effect.fail(GONE)),
+  );
+  const paged = (page) => tried(() => yt("likes", page ? { page } : {})).pipe(
+    Effect.flatMap((r) => r.ok ? tried(() => r.json()) : refused(r)),
+    Effect.flatMap((j) => j.connected ? Effect.succeed(j) : Effect.sync(() => $likes.set(j)).pipe(Effect.andThen(Effect.fail(GONE)))),
+  );
+  const grown = (songs, page, i) => paged(page).pipe(Effect.flatMap((j) => {
+    const seen = new Set(songs.map((s) => s.id));
+    const all = [...songs, ...j.songs.filter((s) => !seen.has(s.id))];
+    const next = j.next || "";
+    return all.length > (was?.songs.length || 0) || !next || i + 1 >= YTLIKES.pages ? Effect.succeed({ j, songs: all, page: next }) : grown(all, next, i + 1);
+  }));
+  return await Effect.runPromise(grown(was?.songs || [], was?.next || "", 0).pipe(
+    Effect.map(({ j, songs, page }) => {
+      $likes.set({ ...j, songs, next: page || null });
+      return more ? { was: was.songs, songs } : null;
+    }),
+    Effect.catchCause((cause) => Effect.sync(() => {
+      if (Cause.squash(cause) !== GONE) $lErr.set("errLikes");
+      return null;
+    })),
+    Effect.ensuring(Effect.sync(() => $lBusy.set(""))),
+  ));
 }
 
 /** Google's consent, coming back to this app's likes tab (`app` = the app id, edge yt.js keeps a closed list). */

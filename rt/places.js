@@ -1,6 +1,8 @@
 import { gate } from "@microspec/core/runtime/gate.js";
-
-const ENDPOINT = "https://geocoding-api.open-meteo.com/v1/search";
+import { Effect } from "@microspec/core/runtime/fx.js";
+import { filter, flat, isTruthy, map, pipe, take, uniqueBy } from "@microspec/core/runtime/remeda.js";
+import { tried } from "./task.js";
+import { PLACES } from "./places.config.js";
 
 const DIGRAPHS = [["зг", "zgh"], ["ЗГ", "ZGh"], ["Зг", "Zgh"]];
 const MAP = {
@@ -51,25 +53,16 @@ export function formatCoords(lat, lng) {
   return `${one(lat, "N", "S")} ${one(lng, "E", "W")}`;
 }
 
-export async function searchPlaces(query, { count = 8, signal } = {}) {
+export async function searchPlaces(query, { count = PLACES.count, signal } = {}) {
   const q = String(query || "").trim();
-  if (q.length < 2 || gate) return [];
+  if (q.length < PLACES.minQuery || gate) return [];
   const queries = isCyrillic(q) ? [translit(q), q] : [q];
-  const runs = await Promise.all(queries.map(async (name) => {
-    try {
-      const url = `${ENDPOINT}?name=${encodeURIComponent(name)}&count=${count}&language=en&format=json`;
-      const res = await fetch(url, { signal });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return Array.isArray(json?.results) ? json.results : [];
-    } catch { return []; }
-  }));
-  const seen = new Set(), out = [];
-  for (const row of runs.flat()) {
-    const p = toPlace(row);
-    if (!p || seen.has(p.id)) continue;
-    seen.add(p.id);
-    out.push(p);
-  }
-  return out.slice(0, count);
+  const named = (name) => tried(async () => {
+    const res = await fetch(`${PLACES.endpoint}?name=${encodeURIComponent(name)}&count=${count}&language=${PLACES.language}&format=json`, { signal });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return Array.isArray(json?.results) ? json.results : [];
+  }).pipe(Effect.catch(() => Effect.succeed([])));
+  const runs = await Effect.runPromise(Effect.forEach(queries, named, { concurrency: "unbounded" }));
+  return pipe(runs, flat(), map((row) => toPlace(row)), filter(isTruthy), uniqueBy((p) => p.id), take(count));
 }

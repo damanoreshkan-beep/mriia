@@ -12,8 +12,13 @@ import { report } from "/_rt/telemetry.js";
 import { ORGANIC, shapeOf, pathOf } from "/_rt/shape.js";
 import { PRESETS, IDS, KNOBS, ENGINE_KNOBS, tuned, knobValue, buildChain } from "./presets.js";
 import { createGraph } from "./graph.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const STALE = { stale: true };
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
 const FORMS = ORGANIC.filter((n) => !["Flower", "PuffyDiamond", "Puffy"].includes(n));
 const FORM = IDS.reduce((m, id) => {
   const s = FORMS.indexOf(shapeOf(id, FORMS)), used = Object.values(m);
@@ -83,22 +88,33 @@ export function portal({ S, toast, screen, closeScreen }) {
   useEffect(() => {
     if (engine || !hasGL() || !canvasRef.current) return;
     let alive = true;
-    (async () => {
-      let P, F;
-      try { [P, F] = await Promise.all([import("pixi.js"), import("pixi-filters")]); }
-      catch (e) { if (canvasRef.current) canvasRef.current.dataset.err = String(e?.message || e).slice(0, 120); return; }
-      if (!alive) return;
+    const live = (drop) => (v) => alive ? Effect.succeed(v) : Effect.sync(() => drop(v)).pipe(Effect.andThen(Effect.fail(STALE)));
+    const modules = Effect.all([tried(() => import("pixi.js")), tried(() => import("pixi-filters"))], { concurrency: "unbounded" }).pipe(
+      Effect.tapError((e) => Effect.sync(() => { if (canvasRef.current) canvasRef.current.dataset.err = String(e?.message || e).slice(0, CONFIG.errChars); })),
+      Effect.flatMap(live(() => {})),
+    );
+    const start = ([P, F]) => Effect.promise(async () => {
       const app = new P.Application();
-      await app.init({ canvas: canvasRef.current, resizeTo: globalThis, resolution: Math.min(2, globalThis.devicePixelRatio || 1), autoDensity: true, preference: "webgl", antialias: false, backgroundAlpha: 1, background: 0x000000 });
-      if (!alive) { app.destroy(); return; }
-      const graph = await createGraph(P, app);
-      if (!alive) { graph.destroy(); app.destroy(); return; }
+      await app.init({ ...CONFIG.pixi, canvas: canvasRef.current, resizeTo: globalThis, resolution: Math.min(CONFIG.maxResolution, globalThis.devicePixelRatio || 1) });
+      return { P, F, app };
+    }).pipe(Effect.flatMap(live(({ app }) => app.destroy())));
+    const build = ({ P, F, app }) => Effect.promise(() => createGraph(P, app)).pipe(
+      Effect.map((graph) => ({ P, F, app, graph })),
+      Effect.flatMap(live(({ app, graph }) => { graph.destroy(); app.destroy(); })),
+    );
+    const wire = ({ P, F, app, graph }) => Effect.sync(() => {
       app.stage.addChild(graph.out);
       px.P = P; px.F = F; px.app = app; px.graph = graph;
       canvasRef.current.dataset.render = "pixi";
       app.ticker.add((tk) => { const dt = tk.deltaMS / 1000; for (const f of px.filters) if (typeof f.time === "number") f.time += dt; graph.tick(dt); });
       if (px.pending) onVideo(px.pending.el, px.pending);
-    })();
+    });
+    Effect.runPromise(modules.pipe(
+      Effect.flatMap(start),
+      Effect.flatMap(build),
+      Effect.flatMap(wire),
+      Effect.catch(() => Effect.void),
+    ));
     return () => { alive = false; try { px.graph?.destroy(); px.app?.destroy(); } catch { } px.app = null; px.graph = null; };
   }, [engine]);
 
@@ -121,18 +137,20 @@ export function portal({ S, toast, screen, closeScreen }) {
   const save = async () => {
     if (busy || !ready) return;
     setBusy(true);
-    try {
-      if (engine) { await godotSave(`portal-${preset}-${Date.now()}.png`); }
-      else {
-        const { app } = px; if (!app) throw new Error("no stage");
-        const c = app.renderer.extract.canvas(app.stage);
-        const blob = await new Promise((r) => c.toBlob(r, "image/png"));
-        if (!blob) throw new Error("no frame");
-        const url = URL.createObjectURL(blob);
-        try { await downloadUrl(url, `portal-${preset}-${Date.now()}.png`); toast?.(T(t, "saved")); } finally { URL.revokeObjectURL(url); }
-      }
-    } catch { toast?.(T(t, "eSave")); }
-    finally { setBusy(false); }
+    const fileName = () => `portal-${preset}-${Date.now()}.png`;
+    const frame = attempt(() => { const { app } = px; if (!app) throw new Error("no stage"); return app.renderer.extract.canvas(app.stage); }).pipe(
+      Effect.flatMap((c) => Effect.callback((resume) => { try { c.toBlob((b) => resume(Effect.succeed(b)), "image/png"); } catch (e) { resume(Effect.fail(e)); } })),
+      Effect.flatMap((blob) => blob ? Effect.succeed(blob) : Effect.fail(new Error("no frame"))),
+    );
+    const download = (blob) => Effect.acquireUseRelease(
+      attempt(() => URL.createObjectURL(blob)),
+      (url) => tried(() => downloadUrl(url, fileName())).pipe(Effect.andThen(attempt(() => toast?.(T(t, "saved"))))),
+      (url) => Effect.sync(() => URL.revokeObjectURL(url)),
+    );
+    await Effect.runPromise((engine ? tried(() => godotSave(fileName())) : frame.pipe(Effect.flatMap(download))).pipe(
+      Effect.catch(() => Effect.sync(() => toast?.(T(t, "eSave")))),
+      Effect.ensuring(Effect.sync(() => setBusy(false))),
+    ));
   };
 
   const knobs = [...(KNOBS[preset] || KNOBS.plain), ...(engine ? ENGINE_KNOBS : [])];

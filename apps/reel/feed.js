@@ -6,6 +6,9 @@ import { sourceTitle, humanText } from "/_rt/sitelabel.js";
 import { reject } from "lodash-es";
 import { DEFAULT_SRC, MOCK, MOCK_DEEP, GATE_TITLES, GATE_SEARCH } from "./presets.js";
 import { framed } from "./util.js";
+import { Effect } from "/_rt/fx.js";
+import { pipe, filter, map, uniqueBy, zip, flatMap } from "/_rt/remeda.js";
+import { CONFIG } from "./config.js";
 import { $src, subscribe, sessionFor, keepJar, unseen, $items, $next, $loading, $err, $active, $ephemeral, $srcTitle, $srcHint, setSrcTitle, $frames, $restoreTo, $owner, $feedChannel, $full, rememberSearch } from "./store.js";
 
 const snapshot = (label) => ({ label, src: $src.get(), title: $srcTitle.get(), hint: $srcHint.get(), items: $items.get(), next: $next.get(), active: $active.get(), eph: $ephemeral.get(), owner: $owner.get(), err: $err.get() });
@@ -51,38 +54,46 @@ export function openAsSource(S, url, hint, keep = true) {
   S.screen.set(null);
 }
 
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
 const blankPosters = new Set();
 const checkedPosters = new Set();
 function posterIsBlank(poster, page) {
   const isData = poster.startsWith("data:");
   if (gate && !isData) return Promise.resolve(false);
   if (typeof document === "undefined" || typeof Image === "undefined") return Promise.resolve(false);
-  return new Promise((resolve) => {
-    let done = false; const finish = (v) => { if (!done) { done = true; clearTimeout(to); resolve(v); } };
-    const to = setTimeout(() => finish(false), 6000);
-    const sample = (src) => {
-      const img = new Image(); if (!isData) img.crossOrigin = "anonymous";
-      img.onload = () => { try {
-        const c = document.createElement("canvas"); c.width = 24; c.height = 24;
-        const cx = c.getContext("2d", { willReadFrequently: true }); cx.drawImage(img, 0, 0, 24, 24);
-        const px = cx.getImageData(0, 0, 24, 24).data;
-        finish(isBlackSample(px) || isFlatSample(px));
-      } catch { finish(false); } };
-      img.onerror = () => {
-        if (isData || src !== poster) return finish(false);
-        framed(poster, page).then(sample).catch(() => finish(false));
-      };
-      img.src = src;
-    };
-    sample(poster);
+  const side = CONFIG.poster.side;
+  const sample = (src) => Effect.callback((resume) => {
+    const img = new Image(); if (!isData) img.crossOrigin = "anonymous";
+    img.onload = () => { try {
+      const c = document.createElement("canvas"); c.width = side; c.height = side;
+      const cx = c.getContext("2d", { willReadFrequently: true }); cx.drawImage(img, 0, 0, side, side);
+      const px = cx.getImageData(0, 0, side, side).data;
+      resume(Effect.succeed(isBlackSample(px) || isFlatSample(px)));
+    } catch { resume(Effect.succeed(false)); } };
+    img.onerror = () => resume(Effect.fail(src));
+    img.src = src;
   });
+  const at = (src) => sample(src).pipe(
+    Effect.catch(() => isData || src !== poster ? Effect.succeed(false) : tried(() => framed(poster, page)).pipe(
+      Effect.flatMap(at),
+      Effect.catch(() => Effect.succeed(false)),
+    )),
+  );
+  return Effect.runPromise(at(poster).pipe(
+    Effect.timeoutOrElse({ duration: CONFIG.poster.timeoutMs, orElse: () => Effect.succeed(false) }),
+  ));
 }
 export async function checkBlankPosters() {
-  const todo = [];
-  for (const it of $items.get()) { const p = it.poster; if (p && !checkedPosters.has(p)) { checkedPosters.add(p); todo.push([p, it.page || null]); } }
+  const todo = pipe($items.get(),
+    filter((it) => it.poster && !checkedPosters.has(it.poster)),
+    uniqueBy((it) => it.poster),
+    map((it) => [it.poster, it.page || null]),
+  );
+  todo.forEach(([p]) => checkedPosters.add(p));
   if (!todo.length) return;
   const hits = new Set();
-  await pool(todo, 4, async ([p, pg]) => { if (await posterIsBlank(p, pg)) hits.add(p); });
+  await pool(todo, CONFIG.poster.pool, async ([p, pg]) => { if (await posterIsBlank(p, pg)) hits.add(p); });
   if (hits.size) { hits.forEach((p) => blankPosters.add(p)); $items.set(reject($items.get(), (i) => i.poster && hits.has(i.poster))); }
 }
 function clean(arr, { requirePoster = false } = {}) {
@@ -134,31 +145,38 @@ export async function openFull(S, item) {
   S.screen.set("full");
   const settle = (patch) => { const cur = $full.get(); if (cur && cur.page === page) $full.set({ ...cur, ...patch }); };
   if (gate) return settle({ url: item.video });
-  try {
-    const cookie = sessionFor(page);
-    const d = await (await fetch(`${VPS_PROXY}/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: page, cookie, ...(item.confirmAge ? { confirmAge: true } : {}) }) })).json();
-    keepJar(page, cookie, d.jar);
-    if (d.ageGate) return settle({ err: true, age: true });
-    const list = (Array.isArray(d.sources) ? d.sources : []).filter((s) => !s.remote);
+  const info = attempt(() => sessionFor(page)).pipe(
+    Effect.flatMap((cookie) => tried(async () => (await fetch(`${VPS_PROXY}${CONFIG.stream}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: page, cookie, ...(item.confirmAge ? { confirmAge: true } : {}) }) })).json()).pipe(
+      Effect.tap((d) => attempt(() => keepJar(page, cookie, d.jar))),
+    )),
+  );
+  const ladder = (d) => {
     const vars = (Array.isArray(d.variants) ? d.variants : []).filter((v) => v?.url && v?.bandwidth);
     const canLadder = typeof MediaSource !== "undefined" || typeof window.ManagedMediaSource !== "undefined";
-    if (canLadder && vars.length > 1) {
-      const sealed = await Promise.all(vars.map((v) => framed(v.url, page)));
-      const lines = ["#EXTM3U"];
-      vars.forEach((v, i) => {
-        if (!sealed[i]) return;
-        const attrs = [`BANDWIDTH=${Math.round(v.bandwidth)}`];
-        if (v.resolution) attrs.push(`RESOLUTION=${v.resolution}`);
-        if (v.codecs) attrs.push(`CODECS="${v.codecs}"`);
-        lines.push(`#EXT-X-STREAM-INF:${attrs.join(",")}`, sealed[i]);
-      });
-      if (lines.length > 2) {
-        const master = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "application/vnd.apple.mpegurl" }));
-        return settle({ url: master, type: "hls", blob: master, title: humanText(d.title) || title });
-      }
-    }
-    const pick = list.find((s) => s.format === "hls") || list.find((s) => s.height && s.height <= 720) || list[0];
-    if (!pick) return settle({ err: true });
-    settle({ url: await sealedFrameUrl(pick.url, page), type: pick.format === "hls" ? "hls" : "progressive", title: humanText(d.title) || title });
-  } catch { settle({ err: true }); }
+    if (!(canLadder && vars.length > 1)) return Effect.succeed(false);
+    return Effect.forEach(vars, (v) => tried(() => framed(v.url, page)), { concurrency: "unbounded" }).pipe(
+      Effect.map((sealed) => ["#EXTM3U", ...pipe(zip(vars, sealed), filter(([, s]) => s), flatMap(([v, s]) => [
+        `#EXT-X-STREAM-INF:${[`BANDWIDTH=${Math.round(v.bandwidth)}`, v.resolution ? `RESOLUTION=${v.resolution}` : null, v.codecs ? `CODECS="${v.codecs}"` : null].filter(Boolean).join(",")}`, s,
+      ]))]),
+      Effect.flatMap((lines) => lines.length <= 2 ? Effect.succeed(false) : attempt(() => {
+        const master = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: CONFIG.hlsMime }));
+        settle({ url: master, type: "hls", blob: master, title: humanText(d.title) || title });
+        return true;
+      })),
+    );
+  };
+  const progressive = (d, list) => {
+    const pick = list.find((s) => s.format === "hls") || list.find((s) => s.height && s.height <= CONFIG.maxHeight) || list[0];
+    if (!pick) return attempt(() => settle({ err: true }));
+    return tried(() => sealedFrameUrl(pick.url, page)).pipe(
+      Effect.flatMap((url) => attempt(() => settle({ url, type: pick.format === "hls" ? "hls" : "progressive", title: humanText(d.title) || title }))),
+    );
+  };
+  await Effect.runPromise(info.pipe(
+    Effect.flatMap((d) => d.ageGate ? attempt(() => settle({ err: true, age: true }))
+      : attempt(() => (Array.isArray(d.sources) ? d.sources : []).filter((s) => !s.remote)).pipe(
+        Effect.flatMap((list) => ladder(d).pipe(Effect.flatMap((done) => done ? Effect.void : progressive(d, list)))),
+      )),
+    Effect.catch(() => Effect.sync(() => settle({ err: true }))),
+  ));
 }

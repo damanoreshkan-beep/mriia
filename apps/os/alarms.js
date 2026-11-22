@@ -5,6 +5,8 @@ import { T } from "/_rt/i18n.js";
 import { Panel, Segmented } from "/_rt/ui.js";
 import { shell, ERR } from "/_rt/shell.js";
 import { Icon, LABEL } from "./ui.js";
+import { Effect } from "/_rt/fx.js";
+import { tried } from "./probe.js";
 
 const MINUTES = [1, 5, 15, 60];
 
@@ -25,12 +27,13 @@ export function alarms({ S, t, toast }) {
   const schedule = async () => {
     if (busy || why) return;
     setBusy(true);
-    try {
-      const at = Date.now() + mins * 60_000;
-      const r = await shell.call("alarm.set", { id: `os-${at}`, at, title: T(t, "probeAlarmTitle"), body: T(t, "probeAlarmBody") });
-      toast?.(r.exact ? T(t, "alExact") : T(t, "alInexact"));
-      await refresh();
-    } catch (e) { toast?.(e?.code || T(t, "alFailed")); } finally { setBusy(false); }
+    const arm = tried(() => { const at = Date.now() + mins * 60_000; return shell.call("alarm.set", { id: `os-${at}`, at, title: T(t, "probeAlarmTitle"), body: T(t, "probeAlarmBody") }); });
+    await Effect.runPromise(arm.pipe(
+      Effect.flatMap((r) => Effect.try({ try: () => toast?.(r.exact ? T(t, "alExact") : T(t, "alInexact")), catch: (e) => e })),
+      Effect.andThen(tried(() => refresh())),
+      Effect.catch((e) => Effect.sync(() => toast?.(e?.code || T(t, "alFailed")))),
+      Effect.ensuring(Effect.sync(() => setBusy(false))),
+    ));
   };
 
   const drop = async (id) => {

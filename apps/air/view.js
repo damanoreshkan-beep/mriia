@@ -7,13 +7,25 @@ import { shapeOf, pathOf, scalePath, shaper } from "/_rt/shape.js";
 import { eaqiBand, pollutantBand, pollenBand } from "/_rt/air.js";
 import { geo } from "/_rt/sensors.js";
 import { isGate, MOCK, gate } from "/_rt/gate.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const KYIV = { lat: 50.45, lng: 30.52, place: null, located: false };
-const urlFor = (lat, lng) =>
-  `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}` +
-  "&current=european_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen,olive_pollen" +
-  "&hourly=european_aqi&timezone=auto&forecast_days=2";
+const urlFor = (lat, lng) => `${CONFIG.api}?latitude=${lat}&longitude=${lng}${CONFIG.fields}`;
+const airNow = (lat, lng) => Effect.tryPromise({
+  try: async () => {
+    const r = await fetch(urlFor(lat, lng));
+    if (!r.ok) throw 0;
+    const d = await r.json();
+    const start = Math.max(0, (d.hourly?.time || []).findIndex((x) => x >= d.current.time));
+    const hours = (d.hourly?.time || []).slice(start, start + CONFIG.hours).map((time, i) => ({
+      time, aqi: d.hourly.european_aqi[start + i],
+    }));
+    return { current: d.current, hours };
+  },
+  catch: (e) => e,
+});
 
 const AQ = ["#41C06F", "#9BCB3C", "#E4C13A", "#E7742E", "#EC5A4A", "#C94BBA"];
 const clamp = (b, n) => Math.max(0, Math.min(n, b));
@@ -116,22 +128,12 @@ export function air({ S }) {
 
   useEffect(() => {
     if (isGate || MOCK) return;
-    let live = true;
-    const load = async () => {
-      try {
-        const r = await fetch(urlFor(loc.lat, loc.lng));
-        if (!r.ok) throw 0;
-        const d = await r.json();
-        const start = Math.max(0, (d.hourly?.time || []).findIndex((x) => x >= d.current.time));
-        const hours = (d.hourly?.time || []).slice(start, start + 24).map((time, i) => ({
-          time, aqi: d.hourly.european_aqi[start + i],
-        }));
-        if (live) { setData({ current: d.current, hours }); setErr(false); }
-      } catch { if (live) setErr(true); }
-    };
-    load();
-    const id = setInterval(load, 300000);
-    return () => { live = false; clearInterval(id); };
+    const reading = airNow(loc.lat, loc.lng).pipe(
+      Effect.tap((d) => Effect.sync(() => { setData(d); setErr(false); })),
+      Effect.catchCause(() => Effect.sync(() => setErr(true))),
+    );
+    const fiber = Effect.runFork(reading.pipe(Effect.forkChild, Effect.andThen(Effect.sleep(CONFIG.pollMs)), Effect.forever));
+    return () => fiber.interruptUnsafe();
   }, [loc.lat, loc.lng]);
 
   const ready = useReveal(!!data);

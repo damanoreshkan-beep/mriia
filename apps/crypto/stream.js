@@ -1,13 +1,16 @@
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
+
 const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 
-const PAIRS = [
-  ["BTCUSDT", "BTC", "Bitcoin", 62000], ["ETHUSDT", "ETH", "Ethereum", 1770], ["SOLUSDT", "SOL", "Solana", 76],
-  ["XRPUSDT", "XRP", "XRP", 1.08], ["BNBUSDT", "BNB", "BNB", 560], ["DOGEUSDT", "DOGE", "Dogecoin", 0.07],
-  ["ADAUSDT", "ADA", "Cardano", 0.35], ["AVAXUSDT", "AVAX", "Avalanche", 22], ["LINKUSDT", "LINK", "Chainlink", 11],
-  ["DOTUSDT", "DOT", "Polkadot", 4], ["TRXUSDT", "TRX", "TRON", 0.24], ["LTCUSDT", "LTC", "Litecoin", 65],
-  ["TONUSDT", "TON", "Toncoin", 3.2], ["NEARUSDT", "NEAR", "NEAR", 2.5], ["ATOMUSDT", "ATOM", "Cosmos", 4.2],
-  ["UNIUSDT", "UNI", "Uniswap", 7], ["XLMUSDT", "XLM", "Stellar", 0.1], ["ARBUSDT", "ARB", "Arbitrum", 0.35],
-];
+const PAIRS = CONFIG.pairs;
+const session = (url, onMessage) => Effect.callback((resume) => {
+  const ws = new WebSocket(url);
+  ws.onmessage = onMessage;
+  ws.onclose = () => resume(Effect.void);
+  ws.onerror = () => ws.close();
+  return Effect.sync(() => ws.close());
+});
 const META = Object.fromEntries(PAIRS.map(([s, b, n]) => [s, { base: b, name: n }]));
 
 const price = (p) => { p = +p; const d = p >= 1 ? 2 : p >= 0.01 ? 4 : 6; return "$" + p.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }); };
@@ -27,16 +30,9 @@ export function stream(push) {
     return;
   }
 
-  let ws, retry, alive = true;
-  const url = "wss://stream.binance.com:9443/stream?streams=" + PAIRS.map(([s]) => s.toLowerCase() + "@ticker").join("/");
-  const connect = () => {
-    if (!alive) return;
-    ws = new WebSocket(url);
-    ws.onmessage = (e) => { try { const d = JSON.parse(e.data).data; if (d?.s && META[d.s]) rows[d.s] = row(d.s, d.c, d.P, d.q); } catch { } };
-    ws.onclose = () => { if (alive) retry = setTimeout(connect, 2000); };
-    ws.onerror = () => ws.close();
-  };
-  connect();
+  const url = CONFIG.socket + PAIRS.map(([s]) => s.toLowerCase() + "@ticker").join("/");
+  const tick = (e) => { try { const d = JSON.parse(e.data).data; if (d?.s && META[d.s]) rows[d.s] = row(d.s, d.c, d.P, d.q); } catch { } };
+  const fiber = Effect.runFork(session(url, tick).pipe(Effect.andThen(Effect.sleep(CONFIG.reconnectMs)), Effect.forever));
   setInterval(emit, 400);
-  addEventListener("pagehide", () => { alive = false; clearTimeout(retry); ws?.close(); });
+  addEventListener("pagehide", () => fiber.interruptUnsafe());
 }

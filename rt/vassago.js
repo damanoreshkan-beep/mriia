@@ -1,4 +1,5 @@
 import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
+import { filter, groupBy, map, pipe, reduce, values } from "@microspec/core/runtime/remeda.js";
 
 export const VECTORS = [
   { id: "sky", icon: "lucide:moon-star" },
@@ -59,31 +60,28 @@ export const isBig = (e) => rank(e) <= 2;
 /** Events → [{ day, events (ranked), counts: {vector: n} }] for the days in [fromKey, …), sorted; plus the undated
  *  (month/year precision) list. `only` = a vector id to keep, or null. Pure. */
 export function byDay(events, { only = null } = {}) {
-  const days = new Map(), undated = [];
-  for (const e of events || []) {
-    if (only && e.vector !== only) continue;
-    const k = dayOf(e);
-    if (!k) { undated.push(e); continue; }
-    let d = days.get(k);
-    if (!d) days.set(k, (d = { day: k, events: [], counts: {} }));
-    d.events.push(e);
-    d.counts[e.vector] = (d.counts[e.vector] || 0) + 1;
-  }
-  const out = [...days.values()].sort((a, b) => (a.day < b.day ? -1 : 1));
-  for (const d of out) d.events.sort((a, b) => rank(a) - rank(b) || (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
-  return { days: out, undated };
+  const kept = pipe(events || [], filter((e) => !only || e.vector === only), map((e) => ({ e, k: dayOf(e) })));
+  const days = pipe(
+    kept,
+    filter(({ k }) => !!k),
+    groupBy(({ k }) => k),
+    values(),
+    map((group) => ({
+      day: group[0].k,
+      events: group.map(({ e }) => e).sort((a, b) => rank(a) - rank(b) || (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)),
+      counts: reduce(group, (c, { e }) => ({ ...c, [e.vector]: (c[e.vector] || 0) + 1 }), {}),
+    })),
+  ).sort((a, b) => (a.day < b.day ? -1 : 1));
+  return { days, undated: kept.filter(({ k }) => !k).map(({ e }) => e) };
 }
 
 /** The next big event at or after `now` (ms), or null. */
 export function nextBig(events, now) {
-  let best = null, bt = 0;
-  for (const e of events || []) {
-    if (!isBig(e) || (e.date && e.date.length < 10)) continue;
-    const t = startOf(e);
-    if (t < now) continue;
-    if (!best || t < bt || (t === bt && rank(e) < rank(best))) { best = e; bt = t; }
-  }
-  return best;
+  return pipe(
+    events || [],
+    filter((e) => isBig(e) && !(e.date && e.date.length < 10) && !(startOf(e) < now)),
+    reduce((best, e) => (!best || startOf(e) < startOf(best) || (startOf(e) === startOf(best) && rank(e) < rank(best)) ? e : best), null),
+  );
 }
 
 const BODIES = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];

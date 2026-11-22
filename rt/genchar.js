@@ -1,8 +1,10 @@
 import { VPS_PROXY } from "@microspec/core/runtime/feed.js";
-import { startTask, taskSlides, taskCall, followCall, taskKey } from "./task.js";
+import { startTask, taskSlides, taskCall, followCall, taskKey, tried } from "./task.js";
 import { toEnglish } from "@microspec/core/runtime/translate.js";
 import { session } from "@microspec/core/runtime/auth.js";
 import { gate } from "@microspec/core/runtime/gate.js";
+import { Effect, Cause } from "@microspec/core/runtime/fx.js";
+import { GENCHAR } from "./genchar.config.js";
 
 const CHAR = `${VPS_PROXY}/character`;
 export const LOOK = ", full body head to toe, single character, standing A-pose with arms slightly out, facing camera, centered, plain white background, studio lighting, 3d game character render, no text";
@@ -22,14 +24,33 @@ export const nameFrom = (prompt) => String(prompt || "").trim().split(/\s+/).fil
 /** An edge row {char_id, name, kind, glb_url, avatar_url, created_at} → the app's character {id: "my-…", …}. Pure. */
 export const charOf = (r) => ({ id: `my-${r.char_id}`, name: r.name || "", tint: TINTS[parseInt(String(r.char_id).slice(-2), 36) % TINTS.length], kind: r.kind === "creature" ? "creature" : "human", glb: HOST + r.glb_url, avatar: r.avatar_url || "", ts: Date.parse(r.created_at) || Date.now() });
 
-function headShot(url) {
-  return new Promise((ok, no) => {
-    const img = new Image();
-    img.onload = () => { try { const w = img.naturalWidth, h = img.naturalHeight, side = Math.min(w, h * 0.45); const c = document.createElement("canvas"); c.width = c.height = 96; c.getContext("2d").drawImage(img, (w - side) / 2, 0, side, side, 0, 0, 96, 96); ok(c.toDataURL("image/jpeg", 0.85)); } catch (e) { no(e); } };
-    img.onerror = () => no(new Error("load failed"));
-    img.src = url;
-  });
-}
+const STALE = Symbol("stale");
+const { head: HEAD, picture: PICTURE } = GENCHAR;
+
+const headShot = (url) => Effect.callback((resume) => {
+  const img = new Image();
+  img.onload = () => { try { const w = img.naturalWidth, h = img.naturalHeight, side = Math.min(w, h * HEAD.crop); const c = document.createElement("canvas"); c.width = c.height = HEAD.size; c.getContext("2d").drawImage(img, (w - side) / 2, 0, side, side, 0, 0, HEAD.size, HEAD.size); resume(Effect.succeed(c.toDataURL(HEAD.type, HEAD.quality))); } catch (e) { resume(Effect.fail(e)); } };
+  img.onerror = () => resume(Effect.fail(new Error("load failed")));
+  img.src = url;
+});
+
+const described = (photo) => tried(() => taskCall(GENCHAR.task, { route: GENCHAR.vision, body: { image: photo, prompt: LOOK_ASK } })).pipe(
+  Effect.catch((e) => Effect.fail({ code: genStatusCode(e?.status), why: e?.message })),
+  Effect.flatMap((j) => !j?.text ? Effect.fail({ code: "eFailed", why: "vision: empty" })
+    : !looksLikeLook(j.text) ? Effect.fail({ code: "eFailed", why: "vision: " + String(j.text).slice(0, GENCHAR.whyCap) })
+    : Effect.succeed(j.text)),
+);
+
+const framed = (blob) => tried(() => import("@microspec/core/runtime/intake.js")).pipe(
+  Effect.flatMap(({ toDataURL }) => Effect.acquireUseRelease(
+    Effect.sync(() => URL.createObjectURL(blob)),
+    (url) => tried(() => toDataURL(url, GENCHAR.side)).pipe(
+      Effect.map((shot) => shot.data),
+      Effect.flatMap((image) => headShot(url).pipe(Effect.map((avatar) => ({ image, avatar })))),
+    ),
+    (url) => Effect.sync(() => URL.revokeObjectURL(url)),
+  )),
+);
 
 /**
  * The generator an app owns. `app` is its id in the edge's wallet catalogue — the body job is paid from the farm
@@ -45,21 +66,41 @@ export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onC
   let run = 0, t0 = 0;
   const genElapsed = () => (t0 ? (Date.now() - t0) / 1000 | 0 : 0);
 
-  async function followJob(task, alive) {
-    let row;
-    try {
-      row = await followCall(task, { onLive: (l) => {
-        if (!alive()) return;
-        $loading.set(l.stage === "mesh" || l.stage === "rig" || l.stage === "store" ? l.stage : "queued");
-        $pct.set(l.pct || 0);
-      } });
-    } catch (e) { throw { code: "eFailed", why: e?.message }; }
+  const fresh = (alive) => Effect.suspend(() => alive() ? Effect.void : Effect.fail(STALE));
+  const followed = (task, alive) => tried(() => followCall(task, { onLive: (l) => {
     if (!alive()) return;
-    const c = charOf(row);
-    jobSet(null); $loading.set("");
-    onDone(c);
-    return c;
-  }
+    $loading.set(l.stage === "mesh" || l.stage === "rig" || l.stage === "store" ? l.stage : "queued");
+    $pct.set(l.pct || 0);
+  } })).pipe(
+    Effect.catch((e) => Effect.fail({ code: "eFailed", why: e?.message })),
+    Effect.map((row) => {
+      if (!alive()) return undefined;
+      const c = charOf(row);
+      jobSet(null); $loading.set("");
+      onDone(c);
+      return c;
+    }),
+  );
+  const looked = (prompt, photo, alive) => photo
+    ? described(photo).pipe(Effect.tap(() => fresh(alive)), Effect.tap(() => Effect.sync(() => $loading.set("picture"))))
+    : tried(() => toEnglish(prompt));
+  const pictured = (en, alive) => Effect.suspend(() => {
+    let blob = null;
+    const ask = { prompt: lookPrompt(en), quality: PICTURE.quality, aspect: PICTURE.aspect, ratio: PICTURE.ratio, seed: Math.floor(Math.random() * PICTURE.seeds), k: PICTURE.k };
+    return tried(() => taskSlides(PICTURE.route, ask, { onLive: (l) => { if (alive()) $pct.set(l.pct || 0); }, onSlide: (s) => { blob ??= s.blob; } })).pipe(
+      Effect.catch((e) => Effect.fail({ code: e?.status ? genStatusCode(e.status) : "eFailed" })),
+      Effect.tap(() => fresh(alive)),
+      Effect.flatMap((st) => blob ? Effect.succeed(blob) : Effect.fail({ code: st === "busy" ? "eBusy" : "eFailed" })),
+    );
+  });
+  const queued = ({ image, avatar }, name, kind) => Effect.sync(() => { $loading.set("queued"); $pct.set(0); }).pipe(
+    Effect.andThen(tried(() => startTask(GENCHAR.task, { route: GENCHAR.body, body: { app, image, name, kind, avatar }, k: taskKey() }))),
+    Effect.catch((e) => Effect.fail({ code: genStatusCode(e?.status) })),
+    Effect.tap((rep) => Effect.sync(() => {
+      if (rep.status === 202) onCharged?.();
+      jobSet({ task: rep.id, ts: Date.now(), user: whoNow() });
+    })),
+  );
   function fail(e, alive, charged) {
     if (!alive()) return;
     jobSet(null);
@@ -77,37 +118,17 @@ export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onC
     const my = ++run; t0 = Date.now();
     const alive = () => my === run;
     $error.set(""); $pct.set(0); $loading.set(photo ? "look" : "picture");
-    try {
-      let en;
-      if (photo) {
-        let j;
-        try { j = await taskCall("/task", { route: "/feed/vision", body: { image: photo, prompt: LOOK_ASK } }); }
-        catch (e) { throw { code: genStatusCode(e?.status), why: e?.message }; }
-        if (!j?.text) throw { code: "eFailed", why: "vision: empty" };
-        if (!looksLikeLook(j.text)) throw { code: "eFailed", why: "vision: " + String(j.text).slice(0, 80) };
-        en = j.text;
-        if (!alive()) return;
-        $loading.set("picture");
-      } else en = await toEnglish(prompt);
-      let blob = null, st;
-      try {
-        st = await taskSlides("/feed/image", { prompt: lookPrompt(en), quality: "fast", aspect: "portrait", ratio: 0.75, seed: Math.floor(Math.random() * 1e9), k: 2 },
-          { onLive: (l) => { if (alive()) $pct.set(l.pct || 0); }, onSlide: (s) => { blob ??= s.blob; } });
-      } catch (e) { throw { code: e?.status ? genStatusCode(e.status) : "eFailed" }; }
-      if (!alive()) return;
-      if (!blob) throw { code: st === "busy" ? "eBusy" : "eFailed" };
-      const { toDataURL } = await import("@microspec/core/runtime/intake.js");
-      const url = URL.createObjectURL(blob);
-      let image, avatar;
-      try { image = (await toDataURL(url, 1024)).data; avatar = await headShot(url); } finally { URL.revokeObjectURL(url); }
-      $loading.set("queued"); $pct.set(0);
-      let rep;
-      try { rep = await startTask("/task", { route: "/feed/character", body: { app, image, name, kind, avatar }, k: taskKey() }); }
-      catch (e) { throw { code: genStatusCode(e?.status) }; }
-      if (rep.status === 202) onCharged?.();
-      jobSet({ task: rep.id, ts: Date.now(), user: whoNow() });
-      return await followJob(rep.id, alive);
-    } catch (e) { fail(e, alive, true); }
+    return await Effect.runPromise(looked(prompt, photo, alive).pipe(
+      Effect.flatMap((en) => pictured(en, alive)),
+      Effect.flatMap(framed),
+      Effect.flatMap((shots) => queued(shots, name, kind)),
+      Effect.flatMap((rep) => followed(rep.id, alive)),
+      Effect.catchCause((cause) => Effect.sync(() => {
+        const e = Cause.squash(cause);
+        if (e !== STALE) fail(e, alive, true);
+        return undefined;
+      })),
+    ));
   }
 
   /** Pick up the job a previous page load left in flight (boot): the progress continues where it was. */
@@ -120,7 +141,9 @@ export function makeGenerator({ app, jobKey, $loading, $pct, $error, onDone, onC
     const my = ++run; t0 = saved.ts;
     const alive = () => my === run;
     $error.set(""); $pct.set(0); $loading.set("queued");
-    followJob(saved.task, alive).catch((e) => fail(e, alive, false));
+    Effect.runFork(followed(saved.task, alive).pipe(
+      Effect.catchCause((cause) => Effect.sync(() => fail(Cause.squash(cause), alive, false))),
+    ));
   }
 
   /** Forget the wait (the edge finishes on its own and keeps the body in my list). */

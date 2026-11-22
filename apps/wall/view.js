@@ -10,14 +10,19 @@ import { qrDataUri } from "/_rt/qrcode.js";
 import { fitText, fitTextSource, FIT_CSS } from "/_rt/fittext.js";
 import { makeAudience } from "/_rt/audience.js";
 import { wakeLock } from "/_rt/sensors.js";
+import { Effect, Schedule } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const attempt = (fx) => Effect.try({ try: fx, catch: (e) => e });
+const call = (action, args) => tried(() => shell.call(action, args));
 
-const PORT = 8080;
-const FEED = "/feed";
-const POLL_MS = 700;
-const STATUS_MS = 4000;
-const PUBLISH_MS = 200;
+const PORT = CONFIG.port;
+const FEED = CONFIG.feed;
+const POLL_MS = CONFIG.pollMs;
+const STATUS_MS = CONFIG.statusMs;
+const PUBLISH_MS = CONFIG.publishMs;
 
 const VIEWER_PAGE = (title) => `<!doctype html><html><head><meta charset="utf-8">`
   + `<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">`
@@ -75,21 +80,24 @@ async function start(t) {
   if ($busy.get()) return;
   $busy.set(true); $err.set(null);
   if (gate) { $on.set(true); $url.set("http://192.168.1.42:8080/"); $viewers.set(3); $busy.set(false); return; }
-  try {
-    let st;
-    try { st = await shell.call("server.start", { port: PORT }); }
-    catch { st = await shell.call("server.start", { port: 0 }); }
-    await shell.call("server.put", {
-      path: "/", contentType: "text/html; charset=utf-8", base64: b64(VIEWER_PAGE(T(t, "title"))),
-    });
+  const serve = call("server.start", { port: PORT }).pipe(Effect.catch(() => call("server.start", { port: CONFIG.anyPort })));
+  const page = attempt(() => b64(VIEWER_PAGE(T(t, "title")))).pipe(
+    Effect.flatMap((base64) => call("server.put", { path: "/", contentType: "text/html; charset=utf-8", base64 })),
+  );
+  const live = (st) => attempt(() => {
     $on.set(!!st.running);
     $url.set(st.url || "");
     audience.reset();
     $viewers.set(null);
-    await publishNow();
-    if (!st.url) $err.set("noWifi");
-    wakeLock.acquire?.();
-  } catch (e) { noteError(e); }
+  }).pipe(
+    Effect.andThen(tried(() => publishNow())),
+    Effect.andThen(attempt(() => { if (!st.url) $err.set("noWifi"); wakeLock.acquire?.(); })),
+  );
+  await Effect.runPromise(serve.pipe(
+    Effect.tap(() => page),
+    Effect.flatMap(live),
+    Effect.catch((e) => Effect.sync(() => noteError(e))),
+  ));
   $busy.set(false);
 }
 
@@ -118,19 +126,16 @@ export function wallView({ t, S, openScreen, closeScreen }) {
       $on.set(true); $url.set("http://192.168.1.42:8080/"); $viewers.set(3);
       $text.set("Починаємо за 5 хвилин");
     }
-    let timer = null;
-    if (!gate) {
-      timer = setInterval(async () => {
-        if (!$on.get()) return;
-        try {
-          const st = await shell.call("server.status", {});
-          $on.set(!!st.running);
-          if (st.url) $url.set(st.url);
-          $viewers.set(audience.push(st.hits ?? 0, Date.now()));
-        } catch { }
-      }, STATUS_MS);
-    }
-    return () => { clearInterval(timer); clearTimeout(pubTimer); };
+    const status = Effect.suspend(() => !$on.get() ? Effect.void : call("server.status", {}).pipe(
+      Effect.flatMap((st) => attempt(() => {
+        $on.set(!!st.running);
+        if (st.url) $url.set(st.url);
+        $viewers.set(audience.push(st.hits ?? 0, Date.now()));
+      })),
+      Effect.catch(() => Effect.void),
+    ));
+    const poller = gate ? null : Effect.runFork(Effect.sleep(STATUS_MS).pipe(Effect.andThen(status.pipe(Effect.repeat(Schedule.fixed(STATUS_MS))))));
+    return () => { poller?.interruptUnsafe(); clearTimeout(pubTimer); };
   }, []);
 
   useLayoutEffect(() => {

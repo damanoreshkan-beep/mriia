@@ -7,11 +7,17 @@ import { VPS_PROXY } from "/_rt/feed.js";
 import { shell } from "/_rt/shell.js";
 import { buildApk, apkFilename, downloadBlob } from "/_rt/apk.js";
 import { report } from "/_rt/telemetry.js";
+import { Effect, Cause } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 
-const FW_URL = VPS_PROXY + "/m5fw";
-const FLASH_ADDR = 0x0;
+const FW_URL = VPS_PROXY + CONFIG.firmwareRoute;
+const FLASH_ADDR = CONFIG.flashAddress;
+const tried = (fx) => Effect.tryPromise({ try: async () => fx(), catch: (e) => e });
+const squashed = (handle) => Effect.catchCause((cause) => handle(Cause.squash(cause)));
+const flashed = tried(() => shell.call("flash.run", { url: FW_URL, address: FLASH_ADDR }));
+const selfApk = (name) => tried(() => buildApk({ url: location.href.split("#")[0].split("?")[0], name, power: "flash" }));
 
 const R = 54, C = 2 * Math.PI * R;
 const inApk = () => shell.has("flash.run");
@@ -44,28 +50,30 @@ export function iskra({ S, toast }) {
     busyRef.current = true;
     setPhase("flashing"); setPct(0); setMsg(T(t, "connecting"));
     report("flash.start", { via: "native" }, "info");
-    try {
-      const r = await shell.call("flash.run", { url: FW_URL, address: FLASH_ADDR });
-      report("flash.done", { bytes: r?.bytes || 0 }, "info");
-      setPct(1); setMsg(null); setPhase("done"); toast?.(T(t, "toastDone"));
-    } catch (e) {
-      setMsg(String(e?.detail || e?.message || e));
-      setPhase("error");
-      report("flash.error", { code: e?.code || "", msg: String(e?.detail || e?.message || e).slice(0, 160) });
-    } finally {
-      busyRef.current = false;
-    }
+    await Effect.runPromise(flashed.pipe(
+      Effect.tap((r) => Effect.sync(() => {
+        report("flash.done", { bytes: r?.bytes || 0 }, "info");
+        setPct(1); setMsg(null); setPhase("done"); toast?.(T(t, "toastDone"));
+      })),
+      squashed((e) => Effect.sync(() => {
+        setMsg(String(e?.detail || e?.message || e));
+        setPhase("error");
+        report("flash.error", { code: e?.code || "", msg: String(e?.detail || e?.message || e).slice(0, 160) });
+      })),
+      Effect.ensuring(Effect.sync(() => { busyRef.current = false; })),
+    ));
   };
 
   const getApk = async () => {
     if (apkBusy) return;
     setApkBusy(true);
-    try {
+    await Effect.runPromise(Effect.suspend(() => {
       const name = T(t, "title");
-      const blob = await buildApk({ url: location.href.split("#")[0].split("?")[0], name, power: "flash" });
-      downloadBlob(blob, apkFilename(name));
-    } catch (e) { toast?.(String(e?.message || e)); }
-    finally { setApkBusy(false); }
+      return selfApk(name).pipe(Effect.tap((blob) => Effect.sync(() => downloadBlob(blob, apkFilename(name)))));
+    }).pipe(
+      squashed((e) => Effect.sync(() => toast?.(String(e?.message || e)))),
+      Effect.ensuring(Effect.sync(() => setApkBusy(false))),
+    ));
   };
 
   if (!gate && !inApk()) {

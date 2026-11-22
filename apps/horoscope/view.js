@@ -13,13 +13,15 @@ import { VPS_PROXY } from "/_rt/feed.js";
 import { Scramble, Pixels } from "/_rt/skeleton.js";
 import { gate } from "/_rt/gate.js";
 import { PixelFx } from "/_rt/pixelfx.js";
+import { Effect } from "/_rt/fx.js";
+import { CONFIG } from "./config.js";
 
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""}></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70";
 const QS = new URLSearchParams(location.search);
 const SIGN_OVERRIDE = QS.get("sign");
 
-const API = `${VPS_PROXY}/horoscope`;
+const API = `${VPS_PROXY}${CONFIG.route}`;
 const DAY_IDS = ["yesterday", "today", "tomorrow"], DAY_KEYS = ["dYesterday", "dToday", "dTomorrow"];
 
 const ELEMENT_FX = ["flamePillar", "healingBloom", "lightningStrike", "splash"];
@@ -31,7 +33,7 @@ const FORM = ["Puffy", "Clover8Leaf", "Cookie9Sided", "Cookie12Sided", "VerySunn
 
 const $sign = persistentAtom("horoscope.sign", "");
 const clampSign = (n) => Math.max(0, Math.min(11, Number(n) || 0));
-const ck = (s, d) => `horoscope:v3:${s}:${d}`;
+const ck = (s, d) => `${CONFIG.cachePrefix}${s}:${d}`;
 const readCache = (s, d) => { try { return JSON.parse(localStorage.getItem(ck(s, d)) || "null"); } catch { return null; } };
 const writeCache = (s, d, v) => { try { localStorage.setItem(ck(s, d), JSON.stringify(v)); } catch { } };
 
@@ -41,13 +43,16 @@ const GATE = {
   tomorrow: { date: "Jul 24, 2027", ratings: { sex: 4, hustle: 4, vibe: 3, success: 3 }, text: "Your heart has been active, Leo, and you're probably feeling the need to take charge of a certain relationship. Instead of being too hasty in your pursuit of this romance, you should probably do more planning. Look at the situation from a long-term perspective." },
 };
 
-async function fetchReading(signIdx, dayId) {
-  const r = await fetch(`${API}?sign=${signIdx + 1}&day=${dayId}`);
-  if (!r.ok) throw new Error("status " + r.status);
-  const j = await r.json();
-  if (!j || !j.text) throw new Error("empty");
-  return { date: j.date, ratings: j.ratings || {}, text: j.text };
-}
+const reading = (signIdx, dayId) => Effect.tryPromise({
+  try: async () => {
+    const r = await fetch(`${API}?sign=${signIdx + 1}&day=${dayId}`);
+    if (!r.ok) throw new Error("status " + r.status);
+    const j = await r.json();
+    if (!j || !j.text) throw new Error("empty");
+    return { date: j.date, ratings: j.ratings || {}, text: j.text };
+  },
+  catch: (e) => e,
+});
 
 export function horoscope({ S, screen, openScreen, closeScreen }) {
   const t = useStore(S.t);
@@ -66,11 +71,11 @@ export function horoscope({ S, screen, openScreen, closeScreen }) {
     const cached = readCache(signIdx, dayId);
     setData(cached || null);
     setErr(false);
-    let live = true;
-    fetchReading(signIdx, dayId)
-      .then((d) => { if (!live) return; setData(d); setErr(false); writeCache(signIdx, dayId, d); })
-      .catch(() => { if (live) setErr(!cached); });
-    return () => { live = false; };
+    const fiber = Effect.runFork(reading(signIdx, dayId).pipe(
+      Effect.tap((d) => Effect.sync(() => { setData(d); setErr(false); writeCache(signIdx, dayId, d); })),
+      Effect.catchCause(() => Effect.sync(() => setErr(!cached))),
+    ));
+    return () => fiber.interruptUnsafe();
   }, [signIdx, day]);
 
   const { text: readingText, pending: localizing } = useLocalized(data?.text, loc);
