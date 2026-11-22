@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script>
 (function () { try {
+  try { var tgl = (location.hash || "").replace(/^#/, "") + "&" + (location.search || "").replace(/^\?/, ""); if (/tgWebAppData=/.test(tgl)) sessionStorage.setItem("ms:tg-launch", tgl); } catch (e) {}
   if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit/i.test(navigator.userAgent || "")) return;
   var pick = null; try { pick = localStorage.getItem("mriia:site-lang"); } catch (e) {}
   if (pick !== "uk" && pick !== "en") pick = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""]).some(function (l) { return /^uk\b/i.test(l); }) ? "uk" : "en";
