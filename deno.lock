@@ -6,7 +6,7 @@
     "jsr:@deno-library/progress@^1.5.1": "1.5.1",
     "jsr:@deno/cache-dir@0.22.2": "0.22.2",
     "jsr:@deno/graph@0.86": "0.86.9",
-    "jsr:@microspec/core@1": "1.2.205",
+    "jsr:@microspec/core@1": "1.2.206",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/async@1": "1.4.0",
@@ -38,8 +38,8 @@
     "npm:@jsquash/png@3.0.1": "3.0.1",
     "npm:@jsquash/resize@2.1.0": "2.1.0",
     "npm:@jsquash/webp@1.4.0": "1.4.0",
-    "npm:@jsr/microspec__core@1": "1.2.205",
-    "npm:@jsr/microspec__core@1.2.205": "1.2.205",
+    "npm:@jsr/microspec__core@1": "1.2.206",
+    "npm:@jsr/microspec__core@1.2.206": "1.2.206",
     "npm:@nanostores/persistent@0.10.2": "0.10.2_nanostores@0.11.4",
     "npm:@nanostores/preact@0.5.2": "0.5.2_nanostores@0.11.4_preact@10.27.1",
     "npm:@resvg/resvg-wasm@2.6.2": "2.6.2",
@@ -831,8 +831,8 @@
         "npm:wabt"
       ]
     },
-    "@microspec/core@1.2.205": {
-      "integrity": "6397d512e05a8be8933e6d193f4d45c7333612d689115506f54288befc657556",
+    "@microspec/core@1.2.206": {
+      "integrity": "26066c7919acb1deba2c18bf1c42d8e578701103b98fecebc4fce585540fe46e",
       "dependencies": [
         "jsr:@astral/astral",
         "jsr:@b-fuze/deno-dom",
@@ -1006,8 +1006,8 @@
       ],
       "tarball": "https://npm.jsr.io/~/11/@jsr/denosaurs__plug/1.0.3.tgz"
     },
-    "@jsr/microspec__core@1.2.205": {
-      "integrity": "sha512-HvVa9WyPO/i+hRwef22FroFGyVxwWnt9oT+3DrqR71H6bewdkCfb5fHc5IqvV4164GFgYrjpKarqO95uPaRslg==",
+    "@jsr/microspec__core@1.2.206": {
+      "integrity": "sha512-I/kF6wPm/3/URgyWk4DvEKIynDcTD59r5j/zstj8qW1tAU3KiqsYoDlOjXSQ0avjtDBu9q7soGTX7yQzS02Qbg==",
       "dependencies": [
         "@jsquash/png",
         "@jsquash/webp",
@@ -1030,7 +1030,7 @@
         "topojson-client",
         "wabt"
       ],
-      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.205.tgz"
+      "tarball": "https://npm.jsr.io/~/11/@jsr/microspec__core/1.2.206.tgz"
     },
     "@jsr/std__assert@0.213.1": {
       "integrity": "sha512-mbq7QHPHeAJiJJlwmjNI0uoZlvIU2rG89df8ceeJB1pgE5b54DkiNhjQmmfBft0/fYO8/d933rBYwcNzuLxhXA==",

@@ -49,9 +49,9 @@ The shelf is the core's comb DISPLAY (`/_rt/comb.js`, 1.2.161): every song a cel
 outward — the first song in the middle — its cover (from the file, `rt/id3.js`) or the app's light inside its own
 form, the name under it. The machine (`comb.wasm`) owns the lattice, the pan, the snap and the touch; the shader
 draws; `view.js` hands it the songs and gets the tap back (`play` / `toggle`, as before). The playing song is LIT
-(`MARK.lit`: rim and halo in the app's `#5BC8FF`) and BREATHES: `breatheSong` reads the copy on the phone once into
-the bass envelope (core breath.js, 10 Hz) and every frame sends the value at the audio clock to the machine as
-`PARAM.pulse` — the lit cell's scale in comb.frag. So the ORB is gone from the tab: the lit cell is the orb.
+(`MARK.lit`: rim and halo in the app's `#5BC8FF`) and BREATHES: every frame while it plays, `breathe` reads the
+live bass from core breath.js `listen` and sends it to the machine as `PARAM.pulse` — the lit cell's scale in
+comb.frag. So the ORB is gone from the tab: the lit cell is the orb.
 
 above the dock (`[data-island][data-player]`); the island publishes `--island-h` and the comb takes it as the
 field's bottom inset, so the field fades out above the island and never runs under it. The MiniPlayer is gone (the
@@ -64,10 +64,13 @@ stay in flow at the top. Fallback: without WebGL2 the same cells lay out on the 
 twin behind the canvas keeps `[data-song][data-cover]` and `[data-play][aria-pressed]`, so the e2e and a screen
 reader reach every song.
 
-450 ms the cell opens — grows 1.45×, the other songs are pushed away along their lines from it — and a touch closes
-it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
-breath.js `spectrumOf`, Goertzel per 50 ms frame, 55 Hz … 7 kHz, each band normalised to its own range, computed
-once from the copy on the phone — never Web Audio in the playback path) sent every frame at the audio clock as
+450 ms the cell opens — grows 3.4×, its name and line move inside the form over a darkened lower half, the other
+songs are pushed away along their lines from it — and a touch closes it. A streamed song's three actions (keep,
+remix, radio) are round buttons ON the open form's rim, each at the lobe tip nearest its bearing (core shape.js
+`rimAt`, bearings in `config.js` `rim`), so the open cell carries everything and nothing lies over it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
+breath.js `listen`: a `captureStream()` copy of the playing element's sound read by an AnalyserNode, 55 Hz … 7 kHz,
+each band over its own running peak — the element itself never enters Web Audio, so a stopped context costs the
+picture and never the sound, and a streamed song lights up like a kept one) sent every frame as
 `PARAM.band + b`; comb.frag draws them as a corona of filaments in the theme's accent, not bars.
 
 ## The screen

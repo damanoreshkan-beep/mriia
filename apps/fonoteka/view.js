@@ -8,8 +8,8 @@ import { gate } from "/_rt/gate.js";
 import { VPS_PROXY } from "/_rt/feed.js";
 import { Transport, Island } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
-import { shapeOf, pathOf } from "/_rt/shape.js";
-import { envelopeOfBlob, BREATH_HZ, spectrumOfBlob, SPECTRUM_HZ, SPECTRUM_BANDS } from "/_rt/breath.js";
+import { shapeOf, pathOf, rimAt } from "/_rt/shape.js";
+import { listen, SPECTRUM_BANDS } from "/_rt/breath.js";
 import { Comb, MARK, PARAM, COMB_MAX } from "/_rt/comb.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
@@ -47,7 +47,7 @@ const $err = atom("");
 const $cur = atom("");
 const $playing = atom(false);
 const $pos = atom(0), $dur = atom(0);
-let audio = null, hold = null, loaded = gate, kept = "";
+let audio = null, hold = null, tap = null, loaded = gate, kept = "";
 const $repeat = persistentAtom("fonoteka:repeat", "all");
 const flipRepeat = () => $repeat.set($repeat.get() === "one" ? "all" : "one");
 const shownRepeat = (r) => (r === "one" ? "one" : "off");
@@ -170,8 +170,10 @@ function ensure() {
   audio.addEventListener("timeupdate", () => $pos.set(Math.round(audio.currentTime * 1000)));
   audio.addEventListener("durationchange", () => $dur.set(Number.isFinite(audio.duration) ? Math.round(audio.duration * 1000) : 0));
   audio.addEventListener("play", () => { $playing.set(true); hold?.setPlaying(); });
-  audio.addEventListener("pause", () => { $playing.set(false); hold?.setPaused(); });
+  audio.addEventListener("pause", () => { $playing.set(false); hold?.setPaused(); stopBreath(); });
   audio.addEventListener("ended", () => step(1, false));
+  tap = listen(audio);
+  audio.addEventListener("playing", breathe);
   return audio;
 }
 const $yt = gate ? atom("") : persistentAtom("fonoteka:yt", "");
@@ -209,8 +211,6 @@ async function play(id, list) {
   if (!hold) hold = holdAudio({ title: titleOf(s), artist: s.artist || "", onPlay: () => a.play(), onPause: () => a.pause(), onPrev: () => step(-1), onNext: () => step(1) });
   else hold.meta(titleOf(s), s.artist || "", $covers.get()[s.id] || null);
   a.play().catch(() => $playing.set(false));
-  if (s.yt) { stopBreath(); return; }
-  if (breathing !== id) breatheSong(id);
   readyShare(s);
 }
 
@@ -310,33 +310,19 @@ async function mixYt(s) {
   toastFn?.(T(tNow, ok.length === MIX.length ? "mixed" : "mixedPart"));
 }
 
-let combApi = null, breathing = "", unbreathe = () => {};
-const envs = new Map(), specs = new Map();
+let combApi = null, raf = 0;
 const pulse = (v) => { try { combApi?.exports.set(PARAM.pulse, v); } catch { } };
-const bands = (arr, f) => { try { for (let b = 0; b < SPECTRUM_BANDS; b++) combApi?.exports.set(PARAM.band + b, arr ? arr[f * SPECTRUM_BANDS + b] : 0); } catch { } };
-function stopBreath() { unbreathe(); unbreathe = () => {}; breathing = ""; pulse(0); bands(null, 0); }
-async function breatheSong(id) {
-  stopBreath();
-  if (gate || !audio) return;
-  let env = envs.get(id), spec = specs.get(id);
-  if (!env || !spec) {
-    const blob = await store.blob(id).catch(() => null);
-    if (!blob) return;
-    if (!env) { env = await envelopeOfBlob(blob).catch(() => null); if (env) envs.set(id, env); }
-    if (!spec) { spec = await spectrumOfBlob(blob).catch(() => null); if (spec) specs.set(id, spec); }
-    if (!env && !spec) return;
-  }
-  if ($cur.get() !== id || breathing) return;
-  let raf = 0;
+const bands = (arr) => { try { for (let b = 0; b < SPECTRUM_BANDS; b++) combApi?.exports.set(PARAM.band + b, arr ? arr[b] : 0); } catch { } };
+function stopBreath() { cancelAnimationFrame(raf); raf = 0; pulse(0); bands(null); }
+function breathe() {
+  if (gate || !tap || !combApi || raf || !audio || audio.paused) return;
   const tick = () => {
+    if (!combApi || audio.paused) { stopBreath(); return; }
     raf = requestAnimationFrame(tick);
-    if (audio.paused) { pulse(0); bands(null, 0); return; }
-    if (env) pulse((env[Math.min(env.length - 1, Math.floor(audio.currentTime * BREATH_HZ))] || 0) / 255);
-    if (spec) bands(spec, Math.min(spec.length / SPECTRUM_BANDS - 1, Math.floor(audio.currentTime * SPECTRUM_HZ)));
+    const f = tap.frame();
+    pulse(f ? f.pulse : 0); bands(f ? f.bands : null);
   };
   tick();
-  unbreathe = () => cancelAnimationFrame(raf);
-  breathing = id;
 }
 function toggle() {
   if ($playing.get()) { if (gate) $playing.set(false); else audio?.pause(); return; }
@@ -461,7 +447,6 @@ export function fonoteka({ S, toast, confirm }) {
   const picker = useRef();
 
   useEffect(() => {
-    if ($cur.get() && $playing.get()) breatheSong($cur.get());   
     if ($cur.get()) readyShare(songOf($cur.get()));
     return () => { stopBreath(); combApi = null; };
   }, []);
@@ -475,16 +460,16 @@ export function fonoteka({ S, toast, confirm }) {
       { id: "radio", icon: "lucide:radio", label: T(t, "aRadio"), go: () => tune(s) },
     ];
   };
-  const actBtn = (s, a, small) => html`<button key=${a.id} ...${{ [`data-${a.id}`]: s.yt }} aria-label=${`${a.label}: ${titleOf(s)}`} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done}
-    onClick=${a.go} class=${`btn rounded-full sf-raised min-h-0 gap-1.5 font-medium ms-press ${small ? "btn-xs px-2" : "h-10 px-3.5 text-sm"} ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}>
-    ${Icon(a.icon, small ? "text-sm" : "text-base")}<span>${a.label}</span>
+  const actBtn = (s, a) => html`<button key=${a.id} ...${{ [`data-${a.id}`]: s.yt }} aria-label=${`${a.label}: ${titleOf(s)}`} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done}
+    onClick=${a.go} class=${`btn rounded-full sf-raised min-h-0 gap-1.5 font-medium ms-press btn-xs px-2 ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}>
+    ${Icon(a.icon, "text-sm")}<span>${a.label}</span>
   </button>`;
   const cellOf = (it, i, mode) => {
     const s = songOf(it.id); if (!s) return null;
     const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
     const press = () => (on ? toggle() : play(s.id, layerNow));
     const mark = s.yt ? { "data-yt": s.yt } : { "data-song": s.id };
-    if (mode === "gl") return html`<div key=${s.id} ...${mark} data-cover=${cov ? "true" : null}><button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press}><span class="fk-name">${titleOf(s)}</span></button>${s.yt ? actsOf(s).map((a) => actBtn(s, a, true)) : null}</div>`;
+    if (mode === "gl") return html`<div key=${s.id} ...${mark} data-cover=${cov ? "true" : null}><button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press}><span class="fk-name">${titleOf(s)}</span></button>${s.yt ? actsOf(s).map((a) => actBtn(s, a)) : null}</div>`;
     return html`<div key=${s.id} ...${mark} data-cover=${cov ? "true" : null} style=${`--i:${Math.min(i, 14)}`}>
       <button data-play=${s.id} aria-pressed=${on ? "true" : "false"} aria-label=${`${T(t, "aPlay")}: ${titleOf(s)}`} onClick=${press} class="fk-cell ms-press">
         <span class="fk-album">
@@ -494,14 +479,17 @@ export function fonoteka({ S, toast, confirm }) {
         </span>
         <span class="fk-name">${titleOf(s)}</span>
       </button>
-      ${s.yt && on ? html`<div class="flex flex-wrap justify-center gap-1">${actsOf(s).map((a) => actBtn(s, a, true))}</div>` : null}
+      ${s.yt && on ? html`<div class="flex flex-wrap justify-center gap-1">${actsOf(s).map((a) => actBtn(s, a))}</div>` : null}
     </div>`;
   };
   const open = bloom && layer.some((s) => s.id === bloom.id) ? songOf(bloom.id) : null;
-  const caption = open?.yt ? html`<div data-open-caption data-yt=${open.yt} class="fixed z-10 pointer-events-none flex justify-center -translate-x-1/2 w-[22rem] max-w-[100vw]"
-    style=${`left:${bloom.at.x}px;top:${Math.round(bloom.at.y + bloom.at.pitch * (covers[open.id] ? 0.93 : 1.6) + 14)}px`}>
-    <div class="flex items-center gap-2 pointer-events-auto">${actsOf(open).map((a) => actBtn(open, a, false))}</div>
-  </div>` : null;
+  const rim = open?.yt ? html`<div data-open-rim data-yt=${open.yt} class="contents">${actsOf(open).map((a, k) => {
+    const p = rimAt(shapeOf(open.id), CONFIG.rim[k]), R = bloom.at.r;
+    const x = Math.max(28, Math.min(innerWidth - 28, bloom.at.x + (p.x - 0.5) * 2 * R)), y = bloom.at.y + (p.y - 0.5) * 2 * R;
+    return html`<button key=${a.id} ...${{ [`data-${a.id}`]: open.yt }} aria-label=${`${a.label}: ${titleOf(open)}`} title=${a.label} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done} onClick=${a.go}
+      class=${`fixed z-10 btn btn-circle sf-raised min-h-0 w-12 h-12 -translate-x-1/2 -translate-y-1/2 ms-press ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}
+      style=${`left:${Math.round(x)}px;top:${Math.round(y)}px;animation:msReveal .26s ${k * 70}ms both`}>${Icon(a.icon, "text-xl")}</button>`;
+  })}</div>` : null;
   const head = useRef();
   const [headH, setHeadH] = useState(260);
   useEffect(() => {
@@ -568,9 +556,9 @@ export function fonoteka({ S, toast, confirm }) {
     </section>
     </div>
     <${Comb} items=${items} cell=${cellOf} focus=${layer.some((s) => s.id === cur) ? cur : top?.id || null} loading=${top ? !tuned?.songs : songs === null} top=${headH + 32}
-      onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id, layerNow)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; }}
+      onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id, layerNow)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; breathe(); }}
       onBloom=${(it, at) => setBloom(it && songOf(it.id)?.yt ? { id: it.id, at } : null)} />
-    ${caption}
+    ${rim}
     <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set(layer.map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
