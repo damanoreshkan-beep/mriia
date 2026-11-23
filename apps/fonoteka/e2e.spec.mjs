@@ -86,6 +86,9 @@ export default [
       await h.click('[data-comb-twin] [data-radio="dQw4w9WgXcQ"]');
       h.expect(await h.until(`document.querySelector("[data-radio-nav]")?.dataset.depth === "1" && ${yt()} === 5 && document.documentElement.dataset.msOverlays === "1"`), "радіо не провалилось на перший рівень");
       h.expect((await h.count("[data-home]")) === 0, "дім на першому рівні дублює Назад");
+      h.expect((await h.count('[data-save-list="dQw4w9WgXcQ"]')) === 1, "на шарі радіо немає «Зберегти»");
+      await h.tap('[data-save-list="dQw4w9WgXcQ"]');
+      h.expect(await h.until('document.querySelector("[data-save-list]")?.disabled === true'), "«Зберегти» не зберегло радіо");
       await h.click('[data-comb-twin] [data-radio="EdSz0PeLVgY"]');
       h.expect(await h.until(`document.querySelector("[data-radio-nav]")?.dataset.depth === "2" && ${yt()} === 4 && document.documentElement.dataset.msOverlays === "2"`), "радіо не провалилось на другий рівень");
       await h.back();
@@ -96,6 +99,21 @@ export default [
       h.expect(await h.until(`!document.querySelector("[data-radio-nav]") && ${yt()} === 4 && document.documentElement.dataset.msOverlays === "0" && document.documentElement.dataset.msOverlayPending === "0"`), "дім не повернув на головний шар");
       await h.tap("[data-yt-music]");
       h.expect(await h.until(`${yt()} === 0`), "кнопка не сховала соти YT");
+    },
+  },
+  {
+    name: "плейліст: сота з назвою на полиці; дотик відкриває його пісні шаром, Back повертає; на соті Грати · Перемішати · Видалити", run: async (h) => {
+      await ready(h);
+      h.expect((await h.count("[data-comb-twin] [data-playlist]")) === 1, "немає соти плейліста");
+      h.expect((await h.count('[data-comb-twin] [data-list] .fk-name')) === 1 && (await h.count('[data-list][aria-label*="Нічна повільна хвиля"]')) === 1, "у соти плейліста немає назви");
+      for (const a of ["listplay", "shuffle", "listdel"]) h.expect((await h.count(`[data-comb-twin] [data-${a}="f1x2t3u4r5e6l7s8"]`)) === 1, `немає дії ${a} на соті плейліста`);
+      await h.click('[data-comb-twin] [data-list="f1x2t3u4r5e6l7s8"]');
+      h.expect(await h.until(`document.querySelector("[data-radio-nav]")?.dataset.depth === "1" && document.querySelectorAll('[data-comb-twin] [data-yt]').length === 3`), "плейліст не відкрився шаром із трьох пісень");
+      h.expect((await h.count("[data-save-list]")) === 0, "у плейліста зайва кнопка «Зберегти»");
+      await h.back();
+      h.expect(await h.until('!document.querySelector("[data-radio-nav]") && document.documentElement.dataset.msOverlayPending === "0"'), "Back не повернув на полицю");
+      await h.click('[data-comb-twin] [data-listplay="f1x2t3u4r5e6l7s8"]');
+      h.expect(await h.until('document.querySelector("[data-fonoteka]")?.dataset.playing === "true"'), "Грати не запустило плейліст");
     },
   },
   {

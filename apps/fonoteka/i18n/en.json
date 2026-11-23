@@ -68,5 +68,19 @@
   "errKeep": "Could not download the song",
   "errMix": "Could not make the remix",
   "errRadio": "Could not build the radio, try again",
-  "errBusy": "Too many people right now, try again in a minute"
+  "errBusy": "Too many people right now, try again in a minute",
+  "wMin": "min",
+  "playlist": "Playlist",
+  "aSaveList": "Save",
+  "savedListA": "Saved",
+  "savingList": "Naming the playlist…",
+  "savedList": "Playlist “{name}” is on the shelf",
+  "aOpenList": "Open playlist",
+  "aPlayList": "Play",
+  "aShuffle": "Shuffle",
+  "aDelList": "Delete playlist",
+  "delListTitle": "Delete the playlist?",
+  "delListBody": "“{name}” leaves the shelf. The songs stay on YouTube Music.",
+  "errSaveList": "Could not save the playlist",
+  "errListCount": "The shelf is full — 50 playlists"
 }

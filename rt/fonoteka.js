@@ -20,6 +20,37 @@ export const titleOf = (s) => s.title || String(s.name || "").replace(/\.[a-z0-9
 /** 401 stays silent (the runtime's wall); 413/409 are the quota words; the rest one sentence. */
 export const errorKey = (status, why) => (status === 401 ? "" : status === 413 ? "errLarge" : status === 409 ? (why === "too many songs" ? "errCount" : "errFull") : status === 415 ? "errNotAudio" : "errUpload");
 
+/** A playlist cell's line: "12 songs · 41 min" — the count and the whole length, rounded to the minute. */
+export const listLine = (list, words) => {
+  const sec = (list?.songs || []).reduce((a, s) => a + (Number(s.dur) || 0), 0);
+  return `${list?.songs?.length || 0} ${words.songs} · ${Math.max(1, Math.round(sec / 60))} ${words.min}`;
+};
+
+/** The songs a saved radio layer sends: streamed ones only, in the layer's order. */
+export const listOfLayer = (layer) => layer.filter((s) => s.yt).map((s) => ({ yt: s.yt, title: s.title || "", artist: s.artist || "", dur: s.dur || 0, cover: s.cover || null }));
+
+/** Which song each of `n` petals shows at beat `k`: petal p walks the covers from p, one petal moving a beat, so the collage changes one piece at a time. */
+export function petals(covers, n, k) {
+  const m = covers.length;
+  if (!m) return [];
+  return Array.from({ length: n }, (_, p) => covers[(p + n * Math.floor((k + n - 1 - p) / n)) % m]);
+}
+
+/** A copy in a random order (Fisher–Yates), the random source given so a test can pin it. */
+export function shuffled(list, rng = Math.random) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
+
+export const FIXTURE_LISTS = [
+  { id: "f1x2t3u4r5e6l7s8", name: "Нічна повільна хвиля", added: "2026-11-23T20:00:00Z", songs: [
+    { yt: "dQw4w9WgXcQ", title: "0.5 (slowed)", artist: "svnti", dur: 158, cover: null },
+    { yt: "kXYiU_JCYtU", title: "ice - slowed", artist: "ZERTAL", dur: 152, cover: null },
+    { yt: "EdSz0PeLVgY", title: "you need it", artist: "airshade", dur: 158, cover: null },
+  ] },
+];
+
 export const FIXTURE_USAGE = { count: 3, bytes: 17_900_000, maxFiles: 300, maxBytes: 3_000_000_000 };
 export const FIXTURE_SONGS = [
   { id: "a1b2c3d4e5f60718", name: "Rick Astley - Never Gonna Give You Up (slowed + reverb).mp3", title: "Never Gonna Give You Up (slowed + reverb)", artist: "Rick Astley", size: 6_037_204, dur: 250.6, added: "2026-10-07T20:00:00Z" },

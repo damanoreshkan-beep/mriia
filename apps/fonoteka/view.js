@@ -21,7 +21,7 @@ import { authWall } from "/_rt/authwall.js";
 import { takeShared } from "/_rt/share.js";
 import { report } from "/_rt/telemetry.js";
 import { clock } from "/_rt/muzak.js";
-import { isAudio, songLine, usageLine, titleOf, errorKey, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
+import { isAudio, songLine, usageLine, titleOf, errorKey, listLine, listOfLayer, petals, shuffled, FIXTURE_LISTS, FIXTURE_SONGS, FIXTURE_USAGE } from "/_rt/fonoteka.js";
 import { songStore, keeper } from "/_rt/songstore.js";
 import { coverBlob } from "/_rt/id3.js";
 import { Effect, Semaphore, Cause } from "/_rt/fx.js";
@@ -83,6 +83,7 @@ async function load() {
   loaded = true;
   store?.held().then((h) => $held.set(h)).catch(() => {});
   navigator.storage?.persist?.().catch(() => {});
+  readLists();
   await Effect.runPromise(listed.pipe(
     Effect.catchCause(() => Effect.sync(() => { offline(); return "done"; })),
     Effect.flatMap((v) => (v === "refused" ? tried(offline) : Effect.void)),
@@ -100,6 +101,57 @@ const listed = tried(() => postJson(R.list, "{}", { signal: AbortSignal.timeout(
   }),
 );
 const shelf = Effect.all([orNull(() => store?.readShelf()), orNull(() => store?.held())]);
+
+const $lists = atom(gate ? FIXTURE_LISTS : []);
+const $collage = atom({});
+async function readLists() {
+  if (gate || !session.get()) return;
+  const r = await postJson(R.lists, "{}", { signal: AbortSignal.timeout(CONFIG.listTimeoutMs) }).catch(() => null);
+  const j = r?.ok ? await r.json().catch(() => null) : null;
+  if (j?.lists) $lists.set(j.lists);
+}
+const listOf = (id) => (String(id).startsWith("p:") ? $lists.get().find((l) => `p:${l.id}` === id) || null : null);
+const listSongsOf = (l) => l.songs.map((s) => ytOf({ id: s.yt, title: s.title, artist: s.artist, dur: s.dur, cover: s.cover }));
+
+const bitmaps = new Map();
+const bitmapOf = (url) => {
+  if (!bitmaps.has(url)) bitmaps.set(url, Effect.runPromise(coverAt(url)).then((b) => (b ? createImageBitmap(b) : null)).catch(() => null));
+  return bitmaps.get(url);
+};
+let beat = 0, beatAt = 0;
+async function paintList(l) {
+  const covers = [...new Set(l.songs.map((s) => s.cover).filter(Boolean))];
+  if (!covers.length || typeof OffscreenCanvas === "undefined") return;
+  const n = CONFIG.petals, S = CONFIG.collagePx, c = new OffscreenCanvas(S, S), g = c.getContext("2d");
+  const imgs = await Promise.all(petals(covers, n, beat).map(bitmapOf));
+  const turn = (p) => (p * 360 / n - 135) * Math.PI / 180;
+  imgs.forEach((im, p) => {
+    if (!im) return;
+    g.save(); g.beginPath(); g.moveTo(S / 2, S / 2); g.arc(S / 2, S / 2, S, turn(p), turn(p + 1)); g.closePath(); g.clip();
+    const k = Math.max(S / im.width, S / im.height);
+    g.drawImage(im, (S - im.width * k) / 2, (S - im.height * k) / 2, im.width * k, im.height * k);
+    g.restore();
+  });
+  g.strokeStyle = "rgba(0,0,0,0.6)"; g.lineWidth = 3;
+  for (let p = 0; p < n; p++) { g.beginPath(); g.moveTo(S / 2, S / 2); g.lineTo(S / 2 + S * Math.cos(turn(p)), S / 2 + S * Math.sin(turn(p))); g.stroke(); }
+  const ink = getComputedStyle(document.documentElement).getPropertyValue("--app-accent").trim() || "#5BC8FF";
+  const ring = new Image();
+  ring.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="${pathOf(shapeOf(`p:${l.id}`))}" transform="translate(.1 .1) scale(.8)" fill="none" stroke="${ink}" stroke-width=".014"/></svg>`)}`;
+  if (await ring.decode().then(() => true, () => false)) g.drawImage(ring, 0, 0, S, S);
+  const blob = await c.convertToBlob({ type: "image/webp", quality: 0.9 }).catch(() => null);
+  if (!blob) return;
+  const was = $collage.get()[l.id];
+  $collage.set({ ...$collage.get(), [l.id]: URL.createObjectURL(blob) });
+  if (was) URL.revokeObjectURL(was);
+}
+const paintLists = () => { if (!gate) for (const l of $lists.get()) paintList(l); };
+if (!gate) $lists.listen(paintLists);
+function onBeat(level) {
+  const now = performance.now();
+  if (level < CONFIG.petalBeat || now - beatAt < CONFIG.petalGapMs || !$lists.get().length) return;
+  beatAt = now; beat++;
+  paintLists();
+}
 
 async function offline() {
   const [saved, held] = await Effect.runPromise(shelf);
@@ -310,6 +362,46 @@ async function mixYt(s) {
   toastFn?.(T(tNow, ok.length === MIX.length ? "mixed" : "mixedPart"));
 }
 
+async function saveList(layer) {
+  const songs = listOfLayer(layer), key = `save:${songs[0]?.yt}`;
+  if (songs.length < 2 || $acts.get()[key]) return;
+  if (!gate && !session.get()) { authWall.set(authWall.get() + 1); return; }
+  setAct(key, "busy");
+  toastFn?.(T(tNow, "savingList"));
+  if (gate) { setAct(key, "done"); return; }
+  const r = await postJson(R.listsave, JSON.stringify({ locale: document.documentElement.lang === "en" ? "en" : "uk", songs })).catch(() => null);
+  const l = r?.ok ? await r.json().catch(() => null) : null;
+  if (!l?.id) {
+    setAct(key, "");
+    if (r?.status === 401) authWall.set(authWall.get() + 1);
+    else toastFn?.(T(tNow, r?.status === 409 ? "errListCount" : "errSaveList"));
+    report("list.save.fail", { status: r?.status || 0 });
+    return;
+  }
+  $lists.set([l, ...$lists.get()]);
+  setAct(key, "done");
+  toastFn?.(T(tNow, "savedList", { name: l.name }));
+}
+function playList(l, mix) {
+  const songs = listSongsOf(l), order = mix ? shuffled(songs) : songs;
+  if (order.length) play(order[0].id, order);
+}
+function openList(l) {
+  if (!stackOf) return;
+  const st = stackOf.get();
+  if (st[st.length - 1]?.id !== `p:${l.id}`) stackOf.set([...st, { id: `p:${l.id}`, list: l.id }]);
+}
+async function dropList(l) {
+  if (!gate) {
+    const r = await postJson(R.listdel, JSON.stringify({ id: l.id })).catch(() => null);
+    if (!r?.ok) { toastFn?.(T(tNow, "errDelete")); return; }
+  }
+  $lists.set($lists.get().filter((x) => x.id !== l.id));
+  const was = $collage.get()[l.id];
+  if (was) { URL.revokeObjectURL(was); const m = { ...$collage.get() }; delete m[l.id]; $collage.set(m); }
+  toastFn?.(T(tNow, "deleted"));
+}
+
 let combApi = null, raf = 0;
 const pulse = (v) => { try { combApi?.exports.set(PARAM.pulse, v); } catch { } };
 const bands = (arr) => { try { for (let b = 0; b < SPECTRUM_BANDS; b++) combApi?.exports.set(PARAM.band + b, arr ? arr[b] : 0); } catch { } };
@@ -321,6 +413,7 @@ function breathe() {
     raf = requestAnimationFrame(tick);
     const f = tap.frame();
     pulse(f ? f.pulse : 0); bands(f ? f.bands : null);
+    if (f) onBeat(f.pulse);
   };
   tick();
 }
@@ -423,10 +516,11 @@ export function fonoteka({ S, toast, confirm }) {
   const onPhone = songs ? songs.filter((s) => held.has(s.id)).length : 0;
   const cur = useStore($cur), playing = useStore($playing), pos = useStore($pos), dur = useStore($dur), repeat = useStore($repeat);
   const stack = useStore(S.stack), radios = useStore($radios), likes = useStore($likes), yt = useStore($yt), acts = useStore($acts), lErr = useStore($lErr), lBusy = useStore($lBusy);
+  const lists = useStore($lists), collage = useStore($collage);
   const sid = useStore(session)?.sid || "";
   toastFn = toast; tNow = t; stackOf = S.stack;
   useEffect(() => { load(); if (!gate) restore().catch(() => {}); }, []);
-  useEffect(() => { if (!gate && sid && $yt.get() === "on" && !$likes.get()?.connected) readLikes().then(enrich); }, [sid]);
+  useEffect(() => { if (!gate && sid) readLists(); if (!gate && sid && $yt.get() === "on" && !$likes.get()?.connected) readLikes().then(enrich); }, [sid]);
   useEffect(() => {
     const on = () => { if (document.visibilityState === "visible" && $yt.get() === "on" && !$likes.get()?.connected && session.get()) readLikes().then(enrich); };
     document.addEventListener("visibilitychange", on);
@@ -434,25 +528,39 @@ export function fonoteka({ S, toast, confirm }) {
   }, []);
   const ytOn = yt === "on" && !!likes?.connected;
   const top = stack.length ? stack[stack.length - 1] : null;
-  const tuned = top ? radios[top.yt] : null;
-  const layer = top ? (tuned?.songs ? [top, ...tuned.songs] : [])
-    : [...(songs || []), ...(ytOn ? likes.songs.map(ytOf) : [])].slice(0, COMB_MAX);
+  const topList = top?.list ? lists.find((l) => l.id === top.list) || null : null;
+  const tuned = top && !top.list ? radios[top.yt] : null;
+  const shelfLists = top ? [] : lists;
+  const layer = top ? (top.list ? (topList ? listSongsOf(topList) : []) : tuned?.songs ? [top, ...tuned.songs] : [])
+    : [...(songs || []), ...(ytOn ? likes.songs.map(ytOf) : [])].slice(0, COMB_MAX - shelfLists.length);
   layerNow = layer;
   const layerKey = layer.map((s) => s.id).join("|");
   useEffect(() => { ytCovers(layer); }, [layerKey]);
   const [bloom, setBloom] = useState(null);
-  useEffect(() => setBloom((b) => (b && top ? { ...b, id: top.id } : null)), [top?.id]);
+  useEffect(() => setBloom((b) => (b && top && !top.list ? { ...b, id: top.id } : null)), [top?.id]);
   const now = cur ? songOf(cur) : null;
   const askDelete = (s) => confirm({ title: T(t, "delTitle"), body: T(t, "delBody", { name: titleOf(s) }), verb: T(t, "delYes"), onConfirm: () => remove(s) });
+  const askDropList = (l) => confirm({ title: T(t, "delListTitle"), body: T(t, "delListBody", { name: l.name }), verb: T(t, "delYes"), onConfirm: () => dropList(l) });
+  const saveKey = top && !top.list ? acts[`save:${top.yt}`] : null;
   const picker = useRef();
 
   useEffect(() => {
     if ($cur.get()) readyShare(songOf($cur.get()));
     return () => { stopBreath(); combApi = null; };
   }, []);
-  const items = layer.map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, window: s.yt ? covers[s.id] || null : null, color: s.yt ? "secondary" : "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) }));
+  const listWords = { songs: T(t, "wSongs"), min: T(t, "wMin") };
+  const items = [
+    ...shelfLists.map((l) => ({ id: `p:${l.id}`, name: l.name, subtitle: listLine(l, listWords), icon: collage[l.id] || null, window: collage[l.id] || null, color: "accent", mark: MARK.none, form: shapeOf(`p:${l.id}`) })),
+    ...layer.map((s) => ({ id: s.id, name: titleOf(s), subtitle: songLine(s, clock), icon: covers[s.id] || null, window: s.yt ? covers[s.id] || null : null, color: s.yt ? "secondary" : "accent", mark: cur === s.id ? MARK.lit : MARK.none, form: shapeOf(s.id) })),
+  ];
   const onSettle = (it) => { const s = songOf(it.id); if (s && $cur.get() !== s.id) play(s.id, layerNow); };
   const actsOf = (s) => {
+    const l = listOf(s.id);
+    if (l) return [
+      { id: "listplay", icon: "lucide:play", label: T(t, "aPlayList"), go: () => playList(l, false) },
+      { id: "shuffle", icon: "lucide:shuffle", label: T(t, "aShuffle"), go: () => playList(l, true) },
+      { id: "listdel", icon: "lucide:trash-2", label: T(t, "aDelList"), bump: true, go: () => askDropList(l) },
+    ];
     const k = acts[actKey("keep", s)], m = acts[actKey("mix", s)];
     return [
       { id: "keep", icon: k === "done" ? "lucide:check" : "lucide:arrow-down-to-line", label: T(t, k === "done" ? "keptA" : "aKeep"), busy: k === "busy", done: k === "done", go: () => keepYt(s) },
@@ -460,11 +568,21 @@ export function fonoteka({ S, toast, confirm }) {
       { id: "radio", icon: "lucide:radio", label: T(t, "aRadio"), go: () => tune(s) },
     ];
   };
-  const actBtn = (s, a) => html`<button key=${a.id} ...${{ [`data-${a.id}`]: s.yt }} aria-label=${`${a.label}: ${titleOf(s)}`} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done}
+  const actBtn = (s, a) => html`<button key=${a.id} ...${{ [`data-${a.id}`]: s.yt }} data-haptic=${a.bump ? "bump" : null} aria-label=${`${a.label}: ${titleOf(s)}`} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done}
     onClick=${a.go} class=${`btn rounded-full sf-raised min-h-0 gap-1.5 font-medium ms-press btn-xs px-2 ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}>
     ${Icon(a.icon, "text-sm")}<span>${a.label}</span>
   </button>`;
+  const listCell = (l, mode) => {
+    const id = `p:${l.id}`, pic = collage[l.id], f = shapeOf(id);
+    const twin = html`<button data-list=${l.id} aria-label=${`${T(t, "aOpenList")}: ${l.name}`} onClick=${() => openList(l)} class=${mode === "gl" ? "" : "fk-cell ms-press"}>
+      ${mode === "gl" ? null : html`<span class="fk-album"><span class="fk-art" style=${`clip-path:url(#fk-c-${f})`}>${pic ? html`<img src=${pic} alt="" decoding="async" />` : null}</span><svg aria-hidden="true" class="fk-arim" viewBox="0 0 1 1"><path d=${pathOf(f)} /></svg></span>`}
+      <span class="fk-name">${l.name}</span>
+    </button>`;
+    return html`<div key=${id} data-playlist=${l.id}>${twin}${mode === "gl" ? actsOf({ id }).map((a) => actBtn({ id, yt: l.id, title: l.name }, a)) : null}</div>`;
+  };
   const cellOf = (it, i, mode) => {
+    const pl = listOf(it.id);
+    if (pl) return listCell(pl, mode);
     const s = songOf(it.id); if (!s) return null;
     const on = cur === s.id, f = shapeOf(s.id), cov = covers[s.id];
     const press = () => (on ? toggle() : play(s.id, layerNow));
@@ -482,11 +600,13 @@ export function fonoteka({ S, toast, confirm }) {
       ${s.yt && on ? html`<div class="flex flex-wrap justify-center gap-1">${actsOf(s).map((a) => actBtn(s, a))}</div>` : null}
     </div>`;
   };
-  const open = bloom && layer.some((s) => s.id === bloom.id) ? songOf(bloom.id) : null;
+  const bloomList = bloom && shelfLists.some((l) => `p:${l.id}` === bloom.id) ? listOf(bloom.id) : null;
+  const open = bloomList ? { id: bloom.id, yt: bloomList.id, title: bloomList.name }
+    : bloom && layer.some((s) => s.id === bloom.id) ? songOf(bloom.id) : null;
   const rim = open?.yt ? html`<div data-open-rim data-yt=${open.yt} class="contents">${actsOf(open).map((a, k) => {
     const p = rimAt(shapeOf(open.id), CONFIG.rim[k]), R = bloom.at.r;
     const x = Math.max(28, Math.min(innerWidth - 28, bloom.at.x + (p.x - 0.5) * 2 * R)), y = bloom.at.y + (p.y - 0.5) * 2 * R;
-    return html`<button key=${a.id} ...${{ [`data-${a.id}`]: open.yt }} aria-label=${`${a.label}: ${titleOf(open)}`} title=${a.label} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done} onClick=${a.go}
+    return html`<button key=${a.id} ...${{ [`data-${a.id}`]: open.yt }} data-haptic=${a.bump ? "bump" : null} aria-label=${`${a.label}: ${titleOf(open)}`} title=${a.label} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done} onClick=${a.go}
       class=${`fixed z-10 btn btn-circle sf-raised min-h-0 w-12 h-12 -translate-x-1/2 -translate-y-1/2 ms-press ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}
       style=${`left:${Math.round(x)}px;top:${Math.round(y)}px;animation:msReveal .26s ${k * 70}ms both`}>${Icon(a.icon, "text-xl")}</button>`;
   })}</div>` : null;
@@ -512,9 +632,13 @@ export function fonoteka({ S, toast, confirm }) {
     ${top ? html`<nav data-radio-nav data-depth=${stack.length} aria-label=${T(t, "radio")} class="flex items-center gap-2">
       <button data-back aria-label=${T(t, "aBack")} onClick=${() => S.stack.set(stack.slice(0, -1))} class="btn rounded-full sf-raised btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press">${Icon("lucide:arrow-left", "text-[length:var(--ms-icon)]")}</button>
       <div class="min-w-0 flex-1 flex flex-col leading-tight gap-0.5">
-        <span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">${T(t, "radio")}${stack.length > 1 ? ` · ${stack.length}` : ""}</span>
-        <span class="font-semibold text-sm truncate">${[top.artist, titleOf(top)].filter(Boolean).join(" — ")}</span>
+        <span class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-muted">${T(t, top.list ? "playlist" : "radio")}${stack.length > 1 ? ` · ${stack.length}` : ""}</span>
+        <span class="font-semibold text-sm truncate">${top.list ? topList?.name || "" : [top.artist, titleOf(top)].filter(Boolean).join(" — ")}</span>
       </div>
+      ${!top.list && tuned?.songs?.length > 1 ? html`<button data-save-list=${top.yt} aria-label=${T(t, saveKey === "done" ? "savedListA" : "aSaveList")} aria-busy=${saveKey === "busy" ? "true" : null} disabled=${!!saveKey} onClick=${() => saveList(layer)}
+        class=${`btn rounded-full sf-raised shrink-0 h-[var(--ms-ctl)] min-h-0 px-3.5 gap-2 font-medium ms-press ${saveKey === "busy" ? "animate-pulse" : ""} ${saveKey === "done" ? "text-secondary" : ""}`}>
+        ${Icon(saveKey === "done" ? "lucide:check" : "lucide:bookmark-plus", "text-[length:var(--ms-icon)]")}<span class="max-[380px]:hidden">${T(t, saveKey === "done" ? "savedListA" : "aSaveList")}</span>
+      </button>` : null}
       ${stack.length > 1 ? html`<button data-home aria-label=${T(t, "aHome")} onClick=${() => S.stack.set([])} class="btn rounded-full sf-raised btn-circle shrink-0 w-[var(--ms-ctl)] h-[var(--ms-ctl)] min-h-0 ms-press">${Icon("lucide:house", "text-[length:var(--ms-icon)]")}</button>` : null}
     </nav>` : null}
     ${top && err ? html`<div data-err role="alert" class="text-sm text-error">${T(t, err)}</div>` : null}
@@ -555,11 +679,11 @@ export function fonoteka({ S, toast, confirm }) {
       </div>
     </section>
     </div>
-    <${Comb} items=${items} cell=${cellOf} focus=${layer.some((s) => s.id === cur) ? cur : top?.id || null} loading=${top ? !tuned?.songs : songs === null} top=${headH + 32}
-      onOpen=${(it) => { const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id, layerNow)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; breathe(); }}
-      onBloom=${(it, at) => setBloom(it && songOf(it.id)?.yt ? { id: it.id, at } : null)} />
+    <${Comb} items=${items} cell=${cellOf} focus=${layer.some((s) => s.id === cur) ? cur : top && !top.list ? top.id : null} loading=${top ? !top.list && !tuned?.songs : songs === null} top=${headH + 32}
+      onOpen=${(it) => { const l = listOf(it.id); if (l) { openList(l); return; } const s = songOf(it.id); if (s) (cur === s.id ? toggle() : play(s.id, layerNow)); }} onSettle=${onSettle} onReady=${(api) => { combApi = api; breathe(); }}
+      onBloom=${(it, at) => setBloom(it && (songOf(it.id)?.yt || listOf(it.id)) ? { id: it.id, at } : null)} />
     ${rim}
-    <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set(layer.map((s) => shapeOf(s.id)))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
+    <svg aria-hidden="true" width="0" height="0" class="absolute"><defs>${[...new Set(items.map((it) => it.form))].map((n) => html`<clipPath key=${n} id=${`fk-c-${n}`} clipPathUnits="objectBoundingBox"><path d=${pathOf(n)} /></clipPath>`)}</defs></svg>
 
     <input ref=${picker} data-picker type="file" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac" multiple class="hidden" onChange=${(e) => { pickFiles(e.target.files); e.target.value = ""; }} />
   </div>`;
