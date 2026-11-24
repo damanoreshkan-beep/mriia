@@ -507,6 +507,46 @@
     ]
   },
   {
+    "id": "zhym",
+    "title": "Жим",
+    "titles": {
+      "uk": "Жим",
+      "en": "Press"
+    },
+    "tagline": "Камера під обличчям рахує твої віджимання. Секундомір показує мікросекунди, а журнал зберігає ціль на день, календар, такти кожного повтору і кадр обличчя на дні.",
+    "taglines": {
+      "uk": "Камера під обличчям рахує твої віджимання. Секундомір показує мікросекунди, а журнал зберігає ціль на день, календар, такти кожного повтору і кадр обличчя на дні.",
+      "en": "The camera under your face counts your push-ups. The stopwatch shows microseconds, and the log keeps a daily goal, a calendar, the beats of every rep and a frame of your face at the bottom."
+    },
+    "glyph": "lucide:timer",
+    "art": "<path d=\"M10 2h4\"/><path d=\"m12 14 3-3\"/><circle cx=\"12\" cy=\"14\" r=\"8\"/>",
+    "icon": true,
+    "screens": {
+      "uk": [
+        "Підхід",
+        "Журнал"
+      ],
+      "en": [
+        "Set",
+        "Log"
+      ]
+    },
+    "shots": [
+      "set",
+      "log"
+    ],
+    "bg": "#0A0B0B",
+    "fg": "#38E1D0",
+    "href": "./zhym/",
+    "version": "1.3",
+    "category": "wellness",
+    "needs": [
+      "camera",
+      "wakeLock"
+    ],
+    "added": "2026-11-24"
+  },
+  {
     "id": "habits",
     "title": "Звички",
     "titles": {
@@ -1658,7 +1698,7 @@
     "bg": "#0A0906",
     "fg": "#E0B25A",
     "href": "./posol/",
-    "version": "1.5",
+    "version": "1.6",
     "category": "tools",
     "needs": [
       "auth"
@@ -2559,7 +2599,7 @@
     "bg": "#07131A",
     "fg": "#5BC8FF",
     "href": "./fonoteka/",
-    "version": "1.46",
+    "version": "1.47",
     "category": "sound",
     "needs": [
       "auth"
