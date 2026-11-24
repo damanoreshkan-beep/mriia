@@ -18,5 +18,6 @@ export const CONFIG = {
   radioTimeoutMs: 30000,
   likePages: 3,
   mix: ["slowed", "deep"],
-  rim: [304, 46, 128],
+  rim: [112, 138, 164],
+  rimSpread: 2,
 };

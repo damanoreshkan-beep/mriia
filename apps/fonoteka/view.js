@@ -604,7 +604,7 @@ export function fonoteka({ S, toast, confirm }) {
   const open = bloomList ? { id: bloom.id, yt: bloomList.id, title: bloomList.name }
     : bloom && layer.some((s) => s.id === bloom.id) ? songOf(bloom.id) : null;
   const rim = open?.yt ? html`<div data-open-rim data-yt=${open.yt} class="contents">${actsOf(open).map((a, k) => {
-    const p = rimAt(shapeOf(open.id), CONFIG.rim[k]), R = bloom.at.r;
+    const p = rimAt(shapeOf(open.id), CONFIG.rim[k], CONFIG.rimSpread), R = bloom.at.r;
     const x = Math.max(28, Math.min(innerWidth - 28, bloom.at.x + (p.x - 0.5) * 2 * R)), y = bloom.at.y + (p.y - 0.5) * 2 * R;
     return html`<button key=${a.id} ...${{ [`data-${a.id}`]: open.yt }} data-haptic=${a.bump ? "bump" : null} aria-label=${`${a.label}: ${titleOf(open)}`} title=${a.label} aria-busy=${a.busy ? "true" : null} disabled=${a.busy || a.done} onClick=${a.go}
       class=${`fixed z-10 btn btn-circle sf-raised min-h-0 w-12 h-12 -translate-x-1/2 -translate-y-1/2 ms-press ${a.busy ? "animate-pulse" : ""} ${a.done ? "text-secondary" : ""}`}

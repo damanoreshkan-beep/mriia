@@ -66,8 +66,10 @@ reader reach every song.
 
 450 ms the cell opens — grows 3.4×, its name and line move inside the form over a darkened lower half, the other
 songs are pushed away along their lines from it — and a touch closes it. A streamed song's three actions (keep,
-remix, radio) are round buttons ON the open form's rim, each at the lobe tip nearest its bearing (core shape.js
-`rimAt`, bearings in `config.js` `rim`), so the open cell carries everything and nothing lies over it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
+remix, radio) are round buttons ON the open form's rim along its lower right, under the right thumb — bearings
+112° · 138° · 164° in `config.js` `rim`, each snapped to the outline's outermost point within ±2° (core shape.js
+`rimAt`, `rimSpread`); measured over the 13 organic forms two neighbouring centres are 52–74 px apart at R 150 px,
+so the 48 px buttons sit close for one thumb and never touch. The open cell carries everything and nothing lies over it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
 breath.js `listen`: a `captureStream()` copy of the playing element's sound read by an AnalyserNode, 55 Hz … 7 kHz,
 each band over its own running peak — the element itself never enters Web Audio, so a stopped context costs the
 picture and never the sound, and a streamed song lights up like a kept one) sent every frame as
