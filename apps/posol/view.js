@@ -124,7 +124,7 @@ export function posol({ S }) {
   if (!catalog) {
     return html`<div data-posol data-layer="catalog" data-catalog=${catErr ? "error" : "loading"} class="flex flex-col gap-4">
       <div ref=${head} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto flex items-end justify-between gap-3 px-0.5">
-        <h2 class="text-[2rem] font-bold leading-none tracking-tight">${T(t, "catalog")}</h2>
+        <h2 class="text-[length:calc(var(--ms-title)*1.9)] font-bold leading-none tracking-tight">${T(t, "catalog")}</h2>
       </div>
       ${catErr ? html`<div data-catalog-error class="relative z-10 flex flex-col items-center text-center gap-3 py-16 px-6">
         ${Icon("lucide:cloud-off", "text-4xl text-base-content/70")}
@@ -247,7 +247,7 @@ export function posol({ S }) {
     <div ref=${head} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto flex flex-col gap-1 px-0.5">
       <div data-counts class=${`${LABEL} tabular-nums truncate`}>${T(t, "cServices")} ${catalog.services.length} · ${T(t, "cDirections")} ${catalog.directions.length} · ${T(t, "cCountries")} ${live.length}</div>
       <div class="flex items-center justify-between gap-3">
-        <h2 class="text-[2rem] font-bold leading-none tracking-tight">${T(t, "catalog")}</h2>
+        <h2 class="text-[length:calc(var(--ms-title)*1.9)] font-bold leading-none tracking-tight">${T(t, "catalog")}</h2>
         ${countryChip("max-w-[55%]")}
       </div>
     </div>
