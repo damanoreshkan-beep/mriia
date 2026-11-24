@@ -9,7 +9,7 @@ import { VPS_PROXY } from "/_rt/feed.js";
 import { Transport, Island } from "/_rt/ui.js";
 import { advance } from "/_rt/player.js";
 import { shapeOf, pathOf, rimAt } from "/_rt/shape.js";
-import { listen, SPECTRUM_BANDS } from "/_rt/breath.js";
+import { listen, spectrumOfBlob, SPECTRUM_HZ, SPECTRUM_BANDS } from "/_rt/breath.js";
 import { Comb, MARK, PARAM, COMB_MAX } from "/_rt/comb.js";
 import { holdAudio } from "/_rt/mediasession.js";
 import { sealedUrl } from "/_rt/sealedfetch.js";
@@ -402,18 +402,38 @@ async function dropList(l) {
   toastFn?.(T(tNow, "deleted"));
 }
 
-let combApi = null, raf = 0;
+let combApi = null, raf = 0, spec = null, specOf = "", told = "";
 const pulse = (v) => { try { combApi?.exports.set(PARAM.pulse, v); } catch { } };
 const bands = (arr) => { try { for (let b = 0; b < SPECTRUM_BANDS; b++) combApi?.exports.set(PARAM.band + b, arr ? arr[b] : 0); } catch { } };
 function stopBreath() { cancelAnimationFrame(raf); raf = 0; pulse(0); bands(null); }
+const DEAF = { ctx: "none", track: "none", fault: "no capture", heard: false };
+function tell(id, src) {
+  if (told === id) return;
+  told = id;
+  report("spectrum", { src, yt: id.startsWith("y:"), ...(tap ? tap.state() : DEAF) }, "info");
+}
+function readKept(id) {
+  if (specOf === id) return;
+  specOf = id; spec = null;
+  tell(id, "kept");
+  store?.blob(id).then((b) => (b ? spectrumOfBlob(b) : null)).then((s) => { if (specOf === id) spec = s; }).catch(() => {});
+}
+function keptFrame() {
+  const n = Math.floor(spec.length / SPECTRUM_BANDS), f = Math.min(n - 1, Math.floor(audio.currentTime * SPECTRUM_HZ));
+  return f < 0 ? null : spec.subarray(f * SPECTRUM_BANDS, (f + 1) * SPECTRUM_BANDS);
+}
 function breathe() {
-  if (gate || !tap || !combApi || raf || !audio || audio.paused) return;
+  if (gate || !combApi || raf || !audio || audio.paused) return;
   const tick = () => {
     if (!combApi || audio.paused) { stopBreath(); return; }
     raf = requestAnimationFrame(tick);
-    const f = tap.frame();
-    pulse(f ? f.pulse : 0); bands(f ? f.bands : null);
-    if (f) onBeat(f.pulse);
+    const id = $cur.get() || "", f = tap?.frame() || null, live = !!f && tap.state().heard;
+    if (live) tell(id, "live");
+    else if (id && audio.currentTime > CONFIG.liveWaitS) readKept(id);
+    const k = !live && spec && specOf === id ? keptFrame() : null;
+    const b = live ? f.bands : k, p = live ? f.pulse : k ? (k[0] + k[1]) / 510 : 0;
+    pulse(p); bands(b);
+    if (b) onBeat(p);
   };
   tick();
 }

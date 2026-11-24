@@ -20,4 +20,5 @@ export const CONFIG = {
   mix: ["slowed", "deep"],
   rim: [112, 138, 164],
   rimSpread: 2,
+  liveWaitS: 2,
 };

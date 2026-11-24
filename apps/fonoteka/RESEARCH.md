@@ -72,7 +72,9 @@ remix, radio) are round buttons ON the open form's rim along its lower right, un
 so the 48 px buttons sit close for one thumb and never touch. The open cell carries everything and nothing lies over it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
 breath.js `listen`: a `captureStream()` copy of the playing element's sound read by an AnalyserNode, 55 Hz … 7 kHz,
 each band over its own running peak — the element itself never enters Web Audio, so a stopped context costs the
-picture and never the sound, and a streamed song lights up like a kept one) sent every frame as
+picture and never the sound, and a streamed song lights up like a kept one; where the copy carries no sound after
+`liveWaitS` of play, a song kept on the phone is decoded once with `spectrumOfBlob` and read at the audio clock, and
+one `spectrum` telemetry row a song names the source and `listen().state()`) sent every frame as
 `PARAM.band + b`; comb.frag draws them as a corona of filaments in the theme's accent, not bars.
 
 ## The screen
