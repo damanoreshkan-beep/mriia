@@ -196,7 +196,7 @@ export function posol({ S }) {
     const value = (row) => row.kind === "url"
       ? html`<a href=${row.value} target="_blank" rel="noopener noreferrer" class="link link-hover break-all">${row.value}</a>`
       : html`<span class="break-words">${shown(row)}</span>`;
-    const rowsOf = (rows) => rows.length ? html`<dl class="flex flex-col [&>div+div]:border-t [&>div+div]:border-base-content/10">${rows.map((row, i) => html`<div key=${i} data-row class="flex gap-3 py-2 text-sm">
+    const rowsOf = (rows) => rows.length ? html`<dl class="flex flex-col">${rows.map((row, i) => html`<div key=${i} data-row class=${`flex gap-3 py-2 text-sm ${i ? "border-t border-base-content/10" : ""}`}>
       <dt class=${`${LABEL} w-[38%] shrink-0 pt-0.5 break-words`}>${row.key || "·"}</dt><dd class="min-w-0 flex-1">${value(row)}</dd>
     </div>`)}</dl>` : null;
     const listsOf = (lists) => lists.map((l) => html`<div key=${l.key} data-list class="flex flex-col gap-1.5">

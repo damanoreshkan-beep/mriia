@@ -44,7 +44,7 @@
   "errDomain": "A domain is needed, like example.com",
   "errLong": "Too long — up to 300 characters",
   "errBad": "The envoy did not accept this value. Check it.",
-  "errNoExit": "No live exit in {country} right now. Choose another country.",
+  "errNoExit": "{country}: no live exit right now. Choose another country.",
   "errBusy": "Every envoy is out. Try again in a minute.",
   "errAuth": "Sign in to send the envoy.",
   "errOffline": "No connection. Check the network and try again.",
