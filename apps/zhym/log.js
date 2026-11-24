@@ -10,7 +10,6 @@ import { $goal, $pick, $sets, loadSets } from "./engine.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""} aria-hidden="true"></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70 truncate";
 const GOALS = [10, 1000];
-const EYES_KEY = { open: "eyesOpen", closed: "eyesClosed", winkL: "winkL", winkR: "winkR" };
 
 const Stat = (label, value, unit, attr) => html`<div class="rounded-[var(--ms-r-in)] sf-inset px-3 py-2 min-w-0" ...${attr || {}}>
   <div class=${LABEL}>${label}</div>
@@ -24,7 +23,7 @@ function GoalPanel({ t, done, goal, streak }) {
     <div class="flex items-center gap-3">
       <button class="btn btn-circle btn-ghost sf-raised" data-goal-less aria-label=${T(t, "goalLess")} onClick=${() => set(goal - 10)}>${Icon("lucide:minus", "text-lg")}</button>
       <div class="flex-1 text-center min-w-0">
-        <div class="font-mono font-bold tabular-nums leading-none text-[length:var(--ms-hero)]"><span data-done>${done}</span><span class="text-base-content/50"> / </span><span data-goal>${goal}</span></div>
+        <div class="font-mono font-bold tabular-nums leading-none whitespace-nowrap text-[clamp(1.75rem,9vw,2.75rem)]"><span data-done>${done}</span><span class="text-base-content/50"> / </span><span data-goal>${goal}</span></div>
       </div>
       <button class="btn btn-circle btn-ghost sf-raised" data-goal-more aria-label=${T(t, "goalMore")} onClick=${() => set(goal + 10)}>${Icon("lucide:plus", "text-lg")}</button>
     </div>
@@ -98,7 +97,7 @@ function RepSheet({ t, loc, open, onClose, sets }) {
         ${row(T(t, "up"), `${fmtSec(tt.up)} ${T(t, "unitS")}`)}
         ${row(T(t, "rEyeL"), pct(r.eyes && r.eyes.l))}
         ${row(T(t, "rEyeR"), pct(r.eyes && r.eyes.r))}
-        ${r.eyes ? row(T(t, "rEyes"),T(t, EYES_KEY[r.eyes.state] || "eyesOpen")) : null}
+        ${r.eyes ? row(T(t, "rEyes"), T(t, `es_${r.eyes.state}`)) : null}
         ${row(T(t, "rGaze"), r.gaze ? T(t, `gaze_${r.gaze.dir}`) : "—")}
         ${row(T(t, "rExpr"), r.expr ? T(t, `expr_${r.expr.id}`) : "—")}
       </div>
