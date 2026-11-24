@@ -107,7 +107,7 @@ export function posol({ S }) {
   const pick = (c) => { $country.set(c.code); pop(); };
   const countryName = (c) => (c ? loc(c.name) || c.code : "");
 
-  const countryChip = (cls = "") => html`<button data-country-pick aria-label=${`${T(t, "aCountry")}: ${countryName(picked)}`} onClick=${() => push("countries")} class=${`${PILL} px-3.5 min-w-0 max-w-full ${cls}`}>
+  const countryChip = (cls = "") => html`<button data-country-pick aria-label=${`${T(t, "aCountry")}: ${countryName(picked)}`} onClick=${() => push("countries")} class=${`${PILL} px-3.5 min-w-0 ${cls || "max-w-full"}`}>
     ${Icon("lucide:globe", "text-[length:var(--ms-icon)] shrink-0")}
     <span class="font-mono text-sm tabular-nums shrink-0">${code || "··"}</span>
     <span class="truncate min-w-0">${countryName(picked)}</span>
@@ -244,12 +244,12 @@ export function posol({ S }) {
   </div>` : null;
 
   return html`<div data-posol data-layer="catalog" data-catalog=${catErr ? "kept" : "ready"} data-services=${catalog.services.length} class="flex flex-col gap-4">
-    <div ref=${head} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto flex items-end justify-between gap-3 px-0.5">
-      <div class="flex flex-col gap-1 min-w-0">
-        <div data-counts class=${`${LABEL} tabular-nums truncate`}>${T(t, "cServices")} ${catalog.services.length} · ${T(t, "cDirections")} ${catalog.directions.length} · ${T(t, "cCountries")} ${live.length}</div>
+    <div ref=${head} class="relative z-10 pointer-events-none [&_button]:pointer-events-auto flex flex-col gap-1 px-0.5">
+      <div data-counts class=${`${LABEL} tabular-nums truncate`}>${T(t, "cServices")} ${catalog.services.length} · ${T(t, "cDirections")} ${catalog.directions.length} · ${T(t, "cCountries")} ${live.length}</div>
+      <div class="flex items-center justify-between gap-3">
         <h2 class="text-[2rem] font-bold leading-none tracking-tight">${T(t, "catalog")}</h2>
+        ${countryChip("max-w-[55%]")}
       </div>
-      ${countryChip("max-w-[48%]")}
     </div>
     <${Comb} items=${items} groups=${groups} cell=${cell} top=${headH + 32} onOpen=${(it) => openSvc(it.id)} onBloom=${(it) => setBloom(it ? it.id : null)} />
     ${caption}
