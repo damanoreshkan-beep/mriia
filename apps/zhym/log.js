@@ -73,9 +73,7 @@ function SetBlock({ t, loc, set, n, openScreen }) {
       ${set.reps.map((r, i) => html`<button key=${i} class="zh-frame aspect-square rounded-[var(--ms-r-in)] overflow-hidden"
           data-rep=${i} aria-label=${T(t, "repN", { n: i + 1 })} onClick=${() => { $pick.set({ id: set.id, i, n }); openScreen("rep"); }}>
         ${r.frame ? html`<img src=${r.frame} alt="" loading="lazy" decoding="async" />` : null}
-        <span class="absolute left-1 bottom-1 z-[1] font-mono text-[0.625rem] leading-none px-1 py-0.5 rounded bg-black/55 text-white tabular-nums">${i + 1}</span>
-        ${r.eyes && r.eyes.state === "closed" ? html`<span class="absolute right-1 top-1 z-[1] text-white drop-shadow">${Icon("lucide:eye-closed", "text-xs")}</span>` : null}
-      </button>`)}
+        <span class="absolute left-1 bottom-1 z-[1] font-mono text-[0.625rem] leading-none px-1 py-0.5 rounded bg-black/55 text-white tabular-nums">${i + 1}</span>      </button>`)}
     </div>
   <//>`;
 }
@@ -86,8 +84,7 @@ function RepSheet({ t, loc, open, onClose, sets }) {
   const tt = r ? tempoOf(r) : null;
   const row = (k, v, attr) => html`<div class="flex items-baseline justify-between gap-3 py-1.5 border-b border-base-content/10 last:border-0" ...${attr || {}}>
     <span class="text-sm text-base-content/75">${k}</span><span class="font-mono tabular-nums text-sm text-right">${v}</span></div>`;
-  const pct = (v) => v == null ? "—" : `${Math.round(v * 100)}%`;
-  return html`<${Sheet} id="repsheet" open=${open && !!r} onClose=${onClose} locale=${loc} icon="lucide:scan-face"
+  return html`<${Sheet} id="repsheet" open=${open && !!r} onClose=${onClose} locale=${loc} icon="lucide:timer"
       title=${r ? T(t, "repN", { n: pick.i + 1 }) : ""} subtitle=${set ? T(t, "setN", { n: pick.n }) : ""}>
     ${r ? html`<div class="flex flex-col gap-[var(--ms-gap)]" data-rep-detail>
       <div class="zh-frame w-44 aspect-square mx-auto rounded-[var(--ms-r)] overflow-hidden">${r.frame ? html`<img src=${r.frame} alt="" />` : null}</div>
@@ -97,11 +94,6 @@ function RepSheet({ t, loc, open, onClose, sets }) {
         ${row(T(t, "rEnd"), fmtClock(r.t1))}
         ${row(T(t, "down"), `${fmtSec(tt.down)} ${T(t, "unitS")}`)}
         ${row(T(t, "up"), `${fmtSec(tt.up)} ${T(t, "unitS")}`)}
-        ${row(T(t, "rEyeL"), pct(r.eyes && r.eyes.l))}
-        ${row(T(t, "rEyeR"), pct(r.eyes && r.eyes.r))}
-        ${r.eyes ? row(T(t, "rEyes"), T(t, `es_${r.eyes.state}`)) : null}
-        ${row(T(t, "rGaze"), r.gaze ? T(t, `gaze_${r.gaze.dir}`) : "—")}
-        ${row(T(t, "rExpr"), r.expr ? T(t, `expr_${r.expr.id}`) : "—")}
       </div>
     </div>` : null}
   <//>`;

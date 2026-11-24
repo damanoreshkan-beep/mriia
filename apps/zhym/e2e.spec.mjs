@@ -3,14 +3,13 @@ const has = (s) => `!!document.querySelector(${q(s)})`;
 
 export default [
   {
-    name: "підхід: лічильник, секундомір з мікросекундами, чипи, сцена камери", run: async (h) => {
+    name: "підхід: лічильник, секундомір з мікросекундами, шкала наближення, сцена камери", run: async (h) => {
       h.expect(await h.until(has("[data-count]")), "немає лічильника");
       h.expect(/^\d+$/.test((await h.text("[data-count]")).trim()), "лічильник не число");
       h.expect(/^\d{2}:\d{2}\.\d{6}$/.test((await h.text("[data-clock]")).trim()), "секундомір без шести знаків");
       h.expect((await h.count("[data-camstage]")) === 1, "немає сцени камери");
-      h.expect((await h.count("[data-eyes]")) === 1, "немає стану очей");
-      h.expect((await h.count("[data-expr]")) === 1, "немає міміки");
-      h.expect((await h.count("[data-meter]")) <= 1, "крок годинника двічі");
+      h.expect((await h.count("[data-rail]")) === 1, "немає шкали наближення");
+      h.expect((await h.count("[data-chips]")) === 0, "лишились чипи обличчя");
     },
   },
   {

@@ -3,7 +3,7 @@
 // /_rt/sw-core.js. `precache` is this app's shell — enough to boot with the network unplugged.
 self.MS = {
   app: "zhym",
-  version: "5cc2dddbda",
+  version: "8d277e2dd1",
   precache: [
     "./",
     "./engine.js",
@@ -36,7 +36,6 @@ self.MS = {
     "/_rt/effect.vendor.js",
     "/_rt/enrich.config.js",
     "/_rt/enrich.js",
-    "/_rt/face.js",
     "/_rt/feed.config.js",
     "/_rt/feed.js",
     "/_rt/fx.js",

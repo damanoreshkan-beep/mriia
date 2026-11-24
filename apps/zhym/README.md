@@ -4,7 +4,7 @@
 
 # Press
 
-**The camera under your face counts your push-ups. The stopwatch shows microseconds, and the log keeps a daily goal, a calendar, the beats of every rep and a frame of your face at the bottom.**
+**The camera under your face counts your push-ups. The stopwatch shows microseconds, and the log keeps a daily goal, a calendar, the beats of every rep and a frame from the bottom.**
 
 ![](https://img.shields.io/badge/-wellness-C13BFF?style=flat-square) ![](https://img.shields.io/badge/-offline-1F6B42?style=flat-square) ![](https://img.shields.io/badge/-installable-000000?style=flat-square)
 

@@ -510,25 +510,25 @@
     "id": "zhym",
     "title": "Жим",
     "titles": {
-      "uk": "Жим",
-      "en": "Press"
+      "en": "Press",
+      "uk": "Жим"
     },
-    "tagline": "Камера під обличчям рахує твої віджимання. Секундомір показує мікросекунди, а журнал зберігає ціль на день, календар, такти кожного повтору і кадр обличчя на дні.",
+    "tagline": "Камера під обличчям рахує твої віджимання. Секундомір показує мікросекунди, а журнал зберігає ціль на день, календар, такти кожного повтору і кадр з дна.",
     "taglines": {
-      "uk": "Камера під обличчям рахує твої віджимання. Секундомір показує мікросекунди, а журнал зберігає ціль на день, календар, такти кожного повтору і кадр обличчя на дні.",
-      "en": "The camera under your face counts your push-ups. The stopwatch shows microseconds, and the log keeps a daily goal, a calendar, the beats of every rep and a frame of your face at the bottom."
+      "en": "The camera under your face counts your push-ups. The stopwatch shows microseconds, and the log keeps a daily goal, a calendar, the beats of every rep and a frame from the bottom.",
+      "uk": "Камера під обличчям рахує твої віджимання. Секундомір показує мікросекунди, а журнал зберігає ціль на день, календар, такти кожного повтору і кадр з дна."
     },
     "glyph": "lucide:timer",
     "art": "<path d=\"M10 2h4\"/><path d=\"m12 14 3-3\"/><circle cx=\"12\" cy=\"14\" r=\"8\"/>",
     "icon": true,
     "screens": {
-      "uk": [
-        "Підхід",
-        "Журнал"
-      ],
       "en": [
         "Set",
         "Log"
+      ],
+      "uk": [
+        "Підхід",
+        "Журнал"
       ]
     },
     "shots": [
@@ -1673,23 +1673,23 @@
     "id": "posol",
     "title": "Посол",
     "titles": {
-      "uk": "Посол",
-      "en": "Posol"
+      "en": "Posol",
+      "uk": "Посол"
     },
     "tagline": "Інтернет очима іншої країни. Обираєте країну і послугу — посол приносить сторінку, ціну чи видачу такими, якими їх бачать там.",
     "taglines": {
-      "uk": "Інтернет очима іншої країни. Обираєте країну і послугу — посол приносить сторінку, ціну чи видачу такими, якими їх бачать там.",
-      "en": "The web through another country's eyes. Pick a country and a service — the envoy brings back the page, the price or the search results as they are seen there."
+      "en": "The web through another country's eyes. Pick a country and a service — the envoy brings back the page, the price or the search results as they are seen there.",
+      "uk": "Інтернет очима іншої країни. Обираєте країну і послугу — посол приносить сторінку, ціну чи видачу такими, якими їх бачать там."
     },
     "glyph": "lucide:globe",
     "art": "<circle cx=\"12\" cy=\"12\" r=\"10\"/>\n<path d=\"M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20\"/>\n<path d=\"M2 12h20\"/>",
     "icon": true,
     "screens": {
-      "uk": [
-        "Посол"
-      ],
       "en": [
         "Envoy"
+      ],
+      "uk": [
+        "Посол"
       ]
     },
     "shots": [
@@ -2484,7 +2484,7 @@
     "bg": "#0E0B1A",
     "fg": "#C0A9F5",
     "href": "./transit/",
-    "version": "1.32",
+    "version": "1.33",
     "category": "science",
     "needs": []
   },
@@ -3144,7 +3144,7 @@
     "bg": "#0A0A0B",
     "fg": "#00E5FF",
     "href": "./jobx/",
-    "version": "1.44",
+    "version": "1.45",
     "category": "tools",
     "needs": [
       "auth",

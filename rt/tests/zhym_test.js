@@ -1,5 +1,24 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { REP, dayTotals, fmtClock, fmtSec, goalStreak, records, repInit, repStep, setStats, tempoOf, tickOf } from "../zhym.js";
+import { REP, dayTotals, fmtClock, fmtSec, goalStreak, nearOf, records, repInit, repStep, setStats, tempoOf, tickOf } from "../zhym.js";
+
+const flat = (v, n = 16) => { const a = new Uint8ClampedArray(n * 4); for (let i = 0; i < a.length; i += 4) { a[i] = a[i + 1] = a[i + 2] = v; a[i + 3] = 255; } return a; };
+
+Deno.test("zhym: nearOf grows as the frame darkens, and a lit-to-shaded push-up clears the counter's ratio", () => {
+  assertEquals(nearOf(new Uint8ClampedArray(0)), 0);
+  assertEquals(nearOf(null), 0);
+  assert(Math.abs(nearOf(flat(0)) - 250) < 1e-9);
+  assert(nearOf(flat(40)) > nearOf(flat(160)));
+  assert(nearOf(flat(60)) / nearOf(flat(150)) >= REP.amp);
+  const st = repInit(), reps = [];
+  let t = 0;
+  const at = (v) => { const e = repStep(st, nearOf(flat(v)), t); t += 33.3; if (e.rep) reps.push(e.rep); };
+  for (let k = 0; k < 45; k++) at(150);
+  for (let r = 0; r < 5; r++) {
+    for (let k = 0; k < 27; k++) at(150 - 90 * Math.sin(Math.PI * k / 27));
+    for (let k = 0; k < 12; k++) at(150);
+  }
+  assertEquals(reps.length, 5);
+});
 
 const pushups = (n, { far = 0.12, close = 0.2, down = 900, up = 700, rest = 400, hz = 30, noise = 0 } = {}) => {
   const out = [];

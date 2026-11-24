@@ -5,6 +5,19 @@
 export const REP = { win: 8000, amp: 1.12, enter: 0.62, leave: 0.38, top: 0.25, alpha: 0.45, minRep: 350 };
 
 /**
+ * Nearness from one small camera frame: a face coming down onto the phone shades the lens, so the frame darkens.
+ * @param px RGBA bytes of a downscaled frame
+ * @returns 1000 / (mean luma + 4) — grows as the frame darkens, 0 for an empty buffer
+ */
+export function nearOf(px) {
+  const n = px ? px.length >> 2 : 0;
+  if (!n) return 0;
+  let sum = 0;
+  for (let i = 0; i < px.length; i += 4) sum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+  return 1000 / (sum / n + 4);
+}
+
+/**
  * A fresh counter state.
  * @returns the state `repStep` advances
  */
