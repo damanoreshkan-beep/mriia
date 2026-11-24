@@ -70,11 +70,11 @@ remix, radio) are round buttons ON the open form's rim along its lower right, un
 112° · 138° · 164° in `config.js` `rim`, each snapped to the outline's outermost point within ±2° (core shape.js
 `rimAt`, `rimSpread`); measured over the 13 organic forms two neighbouring centres are 52–74 px apart at R 150 px,
 so the 48 px buttons sit close for one thumb and never touch. The open cell carries everything and nothing lies over it. When the open song is the one that PLAYS, its spectrum becomes light around its form: twelve bands (core
-breath.js `listen`: a `captureStream()` copy of the playing element's sound read by an AnalyserNode, 55 Hz … 7 kHz,
-each band over its own running peak — the element itself never enters Web Audio, so a stopped context costs the
-picture and never the sound, and a streamed song lights up like a kept one; where the copy carries no sound after
-`liveWaitS` of play, a song kept on the phone is decoded once with `spectrumOfBlob` and read at the audio clock, and
-one `spectrum` telemetry row a song names the source and `listen().state()`) sent every frame as
+breath.js `listen`: the one Audio element routed once through `createMediaElementSource` → an AnalyserNode and the
+speakers, the context made by `connect()` inside the tap in `play()`, 55 Hz … 7 kHz, each band over its own running
+peak — the routing belongs to the element, so every next song, kept or streamed, is read with nothing re-attached;
+one `spectrum.stats` telemetry row a song after `statsAtS` names what reached the comb and `listen().state()`;
+`captureStream()` is gone: measured on the owner's phone its copy was silent) sent every frame as
 `PARAM.band + b`; comb.frag draws them as a corona of filaments in the theme's accent, not bars.
 
 ## The screen
