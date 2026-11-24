@@ -1,0 +1,44 @@
+{
+  "id": "zhym",
+  "theme": "signal",
+  "category": "wellness",
+  "accent": "#38E1D0",
+  "tabs": [
+    {
+      "id": "set",
+      "type": "tool",
+      "icon": "lucide:timer",
+      "label": "tabSet",
+      "view": "zhymSet",
+      "fit": true,
+      "needs": [
+        "camera",
+        "wakeLock"
+      ]
+    },
+    {
+      "id": "log",
+      "type": "tool",
+      "icon": "lucide:calendar-days",
+      "label": "tabLog",
+      "view": "zhymLog"
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:timer",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "permissions": [
+      "camera"
+    ]
+  },
+  "added": "2026-11-24"
+}

@@ -1,0 +1,6 @@
+  <style>
+    .zh-frame { position: relative; display: block; background: var(--color-base-300); }
+    .zh-frame img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.06); }
+    .zh-frame::after, .zh-tint { content: ""; position: absolute; inset: 0; background: var(--color-primary); mix-blend-mode: color; opacity: .35; pointer-events: none; }
+    .zh-ink { text-shadow: 0 1px 2px rgb(0 0 0 / .55), 0 0 18px rgb(0 0 0 / .35); }
+  </style>

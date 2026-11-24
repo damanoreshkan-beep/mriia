@@ -80,3 +80,4 @@ import "./tests/vassago_test.js";
 import "./tests/wav_test.js";
 import "./tests/wind_test.js";
 import "./tests/wish_test.js";
+import "./tests/zhym_test.js";

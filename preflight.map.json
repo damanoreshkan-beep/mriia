@@ -16,7 +16,7 @@
     "wabt": "npm:wabt@1.0.36",
     "motion": "https://esm.sh/motion@11.18.2",
     "lodash-es": "https://esm.sh/lodash-es@4.17.21",
-    "canvas": "https://jsr.io/@microspec/core/1.2.211/packages/gates/canvas-stub.js",
+    "canvas": "https://jsr.io/@microspec/core/1.2.212/packages/gates/canvas-stub.js",
     "/_rt/acts.js": "./rt/acts.js",
     "/_rt/afterbeat.js": "./rt/afterbeat.js",
     "/_rt/afterdark.js": "./rt/afterdark.js",
@@ -64,6 +64,10 @@
     "/_rt/iching.js": "./rt/iching.js",
     "/_rt/id3.js": "./rt/id3.js",
     "/_rt/ism433.js": "./rt/ism433.js",
+    "/_rt/kordon.config.js": "./rt/kordon.config.js",
+    "/_rt/kordon.js": "./rt/kordon.js",
+    "/_rt/kordonlobby.config.js": "./rt/kordonlobby.config.js",
+    "/_rt/kordonlobby.js": "./rt/kordonlobby.js",
     "/_rt/langid.js": "./rt/langid.js",
     "/_rt/lora.js": "./rt/lora.js",
     "/_rt/motion.js": "./rt/motion.js",
@@ -119,9 +123,10 @@
     "/_rt/wish.js": "./rt/wish.js",
     "/_rt/ytlikes.config.js": "./rt/ytlikes.config.js",
     "/_rt/ytlikes.js": "./rt/ytlikes.js",
+    "/_rt/zhym.js": "./rt/zhym.js",
     "/_rt/zodiac.js": "./rt/zodiac.js",
-    "https://jsr.io/@microspec/core/1.2.211/packages/runtime/backend.js": "./rt/backend.js",
-    "/_rt/": "https://jsr.io/@microspec/core/1.2.211/packages/runtime/",
-    "@microspec/core/runtime/": "https://jsr.io/@microspec/core/1.2.211/packages/runtime/"
+    "https://jsr.io/@microspec/core/1.2.212/packages/runtime/backend.js": "./rt/backend.js",
+    "/_rt/": "https://jsr.io/@microspec/core/1.2.212/packages/runtime/",
+    "@microspec/core/runtime/": "https://jsr.io/@microspec/core/1.2.212/packages/runtime/"
   }
 }
