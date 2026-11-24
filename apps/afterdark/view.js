@@ -20,8 +20,8 @@ import { $cast, $moves, getCast, getMoves } from "./state.js";
 export { castView } from "./cast.js";
 import { readPalette, isDay, SLOTS } from "./palette.js";
 
-const STREAM = "https://streams.rautemusik.fm/techno/mp3-192";
 const LIVE = VPS_PROXY + "/live/master.m3u8";
+const HLS = "https://esm.sh/hls.js@1.5.17";
 const IOS = typeof navigator !== "undefined" && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 const HLS_CFG = {
   xhrSetup: (xhr, url) => { xhr.open("GET", url, true); xhr.setRequestHeader("Range", "bytes=0-"); },
@@ -56,7 +56,7 @@ let el = null, ctx = null, src = null, analyser = null, freq = null, np = null, 
 let beatAn = null, fdb = null, mag = null, magPrev = null;
 let attempt = 0, retryTimer = null, stallTimer = null, connectTimer = null, liveTimer = null, mark = null;
 let hls = null, hlsMod = null, dvrDead = false;
-async function loadHls() { if (hlsMod !== null) return hlsMod; try { hlsMod = (await import("hls.js")).default || false; } catch { hlsMod = false; } return hlsMod; }
+async function loadHls() { if (hlsMod !== null) return hlsMod; try { hlsMod = (await import(HLS)).default || false; } catch { hlsMod = false; } return hlsMod; }
 function killHls() { if (hls) { try { hls.destroy(); } catch { } hls = null; } }
 function attachHls(a, H) {
   let manifestFails = 0;
@@ -114,7 +114,7 @@ async function play({ reconnect = false } = {}) {
   a.onended = () => { if (el === a) lost(a); };
   a.onerror = () => { if (el === a) lost(a); };
   connectTimer = setTimeout(() => { if (el === a && $state.get() !== "live") lost(a); }, 12000);
-  attach(a);
+  if (!IOS) attach(a);
   const H = (!IOS && !dvrDead) ? await loadHls() : false;
   if (el !== a) return;
   const dvr = !!(H && H.isSupported());
@@ -124,7 +124,7 @@ async function play({ reconnect = false } = {}) {
     attachHls(a, H);
   } else {
     a.onwaiting = a.onstalled = () => { if (el !== a) return; if (hadAudio) { $state.set("reconnecting"); armStall(); } };
-    a.src = STREAM;
+    a.src = LIVE;
   }
   a.dvr = dvr;
   const p = a.play();
