@@ -196,7 +196,7 @@ export function posol({ S }) {
     const value = (row) => row.kind === "url"
       ? html`<a href=${row.value} target="_blank" rel="noopener noreferrer" class="link link-hover break-all">${row.value}</a>`
       : html`<span class="break-words">${shown(row)}</span>`;
-    const rowsOf = (rows) => rows.length ? html`<dl class="flex flex-col [&>div+div]:border-t [&>div+div]:border-base-300/50">${rows.map((row, i) => html`<div key=${i} data-row class="flex gap-3 py-2 text-sm">
+    const rowsOf = (rows) => rows.length ? html`<dl class="flex flex-col [&>div+div]:border-t [&>div+div]:border-base-content/10">${rows.map((row, i) => html`<div key=${i} data-row class="flex gap-3 py-2 text-sm">
       <dt class=${`${LABEL} w-[38%] shrink-0 pt-0.5 break-words`}>${row.key || "·"}</dt><dd class="min-w-0 flex-1">${value(row)}</dd>
     </div>`)}</dl>` : null;
     const listsOf = (lists) => lists.map((l) => html`<div key=${l.key} data-list class="flex flex-col gap-1.5">
@@ -207,7 +207,7 @@ export function posol({ S }) {
     return html`<section data-result=${r.state} aria-live="polite" class="flex flex-col gap-[var(--ms-gap)] px-0.5 pb-4">
       <div data-exit class=${`${LABEL} flex flex-wrap items-center gap-x-3 gap-y-1`}>
         <span class="inline-flex items-center gap-1.5">${Dot()}${T(t, "exitFrom")} · ${b.exit_country || r.country}${exit ? ` · ${countryName(exit)}` : ""}</span>
-        ${elapsedOf(b.elapsed_ms) ? html`<span class="tabular-nums">${T(t, "elapsed")} · ${elapsedOf(b.elapsed_ms)}</span>` : null}
+        ${elapsedOf(b.elapsed_ms) ? html`<span class="tabular-nums">${T(t, "elapsed")} · <span class="normal-case">${elapsedOf(b.elapsed_ms)}</span></span>` : null}
       </div>
       ${r.state === "failed" ? html`<p data-failed role="alert" class="text-sm text-error">${T(t, "failedWhy", { why: String(b.failed || "—") })}</p>` : null}
       ${out.title ? html`<h3 data-page-title class="font-bold text-[1.25rem] leading-tight tracking-tight break-words">${out.title}</h3>` : null}

@@ -85,7 +85,8 @@ Deno.test("posol: markdown becomes a plain excerpt with links as their words", (
 Deno.test("posol: the readout folds a page into title, excerpt, rows and lists", () => {
   const r = readout(FIXTURE_RESULT.data);
   assertEquals(r.title, "Example Domain — Deutschland");
-  assert(r.excerpt.startsWith("Example Domain\n\nDiese Domain"));
+  assert(r.excerpt.startsWith("Diese Domain"), "the heading that repeats the title is dropped");
+  assertEquals(readout({ title: "Other", markdown: "# Heading\n\nBody" }).excerpt, "Heading\n\nBody");
   assertEquals(r.rows.map((x) => x.key), ["url", "final url", "http status", "lang", "meta description", "meta canonical"]);
   assertEquals(r.rows[2], { key: "http status", kind: "num", value: "200" });
   assertEquals(r.rows[1].kind, "url");

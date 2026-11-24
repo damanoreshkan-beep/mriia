@@ -205,7 +205,10 @@ export function readout(data) {
   const rows = [], lists = [];
   for (const [k, v] of Object.entries(d)) if (!SKIP.has(k)) flatten(k, v, rows, lists, 0);
   const summary = isObj(d.summary) ? Object.entries(d.summary).map(([k, v]) => `${labelOf(k)}: ${lineOf(v)}`).join(" · ") : squash(d.summary);
-  return { title: squash(d.title), excerpt: d.markdown ? excerptOf(d.markdown) : "", summary, perCountry: perCountryOf(d.per_country), rows, lists };
+  const title = squash(d.title);
+  const paras = d.markdown ? excerptOf(d.markdown).split("\n\n") : [];
+  if (title && paras.length > 1 && title.toLowerCase().startsWith(paras[0].toLowerCase())) paras.shift();
+  return { title, excerpt: paras.join("\n\n"), summary, perCountry: perCountryOf(d.per_country), rows, lists };
 }
 
 /** The comb's order: services grouped by direction, the first direction's first service at the centre. */
