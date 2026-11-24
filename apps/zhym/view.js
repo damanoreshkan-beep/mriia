@@ -20,7 +20,7 @@ function Chips({ t, read }) {
   if (!read) return null;
   const eyes = read.eyes && read.eyes.state || "open", dir = read.gaze && read.gaze.dir || "c", ex = read.expr && read.expr.id || "calm";
   const chip = "inline-flex items-center gap-1.5 rounded-full px-3 py-1 bg-black/45 backdrop-blur text-white text-sm font-medium whitespace-nowrap";
-  return html`<div class="flex flex-wrap justify-center gap-1.5" data-chips>
+  return html`<div class="flex flex-wrap justify-center gap-1.5 [@media(max-height:460px)]:hidden" data-chips>
     <span class=${chip} data-eyes=${eyes}>${Icon(eyes === "open" ? "lucide:eye" : "lucide:eye-closed", "text-base")}${T(t, EYES_KEY[eyes])}</span>
     ${eyes === "closed" ? null : html`<span class=${chip} data-gaze=${dir}>${Icon(GAZE_ICON[dir] || GAZE_ICON.c, "text-base")}${T(t, `gaze_${dir}`)}</span>`}
     <span class=${chip} data-expr=${ex}>${Icon("lucide:scan-face", "text-base")}${T(t, `expr_${ex}`)}</span>
@@ -74,19 +74,19 @@ export function zhymSet({ S, toast }) {
         <div class="zh-tint absolute inset-0 pointer-events-none" aria-hidden="true"></div>
         <div class="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-[clamp(0.25rem,1.5vh,0.75rem)] px-4 text-center pointer-events-none zh-ink">
           <${Chips} t=${t} read=${read} />
-          <div class="font-mono font-bold tabular-nums leading-none text-white text-[clamp(4.5rem,26vmin,12rem)]" data-count data-live aria-label=${T(t, "reps")}>${count}</div>
+          <div class="font-mono font-bold tabular-nums leading-none text-white text-[clamp(4.5rem,26vmin,12rem)] [@media(max-height:460px)]:text-[3.25rem]" data-count data-live aria-label=${T(t, "reps")}>${count}</div>
           <div class="text-base">${status}</div>
           <div ref=${clockRef} class="font-mono tabular-nums text-white text-[clamp(1.5rem,7.5vmin,2.75rem)] leading-tight" data-clock>${fmtClock(run ? 0 : dur)}</div>
           ${tempo ? html`<div class="flex items-center gap-4 font-mono tabular-nums text-white/90 text-sm [@media(max-height:460px)]:hidden" data-tempo>
-            <span class="inline-flex items-center gap-1">${Icon("lucide:arrow-down", "text-base text-primary")}${fmtSec(tempo.down)} ${T(t, "unitS")}</span>
-            <span class="inline-flex items-center gap-1">${Icon("lucide:arrow-up", "text-base text-primary")}${fmtSec(tempo.up)} ${T(t, "unitS")}</span>
+            <span class="inline-flex items-center gap-1">${Icon("lucide:arrow-down", "text-base")}${fmtSec(tempo.down)} ${T(t, "unitS")}</span>
+            <span class="inline-flex items-center gap-1">${Icon("lucide:arrow-up", "text-base")}${fmtSec(tempo.up)} ${T(t, "unitS")}</span>
           </div>` : null}
           ${meter ? html`<div class="font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-white/70 [@media(max-height:520px)]:hidden" data-meter>
             ${T(t, "tick", { v: Math.round(meter.tick * 1000) })}${meter.fps ? html` · ${T(t, "fps", { v: meter.fps })}` : null} · ${meter.delegate}
           </div>` : null}
         </div>
         ${run || gate ? html`<div class="absolute right-3 top-[20%] bottom-[20%] w-1.5 rounded-full bg-white/20 z-[2] pointer-events-none" aria-hidden="true" data-rail>
-          ${pos != null ? html`<span class="absolute left-1/2 -translate-x-1/2 size-3.5 rounded-full bg-primary shadow" style=${`top:calc(${Math.round(pos * 100)}% - 0.4375rem)`}></span>` : null}
+          ${pos != null ? html`<span class="absolute left-1/2 -translate-x-1/2 size-3.5 rounded-full bg-white shadow" style=${`top:calc(${Math.round(pos * 100)}% - 0.4375rem)`}></span>` : null}
         </div>` : null}
       <//>
     </div>

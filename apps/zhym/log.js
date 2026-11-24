@@ -10,6 +10,8 @@ import { $goal, $pick, $sets, loadSets } from "./engine.js";
 const Icon = (icon, cls) => html`<iconify-icon icon=${icon} class=${cls || ""} aria-hidden="true"></iconify-icon>`;
 const LABEL = "font-mono text-[length:var(--ms-label)] uppercase tracking-wider text-base-content/70 truncate";
 const GOALS = [10, 1000];
+const UP_C = "color-mix(in oklch, var(--color-base-content) 40%, transparent)";
+const UP = `background:${UP_C}`, UP_FILL = `fill:${UP_C}`;
 
 const Stat = (label, value, unit, attr) => html`<div class="rounded-[var(--ms-r-in)] sf-inset px-3 py-2 min-w-0" ...${attr || {}}>
   <div class=${LABEL}>${label}</div>
@@ -41,7 +43,7 @@ function Tempo({ t, reps }) {
       <span class=${LABEL}>${T(t, "tempo")}</span>
       <span class="flex items-center gap-2 text-[length:var(--ms-label)] text-base-content/70 shrink-0">
         <span class="inline-flex items-center gap-1"><span class="size-2 rounded-sm" style="background:var(--app-accent)"></span>${T(t, "down")}</span>
-        <span class="inline-flex items-center gap-1"><span class="size-2 rounded-sm bg-base-content/35"></span>${T(t, "up")}</span>
+        <span class="inline-flex items-center gap-1"><span class="size-2 rounded-sm" style=${UP}></span>${T(t, "up")}</span>
       </span>
     </div>
     <svg viewBox=${`0 0 ${reps.length * W} ${H}`} preserveAspectRatio="none" class="w-full h-14 block" aria-hidden="true" data-tempo-bars>
@@ -49,7 +51,7 @@ function Tempo({ t, reps }) {
         const hd = x.down / max * H, hu = x.up / max * H;
         return html`<g key=${i}>
           <rect x=${i * W + 1.5} y=${H - hd} width=${W - 3} height=${hd} rx="1.5" style="fill:var(--app-accent)" />
-          <rect x=${i * W + 1.5} y=${H - hd - hu} width=${W - 3} height=${Math.max(0, hu - 1)} rx="1.5" class="fill-base-content/35" />
+          <rect x=${i * W + 1.5} y=${H - hd - hu} width=${W - 3} height=${Math.max(0, hu - 1)} rx="1.5" style=${UP_FILL} />
         </g>`;
       })}
     </svg>
