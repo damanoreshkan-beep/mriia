@@ -21,4 +21,5 @@ export const CONFIG = {
   rim: [112, 138, 164],
   rimSpread: 2,
   liveWaitS: 2,
+  statsAtS: 8,
 };

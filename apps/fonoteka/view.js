@@ -403,6 +403,18 @@ async function dropList(l) {
 }
 
 let combApi = null, raf = 0, spec = null, specOf = "", told = "";
+let seen = { id: "", frames: 0, empty: 0, live: 0, top: 0, sum: 0, sent: 0, done: false };
+function measure(id, f, live, b) {
+  if (seen.id !== id) seen = { id, frames: 0, empty: 0, live: 0, top: 0, sum: 0, sent: 0, done: false };
+  if (seen.done) return;
+  seen.frames++;
+  if (!f) seen.empty++;
+  if (live) seen.live++;
+  if (b) { seen.sent++; for (let i = 0; i < SPECTRUM_BANDS; i++) { seen.top = Math.max(seen.top, b[i]); seen.sum += b[i]; } }
+  if (audio.currentTime < CONFIG.statsAtS) return;
+  seen.done = true;
+  report("spectrum.stats", { yt: id.startsWith("y:"), frames: seen.frames, empty: seen.empty, live: seen.live, sent: seen.sent, top: seen.top, mean: seen.sent ? Math.round(seen.sum / (seen.sent * SPECTRUM_BANDS)) : 0, comb: !!combApi, ...(tap ? tap.state() : DEAF) }, "info");
+}
 const pulse = (v) => { try { combApi?.exports.set(PARAM.pulse, v); } catch { } };
 const bands = (arr) => { try { for (let b = 0; b < SPECTRUM_BANDS; b++) combApi?.exports.set(PARAM.band + b, arr ? arr[b] : 0); } catch { } };
 function stopBreath() { cancelAnimationFrame(raf); raf = 0; pulse(0); bands(null); }
@@ -433,6 +445,7 @@ function breathe() {
     const k = !live && spec && specOf === id ? keptFrame() : null;
     const b = live ? f.bands : k, p = live ? f.pulse : k ? (k[0] + k[1]) / 510 : 0;
     pulse(p); bands(b);
+    measure(id, f, live, b);
     if (b) onBeat(p);
   };
   tick();
