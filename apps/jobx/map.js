@@ -4,10 +4,16 @@ import { isGate } from "/_rt/gate.js";
 import { viewFor, DEV_HOST, $glReady, shortSalary } from "./jobs.js";
 import { Effect } from "/_rt/fx.js";
 import { CONFIG } from "./config.js";
+import { report } from "/_rt/telemetry.js";
 
 const GEO = `${location.origin}/geo`;   
 const LUMA = "9.4.2";
-const DECK_URL = `https://esm.sh/deck.gl@9.4.0?deps=${["core", "engine", "shadertools", "webgl", "gpgpu", "gltf"].map((p) => `@luma.gl/${p}@${LUMA}`).join(",")}`;
+const DECK = "9.4.0";
+const DECK_PKGS = ["core", "layers", "geo-layers", "mesh-layers", "extensions", "aggregation-layers", "json", "widgets", "carto", "react", "arcgis", "mapbox", "maplibre", "google-maps"];
+const DECK_URL = `https://esm.sh/deck.gl@${DECK}?deps=${[
+  ...DECK_PKGS.map((p) => `@deck.gl/${p}@${DECK}`),
+  ...["core", "engine", "shadertools", "webgl", "gpgpu", "gltf"].map((p) => `@luma.gl/${p}@${LUMA}`),
+].join(",")}`;
 
 const LANDMARKS = {
   kyiv: [
@@ -124,7 +130,7 @@ function groundCSS(pal) {
 async function makeDeck(canvas, cityId) {
   if (isGate) return null;
   try { if (!canvas.getContext("webgl2")) return null; } catch { return null; }
-  let D; try { D = await import(DECK_URL); } catch { return null; }
+  let D; try { D = await import(DECK_URL); } catch (e) { report("jobx.deck", { msg: String(e && e.message || e).slice(0, 200) }); return null; }
   if (!D || !D.Deck) return null;
 
   const VIEW = viewFor(cityId);
