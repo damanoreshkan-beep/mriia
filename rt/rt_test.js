@@ -51,6 +51,7 @@ import "./tests/pendulum_test.js";
 import "./tests/pinterest_test.js";
 import "./tests/places_test.js";
 import "./tests/portid_test.js";
+import "./tests/posol_test.js";
 import "./tests/pwned_test.js";
 import "./tests/radar_test.js";
 import "./tests/rds_test.js";

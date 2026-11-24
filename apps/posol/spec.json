@@ -1,0 +1,33 @@
+{
+  "id": "posol",
+  "theme": "signal",
+  "category": "tools",
+  "accent": "#E0B25A",
+  "tabs": [
+    {
+      "id": "envoy",
+      "type": "tool",
+      "icon": "lucide:globe",
+      "label": "tabEnvoy",
+      "view": "posol",
+      "needs": [
+        "auth"
+      ]
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:globe",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "account": "any"
+  },
+  "added": "2026-11-24"
+}

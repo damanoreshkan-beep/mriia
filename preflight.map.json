@@ -79,6 +79,7 @@
     "/_rt/places.config.js": "./rt/places.config.js",
     "/_rt/places.js": "./rt/places.js",
     "/_rt/portid.js": "./rt/portid.js",
+    "/_rt/posol.js": "./rt/posol.js",
     "/_rt/pwned.js": "./rt/pwned.js",
     "/_rt/radar.js": "./rt/radar.js",
     "/_rt/rds.js": "./rt/rds.js",

@@ -1,5 +1,12 @@
 [
   {
+    "id": "2026-11-24-posol",
+    "date": "2026-11-24",
+    "app": "posol",
+    "uk": "Новий застосунок — Посол: обери країну і послугу з каталогу, і посол принесе сторінку, ціну чи пошукову видачу такими, якими їх бачать там.",
+    "en": "New app — Posol: pick a country and a service from the catalog, and the envoy brings back the page, the price or the search results as they are seen there."
+  },
+  {
     "id": "2026-11-07-rozriad",
     "date": "2026-11-07",
     "app": "rozriad",
