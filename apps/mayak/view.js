@@ -46,7 +46,10 @@ const nsOrg = (host) => {
   return parts.length >= 2 ? parts[parts.length - 2].replace(/[-_]\d.*$/, "").replace(/^./, (c) => c.toUpperCase()) : String(host || "");
 };
 
-const color = (h) => h.vulns > 0 ? RED : ACCENT;
+const vulnIds = (h) => (Array.isArray(h.vulns) ? h.vulns : []);
+const vulnCount = (h) => (Array.isArray(h.vulns) ? h.vulns.length : Number(h.vulns) || 0);
+const color = (h) => vulnCount(h) > 0 ? RED : ACCENT;
+const listOf = (v) => (Array.isArray(v) ? v.filter(Boolean) : []);
 
 function regionName(cc, loc, everywhere) {
   if (!cc) return everywhere;
@@ -61,6 +64,7 @@ function hostText(h, t, loc) {
   const place = [h.city, regionName(h.country, loc, "")].filter(Boolean).join(", ");
   if (place) L.push(place);
   if (h.lat != null && h.lon != null) L.push(`${h.lat}, ${h.lon}`);
+  if (vulnIds(h).length) L.push(`CVE: ${vulnIds(h).join(", ")}`);
   L.push(`Shodan: https://www.shodan.io/host/${h.ip}`);
   return L.join("\n");
 }
@@ -147,7 +151,25 @@ export function map({ S, toast, openScreen, closeScreen }) {
   const openHost = (h) => { setSel(h); openScreen && openScreen("host"); };
   const kindWord = (h) => T(t, "kind." + (h.kind || "access"));
   const place = (h) => h.city || h.country || "";
-  const summary = (h) => [place(h) ? T(t, "sumPlace", { city: place(h) }) : "", T(t, "sumPorts", { n: h.ports || 1 }), h.vulns > 0 ? T(t, "sumVulns", { n: h.vulns }) : T(t, "sumSafe")].filter(Boolean).join(". ") + ".";
+  const summary = (h) => [place(h) ? T(t, "sumPlace", { city: place(h) }) : "", T(t, "sumPorts", { n: h.ports || 1 }), vulnCount(h) > 0 ? T(t, "sumVulns", { n: vulnCount(h) }) : T(t, "sumSafe")].filter(Boolean).join(". ") + ".";
+  const seen = (ts) => {
+    const d = ts ? new Date(ts) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString(loc === "uk" ? "uk-UA" : "en-US", { day: "numeric", month: "short", year: "numeric" }) : "";
+  };
+  const details = (h) => [
+    ["d.transport", h.transport ? String(h.transport).toUpperCase() : ""],
+    ["d.version", h.version],
+    ["d.os", h.os],
+    ["d.module", h.module],
+    ["d.title", h.title],
+    ["d.isp", h.isp && h.isp !== h.org ? h.isp : ""],
+    ["d.asn", h.asn],
+    ["d.hostnames", listOf(h.hostnames).join(", ")],
+    ["d.domains", listOf(h.domains).join(", ")],
+    ["d.tags", listOf(h.tags).join(", ")],
+    ["d.cpe", listOf(h.cpe).join("\n")],
+    ["d.seen", seen(h.timestamp)],
+  ].filter(([, v]) => v);
 
   if ((screen === "host" || screen === "peek") && sel) {
     return html`<div class="flex flex-col gap-[var(--ms-gap)]" data-host=${sel.ip}>
@@ -190,6 +212,27 @@ export function map({ S, toast, openScreen, closeScreen }) {
           </div>
         </div>
       <//>
+      ${vulnCount(sel) > 0 ? html`<${Panel} title=${T(t, "vulnsTitle")} data-vulns=${vulnCount(sel)}>
+        ${vulnIds(sel).length
+          ? html`<div class="flex flex-wrap gap-1.5">${vulnIds(sel).map((id) => html`<a key=${id} data-cve=${id}
+              href=${"https://nvd.nist.gov/vuln/detail/" + encodeURIComponent(id)} target="_blank" rel="noopener noreferrer"
+              class="badge h-7 gap-1 font-mono text-xs" style=${{ color: RED, background: RED + "1f", textTransform: "none" }}>
+              ${Icon("lucide:shield-alert", "text-sm")}${id}</a>`)}</div>
+            <p class="text-xs text-muted leading-snug mt-2">${T(t, "vulnsHint")}</p>`
+          : html`<p class="text-sm">${T(t, "sumVulns", { n: vulnCount(sel) })}</p>`}
+      <//>` : null}
+      ${details(sel).length ? html`<${Panel} title=${T(t, "detailsTitle")} data-details=${details(sel).length}>
+        <div class="flex flex-col divide-y divide-base-300/40">
+          ${details(sel).map(([k, v]) => html`<div key=${k} class="flex items-start gap-3 py-1.5">
+            <span class="text-sm text-muted shrink-0 w-28">${T(t, k)}</span>
+            <span class="font-mono text-sm break-all whitespace-pre-line min-w-0 grow">${v}</span>
+          </div>`)}
+        </div>
+      <//>` : null}
+      ${sel.banner ? html`<${Panel} title=${T(t, "bannerTitle")}>
+        <p class="text-xs text-muted leading-snug mb-2">${T(t, "bannerHint")}</p>
+        <pre data-banner class="sf-inset rounded-[var(--ms-r-in)] p-3 m-0 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all max-h-80 overflow-auto">${sel.banner}</pre>
+      <//>` : null}
     </div>`;
   }
 
@@ -201,7 +244,7 @@ export function map({ S, toast, openScreen, closeScreen }) {
       <span class="font-mono text-sm break-all">${h.ip}${h.port ? ":" + h.port : ""}</span>
       <span class="block text-sm text-muted truncate">${h.product || kindWord(h)}${place(h) ? " · " + place(h) : ""}</span>
     </span>
-    ${h.vulns > 0 ? html`<span class="shrink-0 mt-0.5" style=${{ color: RED }}>${Icon("lucide:shield-alert", "text-sm")}</span>` : null}
+    ${vulnCount(h) > 0 ? html`<span class="shrink-0 mt-0.5" style=${{ color: RED }}>${Icon("lucide:shield-alert", "text-sm")}</span>` : null}
     ${Icon("lucide:chevron-right", "text-base text-base-content/40 shrink-0 mt-0.5")}
   </button>`;
 

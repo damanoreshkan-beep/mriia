@@ -181,5 +181,22 @@
   "installDesc": "Works offline, opens like an app",
   "installIosHint": "In Safari: tap Share, then 'Add to Home Screen'.",
   "installGenericHint": "In your browser menu choose 'Install' or 'Add to Home Screen'.",
-  "close": "Close"
+  "close": "Close",
+  "vulnsTitle": "Vulnerabilities",
+  "vulnsHint": "Known CVEs Shodan matched to this service and version. Tap one to read it on NVD.",
+  "detailsTitle": "Service",
+  "bannerTitle": "Banner",
+  "bannerHint": "What the service answered when Shodan connected.",
+  "d.transport": "Transport",
+  "d.version": "Version",
+  "d.os": "System",
+  "d.module": "Module",
+  "d.title": "Page title",
+  "d.isp": "Provider",
+  "d.asn": "Network",
+  "d.hostnames": "Hostnames",
+  "d.domains": "Domains",
+  "d.tags": "Tags",
+  "d.cpe": "CPE",
+  "d.seen": "Seen"
 }
