@@ -216,7 +216,7 @@ export function map({ S, toast, openScreen, closeScreen }) {
         ${vulnIds(sel).length
           ? html`<div class="flex flex-wrap gap-1.5">${vulnIds(sel).map((id) => html`<a key=${id} data-cve=${id}
               href=${"https://nvd.nist.gov/vuln/detail/" + encodeURIComponent(id)} target="_blank" rel="noopener noreferrer"
-              class="badge h-7 gap-1 font-mono text-xs" style=${{ color: RED, background: RED + "1f", textTransform: "none" }}>
+              class="badge h-7 gap-1 font-mono text-xs text-error border-0" style=${{ background: "color-mix(in oklch, var(--color-error) 14%, transparent)", textTransform: "none" }}>
               ${Icon("lucide:shield-alert", "text-sm")}${id}</a>`)}</div>
             <p class="text-xs text-muted leading-snug mt-2">${T(t, "vulnsHint")}</p>`
           : html`<p class="text-sm">${T(t, "sumVulns", { n: vulnCount(sel) })}</p>`}
