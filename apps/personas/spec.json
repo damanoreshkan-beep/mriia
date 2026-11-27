@@ -1,0 +1,47 @@
+{
+  "id": "personas",
+  "theme": "signal",
+  "category": "creative",
+  "accent": "#9B8CFF",
+  "detail": {
+    "title": "name",
+    "subtitle": "byline",
+    "view": "interview"
+  },
+  "tabs": [
+    {
+      "id": "people",
+      "type": "tool",
+      "icon": "lucide:users-round",
+      "label": "tabPeople",
+      "titleKey": "title",
+      "view": "people",
+      "needs": [
+        "auth"
+      ]
+    },
+    {
+      "id": "compare",
+      "type": "tool",
+      "icon": "lucide:columns-3",
+      "label": "tabCompare",
+      "titleKey": "tabCompare",
+      "view": "compare"
+    },
+    {
+      "id": "me",
+      "type": "profile",
+      "icon": "lucide:user",
+      "label": "tabMe",
+      "titleKey": "tabMe"
+    }
+  ],
+  "profile": {
+    "icon": "lucide:users-round",
+    "theme": true,
+    "lang": true,
+    "install": true,
+    "account": "any"
+  },
+  "added": "2026-11-27"
+}

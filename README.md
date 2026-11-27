@@ -26,7 +26,7 @@
 </tr>
 </table>
 
-<sub>**97 installable apps** — sound, tools, feeds, creative work, science, radio, games, money, wellness, esoterica. Dark is the moon's side, light is the sun's.</sub>
+<sub>**98 installable apps** — sound, tools, feeds, creative work, science, radio, games, money, wellness, esoterica. Dark is the moon's side, light is the sun's.</sub>
 
 </div>
 
@@ -65,7 +65,7 @@ Every app is one `spec.json` and one `view.js` on two runtime halves.
 
 ## How it ships
 
-Every push runs the browser-free gate DAG. A real Chromium then sweeps every affected app: axe in both themes, an eight-viewport matrix, the app's own e2e, offline precache, runtime errors. The built site passes a measured eye before rsync. The same contract draws the 97 icons, the store and the chrome.
+Every push runs the browser-free gate DAG. A real Chromium then sweeps every affected app: axe in both themes, an eight-viewport matrix, the app's own e2e, offline precache, runtime errors. The built site passes a measured eye before rsync. The same contract draws the 98 icons, the store and the chrome.
 
 The `dev` branch lands on a pod on the server. The eye looks there. Nothing runs on the phone that built it.
 

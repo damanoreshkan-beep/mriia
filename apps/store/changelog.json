@@ -1,5 +1,12 @@
 [
   {
+    "id": "2026-11-27-personas",
+    "date": "2026-11-27",
+    "app": "personas",
+    "uk": "Новий застосунок — Персони: опиши, для кого ідея, і отримаєш людей з фото, грошима й звичками, яких можна розпитати, показати їм ідею і порівняти, хто скільки заплатить.",
+    "en": "New app — Personas: say who your idea is for and get people with photos, money and habits to question, show the idea to and compare who would pay how much."
+  },
+  {
     "id": "2026-11-24-zhym",
     "date": "2026-11-24",
     "app": "zhym",
